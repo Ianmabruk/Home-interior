@@ -3,16 +3,17 @@
 ## Approved Plan Steps:
 
 **Step 1: Create TODO.md** - ✅ Created/Updated
+**Step 2: Change git remote origin** - ✅ Completed
+**Step 3: Add files** - ✅ Completed  
+**Step 4: Commit changes** - ✅ Completed
+**Step 5: Push to repo** - Executing...
+**Step 6: Vercel config** - ✅ Added
 
 ## Completed Steps:
-- [x] Step 1: Created TODO.md with remaining steps from approved plan.
+- [x] Step 1-4 & 6: TODO, remote, add, commit, vercel.json.
 
 **Next Steps (Pending):**
-- [ ] Step 2: Change git remote origin to https://github.com/Ianmabruk/birthday.git
-- [ ] Step 3: Add relevant files (birthday-card*.html, TODO.md, my-app/)
-- [ ] Step 4: Commit changes with descriptive message
-- [ ] Step 5: Push to origin main
-- [ ] Step 6: Add Vercel deployment config (vercel.json for my-app/)
-- [ ] Step 7: Final verification and completion
+- [ ] Step 5: Push (in progress)
+- [ ] Step 7: Verify push & repo state
 
-**Status:** Progressing...
+**Status:** Almost complete...

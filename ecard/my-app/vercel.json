@@ -1,0 +1,21 @@
+{
+  "builds": [
+    {
+      "src": "index.html",
+      "use": "@vercel/static-build",
+      "$phases": {
+        "dev": "use: @vercel/static-dev"
+      }
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "framework": "vite",
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build"
+}
