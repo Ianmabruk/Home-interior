@@ -1,0 +1,7 @@
+- [x] Update API 401 handling in `interior/src/services/api.js` to avoid aggressive logout on non-auth endpoint failures.
+- [x] Improve admin product flows in `interior/src/admin/Products.jsx`:
+  - [x] Better handling for unauthorized vendor/media requests.
+  - [x] Ensure media URLs persist and UI refreshes after create/update.
+  - [x] Add currency indicator in product price input.
+- [ ] Run a frontend validation command (build/lint) to verify no regressions.
+- [ ] Mark completed tasks in this TODO file.
