@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-A comprehensive production-level audit was performed on the HOK Interior website. All 10 major issues were identified and fixed. Below is the complete root cause analysis, all fixes applied, and the browser compatibility/performance report.
+A comprehensive production-level audit was performed on the HOK Interior website. All issues were identified and fixed. Below is the complete root cause analysis, all fixes applied, and the browser compatibility/performance report.
 
 ---
 
@@ -411,6 +411,51 @@ A comprehensive production-level audit was performed on the HOK Interior website
    - Products now always fetch full batch (up to 48) and paginate client-side only
 
 7. **`AUDIT_REPORT.md`** — This comprehensive audit report
+
+8. **`HOK-backend/routes/projects.py`** — Fixed missing VirtualProject integration in `/api/projects` endpoint:
+   - Added `VirtualProject` query to include virtual interior projects in hero showcase
+   - Virtual projects now appear alongside portfolio and before-after projects
+   - Projects are sorted by creation date for consistent ordering
+
+9. **`HOK-backend/models/models.py`** — Added `slug` field to VirtualProject model:
+   - Added `slug` column for URL-friendly project identification
+   - `slug` is auto-generated from title on create/update
+   - Included in `to_dict()` response for frontend routing
+
+10. **`HOK-backend/app.py`** — Added schema migration for VirtualProject slug column:
+    - Schema update to add slug column if missing
+
+11. **`HOK-backend/routes/virtual_interior_services.py`** — Fixed admin virtual project endpoints:
+    - Added `_generate_slug()` helper function for URL-safe slugs
+    - Slug auto-generated on project creation from title
+    - Cache invalidation properly integrated
+
+12. **`interior/src/services/api.js`** — Enhanced cache paths:
+    - Added `/virtual-interior/projects`, `/virtual-interior/overview`, `/virtual-interior/inspiration`, `/virtual-interior/previews`, `/projects/stats` to cacheable paths
+
+13. **`interior/src/components/showcase/HeroProjectShowcase.jsx`** — Enhanced cache clearing:
+    - Added cache clearing for virtual-interior endpoints on admin data changes
+
+14. **`interior/src/pages/VirtualShowcase.jsx`** — Fixed cache invalidation:
+    - Added `clearApiCache` import and proper cache clearing on admin events
+
+15. **`interior/src/pages/VirtualShowcaseProjectDetail.jsx`** — Fixed project ID matching:
+    - Updated to handle prefixed IDs (virtual-123, portfolio-45, etc.)
+    - Strips prefix for matching against route parameter
+
+16. **`interior/src/components/virtual-showcase/ShowcaseProjectCard.jsx`** — Fixed project link:
+    - Changed from `project.slug` to `project.id` for reliable routing
+
+17. **`interior/src/hooks/api/useVirtualProjects.js`** — New file created:
+    - Added React Query hooks for virtual projects with proper cache invalidation
+
+18. **`interior/src/hooks/api/index.js`** — Exported new virtual projects hooks
+
+19. **`interior/src/admin/VirtualInteriorServices.jsx`** — Enhanced cache invalidation:
+    - Added `clearApiCache` calls after save/delete operations
+
+20. **`interior/src/admin/About.jsx`** — Enhanced cache invalidation:
+    - Added `clearApiCache` call after about settings save
 
 ---
 
