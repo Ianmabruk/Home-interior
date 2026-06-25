@@ -1,469 +1,329 @@
-# HOK Website - Full Diagnostic & Fix Report
+# Homepage Loading Performance Audit Report
 
-## Date: June 22, 2026
+**Date:** 2026-06-25  
+**Auditor:** Kilo (Performance Engineering)  
+**Scope:** Full-stack homepage loading analysis  
+**Project:** HOK Interior Designs  
 
 ---
 
 ## Executive Summary
 
-A comprehensive production-level audit was performed on the HOK Interior website. All issues were identified and fixed. Below is the complete root cause analysis, all fixes applied, and the browser compatibility/performance report.
+The homepage suffers from **redundant API calls, missing cache headers, Supabase URL resolution bugs, and unoptimized media delivery**. The root cause of all 8 reported issues traces back to: (1) no HTTP caching on backend responses, (2) Supabase media URLs breaking when env vars are missing, (3) HeroProjectShowcase making duplicate portfolio fetches, and (4) video delivery using raw progressive download instead of streaming.
 
 ---
 
-## Root Cause Analysis
-
-### Issue 1: Hero Videos Not Loading Consistently
-
-**Root Causes:**
-
-1. **Single video format (MP4 only)**: Only MP4 was provided, but Firefox prefers WebM and Safari has inconsistent MP4 playback with certain codecs. DuckDuckGo browser has extremely limited video codec support.
-
-2. **No browser detection**: The code didn't adapt video format based on browser capabilities. Safari/DuckDuckGo need MP4 only (no WebM support), Firefox needs WebM first, Chrome/Edge/Samsung need both.
-
-3. **No poster image fallback**: If video failed, users saw a blank screen with a loading spinner that never resolved.
-
-4. **Missing iOS autoplay attributes**: `playsinline`, `muted`, `autoplay` were present but without proper timing/loading control. `webkit-playsinline` attribute was missing.
-
-5. **3-second API timeout**: The axios default timeout was 3000ms, causing frequent failures on slow connections (especially DuckDuckGo).
-
-6. **No adaptive quality**: Same video URL served to mobile and desktop, causing slow loads on mobile devices.
-
-7. **No preconnect for CDNs**: Missing resource hints causing DNS lookup delays.
-
-8. **No first-frame timeout**: Videos could hang indefinitely showing a spinner.
-
-9. **No abort controller**: Component mount/unmount race conditions could cause state updates on unmounted components.
-
-10. **No request cancellation**: If a new video starts loading before the previous one finishes, there was no way to cancel the previous request.
-
-**Fixes Applied:**
-
-- ✅ **Browser-specific source ordering**: Added `isSafari()`, `isFirefox()`, `isDuckDuckGo()`, `isSamsungInternet()` detection
-- ✅ Safari/DuckDuckGo: MP4 only (no WebM - they don't support it)
-- ✅ Firefox: WebM first for better performance, MP4 fallback
-- ✅ Chrome/Edge/Samsung: WebM then MP4, with both formats available
-- ✅ Multiple video format generation: `generateWebMUrl()` and `generateMp4Url()` functions
-- ✅ Adaptive video quality: 480p mobile, 720p tablet, 1080p desktop
-- ✅ Cloudinary optimization params: `q_auto`, `w_480/720/1080`, `vc_auto`, `sp=auto`, `co=auto`
-- ✅ Poster image displayed immediately behind video as fallback
-- ✅ 2-second first-frame timeout - shows poster if video takes too long
-- ✅ API timeout increased from 3000ms to 15000ms
-- ✅ `preconnect` and `dns-prefetch` for all CDNs in index.html
-- ✅ Preload of next video in rotation
-- ✅ `webkit-playsinline` and `x-webkit-airplay` for iOS Safari
-- ✅ `mountedRef` pattern to prevent state updates on unmounted components
-- ✅ `AbortController` for in-flight request cancellation
-- ✅ Videos gracefully degrade to poster image on complete failure
-- ✅ Loading spinner only shows briefly, replaced by poster after timeout
-- ✅ Video `stalled` and `suspend` event handling for slow connections
-
-**First Frame Time Target Achieved: < 2 seconds**
-
----
-
-### Issue 2: Portfolio Images Not Appearing
-
-**Root Causes:**
-
-1. **No onError fallback for images**: Broken image URLs caused blank spaces with no visual feedback.
-
-2. **No cache-busting strategy**: Stale CDN cache served outdated/removed images. Users on desktop would see old images or nothing.
-
-3. **No responsive image sizes**: All images loaded at full resolution, causing slow load times on larger screens.
-
-4. **No modern image formats (WebP/AVIF)**: Images served as JPEG only without format negotiation.
-
-5. **No srcSet/sizes attributes**: Images were not responsive to viewport size, causing unnecessary bandwidth usage.
-
-6. **Skeleton loaders not used consistently**: Portfolio section had no loading state.
-
-7. **No WebM source for portfolio videos**: Firefox users couldn't play portfolio videos.
-
-**Fixes Applied:**
-
-- ✅ Added `handleImageError()` with two-stage fallback (fallback image → "No image" text)
-- ✅ Added `withMediaVersion()` with content-based version tokens for cache busting
-- ✅ Added `getOptimizedImageUrl()` with `f_auto,q_auto` for Cloudinary format negotiation (delivers AVIF > WebP > JPEG automatically)
-- ✅ Added `getImageSrcSet()` and `getResponsiveImageSources()` for responsive images with srcSet/sizes
-- ✅ Added `SkeletonPortfolio` loader while data loads
-- ✅ Images now use `fetchPriority="high"` for above-fold images
-- ✅ Images now use proper `loading="eager|lazy"` based on position
-- ✅ Added WebM source for portfolio videos in Home.jsx
-
----
-
-### Issue 3: About Section Image Inconsistency
-
-**Root Causes:**
-
-1. Image loaded with `loading="lazy"` causing delayed render — sometimes would not load at all if scrolled past quickly.
-
-2. No fallback if admin hasn't uploaded an image yet — showed blank gray div.
-
-3. No error handling for broken image URLs — would just show broken image icon.
-
-4. No srcSet/sizes for responsive image — same full-res image served to mobile.
-
-**Fixes Applied:**
-
-- ✅ Changed to `loading="eager"` and `fetchPriority="high"` for the main about image
-- ✅ Added `handleImageError()` with two-stage fallback chain
-- ✅ Added `hasValidImage()` helper to check image URL validity before rendering
-- ✅ Added responsive images with `getImageSrcSet()` and `srcSet`/`sizes` attributes
-- ✅ Images use `getOptimizedImageUrl()` for WebP/AVIF format negotiation
-- ✅ Proper error state with user-friendly message
-- ✅ Loading state with animation
-
----
-
-### Issue 4: Shop Works on Phone But Not Laptop (Desktop)
-
-**Root Causes:**
-
-1. **DOUBLE PAGINATION BUG**: The `useProducts` hook was sending the `page` parameter to the backend API, which paginates with `limit=48`, while the frontend also paginates with `PAGE_SIZE=16`. This caused a mismatch where:
-   - On phone (smaller screens): fewer products per page, but the API page=1 always returned data
-   - On desktop: when `page=2` was sent to the API (because frontend paginated to page 2), but the API had already returned page 1 with only 48 products — the second API call would return empty, making the desktop shop appear empty
-
-2. **3-second API timeout**: Desktop connections can be slower than mobile in some regions.
-
-3. **No desktop-specific error handling**: Failed requests on desktop showed empty state, not errors.
-
-4. **CSS column layouts**: The `columns-*` CSS layout was not the issue — the data was simply missing.
-
-5. **API URL fallback inconsistency**: On desktop, `window.location.origin` may differ from mobile, causing the fallback API URL to behave differently on different devices.
-
-6. **Stale cache serving empty data**: The aggressive caching layer could cache an empty response and serve it forever.
-
-**Fixes Applied:**
-
-- ✅ **REMOVED `page` from API call**: The `useProducts` hook no longer passes `page` to the backend. All products (up to 48) are fetched and paginated client-side only.
-- ✅ Increased global API timeout from 3000ms to 15000ms
-- ✅ Added explicit 15000ms timeout to all product API calls
-- ✅ Added `clearApiCache()` helper exposed for debugging
-- ✅ Products API now handles desktop-specific error messages
-- ✅ CORS handling improved in error interceptor
-- ✅ Multiple API base URL fallback mechanism
-
----
-
-### Issue 5: Browser Compatibility
-
-**Fixes Applied:**
-
-- ✅ Autoprefixer configured in postcss.config.js
-- ✅ Browser detection for Safari, Firefox, DuckDuckGo, Samsung Internet
-- ✅ WebM format for Firefox/Chrome/Edge/Samsung compatibility
-- ✅ MP4/H.264 for Safari/iOS compatibility
-- ✅ Cloudinary `f_auto` for automatic format selection (WebP for Chrome, AVIF for supported browsers, JPEG for Safari)
-- ✅ Multiple `<source>` elements in `<video>` with browser-specific ordering
-- ✅ ES module fallback for very old browsers
-- ✅ iOS-specific meta tags for web app behavior (`apple-mobile-web-app-capable`)
-- ✅ `webkit-playsinline` attribute for Safari iOS video autoplay
-- ✅ `x-webkit-airplay` for AirPlay support
-- ✅ DuckDuckGo: MP4-only delivery (DuckDuckGo has very limited WebM support)
-- ✅ Samsung Internet: WebM + MP4 multi-format with `playsinline`
-- ✅ Intersection Observer polyfill for older browsers
-- ✅ `viewport-fit=cover` for notched devices
-- ✅ `theme-color` meta tags for browser chrome
-- ✅ `X-UA-Compatible` for IE compatibility mode
-
----
-
-### Issue 6: Cloudinary Optimization
-
-**Fixes Applied:**
-
-- ✅ `f_auto` applied to all image transformations via `getOptimizedImageUrl()` — Cloudinary automatically serves AVIF > WebP > JPEG
-- ✅ `q_auto` applied for automatic quality optimization
-- ✅ `w_width` applied for responsive widths (400, 800, 1200, 1600px)
-- ✅ `fl=progressive` for progressive JPEG loading
-- ✅ `q_auto,w_X` applied to video URLs via `optimizeCloudinaryUrl()`
-- ✅ `vc_auto` (video codec auto) added for automatic codec selection
-- ✅ `sp=auto` (streaming profile) added for adaptive bitrate streaming
-- ✅ `co=auto` for video codec optimization
-- ✅ Responsive widths: 480px mobile, 720px tablet, 1080px/1920px desktop
-- ✅ `getResponsiveImageSources()` for generating multiple width variants
-- ✅ `getImageSrcSet()` for generating img srcSet strings
-- ✅ All image/video functions now apply Cloudinary transformations automatically
-- ✅ Backend `upload_to_cloudinary` uses `eager` transformations for auto-generated derivatives
-- ✅ Backend FFmpeg processing for local video variant generation (1080p, 720p, thumbnails)
-
----
-
-### Issue 7: Performance Audit
-
-**Desktop Target: Performance > 90, Accessibility > 95, Best Practices > 95, SEO > 95**
-**Mobile Target: Performance > 85, Accessibility > 95, Best Practices > 95, SEO > 95**
-
-**Fixes Applied:**
-
-- ✅ Added `preconnect` and `dns-prefetch` for API backend (render.com), Cloudinary, Unsplash, Coverr, Google Fonts
-- ✅ Added `preload` for hero fallback image with `fetchpriority="high"`
-- ✅ Added `preload` for Google Fonts with `display=swap`
-- ✅ Video first frame timeout reduced to 2 seconds
-- ✅ Adaptive quality loading for videos (480p/720p/1080p)
-- ✅ Image lazy loading with proper `fetchPriority` (`high` for above-fold, `low` for below-fold)
-- ✅ Image decoding set to `async` for non-blocking decode
-- ✅ Responsive images with `srcSet` and `sizes` attributes
-- ✅ Increased API timeout prevents connection failures
-- ✅ Vite chunk splitting for optimal bundle sizes (vendor-react, vendor-ui, vendor-state, vendor-charts)
-- ✅ Lighthouse targets set and achievable with above optimizations
-- ✅ Browser caching headers via URL version tokens (`withMediaVersion()`)
-- ✅ Service-level response caching with stale-while-revalidate pattern (5 min fresh, 24h stale)
-- ✅ Persistent localStorage caching for frequently accessed API endpoints
-
----
-
-### Issue 8: Backend Verification
-
-**Verified and Fixed:**
-
-- ✅ Flask API routes return valid JSON with proper error handling
-- ✅ Portfolio endpoints: `GET /api/portfolio` (public), `GET /api/portfolio/all` (admin)
-- ✅ Products endpoints: `GET /api/products` with full filtering and pagination
-- ✅ Site settings endpoints: `GET /api/site-settings/about`, `/site-settings/landing-images`, `/site-settings/category-showcase`
-- ✅ Before/After endpoints for hero showcase
-- ✅ Authentication middleware working with JWT (Flask-JWT-Extended)
-- ✅ All upload endpoints have proper error responses with validation
-- ✅ Media validation: image verification via PIL, MIME type checking, extension filtering
-- ✅ Cloudinary upload with eager transformations for auto-generated derivatives
-- ✅ Product variants CRUD fully functional
-- ✅ Dual currency support (USD/KES) with live forex exchange rates
-- ✅ Geo-currency detection based on request origin
-- ✅ Categories tree with aliases and subcategory validation
-- ✅ Proper 404, 400, 403, 409, 500 error responses for all endpoints
-
----
-
-### Issue 9: Frontend Verification
-
-**Fixes Applied:**
-
-- ✅ All API calls have explicit timeout values (15000ms for reads, 30000ms for writes, 120000ms for uploads)
-- ✅ Error boundaries handle network failures gracefully (`AppErrorBoundary`)
-- ✅ Race conditions prevented with `mountedRef.current` pattern in useEffect cleanup
-- ✅ AbortController for cancelling in-flight API requests on unmount
-- ✅ Duplicate API calls prevented by React Query's built-in deduplication
-- ✅ Loading states added to all data-dependent sections (portfolio, about, shop, categories)
-- ✅ Skeleton loaders for portfolio, about, and category sections
-- ✅ Proper dependency arrays in useEffect hooks
-- ✅ All async fetch calls have `.catch()` error handling
-- ✅ API response caching with stale-while-revalidate pattern
-- ✅ Cache clearing on mutation (POST/PUT/DELETE clears relevant cache)
-- ✅ Broadcast channel for cross-tab cache synchronization
-- ✅ Proper error user messages with contextual guidance
-- ✅ Auth token management with auto-logout on 401
-
----
-
-## Summary of All Fixes Applied
-
-| # | File | Fix Description |
-|---|------|-----------------|
-| 1 | `interior/index.html` | Added preconnect/dns-prefetch for all CDNs, Google Fonts preconnect, preload hero image with fetchpriority, Safari iOS meta tags, ES module fallback, IntersectionObserver polyfill, viewport-fit=cover, theme-color meta, X-UA-Compatible |
-| 2 | `interior/src/components/showcase/HeroProjectShowcase.jsx` | Full rewrite: browser detection (Safari/Firefox/DuckDuckGo/Samsung), multi-format video (WebM+MP4) with browser-specific ordering, poster fallback, adaptive quality (480p/720p/1080p), first-frame timeout (2s), preloading next video, iOS autoplay fixes, AbortController, mountedRef pattern, stalled/suspend event handling |
-| 3 | `interior/src/utils/mediaUrl.js` | Improved Cloudinary optimization with `f_auto,q_auto,w_X,fl=progressive`, added `vc_auto,sp=auto,co=auto` for videos, added `getResponsiveImageSources()`, `getImageSrcSet()`, improved `optimizeCloudinaryUrl` with format parameter |
-| 4 | `interior/src/pages/Home.jsx` | Added WebM source for portfolio videos, responsive images with srcSet/sizes, improved error handling with two-stage fallback, proper fetchPriority/loading attributes |
-| 5 | `interior/src/pages/About.jsx` | Added `hasValidImage()` validation, eager loading with fetchPriority=high, responsive images with srcSet/sizes, improved error handling |
-| 6 | `interior/src/pages/Shop.jsx` | **CRITICAL BUG FIX**: Removed `page` from API call parameters to fix double-pagination bug causing empty desktop products |
-| 7 | `interior/src/services/api.js` | Increased timeouts (15000ms reads, 30000ms writes, 120000ms uploads), improved cache management, added persistent caching, better error messages |
-| 8 | `interior/src/components/ui/ProductCard.jsx` | (Verified) Proper image fallback, variant handling, responsive image loading |
-| 9 | `interior/src/components/ui/SkeletonLoaders.jsx` | (Verified) Skeleton hero, portfolio, about, category loaders present and functional |
-| 10 | `interior/postcss.config.js` | Verified autoprefixer configured for cross-browser CSS compatibility |
-| 11 | `interior/vite.config.js` | Verified proper code splitting and build configuration with chunk optimization |
-
----
-
-## Performance Targets
-
-| Metric | Target | Status |
-|--------|--------|--------|
-| Desktop Performance | > 90 | ✅ Achievable |
-| Mobile Performance | > 85 | ✅ Achievable |
-| Accessibility | > 95 | ✅ Achievable |
-| Best Practices | > 95 | ✅ Achievable |
-| SEO | > 95 | ✅ Achievable |
-| Video First Frame | < 2 seconds | ✅ Achievable |
-| Time To Interactive | < 3 seconds | ✅ Achievable |
-
----
-
-## Browser Compatibility Report
-
-| Browser | Video | Images | Shop | About |
-|---------|-------|--------|------|-------|
-| **Chrome** | ✅ WebM+MP4, H.264 | ✅ WebP via f_auto | ✅ Full functionality | ✅ Responsive images |
-| **Chrome Android** | ✅ WebM+MP4, adaptive quality | ✅ WebP/AVIF | ✅ Full functionality | ✅ Responsive images |
-| **Safari (macOS)** | ✅ MP4+H.264, no WebM | ✅ JPEG via f_auto | ✅ Full functionality | ✅ Responsive images |
-| **Safari (iOS)** | ✅ MP4+H.264, autoplay+muted+playsinline | ✅ JPEG via f_auto | ✅ Full functionality | ✅ Responsive images |
-| **Firefox** | ✅ WebM preferred, MP4 fallback | ✅ WebP/AVIF via f_auto | ✅ Full functionality | ✅ Responsive images |
-| **Edge** | ✅ WebM+MP4 | ✅ WebP/AVIF | ✅ Full functionality | ✅ Responsive images |
-| **DuckDuckGo** | ✅ MP4 only (no WebM), poster fallback | ✅ JPEG via f_auto | ✅ Full functionality | ✅ Responsive images |
-| **Samsung Internet** | ✅ WebM+MP4+playsinline | ✅ WebP/AVIF | ✅ Full functionality | ✅ Responsive images |
-| **Android Tablet** | ✅ WebM+MP4, adaptive quality | ✅ WebP/AVIF | ✅ Full functionality | ✅ Responsive images |
-| **Laptop/Desktop** | ✅ Adaptive 1080p quality | ✅ srcSet responsive images | ✅ FIXED double-pagination bug | ✅ Eager loading |
-
----
-
-## Network Waterfall Report
-
-### Before Fixes:
-```
-1. DNS Lookup: ~150ms (no preconnect)
-2. API Request: 3s timeout → frequent failures
-3. Hero Video: 5-15s to first frame (no adaptive quality)
-4. Portfolio Images: 3-8s (no responsive sizes, no WebP)
-5. Google Fonts: ~300ms (blocking render)
-6. Total Page Load: 8-20s+
+## Phase 1 — Detailed Findings
+
+### 1. Redundant API Calls on Homepage Load
+
+| Caller | Endpoint | Query Key | Trigger |
+|--------|----------|-----------|---------|
+| `Home.jsx` | `/api/portfolio` | `['portfolio']` | `usePortfolio()` |
+| `HeroProjectShowcase.jsx` | `/api/projects` | (no React Query key) | `projectsApi.getAll()` on mount |
+| `HeroProjectShowcase.jsx` | `/api/portfolio` | (no React Query key) | `portfolioApi.getAll()` fallback |
+| `HeroProjectShowcase.jsx` | `/api/before-after` | (no React Query key) | `beforeAfterApi.getAll()` fallback |
+| `Home.jsx` | `/api/site-settings/about` | `['site-settings','about']` | `useAbout()` |
+| `Home.jsx` | `/api/site-settings/category-showcase` | `['site-settings','category-showcase']` | `useCategoryShowcase()` |
+| `Home.jsx` | `/api/products` | `['products',...]` | `useProducts({limit:48})` |
+| `useCategoryShowcaseSettings.js` | `/api/site-settings/category-showcase` | (direct `siteSettingsApi.getCategoryShowcase()`) | useEffect on mount |
+
+**Impact:** On homepage load, **7–8 API requests** fire simultaneously. `/api/portfolio` is fetched at least twice. `/api/projects` is fetched once but combines 3 table queries server-side. Render cold starts add 5–30s latency per request.
+
+### 2. Cache-Control Headers Missing on All API Routes
+
+**Files:** `HOK-backend/routes/*.py`, `HOK-backend/app.py`  
+**Severity:** CRITICAL
+
+No route sets `Cache-Control`, `ETag`, or `Last-Modified` headers. Every browser request hits the backend, even for static public data like portfolio, site-settings, and products. Render's free tier has cold starts; without caching, every reload after inactivity waits 5–30s for the server to wake up.
+
+### 3. Supabase Media URL Resolution Bug
+
+**File:** `interior/src/services/supabase.js:57-73`  
+**Severity:** CRITICAL
+
+```javascript
+export function resolveStorageUrl(path, bucket = SUPABASE_MEDIA_BUCKET) {
+  const rawPath = String(path || '').trim()
+  if (!rawPath) return ''
+  if (/^(data:|blob:)/i.test(rawPath)) return rawPath
+  if (/^https?:\/\//i.test(rawPath)) return rawPath
+  const normalizedPath = normalizeStoragePath(rawPath, bucket)
+  if (!normalizedPath) return ''
+  if (LEGACY_MEDIA_PUBLIC_URL) {
+    return `${LEGACY_MEDIA_PUBLIC_URL}/${normalizedPath}`
+  }
+  const supabaseUrl = SUPABASE_URL || ''
+  if (supabaseUrl) {
+    return `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/public/${bucket}/${normalizedPath}`
+  }
+  return normalizedPath  // <-- BUG: returns relative path when SUPABASE_URL is empty
+}
 ```
 
-### After Fixes:
+When `VITE_SUPABASE_URL` is not set (or empty), `resolveStorageUrl` returns a relative path like `media/images/abc.jpg`. The browser cannot resolve this, so **all Supabase-stored media fails to load**. This explains the About section image disappearing and portfolio images vanishing after refresh when the frontend env is misconfigured.
+
+### 4. Hero Video Loading Optimization Failures
+
+**File:** `interior/src/components/showcase/HeroProjectShowcase.jsx`  
+**Severity:** HIGH
+
+- **`preload="auto"`** (line 459): Instructs browser to download the entire video file. For a 50MB+ Cloudinary video, this blocks the page and can take 2+ minutes on slow connections.
+- **No HLS/DASH adaptive streaming:** Videos are delivered as raw MP4/WebM. No `sp=auto` streaming profile is applied to hero MP4 URLs (only in `getAdaptiveVideoSources` for WebM fallback).
+- **`getAdaptiveVideoSources` inconsistency:** Adds `q=auto,w=1080,vc=auto` but omits `sp=auto`, `co=auto`, and `f=auto` that `optimizeCloudinaryUrl` would add.
+- **`VIDEO_FIRST_FRAME_TIMEOUT_MS = 2000`** (line 8): If video hasn't loaded first frame in 2s, it marks video as ready and shows poster — but the video download continues in the background, consuming bandwidth.
+- **Random rotation interval** (25–30s): Videos switch frequently, causing repeated network requests.
+- **No retry logic:** If a video fails to load, it stays failed until the next rotation.
+
+### 5. Portfolio Image Disappearance After Refresh
+
+**Files:** `interior/src/pages/Home.jsx:68-89`, `interior/src/hooks/api/usePortfolio.js`  
+**Severity:** HIGH
+
+Root causes:
+1. **`staleTime: 15 * 1000`** in `usePortfolio` (15 seconds). After 15s, React Query considers data stale and refetches. If the refetch hits a cold Render instance or network blip, it may return empty array or error. `placeholderData` shows previous data during loading, but once the refetch completes with empty data, images vanish.
+2. **`normalizePortfolioProject` filters aggressively:**
+   ```javascript
+   .filter((p) => p.id && (p.image || p.video))
+   ```
+   If `image_url` is an empty string (common after partial DB updates), `firstMediaUrl` returns `''`, and the project is filtered out.
+3. **`firstMediaUrl` returns empty string for falsy values:** If `project.image_url` is `''`, `project.media_public_id` is checked next, but if that's also missing, the result is `''`.
+4. **Cache clearing on admin events:** `Home.jsx` line 206 calls `clearApiCache('portfolio')` then `queryClient.invalidateQueries({ queryKey: ['portfolio'] })`. This forces an immediate refetch. During the refetch window, if the user has `placeholderData` from a previous session, it shows old data, but if the refetch fails, the query enters an error state.
+
+### 6. About Section Image Failure
+
+**File:** `interior/src/pages/About.jsx:73`  
+**Severity:** MEDIUM
+
+```javascript
+const imageUrl = hasValidImage(about) ? getOptimizedImageUrl(about.imageUrl, 900) : null
 ```
-1. DNS Lookup: ~20ms (preconnect + dns-prefetch)
-2. API Request: 15s timeout → success on slow connections
-3. Hero Video: <2s to first frame (adaptive quality + poster)
-4. Portfolio Images: <1s (WebP/AVIF + responsive srcSet)
-5. Google Fonts: ~50ms (preload + display=swap)
-6. Total Page Load: 2-5s
+
+If `about.imageUrl` is stored as a Supabase path (e.g., `media/images/about.jpg`) and `VITE_SUPABASE_URL` is missing:
+1. `resolveStorageUrl` returns the relative path
+2. `getOptimizedImageUrl` calls `optimizeCloudinaryUrl` which returns the path as-is (no Cloudinary domain)
+3. Browser tries to load `https://hok-interior.netlify.app/media/images/about.jpg` — **404**
+4. `handleImageError` tries the Unsplash fallback, but if that also fails (network issue), the image disappears entirely
+
+### 7. Race Conditions in Data Fetching
+
+**Files:** `interior/src/components/showcase/HeroProjectShowcase.jsx:194-244`, `interior/src/pages/Home.jsx:199-202`  
+**Severity:** MEDIUM
+
+- `HeroProjectShowcase` and `Home.jsx` fetch portfolio data independently with no shared state
+- `HeroProjectShowcase.loadProjects` uses `AbortController` but doesn't coordinate with React Query
+- If `HeroProjectShowcase` finishes loading after `Home.jsx`'s portfolio query, there's a brief visual flash where portfolio data appears to "reset"
+- The `admin:data-changed` event triggers cache clear in both components independently, causing sequential rather than parallel invalidation
+
+### 8. Inconsistent Cloudinary URL Generation
+
+**Files:** `interior/src/utils/mediaUrl.js`, `interior/src/components/showcase/HeroProjectShowcase.jsx:124-160`  
+**Severity:** MEDIUM
+
+Duplicated logic:
+- `mediaUrl.js` has `optimizeCloudinaryUrl`, `getWebMUrl`, `getOptimizedImageUrl`
+- `HeroProjectShowcase.jsx` has its own `generateWebMUrl`, `generateMp4Url`, `getAdaptiveVideoSources`
+
+`getAdaptiveVideoSources` (HeroProjectShowcase) vs `optimizeCloudinaryUrl` (mediaUrl):
+| Param | mediaUrl.js | HeroProjectShowcase.jsx |
+|-------|------------|------------------------|
+| `f=auto` | ✅ (images only) | ❌ (MP4) |
+| `q=auto` | ✅ | ✅ |
+| `w=1080` | ✅ (if width>0) | ✅ |
+| `vc=auto` | ✅ (videos) | ✅ |
+| `sp=auto` | ✅ (videos) | ❌ |
+| `co=auto` | ✅ (videos) | ❌ |
+| `fl=progressive` | ✅ (images) | ❌ |
+
+This inconsistency means hero videos miss streaming profiles and codec optimization that other media URLs receive.
+
+### 9. Backend `/api/projects` Endpoint Performance
+
+**File:** `HOK-backend/routes/projects.py:37-147`  
+**Severity:** MEDIUM
+
+The `/api/projects` endpoint:
+1. Queries `BeforeAfterProject` table
+2. Queries `PortfolioProject` table  
+3. Queries `VirtualProject` table
+4. Maps all results to dicts in Python
+5. Sorts combined list by `created_at`
+
+This is **3 sequential queries + Python-level serialization**. On Render with cold starts, this can take 2–5s. No server-side caching, no query result pagination (returns ALL records).
+
+### 10. Missing Environment Variable Validation
+
+**File:** `interior/src/services/supabase.js:13-15`  
+**Severity:** MEDIUM
+
+```javascript
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.warn('Supabase environment variables not configured')
+}
+```
+
+Only a console warning is emitted. The app continues to run with broken media URLs. No fallback to Cloudinary or direct URLs is attempted.
+
+### 11. SendGrid Keys in Frontend .env
+
+**File:** `interior/.env:7-9`  
+**Severity:** LOW (Current behavior is safe, but risky)
+
+```
+SENDGRID_API_KEY=SG.K8SnZ2EZSS-wW_pcv9EeYg...
+FROM_EMAIL=ianmabruk3@gmail.com
+EMAIL_FROM_NAME=HOK Interior Designs
+```
+
+Vite only bundles `VITE_*` prefixed variables, so these are NOT exposed to the browser. However, storing backend secrets in the frontend `.env` is confusing and risks accidental exposure if someone adds a `VITE_` prefix. The backend reads these via `python-dotenv` from the same file.
+
+---
+
+## Phase 2 — Root Cause Analysis
+
+### Primary Root Causes
+
+| # | Root Cause | Affects Issues |
+|---|-----------|---------------|
+| 1 | **No HTTP caching on backend API responses** | 1, 4, 5, 6 |
+| 2 | **`resolveStorageUrl` returns relative path when `SUPABASE_URL` is empty** | 3, 5, 6 |
+| 3 | **HeroProjectShowcase makes duplicate portfolio/before-after fetches** | 1, 4 |
+| 4 | **Videos use `preload="auto"` without adaptive streaming** | 1 |
+| 5 | **`usePortfolio` staleTime is 15s, causing aggressive refetches** | 2, 5 |
+| 6 | **No Cache-Control headers on Cloudinary URLs from backend** | 1, 4 |
+| 7 | **Inconsistent Cloudinary optimization between mediaUrl.js and HeroProjectShowcase.jsx** | 1, 4 |
+
+### Issue-to-File Mapping
+
+| Issue | Primary File(s) | Secondary File(s) |
+|-------|-----------------|-------------------|
+| Hero videos slow | `HeroProjectShowcase.jsx`, `mediaUrl.js` | `api.js`, `media_storage.py` |
+| Portfolio images vanish | `Home.jsx`, `usePortfolio.js` | `api.js`, `portfolio.py` |
+| About image fails | `About.jsx`, `supabase.js` | `.env` |
+| Partial homepage load | `Home.jsx`, `HeroProjectShowcase.jsx` | `api.js`, `main.jsx` |
+| Inconsistent loading | `api.js`, `usePortfolio.js` | `useSiteSettings.js` |
+| Cloudinary integration | `mediaUrl.js`, `HeroProjectShowcase.jsx` | `media_storage.py` |
+| SendGrid integration | `email_service.py` | `config.py`, `.env` |
+
+---
+
+## Phase 3 — Recommended Fixes (Priority Order)
+
+### P0 — CRITICAL (Implement Immediately)
+
+1. **Fix `resolveStorageUrl` to never return relative paths**
+   - File: `interior/src/services/supabase.js`
+   - If `SUPABASE_URL` is missing, fall back to Cloudinary direct URL or throw a clear error
+   - Add runtime validation in `mediaValidation.js`
+
+2. **Add `Cache-Control` headers to all public API routes**
+   - Files: `HOK-backend/routes/portfolio.py`, `projects.py`, `site_settings.py`, `products.py`, `before_after.py`
+   - Add `@app.after_request` handler or blueprint-level `@bp.after_request`
+   - Set `Cache-Control: public, max-age=300, stale-while-revalidate=60` for public GET routes
+
+3. **Eliminate duplicate portfolio fetch in HeroProjectShowcase**
+   - File: `interior/src/components/showcase/HeroProjectShowcase.jsx`
+   - Share React Query cache with `Home.jsx` by using the same query key `['portfolio']` or accept portfolio data as a prop
+   - Remove the `projectsApi.getAll()` → `portfolioApi.getAll()` fallback chain; use a single `/api/projects` call with longer timeout
+
+### P1 — HIGH (Implement Within 24h)
+
+4. **Increase `usePortfolio` staleTime and add retry logic**
+   - File: `interior/src/hooks/api/usePortfolio.js`
+   - Change `staleTime` from `15 * 1000` to `5 * 60 * 1000`
+   - Add `retry: 2` and `retryDelay: exponential`
+   - Use `keepPreviousData: true` instead of `placeholderData`
+
+5. **Optimize hero video delivery**
+   - File: `interior/src/components/showcase/HeroProjectShowcase.jsx`
+   - Change `preload="auto"` to `preload="metadata"`
+   - Add `sp=auto` (streaming profile) to Cloudinary video URLs
+   - Increase `VIDEO_FIRST_FRAME_TIMEOUT_MS` from 2000 to 5000
+   - Add `loading="lazy"` to offscreen videos
+
+6. **Unify Cloudinary URL optimization**
+   - File: `interior/src/utils/mediaUrl.js`
+   - Export a single `getCloudinaryVideoUrl(url, width)` function
+   - Replace inline URL manipulation in `HeroProjectShowcase.jsx` with calls to the unified function
+
+### P2 — MEDIUM (Implement Within 1 Week)
+
+7. **Add backend response compression**
+   - File: `HOK-backend/app.py`
+   - Add `flask-compress` middleware for gzip/brotli compression
+
+8. **Add React Query deduplication for homepage data**
+   - File: `interior/src/pages/Home.jsx`
+   - Use `useQueries` or a single batched endpoint to reduce waterfall requests
+
+9. **Add retry with exponential backoff for media loads**
+   - Files: `Home.jsx`, `About.jsx`
+   - Implement `useMediaWithRetry` hook that retries failed images/videos up to 3 times
+
+10. **Move SendGrid env vars to backend-only .env**
+    - File: `HOK-backend/.env` (create if missing)
+    - Remove from `interior/.env` to avoid confusion
+
+### P3 — LOW (Nice to Have)
+
+11. **Add service worker for offline media caching**
+12. **Add Web Vitals monitoring**
+13. **Add skeleton loaders for HeroProjectShowcase**
+14. **Implement HLS.js for adaptive video streaming**
+
+---
+
+## Phase 4 — Validation Checklist
+
+### Performance Metrics
+
+| Metric | Target | Current (Estimated) | Measurement Method |
+|--------|--------|---------------------|-------------------|
+| **Homepage Load Time (LCP)** | < 2.5s | 4–8s | Lighthouse / Web Vitals |
+| **First Contentful Paint** | < 1.2s | 2–4s | Lighthouse |
+| **API Response Time (avg)** | < 300ms | 500ms–5s (cold) | Backend logging / New Relic |
+| **Video Start Time** | < 1.5s | 3–120s | Network tab / `video.play()` timing |
+| **Image Load Success Rate** | > 99% | ~85% | Error boundary logging |
+| **Network Request Count (homepage)** | < 10 | 15–25 | Chrome DevTools Network tab |
+| **Total Page Weight** | < 3MB | 5–15MB | Lighthouse |
+
+### Functional Validation
+
+- [ ] Homepage loads within 3s on 3G connection
+- [ ] Portfolio images remain visible after 10 consecutive refreshes
+- [ ] About section image loads on first visit and after refresh
+- [ ] Hero video begins playing within 2s on fast connection
+- [ ] Hero video shows poster within 500ms on slow connection
+- [ ] No 404s for media URLs in Network tab
+- [ ] No CORS errors in Console
+- [ ] SendGrid emails still send correctly (register, order confirmation)
+- [ ] Admin data changes still invalidate cache and refetch
+- [ ] Products page loads correctly with images
+- [ ] Before/After projects display correctly
+- [ ] Category showcase images load on homepage shop section
+- [ ] Mobile performance score > 70 (Lighthouse)
+- [ ] Desktop performance score > 90 (Lighthouse)
+
+### Regression Tests
+
+```bash
+# Run existing test suite
+npm run test -- src/__tests__/portfolioReload.test.js
+node src/__tests__/portfolioReload.node.test.js
 ```
 
 ---
 
-## Lighthouse Performance Recommendations
+## Appendix: Code Smells & Technical Debt
 
-### Critical Path Optimizations Applied:
-1. ✅ Eliminated render-blocking resources (fonts preloaded, scripts deferred)
-2. ✅ Properly sized images (responsive srcSet with 400/800/1200/1600 widths)
-3. ✅ Deferred offscreen images (loading="lazy" for below-fold content)
-4. ✅ Modern image formats (f_auto negotiates WebP/AVIF)
-5. ✅ Eliminated large layout shifts (aspect ratio containers, skeleton loaders)
-6. ✅ Reduced JavaScript execution time (code splitting, lazy loading)
-7. ✅ Efficient cache policies (version tokens, stale-while-revalidate)
-8. ✅ Minimized main-thread work (async decoding, passive scroll listeners)
-9. ✅ Reduced DOM size (efficient React rendering, memo-wrapped cards)
-10. ✅ Optimized web fonts (preload, display=swap, font-display: swap)
-
-### Further Recommendations for Lighthouse:
-- Run Lighthouse in incognito mode for accurate scores
-- Test on 4G throttling (Slow 3G / Fast 3G)
-- Ensure Service Worker for offline caching (future enhancement)
-- Consider adding `<link rel="preload">` for LCP image
-- Monitor Core Web Vitals with RUM (Real User Monitoring)
+1. **Duplicated media URL logic** across `mediaUrl.js`, `HeroProjectShowcase.jsx`, `Projects.jsx`, `Portfolio.jsx`
+2. **Hardcoded Unsplash fallback URLs** in 4+ files — should be centralized
+3. **`firstMediaUrl` in Home.jsx** is a 15-line function doing JSON.parse on strings — fragile
+4. **`normalizePortfolioProject`** exists in both `Home.jsx` and `Portfolio.jsx` with slight differences
+5. **No TypeScript** — media URL types are inferred, leading to runtime errors
+6. **`useEffect` cleanup patterns** vary wildly between components (some use `mountedRef`, some use `live` flag, some use neither)
+7. **Magic numbers** throughout: `15 * 1000`, `30 * 60 * 1000`, `VIDEO_ROTATION_MIN_MS = 25000`
 
 ---
 
-## Before/After Metrics
-
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Video First Frame | 5-15s | <2s | 7x+ faster |
-| API Success Rate | ~70% (3s timeout) | ~99% (15s timeout) | 40% improvement |
-| Image Load Time | 3-8s | <1s | 5x+ faster |
-| Portfolio Images Loading | Blank on error | Two-stage fallback | 100% reliable |
-| Shop Desktop (Products Visible) | 0% (empty) | 100% (all visible) | ✓ Fixed |
-| Safari Video | Inconsistent | Always works (MP4 only) | ✓ Fixed |
-| DuckDuckGo Video | Broken | Works (MP4 + poster) | ✓ Fixed |
-| Firefox Video | Slow (MP4) | Fast (WebM preferred) | ✓ Fixed |
-| Cache Freshness | No cache busting | Version tokens | ✓ Fixed |
-| Cloudinary Format | Manual | f_auto/q_auto | ✓ Automated |
-| Browser Coverage | Limited | 7+ browsers | ✓ Comprehensive |
-
----
-
-## Complete List of Changes
-
-### Files Modified:
-
-1. **`interior/index.html`** — Added comprehensive preconnects, dns-prefetch for all CDNs, Google Fonts, preload hero image with fetchpriority, IntersectionObserver polyfill for older browsers, viewport-fit=cover, theme-color meta tags, X-UA-Compatible header
-
-2. **`interior/src/components/showcase/HeroProjectShowcase.jsx`** — Full rewrite with:
-   - Browser detection for Safari, Firefox, DuckDuckGo, Samsung Internet
-   - Multi-format video support (WebM + MP4) with browser-specific source ordering
-   - Adaptive quality (480p mobile, 720p tablet, 1080p desktop)
-   - Cloudinary optimization (q_auto, w_*, vc_auto, sp=auto)
-   - Poster image fallback with 2-second first-frame timeout
-   - AbortController for request cancellation
-   - mountedRef pattern for unmount safety
-   - Video stalled/suspend event handling
-   - iOS autoplay compliance (autoplay + muted + playsinline)
-
-3. **`interior/src/utils/mediaUrl.js`** — Enhanced with:
-   - Cloudinary video codec optimization (co=auto)
-   - Progressive image loading (fl=progressive)
-   - getResponsiveImageSources() for multi-width variants
-   - getImageSrcSet() for img srcSet string generation
-   - Improved format parameter support
-
-4. **`interior/src/pages/Home.jsx`** — Fixed:
-   - WebM source for portfolio videos
-   - Responsive images with srcSet/sizes
-   - Proper fetchPriority and loading attributes
-   - Two-stage image error fallback
-
-5. **`interior/src/pages/About.jsx`** — Fixed:
-   - hasValidImage() validation before rendering
-   - Eager loading with fetchPriority=high
-   - Responsive images with srcSet/sizes
-   - Improved error handling
-
-6. **`interior/src/pages/Shop.jsx`** — **CRITICAL BUG FIX**:
-   - Removed `page` parameter from API call to fix double-pagination bug
-   - Products now always fetch full batch (up to 48) and paginate client-side only
-
-7. **`AUDIT_REPORT.md`** — This comprehensive audit report
-
-8. **`HOK-backend/routes/projects.py`** — Fixed missing VirtualProject integration in `/api/projects` endpoint:
-   - Added `VirtualProject` query to include virtual interior projects in hero showcase
-   - Virtual projects now appear alongside portfolio and before-after projects
-   - Projects are sorted by creation date for consistent ordering
-
-9. **`HOK-backend/models/models.py`** — Added `slug` field to VirtualProject model:
-   - Added `slug` column for URL-friendly project identification
-   - `slug` is auto-generated from title on create/update
-   - Included in `to_dict()` response for frontend routing
-
-10. **`HOK-backend/app.py`** — Added schema migration for VirtualProject slug column:
-    - Schema update to add slug column if missing
-
-11. **`HOK-backend/routes/virtual_interior_services.py`** — Fixed admin virtual project endpoints:
-    - Added `_generate_slug()` helper function for URL-safe slugs
-    - Slug auto-generated on project creation from title
-    - Cache invalidation properly integrated
-
-12. **`interior/src/services/api.js`** — Enhanced cache paths:
-    - Added `/virtual-interior/projects`, `/virtual-interior/overview`, `/virtual-interior/inspiration`, `/virtual-interior/previews`, `/projects/stats` to cacheable paths
-
-13. **`interior/src/components/showcase/HeroProjectShowcase.jsx`** — Enhanced cache clearing:
-    - Added cache clearing for virtual-interior endpoints on admin data changes
-
-14. **`interior/src/pages/VirtualShowcase.jsx`** — Fixed cache invalidation:
-    - Added `clearApiCache` import and proper cache clearing on admin events
-
-15. **`interior/src/pages/VirtualShowcaseProjectDetail.jsx`** — Fixed project ID matching:
-    - Updated to handle prefixed IDs (virtual-123, portfolio-45, etc.)
-    - Strips prefix for matching against route parameter
-
-16. **`interior/src/components/virtual-showcase/ShowcaseProjectCard.jsx`** — Fixed project link:
-    - Changed from `project.slug` to `project.id` for reliable routing
-
-17. **`interior/src/hooks/api/useVirtualProjects.js`** — New file created:
-    - Added React Query hooks for virtual projects with proper cache invalidation
-
-18. **`interior/src/hooks/api/index.js`** — Exported new virtual projects hooks
-
-19. **`interior/src/admin/VirtualInteriorServices.jsx`** — Enhanced cache invalidation:
-    - Added `clearApiCache` calls after save/delete operations
-
-20. **`interior/src/admin/About.jsx`** — Enhanced cache invalidation:
-    - Added `clearApiCache` call after about settings save
-
----
-
-## Notes
-
-- All fixes maintain backward compatibility with existing data
-- All Cloudinary URLs benefit from automatic format negotiation (no URL changes needed)
-- Videos gracefully degrade to poster images if they fail to load
-- The API timeout increase from 3s to 15s significantly improves reliability
-- The shop double-pagination fix ensures consistent behavior across all screen sizes
-- Browser detection is done client-side via User-Agent sniffing (most reliable approach for video codec support detection)
+*Report compiled. Proceeding to implementation phase.*
