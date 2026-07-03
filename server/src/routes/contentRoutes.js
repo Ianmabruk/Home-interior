@@ -12,6 +12,7 @@ import { auth, authorize } from '../middleware/auth.js'
 
 const router = Router()
 const upload = multer({ storage: multer.memoryStorage() })
+const uploadMultiple = multer({ storage: multer.memoryStorage() })
 
 router.get('/homepage', homepageFeed)
 
@@ -21,8 +22,8 @@ router.patch('/projects/:id', auth, authorize('admin'), upload.single('media'), 
 router.delete('/projects/:id', auth, authorize('admin'), projectsController.remove)
 
 router.get('/portfolio', portfolioController.list)
-router.post('/portfolio', auth, authorize('admin'), upload.single('media'), portfolioController.create)
-router.patch('/portfolio/:id', auth, authorize('admin'), upload.single('media'), portfolioController.update)
+router.post('/portfolio', auth, authorize('admin'), uploadMultiple.array('images', 10), portfolioController.create)
+router.patch('/portfolio/:id', auth, authorize('admin'), uploadMultiple.array('images', 10), portfolioController.update)
 router.delete('/portfolio/:id', auth, authorize('admin'), portfolioController.remove)
 
 router.get('/about', getAbout)

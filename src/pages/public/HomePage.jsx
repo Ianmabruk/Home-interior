@@ -1,7 +1,7 @@
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import { SectionTitle } from '../../components/common/SectionTitle'
 import { ProductCard } from '../../components/shop/ProductCard'
 import { api } from '../../services/api'
@@ -16,6 +16,7 @@ export const HomePage = () => {
     products: [],
   })
   const [loading, setLoading] = useState(true)
+  const [currentProjectIndex, setCurrentProjectIndex] = useState(0)
 
   const loadFeed = useCallback(() => {
     api
@@ -36,19 +37,18 @@ export const HomePage = () => {
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
   }, [loadFeed])
 
-  const projectVideos = useMemo(() => {
-    const videos = []
-    feed.projects.forEach((project) => {
-      const mediaVideos = (project.media || []).filter((m) => m.type === 'video')
-      mediaVideos.forEach((m) => {
-        videos.push({ ...m, title: project.title, description: project.description })
-      })
-      if (!mediaVideos.length && project.videoUrl) {
-        videos.push({ type: 'video', url: project.videoUrl, title: project.title, description: project.description })
-      }
-    })
-    return videos
-  }, [feed.projects])
+  // Auto-rotate featured projects
+  useEffect(() => {
+    if (feed.projects.length <= 1) return
+    const timer = setInterval(() => {
+      setCurrentProjectIndex((prev) => (prev + 1) % feed.projects.length)
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [feed.projects.length])
+
+  const featuredProject = useMemo(() => {
+    return feed.projects.length > 0 ? feed.projects[currentProjectIndex] : null
+  }, [feed.projects, currentProjectIndex])
 
   const newest = useMemo(
     () =>
@@ -75,61 +75,94 @@ export const HomePage = () => {
     <div className="-mt-[88px] md:-mt-[108px]">
 
       {/* ══════════════════════════════════════════
-          SECTION 1 — PROJECTS VIDEO SHOWCASE
-          Full-width, videos only, autoplay muted loop
+          SECTION 1 — FEATURED PROJECT CAROUSEL
+          Single featured project with auto-rotate
       ══════════════════════════════════════════ */}
-      <section className="bg-ink py-20 md:py-28">
+      <section className="relative bg-ink py-20 md:py-28 overflow-hidden">
         <div className="container-wide px-6 md:px-12 lg:px-20">
-          <div className="text-center">
+          <div className="text-center mb-12">
             <p className="eyebrow mb-3 text-white/40">Featured Work</p>
             <h2 className="font-display text-5xl font-medium text-white md:text-7xl">Projects</h2>
             <p className="mt-4 text-base text-white/50 max-w-2xl mx-auto">
               Explore our latest interior design projects through immersive video walkthroughs.
             </p>
           </div>
-        </div>
 
-        {projectVideos.length > 0 ? (
-          <div className="mt-14 grid grid-cols-1 gap-5 px-6 md:grid-cols-2 lg:grid-cols-3 md:px-12 lg:px-20">
-            {projectVideos.map((video, i) => (
+          {featuredProject ? (
+            <AnimatePresence mode="wait">
               <motion.div
-                key={`${video.url}-${i}`}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-40px' }}
-                transition={{ duration: 0.6, delay: i * 0.1 }}
-                className="group relative overflow-hidden rounded-2xl bg-charcoal"
+                key={featuredProject._id}
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                transition={{ duration: 0.8 }}
+                className="relative max-w-5xl mx-auto"
               >
-                <video
-                  src={video.url}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                  className="aspect-video w-full object-cover transition duration-700 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-5">
-                  <p className="font-display text-xl font-medium text-white">{video.title}</p>
-                  {video.description && (
-                    <p className="mt-1 text-sm text-white/60">{video.description}</p>
+                {featuredProject.media?.[0]?.type === 'video' || featuredProject.videoUrl ? (
+                  <video
+                    src={featuredProject.media?.[0]?.url || featuredProject.videoUrl}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    className="aspect-video w-full object-cover rounded-2xl shadow-2xl"
+                  />
+                ) : (
+                  <img
+                    src={featuredProject.media?.[0]?.url || featuredProject.coverImageUrl}
+                    alt={featuredProject.title}
+                    className="aspect-video w-full object-cover rounded-2xl shadow-2xl"
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent to-transparent rounded-2xl" />
+                <div className="absolute bottom-0 left-0 right-0 p-8 text-center">
+                  <p className="font-display text-3xl font-medium text-white">{featuredProject.title}</p>
+                  {featuredProject.description && (
+                    <p className="mt-2 text-base text-white/70 max-w-2xl mx-auto">{featuredProject.description}</p>
                   )}
                 </div>
               </motion.div>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-14 text-center">
-            <p className="font-display text-3xl text-white/20">No project videos yet</p>
-            <p className="mt-2 text-sm text-white/30">Upload videos from the Admin Dashboard</p>
-          </div>
-        )}
+            </AnimatePresence>
+          ) : (
+            <div className="aspect-video w-full rounded-2xl bg-charcoal flex items-center justify-center">
+              <p className="font-display text-3xl text-white/20">No featured projects yet</p>
+            </div>
+          )}
 
-        <div className="mt-10 text-center">
-          <Link to="/projects" className="inline-flex items-center justify-center gap-2 rounded-none border border-white/30 px-8 py-3.5 text-2xs font-medium uppercase tracking-widest text-white transition-all duration-300 hover:bg-white hover:text-ink">
-            View All Projects <ArrowRight size={14} strokeWidth={1.5} />
-          </Link>
+          {feed.projects.length > 1 && (
+            <div className="flex items-center justify-center gap-4 mt-8">
+              <button
+                onClick={() => setCurrentProjectIndex((prev) => (prev - 1 + feed.projects.length) % feed.projects.length)}
+                className="p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition"
+                aria-label="Previous project"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <div className="flex gap-2">
+                {feed.projects.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentProjectIndex(i)}
+                    className={`h-2 rounded-full transition ${i === currentProjectIndex ? 'w-8 bg-white' : 'w-2 bg-white/30 hover:bg-white/50'}`}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={() => setCurrentProjectIndex((prev) => (prev + 1) % feed.projects.length)}
+                className="p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition"
+                aria-label="Next project"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          )}
+
+          <div className="mt-10 text-center">
+            <Link to="/projects" className="inline-flex items-center justify-center gap-2 rounded-none border border-white/30 px-8 py-3.5 text-2xs font-medium uppercase tracking-widest text-white transition-all duration-300 hover:bg-white hover:text-ink">
+              View All Projects <ArrowRight size={14} strokeWidth={1.5} />
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -163,7 +196,7 @@ export const HomePage = () => {
                     }`}
                   >
                     <img
-                      src={item.imageUrl}
+                      src={item.images?.[0]?.url || item.imageUrl}
                       alt={item.title}
                       className={`w-full object-cover transition duration-700 group-hover:scale-105 ${
                         i === 0 ? 'h-[320px] md:h-full md:min-h-[500px]' : 'h-52 md:h-60'

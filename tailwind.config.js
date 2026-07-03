@@ -4,12 +4,17 @@ export default {
   theme: {
     extend: {
       colors: {
+        beige: '#E8E0D5',
         cream: '#F7F3EE',
         linen: '#EDE8E0',
         sand: '#D9CFC3',
         stone: '#B5A99A',
         clay: '#C4A882',
         warm: '#8B7355',
+        warmBrown: '#6B5B47',
+        softCream: '#FAF8F5',
+        lightGold: '#D4AF37',
+        gold: '#C9A66B',
         ink: '#1A1714',
         charcoal: '#2D2926',
         white: '#FFFFFF',

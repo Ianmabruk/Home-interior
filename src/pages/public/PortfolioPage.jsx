@@ -138,7 +138,7 @@ export const PortfolioPage = () => {
               >
                 <div className="relative overflow-hidden">
                   <img
-                    src={item.imageUrl}
+                    src={item.images?.[0]?.url || item.imageUrl}
                     alt={item.title}
                     className="w-full object-cover transition duration-700 group-hover:scale-105"
                     loading="lazy"
@@ -219,7 +219,7 @@ export const PortfolioPage = () => {
                 <X size={16} strokeWidth={1.5} />
               </button>
               <img
-                src={selected.imageUrl}
+                src={selected.images?.[0]?.url || selected.imageUrl}
                 alt={selected.title}
                 className="max-h-[72vh] w-full object-contain"
               />

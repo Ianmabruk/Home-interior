@@ -78,7 +78,8 @@ const crudFactory = (Model) => ({
     const parsedServices = parseMaybeJson(req.body.services, null)
     if (parsedServices) payload.services = parsedServices
 
-    // For Project: merge new media into existing array instead of replacing
+    // For Project: handle replace vs append based on query param
+    const replaceMedia = req.query.replace === 'true'
     const parsedMedia = Array.isArray(req.body.media) ? req.body.media : parseMaybeJson(req.body.media, null)
     if (parsedMedia) payload.media = parsedMedia
 
@@ -86,9 +87,8 @@ const crudFactory = (Model) => ({
     if (upload) {
       if (Model.modelName === 'Project') {
         const mediaItem = { type: upload.kind, url: upload.url, publicId: upload.publicId }
-        // Merge: keep existing media, append new item
-        const currentMedia = Array.isArray(existing.media) ? existing.media.map((m) => m.toObject ? m.toObject() : m) : []
-        payload.media = [...currentMedia, mediaItem]
+        // Replace media if replace=true, otherwise merge
+        payload.media = replaceMedia ? [mediaItem] : [...(Array.isArray(existing.media) ? existing.media.map((m) => m.toObject ? m.toObject() : m) : []), mediaItem]
         if (upload.kind === 'video') {
           payload.videoUrl = upload.url
           payload.videoPublicId = upload.publicId
@@ -123,7 +123,53 @@ const crudFactory = (Model) => ({
 })
 
 export const projectsController = crudFactory(Project)
-export const portfolioController = crudFactory(Portfolio)
+export const portfolioController = {
+  list: asyncHandler(async (req, res) => {
+    const items = await Portfolio.find({}).sort({ order: 1, createdAt: -1 })
+    res.json(items)
+  }),
+
+  create: asyncHandler(async (req, res) => {
+    const payload = { ...req.body }
+    const files = req.files || (req.file ? [req.file] : [])
+
+    // Handle multiple image uploads
+    const uploads = await Promise.all(
+      files.map((file) => uploadToCloudinary(file.buffer, 'hok/portfolio', 'image'))
+    )
+
+    payload.images = uploads.map((item) => ({ url: item.secure_url, publicId: item.public_id }))
+    
+    const item = await Portfolio.create(payload)
+    res.status(201).json(item)
+  }),
+
+  update: asyncHandler(async (req, res) => {
+    const existing = await Portfolio.findById(req.params.id)
+    if (!existing) {
+      res.status(404).json({ message: 'Portfolio not found' })
+      return
+    }
+
+    const payload = { ...req.body }
+    const files = req.files || (req.file ? [req.file] : [])
+
+    if (files.length > 0) {
+      const uploads = await Promise.all(
+        files.map((file) => uploadToCloudinary(file.buffer, 'hok/portfolio', 'image'))
+      )
+      payload.images = uploads.map((item) => ({ url: item.secure_url, publicId: item.public_id }))
+    }
+
+    const item = await Portfolio.findByIdAndUpdate(req.params.id, payload, { new: true })
+    res.json(item)
+  }),
+
+  remove: asyncHandler(async (req, res) => {
+    await Portfolio.findByIdAndDelete(req.params.id)
+    res.json({ message: 'Portfolio deleted' })
+  }),
+}
 export const virtualDesignController = crudFactory(VirtualDesign)
 
 export const getAbout = asyncHandler(async (req, res) => {
@@ -163,5 +209,11 @@ export const homepageFeed = asyncHandler(async (req, res) => {
     Product.find({ isPublished: true }).sort({ createdAt: -1 }).limit(8),
   ])
 
-  res.json({ projects, portfolio, about, virtualDesign, products })
+  // Transform portfolio to use images array or fallback to imageUrl
+  const portfolioWithImages = portfolio.map(p => ({
+    ...p.toObject(),
+    displayImage: p.images?.[0]?.url || p.imageUrl
+  }))
+
+  res.json({ projects, portfolio: portfolioWithImages, about, virtualDesign, products })
 })

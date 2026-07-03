@@ -5,8 +5,10 @@ import { Order } from '../models/Order.js'
 import { Analytics } from '../models/Analytics.js'
 import { Portfolio } from '../models/Portfolio.js'
 import { Project } from '../models/Project.js'
+import { NewsletterSubscription } from '../models/NewsletterSubscription.js'
 import { env } from '../config/env.js'
 import { buildAdminTestEmailTemplate, sendEmail } from '../config/sendgrid.js'
+import { ApiError } from '../utils/ApiError.js'
 
 export const dashboardOverview = asyncHandler(async (req, res) => {
   const [products, userCount, orders, analytics, portfolioCount, projectCount] = await Promise.all([
@@ -120,4 +122,9 @@ export const sendAdminTestEmail = asyncHandler(async (req, res) => {
     reason: result.reason || null,
     to,
   })
+})
+
+export const listNewsletter = asyncHandler(async (req, res) => {
+  const subscribers = await NewsletterSubscription.find({ isActive: true }).sort({ createdAt: -1 })
+  res.json(subscribers)
 })
