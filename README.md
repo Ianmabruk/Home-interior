@@ -32,7 +32,7 @@ Production-ready full-stack platform for premium interior design services and e-
   - `cd server && npm run seed`
 - Default admin credentials:
   - Email: `admin@hokinterior.com`
-  - Password: `Admin@12345`
+  - Password: `Admin123!`
 - You can override with:
   - `SEED_ADMIN_EMAIL`
   - `SEED_ADMIN_PASSWORD`
