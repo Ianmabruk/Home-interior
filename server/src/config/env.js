@@ -17,5 +17,5 @@ export const env = {
   sendGridApiKey: process.env.SENDGRID_API_KEY || '',
   emailFrom: process.env.EMAIL_FROM || 'no-reply@hokinterior.com',
   seedAdminEmail: process.env.SEED_ADMIN_EMAIL || 'admin@hokinterior.com',
-  seedAdminPassword: process.env.SEED_ADMIN_PASSWORD || 'Admin@12345',
+  seedAdminPassword: process.env.SEED_ADMIN_PASSWORD || 'Admin123!',
 }

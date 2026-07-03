@@ -16,7 +16,7 @@
 - Ensure `server/.env` contains a valid `MONGO_URI`.
 - Optional seed admin overrides:
   - `SEED_ADMIN_EMAIL=admin@hokinterior.com`
-  - `SEED_ADMIN_PASSWORD=Admin@12345`
+  - `SEED_ADMIN_PASSWORD=Admin123!`
 - Run seeder: `cd server && npm run seed`
 - Seeder is idempotent and safe to run multiple times.
 

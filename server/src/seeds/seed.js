@@ -27,7 +27,7 @@ const seed = async () => {
     await connectDB()
 
     const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@hokinterior.com'
-    const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin@12345'
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin123!'
 
     const adminPasswordHash = await bcrypt.hash(adminPassword, 12)
 
