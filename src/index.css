@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: #F7F3EE;
+    color: #1A1714;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  ::selection {
+    background: #C4A882;
+    color: #1A1714;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-none bg-ink px-8 py-3.5 text-2xs font-medium uppercase tracking-widest text-white transition-all duration-300 hover:bg-charcoal disabled:opacity-50 cursor-pointer select-none;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-none border border-ink px-8 py-3.5 text-2xs font-medium uppercase tracking-widest text-ink transition-all duration-300 hover:bg-ink hover:text-white disabled:opacity-50 cursor-pointer select-none;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-2xs font-medium uppercase tracking-widest text-ink/60 transition-all duration-300 hover:text-ink cursor-pointer select-none;
+  }
+
+  .input {
+    @apply w-full border-b border-ink/20 bg-transparent px-0 py-3 text-sm outline-none placeholder:text-ink/35 focus:border-ink transition-colors duration-200;
+  }
+
+  .input-box {
+    @apply w-full border border-sand bg-white px-4 py-3 text-sm outline-none placeholder:text-ink/35 focus:border-ink/40 transition-colors duration-200;
+  }
+
+  .label {
+    @apply text-2xs font-medium uppercase tracking-widest text-ink/50 block mb-2;
+  }
+
+  .section-pad {
+    @apply px-6 py-20 md:px-12 lg:px-20;
+  }
+
+  .container-wide {
+    @apply mx-auto max-w-screen-xl;
+  }
+
+  .container-narrow {
+    @apply mx-auto max-w-4xl;
+  }
+
+  .eyebrow {
+    @apply text-2xs font-medium uppercase tracking-widest text-warm;
+  }
+
+  .skeleton {
+    @apply animate-pulse bg-gradient-to-r from-linen via-sand/40 to-linen bg-[length:200%_100%];
+    animation: shimmer 1.8s infinite linear;
+  }
+}
