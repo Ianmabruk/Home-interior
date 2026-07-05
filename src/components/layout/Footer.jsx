@@ -5,10 +5,17 @@ import { NewsletterForm } from '../common/NewsletterForm'
 import { api } from '../../services/api'
 import { Instagram, Facebook } from 'lucide-react'
 
+const TikTokIcon = ({ size, strokeWidth }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" strokeWidth={strokeWidth}>
+    <path d="M19.589 6.686a4.79 4.79 0 0 1-1.582.886 4.79 4.79 0 0 1-4.746-4.745v.006a4.79 4.79 0 0 1 4.746-4.745h.006a4.79 4.79 0 0 1 4.745 4.745v.006a4.79 4.79 0 0 1-4.745 4.745h-.006a4.79 4.79 0 0 1-1.582-.886z" />
+    <path d="M12.37 12.927v6.55a2.872 2.872 0 0 1-2.872 2.872H7.628a2.872 2.872 0 0 1-2.872-2.872v-6.55a2.872 2.872 0 0 1 2.872-2.872h1.87z" />
+  </svg>
+)
+
 const SOCIAL_LINKS = [
   {
     key: 'tiktok',
-    Icon: () => <span className="text-sm">🎵</span>,
+    Icon: TikTokIcon,
     label: 'TikTok',
     url: 'https://www.tiktok.com/@esther.k.musa?_r=1&_t=ZS-97myTEWJqDZ',
   },
