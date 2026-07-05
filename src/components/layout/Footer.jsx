@@ -3,13 +3,27 @@ import { useEffect, useState } from 'react'
 import { SHOP_CATEGORIES } from '../../utils/constants'
 import { NewsletterForm } from '../common/NewsletterForm'
 import { api } from '../../services/api'
-import { FaInstagram, FaTiktok, FaPinterestP, FaFacebookF } from 'react-icons/fa6'
+import { Instagram, TikTok, Facebook } from 'lucide-react'
 
 const SOCIAL_LINKS = [
-  { key: 'instagram', Icon: FaInstagram, label: 'Instagram' },
-  { key: 'tiktok', Icon: FaTiktok, label: 'TikTok' },
-  { key: 'pinterest', Icon: FaPinterestP, label: 'Pinterest' },
-  { key: 'facebook', Icon: FaFacebookF, label: 'Facebook' },
+  {
+    key: 'tiktok',
+    Icon: TikTok,
+    label: 'TikTok',
+    url: 'https://www.tiktok.com/@esther.k.musa?_r=1&_t=ZS-97myTEWJqDZ',
+  },
+  {
+    key: 'instagram',
+    Icon: Instagram,
+    label: 'Instagram',
+    url: 'https://www.instagram.com/hokinteriors?igsh=OG1tZ2xuOG9mMWRl',
+  },
+  {
+    key: 'facebook',
+    Icon: Facebook,
+    label: 'Facebook',
+    url: 'https://www.facebook.com/share/14i3V8Sw7uo/?mibextid=wwXIfr',
+  },
 ]
 
 export const Footer = () => {
@@ -18,8 +32,6 @@ export const Footer = () => {
   useEffect(() => {
     api.get('/content/about').then((res) => setAbout(res.data)).catch(() => setAbout(null))
   }, [])
-
-  const socials = about?.socials || {}
 
   return (
     <footer className="bg-black text-white">
@@ -51,28 +63,18 @@ export const Footer = () => {
           </p>
           {/* Social Icons */}
           <div className="mt-6 flex items-center gap-3">
-            {SOCIAL_LINKS.map(({ key, Icon, label }) =>
-              socials[key] ? (
-                <a
-                  key={key}
-                  href={socials[key]}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  aria-label={label}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-orange hover:bg-orange/20 hover:text-orange hover:shadow-md"
-                >
-                  <Icon size={15} />
-                </a>
-              ) : (
-                <span
-                  key={key}
-                  aria-label={label}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/30"
-                >
-                  <Icon size={15} />
-                </span>
-              )
-            )}
+            {SOCIAL_LINKS.map(({ key, Icon, label, url }) => (
+              <a
+                key={key}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white/70 transition-all duration-200 hover:scale-110 hover:border-orange hover:bg-orange/20 hover:text-orange hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-orange/30"
+              >
+                <Icon size={18} strokeWidth={1.5} />
+              </a>
+            ))}
           </div>
         </div>
 
