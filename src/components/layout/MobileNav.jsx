@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, ShoppingBag, Briefcase, Heart, ShoppingCart, Menu, X, Grid3X3 } from 'lucide-react'
+import { Home, ShoppingBag, Briefcase, Menu, X, FolderKanban, Info, Grid3X3 } from 'lucide-react'
 import { SHOP_CATEGORIES } from '../../utils/constants'
 import { AnimatePresence, motion } from 'framer-motion'
 
 const navItems = [
   { to: '/', label: 'Home', icon: Home, exact: true },
   { to: '/shop', label: 'Shop', icon: ShoppingBag },
-  { to: '/virtual-interior-design', label: 'Virtual Interior', icon: Briefcase },
-  { to: '/wishlist', label: 'Wishlist', icon: Heart },
-  { to: '/cart', label: 'Cart', icon: ShoppingCart },
-  { to: '#more', label: 'More', icon: Menu },
+  { to: '/projects', label: 'Projects', icon: FolderKanban },
+  { to: '/virtual-interior-design', label: 'Virtual', icon: Briefcase },
+  { to: '/about', label: 'About', icon: Info },
+  { to: '#more', label: 'Menu', icon: Menu },
 ]
 
 const categoryIcons = {
@@ -38,9 +38,9 @@ export const MobileNav = () => {
 
   return (
     <>
-      {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-black/95 backdrop-blur-md border-t border-white/10 md:hidden safe-area-bottom">
-        <div className="flex items-center justify-around px-2 py-3 pb-safe">
+      {/* Mobile Bottom Navigation - Premium Frosted Glass */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/10 backdrop-blur-2xl border-t border-white/20 md:hidden safe-area-pb">
+        <div className="flex items-center justify-around px-2 py-3">
           {navItems.map((item) => {
             const Icon = item.icon
             const active = isActive(item.to, item.exact)
@@ -48,23 +48,23 @@ export const MobileNav = () => {
               <button
                 key="more"
                 onClick={() => setDrawerOpen(true)}
-                className={`flex flex-col items-center gap-1 px-3 py-2 text-2xs font-medium uppercase tracking-widest transition ${
-                  active ? 'text-orange' : 'text-white/50 hover:text-orange'
-                }`}
+                className="flex items-center justify-center w-12 h-12 rounded-full bg-white/10 transition-all duration-200 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-orange/30"
+                aria-label="Open menu"
               >
-                <Icon size={20} strokeWidth={1.5} />
-                <span>More</span>
+                <Icon size={22} strokeWidth={1.5} className="text-white/80" />
               </button>
             ) : (
               <Link
                 key={item.to}
                 to={item.to}
-                className={`flex flex-col items-center gap-1 px-3 py-2 text-2xs font-medium uppercase tracking-widest transition ${
-                  active ? 'text-orange' : 'text-white/50 hover:text-orange'
-                }`}
+                className="flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 hover:bg-white/10"
+                aria-label={item.label}
               >
-                <Icon size={20} strokeWidth={1.5} />
-                <span>{item.label}</span>
+                <Icon
+                  size={22}
+                  strokeWidth={1.5}
+                  className={active ? 'text-orange' : 'text-white/70'}
+                />
               </Link>
             )
           })}
@@ -79,7 +79,7 @@ export const MobileNav = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-ink/60"
+              className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
               onClick={() => setDrawerOpen(false)}
             />
             <motion.div
@@ -87,31 +87,31 @@ export const MobileNav = () => {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 right-0 top-0 z-50 w-80 max-w-[85%] bg-black shadow-2xl"
+              className="fixed bottom-0 right-0 top-0 z-50 w-80 max-w-[85%] bg-black/95 backdrop-blur-xl shadow-2xl"
             >
               <div className="flex h-16 items-center justify-between border-b border-white/10 px-5">
-                <p className="text-sm font-semibold uppercase tracking-widest text-orange">Categories</p>
+                <p className="text-sm font-semibold uppercase tracking-widest text-orange">Menu</p>
                 <button
                   onClick={() => setDrawerOpen(false)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-white/50 transition hover:text-orange"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/20"
                 >
-                  <X size={18} strokeWidth={1.5} />
+                  <X size={20} strokeWidth={1.5} />
                 </button>
               </div>
 
               <div className="p-5">
                 <div className="space-y-2">
                   {SHOP_CATEGORIES.map((cat) => {
-                    const IconComp = categoryIcons[cat] || Grid3X3
+                    const IconComp = categoryIcons[cat] || Menu
                     return (
                       <Link
                         key={cat}
                         to={`/shop?category=${encodeURIComponent(cat)}`}
                         onClick={() => setDrawerOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-sm text-white/70 transition hover:bg-white/5 hover:text-orange rounded-lg"
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-white/80 transition hover:bg-white/10 hover:text-orange rounded-xl"
                       >
                         <span className="text-orange">
-                          <IconComp size={16} />
+                          <IconComp size={18} />
                         </span>
                         {cat}
                       </Link>
@@ -123,42 +123,34 @@ export const MobileNav = () => {
                   <Link
                     to="/portfolio"
                     onClick={() => setDrawerOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-white/70 transition hover:bg-white/5 hover:text-orange rounded-lg"
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-white/80 transition hover:bg-white/10 hover:text-orange rounded-xl"
                   >
                     <span className="text-orange">📁</span>
                     Portfolio
                   </Link>
                   <Link
-                    to="/virtual-interior-design"
-                    onClick={() => setDrawerOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-white/70 transition hover:bg-white/5 hover:text-orange rounded-lg"
-                  >
-                    <span className="text-orange">✨</span>
-                    Virtual Interior
-                  </Link>
-                  <Link
                     to="/projects"
                     onClick={() => setDrawerOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-white/70 transition hover:bg-white/5 hover:text-orange rounded-lg"
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-white/80 transition hover:bg-white/10 hover:text-orange rounded-xl"
                   >
                     <span className="text-orange">🎬</span>
                     Projects
                   </Link>
                   <Link
+                    to="/virtual-interior-design"
+                    onClick={() => setDrawerOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-white/80 transition hover:bg-white/10 hover:text-orange rounded-xl"
+                  >
+                    <span className="text-orange">✨</span>
+                    Virtual Interior
+                  </Link>
+                  <Link
                     to="/about"
                     onClick={() => setDrawerOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-white/70 transition hover:bg-white/5 hover:text-orange rounded-lg"
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-white/80 transition hover:bg-white/10 hover:text-orange rounded-xl"
                   >
                     <span className="text-orange">ℹ</span>
                     About Us
-                  </Link>
-                  <Link
-                    to="/chat"
-                    onClick={() => setDrawerOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-white/70 transition hover:bg-white/5 hover:text-orange rounded-lg"
-                  >
-                    <span className="text-orange">💬</span>
-                    Chat Support
                   </Link>
                 </div>
               </div>
