@@ -4,24 +4,13 @@ import { SHOP_CATEGORIES } from '../../utils/constants'
 import { NewsletterForm } from '../common/NewsletterForm'
 import { api } from '../../services/api'
 import { Instagram, Facebook } from 'lucide-react'
-
-const TikTokIcon = ({ size, strokeWidth }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" strokeWidth={strokeWidth}>
-    <path d="M19.589 6.686a4.79 4.79 0 0 1-1.582.886 4.79 4.79 0 0 1-4.746-4.745v.006a4.79 4.79 0 0 1 4.746-4.745h.006a4.79 4.79 0 0 1 4.745 4.745v.006a4.79 4.79 0 0 1-4.745 4.745h-.006a4.79 4.79 0 0 1-1.582-.886z" />
-    <path d="M12.37 12.927v6.55a2.872 2.872 0 0 1-2.872 2.872H7.628a2.872 2.872 0 0 1-2.872-2.872v-6.55a2.872 2.872 0 0 1 2.872-2.872h1.87z" />
-  </svg>
-)
-
-const PinterestIcon = ({ size, strokeWidth }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" strokeWidth={strokeWidth}>
-    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.13 9.81 7.54 11.41-.11-.9-.03-2.26.2-3.37-.23-.55-.53-2.26.25-3.38 0 0 1.68-.9 5.83-1.09 2.03-.11 4-.29 4-.29s.57 2.26.69 3.89c.02.49.04.98.04 1.47 0 1.69-.18 3.36-.5 4.23C18.97 23.12 24 18.62 24 12c0-6.63-5.37-12-12-12z" />
-  </svg>
-)
+import { SiTiktok } from 'react-icons/si'
+import { SiPinterest } from 'react-icons/si'
 
 const SOCIAL_LINKS = [
   {
     key: 'tiktok',
-    Icon: TikTokIcon,
+    Icon: SiTiktok,
     label: 'TikTok',
     url: 'https://www.tiktok.com/@esther.k.musa?_r=1&_t=ZS-97myTEWJqDZ',
   },
@@ -39,7 +28,7 @@ const SOCIAL_LINKS = [
   },
   {
     key: 'pinterest',
-    Icon: PinterestIcon,
+    Icon: SiPinterest,
     label: 'Pinterest',
     url: 'https://www.pinterest.com/hokinterior',
   },

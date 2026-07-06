@@ -36,6 +36,13 @@ export const HomePage = () => {
   useEffect(() => { loadFeed() }, [loadFeed])
 
   useEffect(() => {
+    console.log("[HOME MOUNT] Hero section rendered")
+    console.log("[HOME MOUNT] Portfolio section rendered")
+    console.log("[HOME MOUNT] About section rendered")
+    console.log("[HOME MOUNT] Footer rendered by Layout")
+  }, [])
+
+  useEffect(() => {
     const handler = (event) => {
       const payload = getAdminDataChangedPayload(event)
       if (payload?.type) loadFeed().catch(() => {})
@@ -105,8 +112,7 @@ export const HomePage = () => {
       {/* ══════════════════════════════════════════
           SECTION 2 — PORTFOLIO GALLERY
       ══════════════════════════════════════════ */}
-      {feed.portfolio.length > 0 && (
-        <section className="section-pad bg-cream">
+      <section className="section-pad bg-cream">
           <div className="container-wide px-6 md:px-12 lg:px-20">
             <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:mb-10 md:mb-12 md:flex-row md:items-end">
               <SectionTitle eyebrow="Portfolio" title="Curated Interiors" align="left" />
@@ -162,13 +168,11 @@ export const HomePage = () => {
             </div>
           </div>
         </section>
-      )}
 
       {/* ══════════════════════════════════════════
           SECTION 3 — ABOUT PARALLAX
       ══════════════════════════════════════════ */}
-      {feed.about && (
-        <section className="relative bg-linen">
+      <section className="relative bg-linen">
           <div className="flex items-center justify-center py-16 sm:py-20 md:py-24">
             <div className="container-wide px-6 md:px-12 lg:px-20">
               <div className="grid items-center gap-10 sm:gap-12 md:grid-cols-2 md:gap-16">
@@ -223,7 +227,6 @@ export const HomePage = () => {
             </div>
           </div>
         </section>
-      )}
     </div>
   )
 }
