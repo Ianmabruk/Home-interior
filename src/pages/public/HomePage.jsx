@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { SectionTitle } from '../../components/common/SectionTitle'
@@ -174,59 +174,61 @@ export const HomePage = () => {
       ══════════════════════════════════════════ */}
       <section className="relative bg-linen">
         {feed.about ? (
-          <div className="flex items-center justify-center py-16 sm:py-20 md:py-24">
-            <div className="container-wide px-6 md:px-12 lg:px-20">
-              <div className="grid items-center gap-10 sm:gap-12 md:grid-cols-2 md:gap-16">
-                <motion.div
-                  initial={{ opacity: 0, x: -30 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.8 }}
-                  className="relative"
-                >
-                  {feed.about.aboutImageUrl ? (
-                    <img
-                      src={feed.about.aboutImageUrl}
-                      alt="Workspace"
-                      className="w-full rounded-2xl object-cover aspect-[4/3] sm:aspect-[4/5]"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-full rounded-2xl bg-sand flex aspect-[4/3] items-center justify-center sm:aspect-[4/5]">
-                      <p className="text-sm text-ink/30">Premium workspace</p>
-                    </div>
-                  )}
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, x: 30 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.8, delay: 0.2 }}
-                >
-                  <p className="eyebrow mb-4">Our Philosophy</p>
-                  <h2 className="font-display text-3xl font-medium leading-tight text-ink sm:text-4xl md:text-4xl lg:text-5xl">
-                    Crafting Excellence
-                  </h2>
-                  <p className="mt-3 text-sm leading-relaxed text-ink/55 sm:text-base sm:mt-4">
-                    Every space tells a story. We transform visions into reality with meticulous attention to detail.
-                  </p>
-                  {feed.about.mission && (
-                    <div className="mt-5 border-l-4 border-orange pl-5 sm:mt-6">
-                      <p className="text-sm leading-relaxed text-ink/70 sm:text-base">{feed.about.mission}</p>
-                    </div>
-                  )}
-                </motion.div>
+          <React.Fragment>
+            <div className="flex items-center justify-center py-16 sm:py-20 md:py-24">
+              <div className="container-wide px-6 md:px-12 lg:px-20">
+                <div className="grid items-center gap-10 sm:gap-12 md:grid-cols-2 md:gap-16">
+                  <motion.div
+                    initial={{ opacity: 0, x: -30 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8 }}
+                    className="relative"
+                  >
+                    {feed.about.aboutImageUrl ? (
+                      <img
+                        src={feed.about.aboutImageUrl}
+                        alt="Workspace"
+                        className="w-full rounded-2xl object-cover aspect-[4/3] sm:aspect-[4/5]"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full rounded-2xl bg-sand flex aspect-[4/3] items-center justify-center sm:aspect-[4/5]">
+                        <p className="text-sm text-ink/30">Premium workspace</p>
+                      </div>
+                    )}
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, x: 30 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8, delay: 0.2 }}
+                  >
+                    <p className="eyebrow mb-4">Our Philosophy</p>
+                    <h2 className="font-display text-3xl font-medium leading-tight text-ink sm:text-4xl md:text-4xl lg:text-5xl">
+                      Crafting Excellence
+                    </h2>
+                    <p className="mt-3 text-sm leading-relaxed text-ink/55 sm:text-base sm:mt-4">
+                      Every space tells a story. We transform visions into reality with meticulous attention to detail.
+                    </p>
+                    {feed.about.mission && (
+                      <div className="mt-5 border-l-4 border-orange pl-5 sm:mt-6">
+                        <p className="text-sm leading-relaxed text-ink/70 sm:text-base">{feed.about.mission}</p>
+                      </div>
+                    )}
+                  </motion.div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="pb-16 sm:pb-20 md:pb-24 md:py-0">
-            <div className="container-wide px-6 text-center md:px-12 lg:px-20">
-              <Link to="/about" className="btn-primary">
-                Learn More <ArrowRight size={14} strokeWidth={1.5} />
-              </Link>
+            <div className="pb-16 sm:pb-20 md:pb-24 md:py-0">
+              <div className="container-wide px-6 text-center md:px-12 lg:px-20">
+                <Link to="/about" className="btn-primary">
+                  Learn More <ArrowRight size={14} strokeWidth={1.5} />
+                </Link>
+              </div>
             </div>
-          </div>
+          </React.Fragment>
         ) : (
           <div className="flex items-center justify-center py-16 sm:py-20 md:py-24">
             <div className="container-wide px-6 text-center md:px-12 lg:px-20">
