@@ -43,6 +43,18 @@ const toNumberIfFinite = (value) => {
   return Number.isFinite(n) ? n : null
 }
 
+const PROJECT_FIELDS = new Set([
+  'title', 'description', 'category', 'media', 'beforeAfterImages',
+  'videoUrl', 'videoPublicId', 'coverImageUrl', 'order', 'isPublished', 'tags', 'services',
+])
+const stripUnknown = (obj, allowed) => {
+  const out = {}
+  for (const key of Object.keys(obj)) {
+    if (allowed.has(key)) out[key] = obj[key]
+  }
+  return out
+}
+
 export const projectsController = {
   list: asyncHandler(async (req, res) => {
     const items = await prisma.project.findMany()
@@ -50,7 +62,7 @@ export const projectsController = {
   }),
 
   create: asyncHandler(async (req, res) => {
-    const payload = { ...req.body }
+    const payload = stripUnknown({ ...req.body }, PROJECT_FIELDS)
 
     if (payload.order !== undefined) payload.order = orderValue(payload.order)
 
@@ -90,7 +102,7 @@ export const projectsController = {
       return res.status(404).json({ message: 'Project not found' })
     }
 
-    const payload = { ...req.body }
+    const payload = stripUnknown({ ...req.body }, PROJECT_FIELDS)
 
     const parsedServices = parseServices(req.body.services)
     if (parsedServices.length) payload.services = parsedServices
