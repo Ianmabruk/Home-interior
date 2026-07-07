@@ -190,13 +190,13 @@ export const virtualDesignController = {
     const payload = { ...req.body }
 
     const parsedServices = parseServices(req.body.services)
-    if (parsedServices.length) payload.services = parsedServices
+    payload.services = parsedServices.length ? parsedServices : []
 
     const parsedBeforeAfter = parseMaybeJson(req.body.beforeAfterImages, null)
-    if (parsedBeforeAfter) payload.beforeAfterImages = parsedBeforeAfter
+    payload.beforeAfterImages = parsedBeforeAfter || null
 
     const parsedTags = parseMaybeJson(req.body.tags, null)
-    if (parsedTags) payload.tags = parsedTags
+    payload.tags = Array.isArray(parsedTags) ? parsedTags : (parsedTags ? [parsedTags] : [])
 
     const upload = await handleFileUpload(req, 'hok/virtual-design')
     if (upload) {
@@ -219,13 +219,13 @@ export const virtualDesignController = {
     const payload = { ...req.body }
 
     const parsedServices = parseServices(req.body.services)
-    if (parsedServices.length) payload.services = parsedServices
+    payload.services = parsedServices.length ? parsedServices : existing.services || []
 
     const parsedBeforeAfter = parseMaybeJson(req.body.beforeAfterImages, null)
-    if (parsedBeforeAfter) payload.beforeAfterImages = parsedBeforeAfter
+    if (parsedBeforeAfter !== null) payload.beforeAfterImages = parsedBeforeAfter
 
     const parsedTags = parseMaybeJson(req.body.tags, null)
-    if (parsedTags) payload.tags = parsedTags
+    payload.tags = Array.isArray(parsedTags) ? parsedTags : (parsedTags ? [parsedTags] : existing.tags || [])
 
     const upload = await handleFileUpload(req, 'hok/virtual-design')
     if (upload) {
