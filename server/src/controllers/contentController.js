@@ -21,7 +21,9 @@ const parseServices = (value) => {
 const handleFileUpload = async (req, folder, defaultKind = 'image') => {
   if (!req.file) return null
   const kind = req.body.resourceType === 'video' ? 'video' : defaultKind
-  const result = await uploadToCloudinary(req.file.buffer, folder, kind)
+  const mimeType = req.file.mimetype
+  console.log('[UPLOAD] File upload request:', { fieldname: req.file.fieldname, kind, mimeType, size: req.file.size })
+  const result = await uploadToCloudinary(req.file.buffer, folder, kind, mimeType)
   return { url: result.secure_url, publicId: result.public_id, kind }
 }
 
@@ -240,7 +242,9 @@ export const upsertAbout = asyncHandler(async (req, res) => {
   if (parsedSocials) payload.socials = parsedSocials
 
   if (req.file) {
-    const upload = await uploadToCloudinary(req.file.buffer, 'hok/about', 'image')
+    const mimeType = req.file.mimetype
+    console.log('[UPLOAD] About image upload:', { mimeType, size: req.file.size })
+    const upload = await uploadToCloudinary(req.file.buffer, 'hok/about', 'image', mimeType)
     payload.aboutImageUrl = upload.secure_url
     payload.aboutImagePublicId = upload.public_id
   }
@@ -277,4 +281,24 @@ export const homepageFeed = asyncHandler(async (req, res) => {
 export const getAnalytics = asyncHandler(async (req, res) => {
   const analytics = await prisma.analytics.findMany({ orderBy: { date: 'asc' } })
   res.json(withIdArray(analytics))
+})
+
+export const testUpload = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: 'No file uploaded', received: req.files || req.body })
+  }
+
+  const file = req.file
+  const result = await uploadToCloudinary(file.buffer, 'hok/test-uploads', 'image', file.mimetype)
+
+  res.status(200).json({
+    message: 'Upload successful',
+    file: {
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+      url: result.secure_url,
+      publicId: result.public_id,
+    },
+  })
 })

@@ -8,6 +8,7 @@ import {
   upsertAbout,
   virtualDesignController,
   getAnalytics,
+  testUpload,
 } from '../controllers/contentController.js'
 import { auth, authorize } from '../middleware/auth.js'
 
@@ -34,5 +35,7 @@ router.get('/virtual-design', virtualDesignController.list)
 router.post('/virtual-design', auth, authorize('admin'), upload.single('media'), virtualDesignController.create)
 router.patch('/virtual-design/:id', auth, authorize('admin'), upload.single('media'), virtualDesignController.update)
 router.delete('/virtual-design/:id', auth, authorize('admin'), virtualDesignController.remove)
+
+router.post('/test-upload', auth, authorize('admin'), upload.single('media'), testUpload)
 
 export default router

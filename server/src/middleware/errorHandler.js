@@ -10,8 +10,15 @@ export const errorHandler = (err, req, res, next) => {
     return
   }
 
+  // Multer / file upload specific errors
+  if (err?.name === 'MulterError') {
+    res.status(400).json({ message: `Upload error: ${err.message}` })
+    return
+  }
+
+  console.error('[ERROR]', err)
   res.status(500).json({
     message: 'Internal server error',
-    details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    details: process.env.NODE_ENV === 'development' ? err?.message : undefined,
   })
 }

@@ -114,7 +114,7 @@ export const createProduct = asyncHandler(async (req, res) => {
   const files = req.files || []
 
   const uploads = await Promise.all(
-    files.map((file) => uploadToCloudinary(file.buffer, 'hok/products', 'image')),
+    files.map((file) => uploadToCloudinary(file.buffer, 'hok/products', 'image', file.mimetype)),
   )
 
   const colorVariantsRaw = Array.isArray(req.body.colorVariants)
@@ -161,7 +161,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
   const files = req.files || []
   if (files.length > 0) {
     const uploads = await Promise.all(
-      files.map((file) => uploadToCloudinary(file.buffer, 'hok/products', 'image')),
+      files.map((file) => uploadToCloudinary(file.buffer, 'hok/products', 'image', file.mimetype)),
     )
     data.images = uploads.map((item) => ({ url: item.secure_url, publicId: item.public_id }))
   }
@@ -194,7 +194,7 @@ export const addColorVariant = asyncHandler(async (req, res) => {
   if (!colorName) throw new ApiError(400, 'colorName is required')
   if (!req.file) throw new ApiError(400, 'Image file is required')
 
-  const upload = await uploadToCloudinary(req.file.buffer, 'hok/products/variants', 'image')
+  const upload = await uploadToCloudinary(req.file.buffer, 'hok/products/variants', 'image', req.file.mimetype)
 
   const currentVariants = Array.isArray(product.colorVariants) ? product.colorVariants : []
   const filtered = currentVariants.filter((v) => v.colorName !== colorName)

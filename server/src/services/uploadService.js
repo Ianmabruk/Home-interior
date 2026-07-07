@@ -73,25 +73,28 @@ const uploadOnce = (fileBuffer, folder, resourceType) =>
     streamifier.createReadStream(fileBuffer).pipe(uploadStream)
   })
 
-export const uploadToCloudinary = async (fileBuffer, folder, resourceType = 'image') => {
+export const uploadToCloudinary = async (fileBuffer, folder, resourceType = 'image', mimeType = null) => {
   if (!fileBuffer) {
     throw new ApiError(400, 'No file buffer provided')
   }
+
+  console.log('[UPLOAD] File received:', { folder, resourceType, bufferSize: fileBuffer.length, mimeType })
 
   const isVideo = resourceType === 'video'
   const allowedTypes = isVideo ? ALLOWED_VIDEO_TYPES : ALLOWED_IMAGE_TYPES
   const maxSize = isVideo ? MAX_VIDEO_SIZE_BYTES : MAX_IMAGE_SIZE_BYTES
 
   if (fileBuffer.length > maxSize) {
+    console.log('[UPLOAD] File size exceeds limit:', { size: fileBuffer.length, max: maxSize })
     throw new ApiError(
       413,
       `${isVideo ? 'Video' : 'Image'} exceeds ${Math.floor(maxSize / 1024 / 1024)}MB limit.`,
     )
   }
 
-  const detectedType = isVideo ? 'video/mp4' : 'image/jpeg'
-  if (!allowedTypes.has(detectedType)) {
-      throw new ApiError(415, `Unsupported file type: ${detectedType}`)
+  if (mimeType && !allowedTypes.has(mimeType)) {
+    console.log('[UPLOAD] Unsupported file type:', { mimeType, allowedTypes: Array.from(allowedTypes) })
+    throw new ApiError(415, `Unsupported file type: ${mimeType}`)
   }
 
   let lastError
