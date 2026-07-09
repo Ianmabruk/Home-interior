@@ -105,7 +105,13 @@ export const refresh = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Refresh token required')
   }
 
-  const decoded = verifyRefreshToken(refreshToken)
+  const decoded = (() => {
+    try {
+      return verifyRefreshToken(refreshToken)
+    } catch {
+      throw new ApiError(401, 'Invalid or expired refresh token')
+    }
+  })()
   const user = await prisma.user.findUnique({ where: { id: decoded.userId } })
   if (!user || user.refreshToken !== refreshToken) {
     throw new ApiError(401, 'Invalid refresh token')

@@ -20,6 +20,10 @@ export const errorHandler = (err, req, res, next) => {
   res.status(500).json({
     success: false,
     message: 'Internal server error',
+    // Surface the error class name / Prisma code so production failures are
+    // diagnosable without leaking full messages or stack traces.
+    error: err?.name,
+    code: err?.code,
     details: process.env.NODE_ENV === 'development' ? err?.message : undefined,
   })
 }

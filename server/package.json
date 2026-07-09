@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
+    "build": "prisma generate && prisma migrate deploy",
+    "postinstall": "prisma generate",
     "lint": "node --check src/index.js",
     "seed": "node src/seeds/seed.js",
     "test:email": "node src/scripts/testSendGrid.js",
