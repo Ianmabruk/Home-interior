@@ -118,7 +118,7 @@ export const CartPage = () => {
                 </div>
               </div>
               <button
-                onClick={() => navigate('/account')}
+                onClick={() => navigate('/checkout')}
                 className="mt-8 w-full rounded-full bg-ink px-6 py-3.5 text-xs font-medium uppercase tracking-widest text-white transition hover:bg-ink/80 flex items-center justify-center gap-2"
               >
                 <ArrowRight size={14} strokeWidth={1.5} />

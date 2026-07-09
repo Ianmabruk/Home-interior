@@ -1,5 +1,12 @@
+import { Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import { Outlet } from 'react-router-dom'
+
+const AuthLoader = () => (
+  <div className="flex min-h-[40vh] items-center justify-center">
+    <div className="h-8 w-8 animate-spin rounded-full border-2 border-sand border-t-orange" />
+  </div>
+)
 
 export const AuthShell = () => {
   return (
@@ -33,7 +40,9 @@ export const AuthShell = () => {
               <p className="text-2xs font-medium uppercase tracking-widest text-orange">Interior Designs</p>
             </Link>
           </div>
-          <Outlet />
+          <Suspense fallback={<AuthLoader />}>
+            <Outlet />
+          </Suspense>
         </div>
       </div>
     </div>

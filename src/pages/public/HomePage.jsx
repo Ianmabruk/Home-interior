@@ -9,6 +9,8 @@ import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../util
 export const HomePage = () => {
   const [feed, setFeed] = useState({
     heroVideo: null,
+    projects: [],
+    featuredProjects: [],
     portfolio: [],
     about: null,
   })
@@ -18,15 +20,13 @@ export const HomePage = () => {
     api
       .get('/content/homepage')
       .then((res) => {
-        const heroVideo = res.data.heroVideo || (res.data.projects?.[0]?.videoUrl ? {
-          url: res.data.projects[0].videoUrl,
-          title: res.data.projects[0].title,
-          description: res.data.projects[0].description,
-        } : null)
+        const payload = res.data
         setFeed({
-          heroVideo,
-          portfolio: res.data.portfolio || [],
-          about: res.data.about,
+          heroVideo: payload.heroVideo,
+          projects: payload.projects || [],
+          featuredProjects: payload.featuredProjects || [],
+          portfolio: payload.portfolio || [],
+          about: payload.about,
         })
       })
       .catch(() => {})
@@ -170,7 +170,47 @@ export const HomePage = () => {
         </section>
 
       {/* ══════════════════════════════════════════
-          SECTION 3 — ABOUT PARALLAX
+          SECTION 3 — FEATURED PROJECTS
+      ══════════════════════════════════════════ */}
+      <section className="section-pad bg-cream">
+        <div className="container-wide px-6 md:px-12 lg:px-20">
+          <SectionTitle eyebrow="Projects" title="Featured Work" align="left" />
+          <div className="mt-10 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {feed.featuredProjects.map((project, i) => {
+              const firstMedia = project.media?.length ? project.media[0] : (project.videoUrl ? { type: 'video', url: project.videoUrl } : (project.coverImageUrl ? { type: 'image', url: project.coverImageUrl } : null))
+              return (
+                <motion.article key={project._id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.6, delay: i * 0.1 }} className="group cursor-pointer">
+                  <Link to={`/projects`} className="block">
+                    <div className="relative overflow-hidden bg-linen aspect-[16/10]">
+                      {firstMedia?.type === 'video' ? (
+                        <video src={firstMedia.url} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" autoPlay muted loop playsInline preload="metadata" />
+                      ) : firstMedia?.type === 'image' ? (
+                        <img src={firstMedia.url} alt={project.title} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" loading="lazy" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center bg-linen"><p className="text-sm text-ink/30">No media</p></div>
+                      )}
+                      <div className="absolute inset-0 bg-ink/0 transition-all duration-500 group-hover:bg-ink/15" />
+                    </div>
+                  </Link>
+                  <div className="mt-4">
+                    <h3 className="font-display text-2xl font-medium text-ink transition-colors group-hover:text-orange">{project.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-ink/50 line-clamp-2">{project.description}</p>
+                    {project.category && <p className="mt-2 text-2xs font-medium uppercase tracking-widest text-orange">{project.category}</p>}
+                  </div>
+                </motion.article>
+              )
+            })}
+          </div>
+          {feed.projects.length > 3 && (
+            <div className="mt-10 text-center">
+              <Link to="/projects" className="btn-outline">View All Projects <ArrowRight size={14} strokeWidth={1.5} /></Link>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          SECTION 4 — ABOUT PARALLAX
       ══════════════════════════════════════════ */}
       <section className="relative bg-linen">
         {feed.about ? (

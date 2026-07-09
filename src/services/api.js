@@ -17,7 +17,13 @@ api.interceptors.request.use((config) => {
 let refreshingPromise = null
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const data = response.data
+    if (data && typeof data === 'object' && 'success' in data) {
+      return { ...response, data: data.data ?? null }
+    }
+    return response
+  },
   async (error) => {
     const status = error?.response?.status
     const originalRequest = error.config

@@ -1,5 +1,5 @@
-import { BarChart3, Boxes, Film, FolderKanban, Info, Mail, Sparkles, LayoutDashboard, ShoppingBag, TrendingUp, Users, FileText, Settings, Search, Filter, Grid, List, Check, Trash2, Edit, Eye, EyeOff, Bell, ChevronLeft, ChevronRight, UploadCloud, Image as ImageIcon, X, Plus, Menu, LogOut, Activity, DollarSign, MessageSquare, Layers } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { BarChart3, Boxes, Film, FolderKanban, Info, Mail, Sparkles, LayoutDashboard, ShoppingBag, TrendingUp, Users, FileText, Settings, Search, Filter, Grid, List, Check, Trash2, Edit, Eye, EyeOff, Bell, ChevronLeft, ChevronRight, UploadCloud, X, Plus, Menu, LogOut, Activity, DollarSign, Layers } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
@@ -48,6 +48,8 @@ function AdminPage() {
   const [virtualForm, setVirtualForm] = useState({ title: '', description: '', services: '', videoUrl: '' })
   const [settingsForm, setSettingsForm] = useState({ siteName: '', supportEmail: '', currency: 'USD' })
   const [aboutForm, setAboutForm] = useState({ story: '', mission: '', vision: '' })
+  const [aboutImageFile, setAboutImageFile] = useState(null)
+  const [aboutImagePreview, setAboutImagePreview] = useState(null)
 
   const [mediaFile, setMediaFile] = useState(null)
   const [mediaPreview, setMediaPreview] = useState(null)
@@ -61,6 +63,10 @@ function AdminPage() {
   const [editingProject, setEditingProject] = useState(null)
   const [editingPortfolio, setEditingPortfolio] = useState(null)
   const [editingVirtual, setEditingVirtual] = useState(null)
+  const [editingVariants, setEditingVariants] = useState(null)
+  const [variantColorName, setVariantColorName] = useState('')
+  const [variantImageFile, setVariantImageFile] = useState(null)
+  const [variantImagePreview, setVariantImagePreview] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState({ type: null, id: null })
 
   const [searchTerm, setSearchTerm] = useState('')
@@ -71,7 +77,6 @@ function AdminPage() {
 
   useEffect(() => {
     fetchAll()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchAll = () => {
@@ -137,7 +142,7 @@ function AdminPage() {
       }
       setProjectForm({ title: '', description: '', category: 'Residential', order: 0 })
       setMediaFile(null); setMediaPreview(null)
-      window.dispatchEvent(new CustomEvent('admin-data-changed', { detail: { type: 'projects-changed' } }))
+      window.dispatchEvent(new CustomEvent('admin:data-changed', { detail: { type: 'projects-changed' } }))
       fetchAll(); resetProgress(); setSuccess('Project saved successfully.')
     } catch (error) { resetProgress(); setFailure(error, 'Project save failed.') }
   }
@@ -166,7 +171,7 @@ function AdminPage() {
       }
       setPortfolioForm({ title: '', category: '' })
       setMediaFile(null); setMediaPreview(null)
-      window.dispatchEvent(new CustomEvent('admin-data-changed', { detail: { type: 'portfolio-changed' } }))
+      window.dispatchEvent(new CustomEvent('admin:data-changed', { detail: { type: 'portfolio-changed' } }))
       fetchAll(); resetProgress(); setSuccess('Portfolio item saved.')
     } catch (error) { resetProgress(); setFailure(error, 'Portfolio save failed.') }
   }
@@ -189,9 +194,39 @@ function AdminPage() {
       await api.post('/products', payload, { onUploadProgress })
       setProductForm({ name: '', description: '', price: '', discountPrice: '', category: '', stock: '', sku: '' })
       setProductImageFile(null); setProductImagePreview(null)
-      window.dispatchEvent(new CustomEvent('admin-data-changed', { detail: { type: 'products-changed' } }))
+      window.dispatchEvent(new CustomEvent('admin:data-changed', { detail: { type: 'products-changed' } }))
       fetchAll(); resetProgress(); setSuccess('Product saved.')
     } catch (error) { resetProgress(); setFailure(error, 'Product save failed.') }
+  }
+
+  const handleVariantImageChange = (e) => {
+    const f = e.target.files?.[0] || null
+    setVariantImageFile(f)
+    if (f && f.type?.startsWith('image/')) {
+      setVariantImagePreview(URL.createObjectURL(f))
+    } else {
+      setVariantImagePreview(null)
+    }
+  }
+
+  const addVariant = async (productId) => {
+    if (!variantColorName) { setFailure(null, 'Color name is required.'); return }
+    try {
+      setIsUploading(true); setUploadProgress(0)
+      const payload = new FormData()
+      payload.append('colorName', variantColorName)
+      if (variantImageFile) payload.append('image', variantImageFile)
+      await api.post(`/products/${productId}/variants`, payload, { onUploadProgress })
+      setVariantColorName(''); setVariantImageFile(null); setVariantImagePreview(null)
+      fetchAll(); resetProgress(); setSuccess('Variant added.')
+    } catch (error) { resetProgress(); setFailure(error, 'Add variant failed.') }
+  }
+
+  const removeVariant = async (productId, colorName) => {
+    try {
+      await api.delete(`/products/${productId}/variants/${encodeURIComponent(colorName)}`)
+      fetchAll(); setSuccess('Variant removed.')
+    } catch (error) { setFailure(error, 'Remove variant failed.') }
   }
 
   const submitVirtual = async (event) => {
@@ -212,7 +247,7 @@ function AdminPage() {
       }
       setVirtualForm({ title: '', description: '', services: '', videoUrl: '' })
       setVirtualVideoFile(null); setVirtualVideoPreview(null)
-      window.dispatchEvent(new CustomEvent('admin-data-changed', { detail: { type: 'virtual-changed' } }))
+      window.dispatchEvent(new CustomEvent('admin:data-changed', { detail: { type: 'virtual-changed' } }))
       fetchAll(); resetProgress(); setSuccess('Virtual design saved.')
     } catch (error) { resetProgress(); setFailure(error, 'Virtual design save failed.') }
   }
@@ -234,10 +269,16 @@ function AdminPage() {
   const submitAbout = async (event) => {
     event.preventDefault()
     try {
-      await api.put('/content/about', aboutForm)
-      window.dispatchEvent(new CustomEvent('admin-data-changed', { detail: { type: 'about-changed' } }))
-      fetchAll(); setSuccess('About content saved.')
-    } catch (error) { setFailure(error, 'About save failed.') }
+      setIsUploading(true); setUploadProgress(0)
+      const payload = new FormData()
+      payload.append('story', aboutForm.story)
+      payload.append('mission', aboutForm.mission)
+      payload.append('vision', aboutForm.vision)
+      if (aboutImageFile) payload.append('media', aboutImageFile)
+      await api.put('/content/about', payload, { onUploadProgress })
+      window.dispatchEvent(new CustomEvent('admin:data-changed', { detail: { type: 'about-changed' } }))
+      fetchAll(); resetProgress(); setSuccess('About content saved.')
+    } catch (error) { resetProgress(); setFailure(error, 'About save failed.') }
   }
 
   const handleUserAction = async (userId, action) => {
@@ -260,18 +301,6 @@ function AdminPage() {
   }
 
   // ============ CHART HELPERS (lightweight SVG) ============
-  const Sparkline = ({ data, color = '#D97706' }) => {
-    if (!data?.length) return <div className="h-12 flex items-end gap-1 opacity-30">No data</div>
-    const max = Math.max(...data, 1)
-    return (
-      <div className="flex items-end gap-1 h-12">
-        {data.map((v, i) => (
-          <div key={i} className="flex-1 rounded-t bg-gradient-to-t from-orange/20 to-orange/70" style={{ height: `${Math.max(6, (v / max) * 100)}%` }} title={String(v)} />
-        ))}
-      </div>
-    )
-  }
-
   const MiniAreaChart = ({ data, color = '#8B7355' }) => {
     if (!data?.length) return <div className="h-40 flex items-center justify-center text-ink/30 text-sm">No analytics data</div>
     const w = 320, h = 140, pad = 8
@@ -294,7 +323,7 @@ function AdminPage() {
     )
   }
 
-  const MiniBarChart = ({ data, labels, color = '#8B7355' }) => {
+  const MiniBarChart = ({ data, labels }) => {
     if (!data?.length) return <div className="h-40 flex items-center justify-center text-ink/30 text-sm">No analytics data</div>
     const max = Math.max(...data, 1)
     return (
@@ -623,34 +652,79 @@ function AdminPage() {
   )
 
   const renderProducts = () => (
-    <div className="grid gap-8 lg:grid-cols-[400px_1fr]">
-      <form onSubmit={submitProduct} className="space-y-4 rounded-3xl border border-sand/60 bg-white/70 backdrop-blur-sm p-6 shadow-card self-start">
-        <h2 className="font-display text-2xl text-ink">Add Product</h2>
-        <input value={productForm.name} onChange={(e) => setProductForm((p) => ({ ...p, name: e.target.value }))} className="w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange/30 outline-none" placeholder="Name" required />
-        <textarea value={productForm.description} onChange={(e) => setProductForm((p) => ({ ...p, description: e.target.value }))} className="h-24 w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange/30 outline-none" placeholder="Description" required />
-        <div className="grid grid-cols-2 gap-3">
-          <input value={productForm.price} onChange={(e) => setProductForm((p) => ({ ...p, price: e.target.value }))} type="number" step="0.01" className="w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none" placeholder="Price" required />
-          <input value={productForm.discountPrice} onChange={(e) => setProductForm((p) => ({ ...p, discountPrice: e.target.value }))} type="number" step="0.01" className="w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none" placeholder="Discount" />
+    <div className="space-y-6">
+      <form onSubmit={submitProduct} className="rounded-3xl border border-sand/60 bg-white/70 backdrop-blur-sm p-6 shadow-card">
+        <h2 className="font-display text-2xl text-ink mb-4">Add Product</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <input value={productForm.name} onChange={(e) => setProductForm((p) => ({ ...p, name: e.target.value }))} className="w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange/30 outline-none" placeholder="Name" required />
+          <select value={productForm.category} onChange={(e) => setProductForm((p) => ({ ...p, category: e.target.value }))} className="w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none" required>
+            <option value="" disabled>Category</option>
+            {PRODUCT_CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+          </select>
+          <input value={productForm.sku} onChange={(e) => setProductForm((p) => ({ ...p, sku: e.target.value }))} className="w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none" placeholder="SKU" required />
+          <input value={productForm.stock} onChange={(e) => setProductForm((p) => ({ ...p, stock: e.target.value }))} type="number" className="w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none" placeholder="Stock" required />
+          <div className="grid grid-cols-2 gap-3">
+            <input value={productForm.price} onChange={(e) => setProductForm((p) => ({ ...p, price: e.target.value }))} type="number" step="0.01" className="w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none" placeholder="Price" required />
+            <input value={productForm.discountPrice} onChange={(e) => setProductForm((p) => ({ ...p, discountPrice: e.target.value }))} type="number" step="0.01" className="w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none" placeholder="Discount" />
+          </div>
         </div>
-        <select value={productForm.category} onChange={(e) => setProductForm((p) => ({ ...p, category: e.target.value }))} className="w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none" required>
-          <option value="" disabled>Category</option>
-          {PRODUCT_CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
-        </select>
-        <input value={productForm.sku} onChange={(e) => setProductForm((p) => ({ ...p, sku: e.target.value }))} className="w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none" placeholder="SKU" required />
-        <input value={productForm.stock} onChange={(e) => setProductForm((p) => ({ ...p, stock: e.target.value }))} type="number" className="w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none" placeholder="Stock" required />
+        <textarea value={productForm.description} onChange={(e) => setProductForm((p) => ({ ...p, description: e.target.value }))} className="mt-3 h-24 w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange/30 outline-none" placeholder="Description" required />
         <DropZone onFile={handleProductImageChange} preview={productImagePreview} onClear={() => { setProductImageFile(null); setProductImagePreview(null) }} accept="image/*" kind="image" />
         <ProgressBar />
         <button className="w-full rounded-xl bg-ink px-6 py-2.5 text-xs font-medium uppercase tracking-widest text-white hover:bg-charcoal transition disabled:opacity-50" disabled={isUploading}>
           {isUploading ? 'Uploading…' : 'Upload'}
         </button>
       </form>
-      <div className="grid gap-5 sm:grid-cols-2">
-        {sortedProducts.map((item) => (
+
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {products.map((item) => (
           <article key={item._id} className="overflow-hidden rounded-2xl border border-sand/60 bg-white shadow-card hover:shadow-lift transition-shadow">
-            <img src={item.images?.[0]?.url} alt={item.name} className="h-44 w-full object-cover" />
+            <div className="relative h-44 bg-linen">
+              <img src={item.images?.[0]?.url} alt={item.name} className="h-full w-full object-cover" />
+            </div>
             <div className="p-4">
               <p className="font-display text-xl text-ink">{item.name}</p>
               <p className="text-xs text-ink/50">{item.category}</p>
+              <p className="mt-1 text-xs text-ink/40">SKU: {item.sku}</p>
+
+              {(item.colorVariants?.length > 0 || editingVariants === item._id) && (
+                <div className="mt-3 border-t border-sand pt-3">
+                  <p className="text-2xs font-medium uppercase tracking-widest text-ink/50 mb-2">Color Variants</p>
+                  <div className="flex flex-wrap gap-2">
+                    {item.colorVariants?.map((v) => (
+                      <div key={v.colorName} className="flex items-center gap-2 rounded-full border border-sand bg-linen px-2 py-1">
+                        {v.imageUrl && <img src={v.imageUrl} alt={v.colorName} className="h-5 w-5 rounded-full object-cover" />}
+                        {!v.imageUrl && <span className="h-5 w-5 rounded-full border border-black/10" style={{ backgroundColor: v.colorHex || '#ccc' }} />}
+                        <span className="text-2xs font-medium text-ink">{v.colorName}</span>
+                        <button onClick={() => removeVariant(item._id, v.colorName)} className="text-ink/30 hover:text-red-600"><X size={12} /></button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {editingVariants === item._id && (
+                    <div className="mt-3 space-y-2">
+                      <input value={variantColorName} onChange={(e) => setVariantColorName(e.target.value)} className="w-full rounded-lg border border-sand bg-white px-3 py-2 text-xs outline-none" placeholder="Color name (e.g. White)" />
+                      <input type="file" accept="image/*" onChange={handleVariantImageChange} className="w-full text-xs text-ink/60" />
+                      {variantImagePreview && <img src={variantImagePreview} alt="Preview" className="h-12 w-12 rounded-lg object-cover" />}
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => addVariant(item._id)} className="flex-1 rounded-lg bg-ink px-3 py-1.5 text-2xs font-medium uppercase tracking-widest text-white hover:bg-charcoal transition">Save Variant</button>
+                        <button type="button" onClick={() => { setEditingVariants(null); setVariantColorName(''); setVariantImageFile(null); setVariantImagePreview(null) }} className="rounded-lg border border-sand px-3 py-1.5 text-2xs text-ink/60 hover:bg-linen transition">Cancel</button>
+                      </div>
+                    </div>
+                  )}
+                  {editingVariants !== item._id && (
+                    <button type="button" onClick={() => setEditingVariants(item._id)} className="mt-2 flex items-center gap-1 text-2xs font-medium uppercase tracking-widest text-orange hover:text-orange/80">
+                      <Plus size={12} /> Add Variant
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {item.colorVariants?.length === 0 && editingVariants !== item._id && (
+                <button type="button" onClick={() => setEditingVariants(item._id)} className="mt-3 flex items-center gap-1 text-2xs font-medium uppercase tracking-widest text-orange hover:text-orange/80">
+                  <Plus size={12} /> Add Color Variant
+                </button>
+              )}
             </div>
           </article>
         ))}
@@ -697,15 +771,44 @@ function AdminPage() {
     </div>
   )
 
-  const renderAboutTab = () => (
-    <form onSubmit={submitAbout} className="space-y-4 rounded-3xl border border-sand/60 bg-white/70 backdrop-blur-sm p-6 max-w-2xl shadow-card">
-      <h2 className="font-display text-xl text-ink mb-4">About Content</h2>
-      <textarea value={aboutForm.story} onChange={(e) => setAboutForm((a) => ({ ...a, story: e.target.value }))} className="h-32 w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none" placeholder="Our Story" required />
-      <textarea value={aboutForm.mission} onChange={(e) => setAboutForm((a) => ({ ...a, mission: e.target.value }))} className="h-24 w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none" placeholder="Mission" required />
-      <textarea value={aboutForm.vision} onChange={(e) => setAboutForm((a) => ({ ...a, vision: e.target.value }))} className="h-24 w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none" placeholder="Vision" />
-      <button className="rounded-xl bg-ink px-6 py-2.5 text-xs font-medium uppercase tracking-widest text-white hover:bg-charcoal transition">Save About</button>
-    </form>
-  )
+  const renderAboutTab = () => {
+    const about = overview || {}
+    const handleAboutImageChange = (e) => {
+      const f = e.target.files?.[0] || null
+      setAboutImageFile(f)
+      if (f && f.type?.startsWith('image/')) {
+        setAboutImagePreview(URL.createObjectURL(f))
+      } else {
+        setAboutImagePreview(null)
+      }
+    }
+
+    return (
+      <form onSubmit={submitAbout} className="space-y-4 rounded-3xl border border-sand/60 bg-white/70 backdrop-blur-sm p-6 max-w-2xl shadow-card">
+        <h2 className="font-display text-2xl text-ink mb-4">About Content</h2>
+        {(aboutImagePreview || aboutImageFile) && (
+          <div className="relative inline-block">
+            <img src={aboutImagePreview} alt="About preview" className="h-40 w-full max-w-sm object-cover rounded-xl" />
+            <button type="button" onClick={() => { setAboutImageFile(null); setAboutImagePreview(null) }} className="absolute -top-2 -right-2 rounded-full bg-ink text-white p-1"><X size={14} /></button>
+          </div>
+        )}
+        <div className="flex items-center gap-3">
+          <label className="cursor-pointer rounded-xl border border-sand bg-linen px-4 py-2 text-2xs font-medium uppercase tracking-widest text-ink hover:bg-sand transition">
+            {aboutImagePreview ? 'Change Image' : 'Upload Image'}
+            <input type="file" accept="image/*" className="hidden" onChange={handleAboutImageChange} />
+          </label>
+          {aboutImageFile && <span className="text-2xs text-ink/50">Selected: {aboutImageFile.name}</span>}
+        </div>
+        <textarea value={aboutForm.story || about?.story || ''} onChange={(e) => setAboutForm((a) => ({ ...a, story: e.target.value }))} className="h-32 w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none" placeholder="Our Story" required />
+        <textarea value={aboutForm.mission || about?.mission || ''} onChange={(e) => setAboutForm((a) => ({ ...a, mission: e.target.value }))} className="h-24 w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none" placeholder="Mission" required />
+        <textarea value={aboutForm.vision || about?.vision || ''} onChange={(e) => setAboutForm((a) => ({ ...a, vision: e.target.value }))} className="h-24 w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none" placeholder="Vision" />
+        <ProgressBar />
+        <button className="rounded-xl bg-ink px-6 py-2.5 text-xs font-medium uppercase tracking-widest text-white hover:bg-charcoal transition disabled:opacity-50" disabled={isUploading}>
+          {isUploading ? 'Saving…' : 'Save About'}
+        </button>
+      </form>
+    )
+  }
 
   const renderChat = () => (
     <div className="space-y-4">

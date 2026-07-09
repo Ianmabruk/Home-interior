@@ -1,29 +1,39 @@
+import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { ProtectedRoute } from './ProtectedRoute'
-import { AccountPage } from '../pages/account/AccountPage'
-import { AdminPage } from '../pages/admin/AdminPage'
-import { AuthShell } from '../pages/auth/AuthShell'
-import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage'
-import { LoginPage } from '../pages/auth/LoginPage'
-import { RegisterPage } from '../pages/auth/RegisterPage'
-import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage'
-import { AboutPage } from '../pages/public/AboutPage'
-import { CartPage } from '../pages/account/CartPage'
-import { WishlistPage } from '../pages/account/WishlistPage'
-import { ChatPage } from '../pages/public/ChatPage'
-import { AdminChatPage } from '../pages/admin/AdminChatPage'
-import { HomePage } from '../pages/public/HomePage'
-import { ProductDetailPage } from '../pages/public/ProductDetailPage'
-import { PortfolioPage } from '../pages/public/PortfolioPage'
-import { ProjectsPage } from '../pages/public/ProjectsPage'
-import { ShopPage } from '../pages/public/ShopPage'
-import { VirtualDesignPage } from '../pages/public/VirtualDesignPage'
-import { NotFoundPage } from '../pages/public/NotFoundPage'
+
+const AuthShell = lazy(() => import('../pages/auth/AuthShell').then((m) => ({ default: m.AuthShell })))
+const AccountPage = lazy(() => import('../pages/account/AccountPage').then((m) => ({ default: m.AccountPage })))
+const AdminPage = lazy(() => import('../pages/admin/AdminPage').then((m) => ({ default: m.AdminPage })))
+const CheckoutPage = lazy(() => import('../pages/account/CheckoutPage').then((m) => ({ default: m.CheckoutPage })))
+const ForgotPasswordPage = lazy(() => import('../pages/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })))
+const LoginPage = lazy(() => import('../pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })))
+const RegisterPage = lazy(() => import('../pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })))
+const ResetPasswordPage = lazy(() => import('../pages/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })))
+const AboutPage = lazy(() => import('../pages/public/AboutPage').then((m) => ({ default: m.AboutPage })))
+const CartPage = lazy(() => import('../pages/account/CartPage').then((m) => ({ default: m.CartPage })))
+const WishlistPage = lazy(() => import('../pages/account/WishlistPage').then((m) => ({ default: m.WishlistPage })))
+const ChatPage = lazy(() => import('../pages/public/ChatPage').then((m) => ({ default: m.ChatPage })))
+const AdminChatPage = lazy(() => import('../pages/admin/AdminChatPage').then((m) => ({ default: m.AdminChatPage })))
+const HomePage = lazy(() => import('../pages/public/HomePage').then((m) => ({ default: m.HomePage })))
+const ProductDetailPage = lazy(() => import('../pages/public/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage })))
+const PortfolioPage = lazy(() => import('../pages/public/PortfolioPage').then((m) => ({ default: m.PortfolioPage })))
+const ProjectsPage = lazy(() => import('../pages/public/ProjectsPage').then((m) => ({ default: m.ProjectsPage })))
+const ShopPage = lazy(() => import('../pages/public/ShopPage').then((m) => ({ default: m.ShopPage })))
+const VirtualDesignPage = lazy(() => import('../pages/public/VirtualDesignPage').then((m) => ({ default: m.VirtualDesignPage })))
+const NotFoundPage = lazy(() => import('../pages/public/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
+
+const RouteFallback = () => (
+  <div className="flex min-h-[60vh] items-center justify-center">
+    <div className="h-10 w-10 animate-spin rounded-full border-2 border-sand border-t-orange" />
+  </div>
+)
 
 export const AppRouter = () => {
   return (
-    <Routes>
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/shop" element={<ShopPage />} />
@@ -41,6 +51,7 @@ export const AppRouter = () => {
 
         <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
 
         <Route element={<ProtectedRoute adminOnly />}>
           <Route path="/admin" element={<AdminPage />} />
@@ -56,6 +67,7 @@ export const AppRouter = () => {
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+      </Routes>
+    </Suspense>
   )
 }

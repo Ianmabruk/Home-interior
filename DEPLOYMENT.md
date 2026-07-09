@@ -16,11 +16,24 @@
 - Ensure `server/.env` contains a valid `DATABASE_URL`.
 - Optional seed admin overrides:
   - `SEED_ADMIN_EMAIL=admin@hokinterior.com`
-  - `SEED_ADMIN_PASSWORD=Admin123!`
+  - `SEED_ADMIN_PASSWORD=admin123!`
 - Run seeder: `cd server && npm run seed`
 - Seeder is idempotent and safe to run multiple times.
 
-## 2. Netlify (Frontend)
+> Note: the database is **PostgreSQL (Neon)** accessed through **Prisma**. There is no MongoDB in this project.
+
+## 2. cPanel (Frontend — current hosting)
+
+The React + Vite SPA is built statically and served from cPanel.
+
+- Build command (run locally or in cPanel's Node/JS build step): `npm run build`
+- Publish directory: `dist`
+- **Required build env var** (must be set *before* `npm run build`, Vite inlines it at build time):
+  - `VITE_API_URL=https://<your-render-backend>/api`
+  - If `VITE_API_URL` is left empty the app calls a relative `/api` path, which does **not** exist on cPanel and breaks every request. This is the most common "blank site / no data" failure.
+- SPA fallback: configure cPanel rewrite so all unknown paths serve `dist/index.html` (e.g. a `.htaccess` with `RewriteRule ^ index.html [L]`).
+
+## 3. Netlify (Frontend — alternative)
 - Build command: `npm run build`
 - Publish directory: `dist`
 - Environment variable:

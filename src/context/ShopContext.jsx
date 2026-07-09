@@ -88,6 +88,7 @@ export const ShopProvider = ({ children }) => {
     })
   }, [isAuthenticated])
 
+  const clearCart = useCallback(() => setCart([]), [])
   const value = useMemo(
     () => ({
       cart,
@@ -96,9 +97,10 @@ export const ShopProvider = ({ children }) => {
       removeFromCart,
       setCartQuantity,
       toggleWishlist,
+      clearCart,
       cartTotal: cart.reduce((sum, item) => sum + (item.discountPrice || item.price) * item.quantity, 0),
     }),
-    [cart, wishlist, addToCart, removeFromCart, setCartQuantity, toggleWishlist],
+    [cart, wishlist, addToCart, removeFromCart, setCartQuantity, toggleWishlist, clearCart],
   )
 
   return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>

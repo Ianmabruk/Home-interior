@@ -1,7 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect, react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { CURRENCIES, EXCHANGE_RATES } from '../utils/constants'
-import { api } from '../services/api'
 
 const CurrencyContext = createContext(null)
 
@@ -12,10 +11,6 @@ export const CurrencyProvider = ({ children }) => {
     const saved = localStorage.getItem('hok_currency')
     if (saved && CURRENCIES.some((c) => c.code === saved)) {
       setCurrency(saved)
-    } else {
-      api.get('/admin/settings').then((res) => {
-        if (res.data?.currency) setCurrency(res.data.currency)
-      }).catch(() => {})
     }
   }, [])
 
