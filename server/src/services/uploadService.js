@@ -128,8 +128,9 @@ const uploadWithRetry = async (fileBuffer, folder, resourceType, mimeType = null
   }
 
   const friendlyMessage = classifyCloudinaryError(lastError)
+  const raw = lastError?.error?.message || lastError?.message || ''
   console.error('[UPLOAD] All Cloudinary attempts failed:', lastError)
-  throw new ApiError(502, friendlyMessage)
+  throw new ApiError(502, raw ? `${friendlyMessage} (${raw})` : friendlyMessage)
 }
 
 export const uploadImage = async (fileBuffer, folder, mimeType = null) => {
