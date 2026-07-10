@@ -364,11 +364,41 @@ export const upsertAbout = asyncHandler(async (req, res) => {
 
 export const homepageFeed = asyncHandler(async (req, res) => {
   const [projects, portfolio, about] = await Promise.all([
-    // Limit the payload at the DB layer: only what the homepage renders
-    // (6 projects, 12 portfolio tiles). Smaller transfer = faster mobile TTI.
-    prisma.project.findMany({ where: { isPublished: true }, orderBy: { order: 'asc' }, take: 8 }),
-    prisma.portfolio.findMany({ where: { isPublished: true }, orderBy: { order: 'asc' }, take: 12 }),
-    prisma.about.findFirst({ orderBy: { createdAt: 'desc' } }),
+    // Limit the payload at the DB layer and select only the fields the
+    // homepage renders. Smaller transfer = faster mobile TTI.
+    prisma.project.findMany({
+      where: { isPublished: true },
+      orderBy: { order: 'asc' },
+      take: 8,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        category: true,
+        media: true,
+        coverImageUrl: true,
+        videoUrl: true,
+        order: true,
+        mediaSettings: true,
+      },
+    }),
+    prisma.portfolio.findMany({
+      where: { isPublished: true },
+      orderBy: { order: 'asc' },
+      take: 12,
+      select: { id: true, title: true, category: true, imageUrl: true, mediaSettings: true },
+    }),
+    prisma.about.findFirst({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        aboutImageUrl: true,
+        story: true,
+        mission: true,
+        vision: true,
+        mediaSettings: true,
+      },
+    }),
   ])
 
   const sortedProjects = sortByOrderThenDate(projects).slice(0, 6)

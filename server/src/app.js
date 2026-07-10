@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import morgan from 'morgan'
 import helmet from 'helmet'
+import compression from 'compression'
 import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
 import apiRoutes from './routes/index.js'
@@ -9,6 +10,10 @@ import { env } from './config/env.js'
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js'
 
 export const app = express()
+
+// Gzip/deflate all JSON + HTML responses. Small payloads matter most on
+// mobile networks where the homepage feed + content APIs are fetched.
+app.use(compression())
 
 const isProd = env.nodeEnv === 'production'
 

@@ -3,7 +3,7 @@
 ## 1. Local Development
 
 ### Frontend
-- Install dependencies: `npm install`
+- Install dependencies: `yarn` (this repo is standardized on Yarn — root and `server/` both commit `yarn.lock`. Do not reintroduce `package-lock.json`.)
 - Copy env file: create `.env` from `.env.example`
 - Start app: `npm run dev`
 
@@ -34,7 +34,7 @@ The React + Vite SPA is built statically and served from cPanel.
 - SPA fallback: configure cPanel rewrite so all unknown paths serve `dist/index.html` (e.g. a `.htaccess` with `RewriteRule ^ index.html [L]`).
 
 ## 3. Netlify (Frontend — alternative)
-- Build command: `npm run build`
+- Build command: `yarn build`
 - Publish directory: `dist`
 - Environment variable:
   - `VITE_API_URL=https://<your-render-backend>/api`
@@ -63,7 +63,7 @@ The React + Vite SPA is built statically and served from cPanel.
 
 ## 4. Render (Backend)
 - Root directory: `server`
-- Build command: `npm install && npx prisma generate && npx prisma migrate deploy`
+- Build command: `yarn install && npx prisma generate && npx prisma migrate deploy`
 - Start command: `npm run start` — the `start` script runs `prisma generate && prisma migrate deploy && node src/index.js` at boot, so the Prisma client is regenerated AND any pending migrations are applied automatically even if Render restores a cached `node_modules`. **This is what makes new DB columns (e.g. `media_settings`) appear after a deploy.**
 - **If you ever see 500s on DB routes after a deploy:** they are almost always a missing migration. The `start` script now applies migrations automatically, so a normal redeploy fixes it. If a stale Prisma client is suspected, clear the Render build cache (Service → Settings → Clear build cache) and redeploy.
 - Required environment variables:
