@@ -29,9 +29,9 @@ export default {
         warmBeigeSoft: '#E7D8C6',
       },
       fontFamily: {
-        display: ['"Cormorant Garamond"', 'Georgia', 'serif'],
-        sans: ['"DM Sans"', '"Source Sans 3"', 'system-ui', 'sans-serif'],
-        body: ['"DM Sans"', '"Source Sans 3"', 'system-ui', 'sans-serif'],
+        display: ['"Cormorant Garamond"', '"Cormorant Garamond Fallback"', 'Georgia', 'serif'],
+        sans: ['"DM Sans"', '"DM Sans Fallback"', '"Source Sans 3"', 'system-ui', 'sans-serif'],
+        body: ['"DM Sans"', '"DM Sans Fallback"', '"Source Sans 3"', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         '2xs': ['0.65rem', { lineHeight: '1rem' }],

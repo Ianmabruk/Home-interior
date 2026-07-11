@@ -1,6 +1,27 @@
 /* Fonts are loaded non-render-blocking from index.html (preload + async
    stylesheet swap) to avoid delaying first paint. */
 
+/* Metric-matched local fallbacks for the two web fonts. When the web font
+   swaps in (font-display: swap) the fallback occupies nearly the same box, so
+   text doesn't reflow — this eliminates the font-swap layout shift (CLS) that
+   otherwise hits headings (e.g. the footer) on first load. */
+@font-face {
+  font-family: 'Cormorant Garamond Fallback';
+  src: local('Times New Roman');
+  size-adjust: 88%;
+  ascent-override: 92%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'DM Sans Fallback';
+  src: local('Arial');
+  size-adjust: 105%;
+  ascent-override: 95%;
+  descent-override: 24%;
+  line-gap-override: 0%;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
