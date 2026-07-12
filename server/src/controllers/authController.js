@@ -108,9 +108,8 @@ export const login = asyncHandler(async (req, res) => {
 })
 
 export const refresh = asyncHandler(async (req, res) => {
-  // Prefer the httpOnly cookie; fall back to the request body for any
-  // older clients still sending it in the payload.
-  const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME] || req.body?.refreshToken
+  const body = req.body || {}
+  const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME] || body.refreshToken
   if (!refreshToken) {
     console.warn('[AUTH][refresh] rejected: no refresh token in cookie or body')
     throw new ApiError(400, 'Refresh token required')

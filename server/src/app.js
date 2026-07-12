@@ -125,7 +125,7 @@ app.use(
 
 // Trust proxy so req.ip / rate limiter see the real client IP behind
 // Render/Netlify/Cloudflare.
-app.set('trust proxy', 1)
+app.set('trust proxy', true)
 
 app.use(express.json({ limit: '1mb' }))
 app.use(cookieParser())
