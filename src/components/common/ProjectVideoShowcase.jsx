@@ -21,34 +21,30 @@ export default function ProjectVideoShowcase({ videos, className = '' }) {
     if (!el) return undefined
     const io = new IntersectionObserver(
       ([entry]) => setInView(entry.isIntersecting),
-      { threshold: 0.25 },
+      { threshold: 0.1 },
     )
     io.observe(el)
     return () => io.disconnect()
   }, [])
 
-  // (Re)load + play whenever the active video changes.
+  // (Re)load whenever the active video changes.
   useEffect(() => {
     const v = videoRef.current
     if (!v || !current) return
     v.load()
-    if (inView) {
-      const p = v.play()
-      if (p && typeof p.catch === 'function') p.catch(() => {})
-    }
-  }, [current?.url]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [current?.url])
 
-  // Play/pause on visibility change without reloading the source.
+  // Play/pause on visibility change.
   useEffect(() => {
     const v = videoRef.current
-    if (!v) return
+    if (!v || !current) return
     if (inView) {
       const p = v.play()
       if (p && typeof p.catch === 'function') p.catch(() => {})
     } else {
       v.pause()
     }
-  }, [inView])
+  }, [inView, current?.url])
 
   if (!current) return null
 
@@ -67,6 +63,11 @@ export default function ProjectVideoShowcase({ videos, className = '' }) {
         preload="metadata"
         fetchPriority="high"
         onEnded={goNext}
+        onCanPlay={() => {
+          if (inView) {
+            videoRef.current?.play().catch(() => {})
+          }
+        }}
         className="h-full w-full object-cover"
       />
 
