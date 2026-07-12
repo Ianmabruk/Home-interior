@@ -10,14 +10,27 @@ export const sendEmail = async ({ to, subject, html }) => {
     return { sent: false, reason: 'SENDGRID_API_KEY is not configured' }
   }
 
-  await sgMail.send({
-    to,
-    from: env.emailFrom,
-    subject,
-    html,
-  })
-
-  return { sent: true }
+  try {
+    await sgMail.send({
+      to,
+      from: env.emailFrom,
+      subject,
+      html,
+    })
+    return { sent: true }
+  } catch (err) {
+    // Never let a SendGrid failure break the calling flow (login, register,
+    // forgot-password, admin test email). A 401 here means the API key is
+    // invalid/unauthorized — log it clearly but return a structured result so
+    // the endpoint can still succeed and the client gets a clean response.
+    const status = err?.code || err?.response?.statusCode
+    const reason =
+      status === 401
+        ? 'SendGrid Unauthorized (401) — check SENDGRID_API_KEY'
+        : (err?.message || 'SendGrid send failed')
+    console.error('[SENDGRID] email not sent:', reason)
+    return { sent: false, reason, status }
+  }
 }
 
 export const buildAdminTestEmailTemplate = ({ adminEmail, timestamp }) => {
