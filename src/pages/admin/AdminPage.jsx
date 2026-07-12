@@ -46,6 +46,7 @@ const MEDIA_TABS = [
 function AdminPage() {
   const { user, logout } = useAuth()
   const [overview, setOverview] = useState(null)
+  const [about, setAbout] = useState(null)
   const [projects, setProjects] = useState([])
   const [portfolio, setPortfolio] = useState([])
   const [products, setProducts] = useState([])
@@ -108,6 +109,23 @@ function AdminPage() {
     fetchAll()
   }, [])
 
+  // When the About tab is opened, hydrate the form from the saved record so
+  // existing content + image are displayed in the admin dashboard, and load
+  // the saved image position so a text-only save cannot reset it to defaults.
+  useEffect(() => {
+    if (activeTab === 'about' && about) {
+      setAboutForm({
+        story: about.story || '',
+        mission: about.mission || '',
+        vision: about.vision || '',
+        companyDescription: about.companyDescription || '',
+        location: about.location || '',
+        contactEmail: about.contactEmail || '',
+      })
+      setMediaSettings(normalizeMediaSettings(about.mediaSettings))
+    }
+  }, [activeTab, about])
+
   const fetchAll = () => {
     Promise.all([
       api.get('/admin/overview').catch(() => ({ data: null })),
@@ -119,8 +137,9 @@ function AdminPage() {
       api.get('/admin/users').catch(() => ({ data: [] })),
       api.get('/content/analytics').catch(() => ({ data: [] })),
       api.get('/admin/settings').catch(() => ({ data: null })),
+      api.get('/content/about').catch(() => ({ data: null })),
     ])
-      .then(([overviewRes, projectsRes, portfolioRes, productsRes, messagesRes, virtualRes, usersRes, analyticsRes, settingsRes]) => {
+      .then(([overviewRes, projectsRes, portfolioRes, productsRes, messagesRes, virtualRes, usersRes, analyticsRes, settingsRes, aboutRes]) => {
         if (overviewRes.data) setOverview(overviewRes.data)
         setProjects(projectsRes.data || [])
         setPortfolio(portfolioRes.data || [])
@@ -129,6 +148,7 @@ function AdminPage() {
         setVirtualDesigns(virtualRes.data || [])
         setUsers(usersRes.data || [])
         setAnalyticsData(analyticsRes.data || [])
+        if (aboutRes.data) setAbout(aboutRes.data)
         if (settingsRes.data) {
           setSettingsForm({
             siteName: settingsRes.data.siteName || '',
@@ -347,6 +367,7 @@ function AdminPage() {
       if (aboutImageFile) payload.append('media', aboutImageFile)
       await api.put('/content/about', payload, { onUploadProgress })
       window.dispatchEvent(new CustomEvent('admin:data-changed', { detail: { type: 'about-changed' } }))
+      setAboutImageFile(null); setAboutImagePreview(null)
       fetchAll(); resetProgress(); setMediaSettings(DEFAULT_MEDIA_SETTINGS); setSuccess('About content saved.')
     } catch (error) { resetProgress(); setFailure(error, 'About save failed.') }
   }
@@ -1156,7 +1177,6 @@ function AdminPage() {
   )
 
   const renderAboutTab = () => {
-    const about = overview || {}
     const handleAboutImageChange = (e) => {
       const f = e.target.files?.[0] || null
       setAboutImageFile(f)
@@ -1166,33 +1186,35 @@ function AdminPage() {
         setAboutImagePreview(null)
       }
     }
+    // Show the newly-selected preview if any, otherwise the saved image.
+    const displayedImage = aboutImagePreview || about?.aboutImageUrl || null
     return (
       <form onSubmit={submitAbout} className="admin-card space-y-4 max-w-2xl">
         <h2 className="font-display text-2xl text-textPrimary">About Content</h2>
-        {(aboutImagePreview || aboutImageFile) && (
+        {displayedImage && (
           <div className="relative inline-block">
-            <img src={aboutImagePreview} alt="About preview" className="h-40 w-full max-w-sm object-cover rounded-xl" />
+            <img src={displayedImage} alt="About preview" className="h-40 w-full max-w-sm object-cover rounded-xl" />
             <button type="button" onClick={() => { setAboutImageFile(null); setAboutImagePreview(null) }} className="absolute -top-2 -right-2 rounded-full bg-darkBrown text-white p-1"><X size={14} /></button>
           </div>
         )}
         <div className="flex items-center gap-3">
           <label className="cursor-pointer rounded-xl border border-border bg-lightBeige px-4 py-2 text-2xs font-medium uppercase tracking-widest text-textSecondary hover:bg-lightBeige/60 transition">
-            {aboutImagePreview ? 'Change Image' : 'Upload Image'}
+            {displayedImage ? 'Change Image' : 'Upload Image'}
             <input type="file" accept="image/*" className="hidden" onChange={handleAboutImageChange} />
           </label>
           {aboutImageFile && <span className="text-2xs text-textSecondary/60">Selected: {aboutImageFile.name}</span>}
         </div>
         <div className="rounded-2xl border border-border bg-white p-4 space-y-4">
           <ImagePositionControls value={mediaSettings} onChange={setMediaSettings} />
-          <ImagePositionPreview src={aboutImagePreview} settings={mediaSettings} />
+          <ImagePositionPreview src={displayedImage} settings={mediaSettings} />
         </div>
-        <textarea value={aboutForm.story || about?.story || ''} onChange={(e) => setAboutForm((a) => ({ ...a, story: e.target.value }))} className="textarea" placeholder="Our Story" required />
-        <textarea value={aboutForm.companyDescription || about?.companyDescription || ''} onChange={(e) => setAboutForm((a) => ({ ...a, companyDescription: e.target.value }))} className="textarea" placeholder="Company Description" />
-        <textarea value={aboutForm.mission || about?.mission || ''} onChange={(e) => setAboutForm((a) => ({ ...a, mission: e.target.value }))} className="textarea" placeholder="Mission" required />
-        <textarea value={aboutForm.vision || about?.vision || ''} onChange={(e) => setAboutForm((a) => ({ ...a, vision: e.target.value }))} className="textarea" placeholder="Vision" />
+        <textarea value={aboutForm.story} onChange={(e) => setAboutForm((a) => ({ ...a, story: e.target.value }))} className="textarea" placeholder="Our Story" required />
+        <textarea value={aboutForm.companyDescription} onChange={(e) => setAboutForm((a) => ({ ...a, companyDescription: e.target.value }))} className="textarea" placeholder="Company Description" />
+        <textarea value={aboutForm.mission} onChange={(e) => setAboutForm((a) => ({ ...a, mission: e.target.value }))} className="textarea" placeholder="Mission" required />
+        <textarea value={aboutForm.vision} onChange={(e) => setAboutForm((a) => ({ ...a, vision: e.target.value }))} className="textarea" placeholder="Vision" />
         <div className="grid grid-cols-2 gap-3">
-          <input value={aboutForm.location || about?.location || ''} onChange={(e) => setAboutForm((a) => ({ ...a, location: e.target.value }))} className="input" placeholder="Location" />
-          <input value={aboutForm.contactEmail || about?.contactEmail || ''} onChange={(e) => setAboutForm((a) => ({ ...a, contactEmail: e.target.value }))} className="input" placeholder="Contact Email" type="email" />
+          <input value={aboutForm.location} onChange={(e) => setAboutForm((a) => ({ ...a, location: e.target.value }))} className="input" placeholder="Location" />
+          <input value={aboutForm.contactEmail} onChange={(e) => setAboutForm((a) => ({ ...a, contactEmail: e.target.value }))} className="input" placeholder="Contact Email" type="email" />
         </div>
         <ProgressBar />
         <button className="btn-primary" disabled={isUploading}>

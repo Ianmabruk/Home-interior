@@ -24,6 +24,12 @@ export default function LazyVideo({
   const reducedMotion = useReducedMotion()
   const shouldAutoPlay = autoPlay && !reducedMotion
 
+  // Force the `muted` DOM property (React's JSX `muted` attribute is not
+  // reliably applied), so browsers permit muted autoplay for eager videos too.
+  useEffect(() => {
+    if (muted && videoRef.current) videoRef.current.muted = true
+  }, [muted, active])
+
   // Load (set src + autoplay) as soon as the element is near the viewport.
   useEffect(() => {
     if (eager) return undefined
@@ -52,6 +58,9 @@ export default function LazyVideo({
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
+          // React doesn't reliably set the `muted` DOM property from the JSX
+          // attribute; force it so browsers allow muted autoplay.
+          if (muted) el.muted = true
           const p = el.play()
           if (p && typeof p.catch === 'function') p.catch(() => {})
         } else {
@@ -62,7 +71,7 @@ export default function LazyVideo({
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [eager, shouldAutoPlay])
+  }, [eager, shouldAutoPlay, muted])
 
   const showVideo = eager || active
 

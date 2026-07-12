@@ -7,6 +7,18 @@ import { sendEmail, buildNewProductEmailTemplate } from '../config/sendgrid.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
 import { withId, withIdArray, parseMaybeJson, parseMediaSettings } from '../utils/helpers.js'
 
+// Multipart/form-data sends every field as a string, so `z.coerce.boolean()`
+// is unsafe here: it turns the string 'false' into `true` (any non-empty
+// string is truthy), which permanently breaks the Published/Featured toggles.
+// This parser maps the real submitted value back to a boolean and stays
+// optional so `?? true` create-time defaults still apply.
+const formBoolean = z.preprocess((value) => {
+  if (typeof value === 'boolean') return value
+  if (value === 'true' || value === '1' || value === 'on') return true
+  if (value === 'false' || value === '0' || value === '') return false
+  return value
+}, z.boolean()).optional()
+
 const productSchema = z.object({
   name: z.string().min(2),
   description: z.string().min(10),
@@ -17,8 +29,8 @@ const productSchema = z.object({
   stock: z.coerce.number().int().min(0),
   sku: z.string().min(2),
   tags: z.array(z.string()).optional(),
-  isFeatured: z.coerce.boolean().optional(),
-  isPublished: z.coerce.boolean().optional(),
+  isFeatured: formBoolean,
+  isPublished: formBoolean,
 })
 
 export const listProducts = asyncHandler(async (req, res) => {
@@ -176,7 +188,10 @@ export const updateProduct = asyncHandler(async (req, res) => {
   const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
   if (parsedMediaSettings) data.mediaSettings = parsedMediaSettings
 
-  const updated = await prisma.product.update({ where: { id: req.params.id }, data: { ...data, isPublished: data.isPublished ?? true } })
+  // Do NOT force isPublished to a default on update — `data` only carries the
+  // fields the admin actually submitted, so an edit can never accidentally
+  // republish a product that was intentionally unpublished.
+  const updated = await prisma.product.update({ where: { id: req.params.id }, data })
   res.json(sendSuccess(withId(updated)))
 })
 

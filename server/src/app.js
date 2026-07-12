@@ -8,10 +8,19 @@ import rateLimit from 'express-rate-limit'
 import crypto from 'crypto'
 import apiRoutes from './routes/index.js'
 import { env } from './config/env.js'
+import { prisma } from './config/db.js'
+import { ApiError } from './utils/ApiError.js'
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js'
 import { zodErrorHandler } from './middleware/zodErrorHandler.js'
 
 export const app = express()
+
+// Trust the first proxy hop (Render/Netlify/Cloudflare) so req.ip and the
+// rate limiter resolve the real client IP from X-Forwarded-For. Set FIRST,
+// before any middleware reads req.ip, and kept a fixed hop count (1) rather
+// than `true` so express-rate-limit's ERR_ERL_UNEXPECTED_X_FORWARDED_FOR /
+// permissive-trust-proxy validations pass.
+app.set('trust proxy', 1)
 
 // Gzip/deflate all JSON + HTML responses. Small payloads matter most on
 // mobile networks where the homepage feed + content APIs are fetched.
@@ -123,10 +132,6 @@ app.use(
   }),
 )
 
-// Trust proxy so req.ip / rate limiter see the real client IP behind
-// Render/Netlify/Cloudflare.
-app.set('trust proxy', 1)
-
 app.use(express.json({ limit: '1mb' }))
 app.use(cookieParser())
 
@@ -147,14 +152,10 @@ app.use(
     limit: 120,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => {
-      const forwarded = req.headers['x-forwarded-for']
-      if (forwarded) {
-        const ips = Array.isArray(forwarded) ? forwarded : forwarded.split(',')
-        return (ips[0] || '').trim() || req.ip || 'unknown'
-      }
-      return req.ip || 'unknown'
-    },
+    // No custom keyGenerator: with `trust proxy` set (above) the default
+    // generator resolves the real client IP from req.ip (correctly handling
+    // IPv4/IPv6) instead of manually parsing X-Forwarded-For, which is the
+    // anti-pattern that triggers ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
   }),
 )
 

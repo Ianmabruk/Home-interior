@@ -79,9 +79,22 @@ export const validateFileUpload = (field, options = {}) => {
   const required = options.required ?? false
 
   return (req, res, next) => {
-    const file = req.file || (field ? req.files?.[field] : req.files?.[0])
+    // multer stores a single file on req.file (upload.single) and multiple
+    // files either as an array (upload.array) or keyed object (upload.fields).
+    // Resolve all shapes so array uploads (e.g. product images) are validated
+    // instead of silently skipped.
+    let file
+    if (req.file) {
+      file = req.file
+    } else if (Array.isArray(req.files)) {
+      file = req.files
+    } else if (req.files && field && req.files[field]) {
+      file = req.files[field]
+    } else if (req.files) {
+      file = req.files[0]
+    }
 
-    if (required && !file) {
+    if (required && (!file || (Array.isArray(file) && file.length === 0))) {
       return next(new ApiError(400, 'File upload is required'))
     }
     if (!file) return next()

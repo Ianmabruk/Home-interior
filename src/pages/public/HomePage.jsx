@@ -97,12 +97,23 @@ export const HomePage = () => {
     )
   }
 
+  // Featured project media: prefer a video (from anywhere in media[] or the
+  // videoUrl field); otherwise fall back to the cover image so the section
+  // always reflects what the admin uploaded.
+  const featuredMedia = feed.featuredProjects
+    .map((p) => {
+      const mediaArr = Array.isArray(p.media) ? p.media : []
+      const videoItem = mediaArr.find((m) => m?.type === 'video' && m.url)
+      const videoUrl = videoItem?.url || p.videoUrl
+      if (videoUrl) return { type: 'video', url: videoUrl, mediaSettings: p.mediaSettings }
+      const imageUrl = p.coverImageUrl || mediaArr.find((m) => m?.url)?.url
+      if (imageUrl) return { type: 'image', url: imageUrl, mediaSettings: p.mediaSettings }
+      return null
+    })
+    .filter(Boolean)
+
   return (
     <div className="min-h-screen bg-cream">
-      {/* ══════════════════════════════════════════
-          SECTION 1 — HERO SHOWCASE VIDEO
-          Cinematic full-width video showcase
-      ══════════════════════════════════════════ */}
       <section className="relative h-screen max-h-[800px] min-h-[560px] overflow-hidden">
         {feed.heroVideo ? (
           <div className="h-full">
@@ -215,19 +226,19 @@ export const HomePage = () => {
         <div className="container-wide px-6 md:px-12 lg:px-20">
           <SectionTitle eyebrow="Projects" title="Featured Work" align="left" />
           <div className="mt-10">
-            <ProjectVideoShowcase
-              videos={feed.featuredProjects
-                .map((p) => {
-                  const m = p.media?.length
-                    ? p.media[0]
-                    : p.videoUrl
-                      ? { type: 'video', url: p.videoUrl }
-                      : null
-                  return m?.type === 'video' ? { url: m.url } : null
-                })
-                .filter(Boolean)}
-              className="aspect-[16/10] w-full rounded-2xl"
-            />
+            {featuredMedia.length > 0 ? (
+              <ProjectVideoShowcase
+                videos={featuredMedia}
+                className="aspect-[16/10] w-full rounded-2xl"
+              />
+            ) : (
+              <div className="flex aspect-[16/10] w-full items-center justify-center rounded-2xl bg-linen">
+                <div className="text-center px-4">
+                  <p className="font-display text-2xl text-ink/30 sm:text-3xl">No featured projects yet</p>
+                  <p className="mt-2 text-sm text-ink/50">Upload projects from the Admin Dashboard</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
