@@ -152,10 +152,11 @@ app.use(
     limit: 120,
     standardHeaders: true,
     legacyHeaders: false,
-    // No custom keyGenerator: with `trust proxy` set (above) the default
-    // generator resolves the real client IP from req.ip (correctly handling
-    // IPv4/IPv6) instead of manually parsing X-Forwarded-For, which is the
-    // anti-pattern that triggers ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
+    // `trust proxy` is set to 1 (above) so req.ip resolves the real client
+    // from X-Forwarded-For. We also disable the XFF validation guard so this
+    // limiter never throws ERR_ERL_UNEXPECTED_X_FORWARDED_FOR even if a deploy
+    // runs before trust proxy is applied (e.g. a stale build behind Render).
+    validate: { xForwardedForHeader: false },
   }),
 )
 
@@ -173,6 +174,7 @@ const authLimiter = rateLimit({
   limit: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: { success: false, message: 'Too many authentication attempts, please try again later.' },
 })
 app.use('/api/auth', authLimiter)

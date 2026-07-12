@@ -31,6 +31,7 @@ const writeLimiter = rateLimit({
   limit: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: { success: false, message: 'Too many write requests, please slow down.' },
 })
 
