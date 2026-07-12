@@ -9,25 +9,25 @@ datasource db {
 }
 
 model User {
-  id                  String    @id @default(uuid()) @map("_id")
-  fullName            String    @map("full_name")
-  email               String    @unique
-  passwordHash        String    @map("password_hash")
-  role                String    @default("user")
-  avatarUrl           String?   @map("avatar_url")
-  phone               String?
-  refreshToken        String?   @map("refresh_token")
-  passwordResetToken  String?   @map("password_reset_token")
+  id                   String    @id @default(uuid()) @map("_id")
+  fullName             String    @map("full_name")
+  email                String    @unique
+  passwordHash         String    @map("password_hash")
+  role                 String    @default("user")
+  avatarUrl            String?   @map("avatar_url")
+  phone                String?
+  refreshToken         String?   @map("refresh_token")
+  passwordResetToken   String?   @map("password_reset_token")
   passwordResetExpires DateTime? @map("password_reset_expires")
-  isActive            Boolean?  @default(true) @map("is_active")
-  cart                Json?
-  addresses           Json?
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
+  isActive             Boolean?  @default(true) @map("is_active")
+  cart                 Json?
+  addresses            Json?
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
 
-  wishlist            Wishlist?
-  orders              Order[]
-  sentMessages        Message[] @relation("MessageSender")
+  wishlist     Wishlist?
+  orders       Order[]
+  sentMessages Message[] @relation("MessageSender")
 
   @@map("users")
 }
@@ -44,16 +44,16 @@ model Wishlist {
 }
 
 model Order {
-  id              String    @id @default(uuid()) @map("_id")
-  userId          String    @map("user_id")
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String   @id @default(uuid()) @map("_id")
+  userId          String   @map("user_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   items           Json
   subtotal        Float
-  shippingFee     Float     @default(0) @map("shipping_fee")
+  shippingFee     Float    @default(0) @map("shipping_fee")
   total           Float
-  status          String    @default("pending")
-  paymentStatus   String    @default("pending") @map("payment_status")
-  shippingAddress Json?     @map("shipping_address")
+  status          String   @default("pending")
+  paymentStatus   String   @default("pending") @map("payment_status")
+  shippingAddress Json?    @map("shipping_address")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -76,29 +76,29 @@ model Product {
   mediaSettings Json?    @map("media_settings")
   isFeatured    Boolean? @default(false) @map("is_featured")
   isPublished   Boolean? @default(true) @map("is_published")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@map("products")
 }
 
 model Project {
-  id               String    @id @default(uuid()) @map("_id")
-  title            String
-  description      String
-  category         String?
-  media            Json?
+  id                String   @id @default(uuid()) @map("_id")
+  title             String
+  description       String
+  category          String?
+  media             Json?
   beforeAfterImages Json?    @map("before_after_images")
-  videoUrl         String?   @map("video_url")
-  videoPublicId    String?   @map("video_public_id")
-  coverImageUrl    String?   @map("cover_image_url")
-  order            Int?      @default(0)
-  mediaSettings    Json?    @map("media_settings")
-  isPublished      Boolean?  @default(true) @map("is_published")
-  tags             Json?
-  services         Json?
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  videoUrl          String?  @map("video_url")
+  videoPublicId     String?  @map("video_public_id")
+  coverImageUrl     String?  @map("cover_image_url")
+  order             Int?     @default(0)
+  mediaSettings     Json?    @map("media_settings")
+  isPublished       Boolean? @default(true) @map("is_published")
+  tags              Json?
+  services          Json?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   @@map("projects")
 }
@@ -120,54 +120,54 @@ model Portfolio {
 }
 
 model About {
-  id                  String   @id @default(uuid()) @map("_id")
-  aboutImageUrl       String?  @map("about_image_url")
-  aboutImagePublicId  String?  @map("about_image_public_id")
-  mediaSettings       Json?    @map("media_settings")
-  story               String
-  companyDescription  String   @map("company_description")
-  mission             String
-  vision              String
-  location            String
-  contactEmail        String   @map("contact_email")
-  socials             Json
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  id                 String   @id @default(uuid()) @map("_id")
+  aboutImageUrl      String?  @map("about_image_url")
+  aboutImagePublicId String?  @map("about_image_public_id")
+  mediaSettings      Json?    @map("media_settings")
+  story              String
+  companyDescription String   @map("company_description")
+  mission            String
+  vision             String
+  location           String
+  contactEmail       String   @map("contact_email")
+  socials            Json
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   @@map("abouts")
 }
 
 model VirtualDesign {
-  id               String    @id @default(uuid()) @map("_id")
-  title            String
-  description      String
-  videoUrl         String?   @map("video_url")
-  videoPublicId    String?   @map("video_public_id")
-  thumbnailUrl     String?   @map("thumbnail_url")
-  services         Json
+  id                String   @id @default(uuid()) @map("_id")
+  title             String
+  description       String
+  videoUrl          String?  @map("video_url")
+  videoPublicId     String?  @map("video_public_id")
+  thumbnailUrl      String?  @map("thumbnail_url")
+  services          Json
   beforeAfterImages Json?    @map("before_after_images")
-  category         String?
-  tags             Json
-  ctaPrimary       String?   @default("Start Your Project") @map("cta_primary")
-  ctaSecondary     String?   @default("Learn More") @map("cta_secondary")
-  mediaSettings    Json?    @map("media_settings")
-  isPublished      Boolean? @default(true) @map("is_published")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  category          String?
+  tags              Json
+  ctaPrimary        String?  @default("Start Your Project") @map("cta_primary")
+  ctaSecondary      String?  @default("Learn More") @map("cta_secondary")
+  mediaSettings     Json?    @map("media_settings")
+  isPublished       Boolean? @default(true) @map("is_published")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   @@map("virtual_designs")
 }
 
 model Settings {
-  id            String   @id @default(uuid()) @map("_id")
-  siteName      String?  @default("HOK Interior Designs") @map("site_name")
-  supportEmail  String?  @default("info@hokinterior.com") @map("support_email")
+  id              String   @id @default(uuid()) @map("_id")
+  siteName        String?  @default("HOK Interior Designs") @map("site_name")
+  supportEmail    String?  @default("info@hokinterior.com") @map("support_email")
   maintenanceMode Boolean? @default(false) @map("maintenance_mode")
-  currency      String?  @default("USD")
-  shippingPolicy String? @default("") @map("shipping_policy")
-  returnPolicy  String?  @default("") @map("return_policy")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  currency        String?  @default("USD")
+  shippingPolicy  String?  @default("") @map("shipping_policy")
+  returnPolicy    String?  @default("") @map("return_policy")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@map("settings")
 }
