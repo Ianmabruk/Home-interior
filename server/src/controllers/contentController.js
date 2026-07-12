@@ -69,8 +69,10 @@ const withMediaSettingsFallback = async (operation, payload, label) => {
   try {
     return await operation(payload)
   } catch (err) {
-    if (err?.name === 'PrismaClientValidationError' && err?.message?.includes('mediaSettings')) {
-      console.warn(`[${label}] mediaSettings column missing — retrying without it. Apply migrations to enable image positioning.`)
+    const isMissingColumn = err?.code === 'P2022' || (err?.name === 'PrismaClientKnownRequestError' && err?.message?.includes('does not exist'))
+    const isValidationError = err?.name === 'PrismaClientValidationError' && err?.message?.includes('mediaSettings')
+    if (isMissingColumn || isValidationError) {
+      console.warn(`[${label}] mediaSettings column missing or invalid — retrying without it. Apply migrations to enable image positioning.`)
       const fallbackPayload = { ...payload }
       delete fallbackPayload.mediaSettings
       try {
@@ -295,6 +297,13 @@ export const portfolioController = {
 
       const upload = await handleFileUpload(req, 'hok/portfolio')
       if (upload) {
+        if (existing.imagePublicId) {
+          try {
+            await deleteMedia(existing.imagePublicId, 'image')
+          } catch (deleteErr) {
+            console.error('[PORTFOLIO][UPDATE] delete old media failed:', deleteErr?.message)
+          }
+        }
         payload.imageUrl = upload.url
         payload.imagePublicId = upload.publicId
       }
@@ -489,7 +498,7 @@ export const virtualDesignController = {
 export const getAbout = async (req, res) => {
   try {
     const about = await prisma.about.findFirst({ orderBy: { createdAt: 'desc' } })
-    res.json(sendSuccess(withId(about)))
+    res.json(sendSuccess(about ? withId(about) : null))
   } catch (error) {
     console.error("FULL ERROR:", error)
     console.error("MESSAGE:", error.message)

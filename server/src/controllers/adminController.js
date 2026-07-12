@@ -136,7 +136,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 export const getSettings = async (req, res) => {
   try {
     const settings = await prisma.settings.findFirst({ orderBy: { createdAt: 'desc' } })
-    res.json(sendSuccess(withId(settings)))
+    res.json(sendSuccess(settings ? withId(settings) : null))
   } catch (error) {
     console.error("FULL ERROR:", error)
     console.error("MESSAGE:", error.message)

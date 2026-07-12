@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import multer from 'multer'
 import rateLimit from 'express-rate-limit'
+import { z } from 'zod'
 import {
   getAbout,
   homepageFeed,
@@ -14,7 +15,7 @@ import {
   uploadMediaController,
 } from '../controllers/contentController.js'
 import { auth, authorize } from '../middleware/auth.js'
-import { sanitizeInput, validateFileUpload } from '../middleware/validate.js'
+import { sanitizeInput, validateFileUpload, validateBody } from '../middleware/validate.js'
 import { auditLog } from '../middleware/auditLog.js'
 
 const router = Router()
@@ -35,6 +36,13 @@ const writeLimiter = rateLimit({
 
 const validateUpload = validateFileUpload('media', { maxBytes: 50 * 1024 * 1024 })
 
+const portfolioSchema = z.object({
+  title: z.string().min(1, 'title is required'),
+  category: z.string().min(1, 'category is required'),
+}).passthrough()
+
+const validatePortfolioBody = validateBody(portfolioSchema)
+
 router.get('/homepage', homepageFeed)
 router.get('/analytics', getAnalytics)
 
@@ -45,8 +53,8 @@ router.delete('/projects/:id', auth, authorize('admin'), writeLimiter, auditLog,
 
 router.get('/portfolio', portfolioController.list)
 router.patch('/portfolio/reorder', auth, authorize('admin'), writeLimiter, auditLog, sanitizeInput, portfolioController.reorder)
-router.post('/portfolio', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, portfolioController.create)
-router.patch('/portfolio/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, portfolioController.update)
+router.post('/portfolio', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, validatePortfolioBody, portfolioController.create)
+router.patch('/portfolio/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, validatePortfolioBody, portfolioController.update)
 router.delete('/portfolio/:id', auth, authorize('admin'), writeLimiter, auditLog, portfolioController.remove)
 
 router.get('/about', getAbout)

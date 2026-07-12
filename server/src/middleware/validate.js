@@ -66,6 +66,7 @@ const DEFAULT_ALLOWED_MIME = [
   'image/png',
   'image/webp',
   'image/gif',
+  'image/avif',
   'video/mp4',
   'video/webm',
   'video/quicktime',

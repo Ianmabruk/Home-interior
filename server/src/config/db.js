@@ -136,10 +136,7 @@ export const verifyMediaSettingsColumns = async () => {
   const missing = []
   for (const { table, column } of MEDIA_SETTINGS_TABLES) {
     try {
-      await prisma.$queryRawUnsafe`
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = ${table} AND column_name = ${column}
-      `
+      await prisma.$queryRawUnsafe(`SELECT 1 FROM information_schema.columns WHERE table_name = '${table}' AND column_name = '${column}'`)
     } catch {
       missing.push(`${table}.${column}`)
     }
