@@ -203,108 +203,210 @@ export const projectsController = {
 }
 
 export const portfolioController = {
-  list: asyncHandler(async (req, res) => {
-    const items = await prisma.portfolio.findMany()
-    res.json(sendSuccess(withIdArray(sortByOrderThenDate(items))))
-  }),
-
-  create: asyncHandler(async (req, res) => {
-    console.log('[PORTFOLIO][CREATE] request fields:', Object.keys(req.body))
-    const payload = stripUnknown({ ...req.body }, PORTFOLIO_FIELDS)
-
-    if (payload.order !== undefined) payload.order = orderValue(payload.order)
-    payload.isPublished = toBoolean(req.body.isPublished, true)
-
-    const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
-    if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
-
-    const upload = await handleFileUpload(req, 'hok/portfolio')
-    if (upload) {
-      payload.imageUrl = upload.url
-      payload.imagePublicId = upload.publicId
+  list: async (req, res) => {
+    try {
+      const items = await prisma.portfolio.findMany()
+      res.json(sendSuccess(withIdArray(sortByOrderThenDate(items))))
+    } catch (error) {
+      console.error("FULL ERROR:", error)
+      console.error("MESSAGE:", error.message)
+      console.error("STACK:", error.stack)
+      console.error("PRISMA CODE:", error.code)
+      console.error("BODY:", req.body)
+      console.error("PARAMS:", req.params)
+      console.error("QUERY:", req.query)
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
+      }
+      res.status(500).json({
+        success: false,
+        route: req.originalUrl || req.path,
+        error: error.message,
+        rawMessage: error.message,
+        code: error.code,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      })
     }
+  },
 
-    const item = await withMediaSettingsFallback(
-      (data) => prisma.portfolio.create({ data }),
-      payload,
-      'PORTFOLIO][CREATE',
-    )
-    console.log('[PORTFOLIO][CREATE] success id=', item.id, 'title=', item.title, 'published=', item.isPublished)
-    res.status(201).json(sendSuccess(withId(item)))
-  }),
+  create: async (req, res) => {
+    try {
+      console.log('[PORTFOLIO][CREATE] request fields:', Object.keys(req.body))
+      const payload = stripUnknown({ ...req.body }, PORTFOLIO_FIELDS)
 
-  update: asyncHandler(async (req, res) => {
-    const existing = await prisma.portfolio.findUnique({ where: { id: req.params.id } })
-    if (!existing) {
-      return res.status(404).json({ message: 'Portfolio not found' })
+      if (payload.order !== undefined) payload.order = orderValue(payload.order)
+      payload.isPublished = toBoolean(req.body.isPublished, true)
+
+      const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
+      if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
+
+      const upload = await handleFileUpload(req, 'hok/portfolio')
+      if (upload) {
+        payload.imageUrl = upload.url
+        payload.imagePublicId = upload.publicId
+      }
+
+      const item = await withMediaSettingsFallback(
+        (data) => prisma.portfolio.create({ data }),
+        payload,
+        'PORTFOLIO][CREATE',
+      )
+      console.log('[PORTFOLIO][CREATE] success id=', item.id, 'title=', item.title, 'published=', item.isPublished)
+      res.status(201).json(sendSuccess(withId(item)))
+    } catch (error) {
+      console.error("FULL ERROR:", error)
+      console.error("MESSAGE:", error.message)
+      console.error("STACK:", error.stack)
+      console.error("PRISMA CODE:", error.code)
+      console.error("BODY:", req.body)
+      console.error("PARAMS:", req.params)
+      console.error("QUERY:", req.query)
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
+      }
+      res.status(500).json({
+        success: false,
+        route: req.originalUrl || req.path,
+        error: error.message,
+        rawMessage: error.message,
+        code: error.code,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      })
     }
-    console.log('[PORTFOLIO][UPDATE] id=', req.params.id, 'fields:', Object.keys(req.body))
+  },
 
-    const payload = stripUnknown({ ...req.body }, PORTFOLIO_FIELDS)
+  update: async (req, res) => {
+    try {
+      const existing = await prisma.portfolio.findUnique({ where: { id: req.params.id } })
+      if (!existing) {
+        return res.status(404).json({ message: 'Portfolio not found' })
+      }
+      console.log('[PORTFOLIO][UPDATE] id=', req.params.id, 'fields:', Object.keys(req.body))
 
-    if (payload.order !== undefined) payload.order = orderValue(payload.order)
-    if (req.body.isPublished !== undefined) {
-      payload.isPublished = toBoolean(req.body.isPublished, existing.isPublished)
+      const payload = stripUnknown({ ...req.body }, PORTFOLIO_FIELDS)
+
+      if (payload.order !== undefined) payload.order = orderValue(payload.order)
+      if (req.body.isPublished !== undefined) {
+        payload.isPublished = toBoolean(req.body.isPublished, existing.isPublished)
+      }
+
+      const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
+      if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
+
+      const upload = await handleFileUpload(req, 'hok/portfolio')
+      if (upload) {
+        payload.imageUrl = upload.url
+        payload.imagePublicId = upload.publicId
+      }
+
+      const item = await withMediaSettingsFallback(
+        (data) => prisma.portfolio.update({ where: { id: req.params.id }, data }),
+        payload,
+        'PORTFOLIO][UPDATE',
+      )
+      console.log('[PORTFOLIO][UPDATE] success id=', item.id, 'title=', item.title, 'published=', item.isPublished)
+      res.json(sendSuccess(withId(item)))
+    } catch (error) {
+      console.error("FULL ERROR:", error)
+      console.error("MESSAGE:", error.message)
+      console.error("STACK:", error.stack)
+      console.error("PRISMA CODE:", error.code)
+      console.error("BODY:", req.body)
+      console.error("PARAMS:", req.params)
+      console.error("QUERY:", req.query)
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
+      }
+      res.status(500).json({
+        success: false,
+        route: req.originalUrl || req.path,
+        error: error.message,
+        rawMessage: error.message,
+        code: error.code,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      })
     }
+  },
 
-    const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
-    if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
-
-    const upload = await handleFileUpload(req, 'hok/portfolio')
-    if (upload) {
-      payload.imageUrl = upload.url
-      payload.imagePublicId = upload.publicId
+  remove: async (req, res) => {
+    try {
+      const existing = await prisma.portfolio.findUnique({ where: { id: req.params.id } })
+      if (!existing) {
+        return res.status(404).json({ message: 'Portfolio not found' })
+      }
+      console.log('[PORTFOLIO][DELETE] id=', req.params.id, 'title=', existing.title)
+      await prisma.portfolio.delete({ where: { id: req.params.id } })
+      console.log('[PORTFOLIO][DELETE] success id=', req.params.id)
+      res.json(sendSuccess({ message: 'Portfolio deleted' }))
+    } catch (error) {
+      console.error("FULL ERROR:", error)
+      console.error("MESSAGE:", error.message)
+      console.error("STACK:", error.stack)
+      console.error("PRISMA CODE:", error.code)
+      console.error("BODY:", req.body)
+      console.error("PARAMS:", req.params)
+      console.error("QUERY:", req.query)
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
+      }
+      res.status(500).json({
+        success: false,
+        route: req.originalUrl || req.path,
+        error: error.message,
+        rawMessage: error.message,
+        code: error.code,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      })
     }
+  },
 
-    const item = await withMediaSettingsFallback(
-      (data) => prisma.portfolio.update({ where: { id: req.params.id }, data }),
-      payload,
-      'PORTFOLIO][UPDATE',
-    )
-    console.log('[PORTFOLIO][UPDATE] success id=', item.id, 'title=', item.title, 'published=', item.isPublished)
-    res.json(sendSuccess(withId(item)))
-  }),
+  reorder: async (req, res) => {
+    try {
+      const incoming = Array.isArray(req.body.order)
+        ? req.body.order
+        : (typeof req.body.order === 'string' ? parseMaybeJson(req.body.order, []) : [])
+      if (!Array.isArray(incoming) || incoming.length === 0) {
+        throw new ApiError(400, 'order must be a non-empty array of portfolio ids')
+      }
 
-  remove: asyncHandler(async (req, res) => {
-    const existing = await prisma.portfolio.findUnique({ where: { id: req.params.id } })
-    if (!existing) {
-      return res.status(404).json({ message: 'Portfolio not found' })
+      const ids = incoming.map((id) => String(id))
+      console.log('[PORTFOLIO][REORDER] count=', ids.length)
+
+      const found = await prisma.portfolio.findMany({ where: { id: { in: ids } }, select: { id: true } })
+      const foundSet = new Set(found.map((r) => r.id))
+      const missing = ids.filter((id) => !foundSet.has(id))
+      if (missing.length) {
+        throw new ApiError(400, `Unknown portfolio id(s): ${missing.join(', ')}`)
+      }
+
+      await prisma.$transaction(
+        ids.map((id, index) => prisma.portfolio.update({ where: { id }, data: { order: index } })),
+      )
+      console.log('[PORTFOLIO][REORDER] success')
+
+      const items = await prisma.portfolio.findMany({ orderBy: { order: 'asc' } })
+      res.json(sendSuccess(withIdArray(items)))
+    } catch (error) {
+      console.error("FULL ERROR:", error)
+      console.error("MESSAGE:", error.message)
+      console.error("STACK:", error.stack)
+      console.error("PRISMA CODE:", error.code)
+      console.error("BODY:", req.body)
+      console.error("PARAMS:", req.params)
+      console.error("QUERY:", req.query)
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
+      }
+      res.status(500).json({
+        success: false,
+        route: req.originalUrl || req.path,
+        error: error.message,
+        rawMessage: error.message,
+        code: error.code,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      })
     }
-    console.log('[PORTFOLIO][DELETE] id=', req.params.id, 'title=', existing.title)
-    await prisma.portfolio.delete({ where: { id: req.params.id } })
-    console.log('[PORTFOLIO][DELETE] success id=', req.params.id)
-    res.json(sendSuccess({ message: 'Portfolio deleted' }))
-  }),
-
-  // Reorder portfolios by sending an ordered array of ids. Each id is
-  // assigned its index as the `order` value, which the list/homepage feeds
-  // sort by. Unknown ids are rejected with 400 so we never silently drop data.
-  reorder: asyncHandler(async (req, res) => {
-    const incoming = Array.isArray(req.body.order)
-      ? req.body.order
-      : (typeof req.body.order === 'string' ? parseMaybeJson(req.body.order, []) : [])
-    if (!Array.isArray(incoming) || incoming.length === 0) {
-      throw new ApiError(400, 'order must be a non-empty array of portfolio ids')
-    }
-
-    const ids = incoming.map((id) => String(id))
-    console.log('[PORTFOLIO][REORDER] count=', ids.length)
-
-    const found = await prisma.portfolio.findMany({ where: { id: { in: ids } }, select: { id: true } })
-    const foundSet = new Set(found.map((r) => r.id))
-    const missing = ids.filter((id) => !foundSet.has(id))
-    if (missing.length) {
-      throw new ApiError(400, `Unknown portfolio id(s): ${missing.join(', ')}`)
-    }
-
-    await prisma.$transaction(
-      ids.map((id, index) => prisma.portfolio.update({ where: { id }, data: { order: index } })),
-    )
-    console.log('[PORTFOLIO][REORDER] success')
-
-    const items = await prisma.portfolio.findMany({ orderBy: { order: 'asc' } })
-    res.json(sendSuccess(withIdArray(items)))
-  }),
+  },
 }
 
 export const virtualDesignController = {
@@ -384,10 +486,31 @@ export const virtualDesignController = {
   }),
 }
 
-export const getAbout = asyncHandler(async (req, res) => {
-  const about = await prisma.about.findFirst({ orderBy: { createdAt: 'desc' } })
-  res.json(sendSuccess(withId(about)))
-})
+export const getAbout = async (req, res) => {
+  try {
+    const about = await prisma.about.findFirst({ orderBy: { createdAt: 'desc' } })
+    res.json(sendSuccess(withId(about)))
+  } catch (error) {
+    console.error("FULL ERROR:", error)
+    console.error("MESSAGE:", error.message)
+    console.error("STACK:", error.stack)
+    console.error("PRISMA CODE:", error.code)
+    console.error("BODY:", req.body)
+    console.error("PARAMS:", req.params)
+    console.error("QUERY:", req.query)
+    if (error instanceof ApiError) {
+      return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
+    }
+    res.status(500).json({
+      success: false,
+      route: req.originalUrl || req.path,
+      error: error.message,
+      rawMessage: error.message,
+      code: error.code,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    })
+  }
+}
 
 // Fields the admin About form may provide. Only these are written, so a stale
 // or extra form field can never trigger a Prisma validation error.
@@ -404,61 +527,80 @@ const ABOUT_FIELDS = new Set([
   'mediaSettings',
 ])
 
-export const upsertAbout = asyncHandler(async (req, res) => {
-  // Build payload only from provided fields so an update never wipes data
-  // the form doesn't manage (e.g. companyDescription set elsewhere).
-  const payload = {}
-  for (const key of Object.keys(req.body)) {
-    if (ABOUT_FIELDS.has(key)) payload[key] = req.body[key]
-  }
-  const parsedSocials = parseMaybeJson(req.body.socials, null)
-  if (parsedSocials) payload.socials = parsedSocials
+export const upsertAbout = async (req, res) => {
+  try {
+    const payload = {}
+    for (const key of Object.keys(req.body)) {
+      if (ABOUT_FIELDS.has(key)) payload[key] = req.body[key]
+    }
+    const parsedSocials = parseMaybeJson(req.body.socials, null)
+    if (parsedSocials) payload.socials = parsedSocials
 
-  const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
-  if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
+    const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
+    if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
 
-  if (req.file) {
-    try {
-      const upload = await handleFileUpload(req, 'hok/about', 'image')
-      if (upload) {
-        payload.aboutImageUrl = upload.url
-        payload.aboutImagePublicId = upload.publicId
+    if (req.file) {
+      try {
+        const upload = await handleFileUpload(req, 'hok/about', 'image')
+        if (upload) {
+          payload.aboutImageUrl = upload.url
+          payload.aboutImagePublicId = upload.publicId
+        }
+      } catch (error) {
+        console.error('[UPLOAD] About image upload failed:', error)
+        throw error instanceof ApiError
+          ? error
+          : new ApiError(502, 'Failed to upload About image')
       }
-    } catch (error) {
-      console.error('[UPLOAD] About image upload failed:', error)
-      throw error instanceof ApiError
-        ? error
-        : new ApiError(502, 'Failed to upload About image')
     }
-  }
 
-  const existing = await prisma.about.findFirst()
-  if (!existing) {
-    const createPayload = {
-      story: payload.story ?? '',
-      companyDescription: payload.companyDescription ?? '',
-      mission: payload.mission ?? '',
-      vision: payload.vision ?? '',
-      location: payload.location ?? '',
-      contactEmail: payload.contactEmail ?? env.emailFrom ?? '',
-      socials: payload.socials ?? {},
-      ...payload,
+    const existing = await prisma.about.findFirst()
+    if (!existing) {
+      const createPayload = {
+        story: payload.story ?? '',
+        companyDescription: payload.companyDescription ?? '',
+        mission: payload.mission ?? '',
+        vision: payload.vision ?? '',
+        location: payload.location ?? '',
+        contactEmail: payload.contactEmail ?? env.emailFrom ?? '',
+        socials: payload.socials ?? {},
+        ...payload,
+      }
+      const created = await withMediaSettingsFallback(
+        (data) => prisma.about.create({ data }),
+        createPayload,
+        'ABOUT][CREATE',
+      )
+      return res.status(201).json(sendSuccess(withId(created)))
     }
-    const created = await withMediaSettingsFallback(
-      (data) => prisma.about.create({ data }),
-      createPayload,
-      'ABOUT][CREATE',
+
+    const updated = await withMediaSettingsFallback(
+      (data) => prisma.about.update({ where: { id: existing.id }, data }),
+      payload,
+      'ABOUT][UPDATE',
     )
-    return res.status(201).json(sendSuccess(withId(created)))
+    res.json(sendSuccess(withId(updated)))
+  } catch (error) {
+    console.error("FULL ERROR:", error)
+    console.error("MESSAGE:", error.message)
+    console.error("STACK:", error.stack)
+    console.error("PRISMA CODE:", error.code)
+    console.error("BODY:", req.body)
+    console.error("PARAMS:", req.params)
+    console.error("QUERY:", req.query)
+    if (error instanceof ApiError) {
+      return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
+    }
+    res.status(500).json({
+      success: false,
+      route: req.originalUrl || req.path,
+      error: error.message,
+      rawMessage: error.message,
+      code: error.code,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    })
   }
-
-  const updated = await withMediaSettingsFallback(
-    (data) => prisma.about.update({ where: { id: existing.id }, data }),
-    payload,
-    'ABOUT][UPDATE',
-  )
-  res.json(sendSuccess(withId(updated)))
-})
+}
 
 export const homepageFeed = asyncHandler(async (req, res) => {
   const [projects, portfolio, about] = await Promise.all([

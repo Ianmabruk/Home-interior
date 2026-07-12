@@ -133,23 +133,65 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
   res.json(sendSuccess(withId(updated)))
 })
 
-export const getSettings = asyncHandler(async (req, res) => {
-  const settings = await prisma.settings.findFirst({ orderBy: { createdAt: 'desc' } })
-  res.json(sendSuccess(withId(settings)))
-})
-
-export const updateSettings = asyncHandler(async (req, res) => {
-  const payload = { ...req.body }
-  const existing = await prisma.settings.findFirst()
-
-  if (!existing) {
-    const created = await prisma.settings.create({ data: payload })
-    return res.status(201).json(sendSuccess(withId(created)))
+export const getSettings = async (req, res) => {
+  try {
+    const settings = await prisma.settings.findFirst({ orderBy: { createdAt: 'desc' } })
+    res.json(sendSuccess(withId(settings)))
+  } catch (error) {
+    console.error("FULL ERROR:", error)
+    console.error("MESSAGE:", error.message)
+    console.error("STACK:", error.stack)
+    console.error("PRISMA CODE:", error.code)
+    console.error("BODY:", req.body)
+    console.error("PARAMS:", req.params)
+    console.error("QUERY:", req.query)
+    if (error instanceof ApiError) {
+      return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
+    }
+    res.status(500).json({
+      success: false,
+      route: req.originalUrl || req.path,
+      error: error.message,
+      rawMessage: error.message,
+      code: error.code,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    })
   }
+}
 
-  const updated = await prisma.settings.update({ where: { id: existing.id }, data: payload })
-  res.json(sendSuccess(withId(updated)))
-})
+export const updateSettings = async (req, res) => {
+  try {
+    const payload = { ...req.body }
+    const existing = await prisma.settings.findFirst()
+
+    if (!existing) {
+      const created = await prisma.settings.create({ data: payload })
+      return res.status(201).json(sendSuccess(withId(created)))
+    }
+
+    const updated = await prisma.settings.update({ where: { id: existing.id }, data: payload })
+    res.json(sendSuccess(withId(updated)))
+  } catch (error) {
+    console.error("FULL ERROR:", error)
+    console.error("MESSAGE:", error.message)
+    console.error("STACK:", error.stack)
+    console.error("PRISMA CODE:", error.code)
+    console.error("BODY:", req.body)
+    console.error("PARAMS:", req.params)
+    console.error("QUERY:", req.query)
+    if (error instanceof ApiError) {
+      return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
+    }
+    res.status(500).json({
+      success: false,
+      route: req.originalUrl || req.path,
+      error: error.message,
+      rawMessage: error.message,
+      code: error.code,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    })
+  }
+}
 
 export const sendAdminTestEmail = asyncHandler(async (req, res) => {
   const to = req.body?.to || req.user?.email || env.seedAdminEmail

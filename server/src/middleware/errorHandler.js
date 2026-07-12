@@ -6,21 +6,33 @@ export const notFoundHandler = (req, res) => {
 
 export const errorHandler = (err, req, res, next) => {
   if (err instanceof ApiError) {
-    res.status(err.statusCode).json({ success: false, message: err.message, details: err.details })
+    res.status(err.statusCode).json({
+      success: false,
+      route: req.originalUrl || req.path,
+      message: err.message,
+      details: err.details,
+    })
     return
   }
 
-  // Multer / file upload specific errors
   if (err?.name === 'MulterError') {
-    res.status(400).json({ success: false, message: `Upload error: ${err.message}` })
+    res.status(400).json({
+      success: false,
+      route: req.originalUrl || req.path,
+      message: `Upload error: ${err.message}`,
+    })
     return
   }
 
-  console.error('[ERROR]', err)
+  console.error('[500 ERROR] Route:', req.originalUrl || req.path)
+  console.error('FULL ERROR:', err)
+  console.error('MESSAGE:', err.message)
+  console.error('STACK:', err.stack)
+  console.error('PRISMA CODE:', err.code)
+  console.error('BODY:', req.body)
+  console.error('PARAMS:', req.params)
+  console.error('QUERY:', req.query)
 
-  // Map known Prisma error codes to a human-readable message so the client
-  // (admin UI) shows the real cause instead of a blind "Internal server error"
-  // (e.g. a missing migration column). No stack traces or raw SQL are leaked.
   const PRISMA_CODES = {
     P2021: 'table does not exist (pending migration?)',
     P2022: 'column does not exist (pending migration?)',
@@ -34,9 +46,10 @@ export const errorHandler = (err, req, res, next) => {
 
   res.status(500).json({
     success: false,
-    message,
-    error: err?.name,
+    route: req.originalUrl || req.path,
+    error: message,
+    rawMessage: err?.message,
     code,
-    details: process.env.NODE_ENV === 'development' ? err?.message : undefined,
+    stack: process.env.NODE_ENV === 'development' ? err?.stack : undefined,
   })
 }
