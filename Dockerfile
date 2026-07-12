@@ -14,4 +14,8 @@ EXPOSE 5000
 
 ENV NODE_ENV=production
 
-CMD ["node", "src/index.js"]
+# Regenerate the Prisma client and apply pending migrations at container start
+# (not only at build time). This guarantees the in-memory client matches
+# schema.prisma even if the image was built from an older schema, preventing
+# stale-client errors such as "PrismaClientValidationError: Unknown argument".
+CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && node src/index.js"]

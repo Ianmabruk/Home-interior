@@ -74,6 +74,49 @@ const toNumberIfFinite = (value) => {
   return Number.isFinite(n) ? n : null
 }
 
+const toBoolean = (value, fallback) => {
+  if (typeof value === 'boolean') return value
+  if (value === 'true' || value === true) return true
+  if (value === 'false' || value === false) return false
+  return fallback
+}
+
+// Map a Prisma client/runtime error to a clean HTTP error so the admin UI
+// never receives an opaque 500. Kept as a utility for any future direct
+// Prisma calls that need explicit error mapping.
+const rethrowAsHttpError = (err, label) => {
+  if (err?.name === 'PrismaClientValidationError') {
+    console.error(`[${label}] Prisma validation error:`, err.message)
+    const friendly = err.message.includes('mediaSettings')
+      ? 'Database schema is out of sync. Please contact support or redeploy to apply pending migrations.'
+      : `Invalid fields sent to the database: ${err.message}`
+    throw new ApiError(400, friendly)
+  }
+  throw err
+}
+
+// Retry Prisma create/update without mediaSettings if the column is missing
+// from the database (migrations not yet applied). This provides a graceful
+// degradation path instead of a 500/400 error.
+const withMediaSettingsFallback = async (operation, payload, label) => {
+  try {
+    return await operation(payload)
+  } catch (err) {
+    if (err?.name === 'PrismaClientValidationError' && err?.message?.includes('mediaSettings')) {
+      console.warn(`[${label}] mediaSettings column missing — retrying without it. Apply migrations to enable image positioning.`)
+      const fallbackPayload = { ...payload }
+      delete fallbackPayload.mediaSettings
+      try {
+        return await operation(fallbackPayload)
+      } catch (fallbackErr) {
+        console.error(`[${label}] retry without mediaSettings also failed:`, fallbackErr?.message)
+        throw fallbackErr
+      }
+    }
+    throw err
+  }
+}
+
 const PROJECT_FIELDS = new Set([
   'title', 'description', 'category', 'media', 'beforeAfterImages',
   'videoUrl', 'videoPublicId', 'coverImageUrl', 'order', 'isPublished', 'tags', 'services',
@@ -134,7 +177,11 @@ export const projectsController = {
 
     payload.isPublished = payload.isPublished ?? true
 
-    const item = await prisma.project.create({ data: payload })
+    const item = await withMediaSettingsFallback(
+      (data) => prisma.project.create({ data }),
+      payload,
+      'PROJECT][CREATE',
+    )
     res.status(201).json(sendSuccess(withId(item)))
   }),
 
@@ -174,7 +221,11 @@ export const projectsController = {
       }
     }
 
-    const item = await prisma.project.update({ where: { id: req.params.id }, data: payload })
+    const item = await withMediaSettingsFallback(
+      (data) => prisma.project.update({ where: { id: req.params.id }, data }),
+      payload,
+      'PROJECT][UPDATE',
+    )
     res.json(sendSuccess(withId(item)))
   }),
 
@@ -191,9 +242,11 @@ export const portfolioController = {
   }),
 
   create: asyncHandler(async (req, res) => {
+    console.log('[PORTFOLIO][CREATE] request fields:', Object.keys(req.body))
     const payload = stripUnknown({ ...req.body }, PORTFOLIO_FIELDS)
 
     if (payload.order !== undefined) payload.order = orderValue(payload.order)
+    payload.isPublished = toBoolean(req.body.isPublished, true)
 
     const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
     if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
@@ -203,8 +256,13 @@ export const portfolioController = {
       payload.imageUrl = upload.url
       payload.imagePublicId = upload.publicId
     }
-    payload.isPublished = payload.isPublished ?? true
-    const item = await prisma.portfolio.create({ data: payload })
+
+    const item = await withMediaSettingsFallback(
+      (data) => prisma.portfolio.create({ data }),
+      payload,
+      'PORTFOLIO][CREATE',
+    )
+    console.log('[PORTFOLIO][CREATE] success id=', item.id, 'title=', item.title, 'published=', item.isPublished)
     res.status(201).json(sendSuccess(withId(item)))
   }),
 
@@ -213,8 +271,14 @@ export const portfolioController = {
     if (!existing) {
       return res.status(404).json({ message: 'Portfolio not found' })
     }
+    console.log('[PORTFOLIO][UPDATE] id=', req.params.id, 'fields:', Object.keys(req.body))
 
     const payload = stripUnknown({ ...req.body }, PORTFOLIO_FIELDS)
+
+    if (payload.order !== undefined) payload.order = orderValue(payload.order)
+    if (req.body.isPublished !== undefined) {
+      payload.isPublished = toBoolean(req.body.isPublished, existing.isPublished)
+    }
 
     const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
     if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
@@ -225,13 +289,54 @@ export const portfolioController = {
       payload.imagePublicId = upload.publicId
     }
 
-    const item = await prisma.portfolio.update({ where: { id: req.params.id }, data: payload })
+    const item = await withMediaSettingsFallback(
+      (data) => prisma.portfolio.update({ where: { id: req.params.id }, data }),
+      payload,
+      'PORTFOLIO][UPDATE',
+    )
+    console.log('[PORTFOLIO][UPDATE] success id=', item.id, 'title=', item.title, 'published=', item.isPublished)
     res.json(sendSuccess(withId(item)))
   }),
 
   remove: asyncHandler(async (req, res) => {
+    const existing = await prisma.portfolio.findUnique({ where: { id: req.params.id } })
+    if (!existing) {
+      return res.status(404).json({ message: 'Portfolio not found' })
+    }
+    console.log('[PORTFOLIO][DELETE] id=', req.params.id, 'title=', existing.title)
     await prisma.portfolio.delete({ where: { id: req.params.id } })
+    console.log('[PORTFOLIO][DELETE] success id=', req.params.id)
     res.json(sendSuccess({ message: 'Portfolio deleted' }))
+  }),
+
+  // Reorder portfolios by sending an ordered array of ids. Each id is
+  // assigned its index as the `order` value, which the list/homepage feeds
+  // sort by. Unknown ids are rejected with 400 so we never silently drop data.
+  reorder: asyncHandler(async (req, res) => {
+    const incoming = Array.isArray(req.body.order)
+      ? req.body.order
+      : (typeof req.body.order === 'string' ? parseMaybeJson(req.body.order, []) : [])
+    if (!Array.isArray(incoming) || incoming.length === 0) {
+      throw new ApiError(400, 'order must be a non-empty array of portfolio ids')
+    }
+
+    const ids = incoming.map((id) => String(id))
+    console.log('[PORTFOLIO][REORDER] count=', ids.length)
+
+    const found = await prisma.portfolio.findMany({ where: { id: { in: ids } }, select: { id: true } })
+    const foundSet = new Set(found.map((r) => r.id))
+    const missing = ids.filter((id) => !foundSet.has(id))
+    if (missing.length) {
+      throw new ApiError(400, `Unknown portfolio id(s): ${missing.join(', ')}`)
+    }
+
+    await prisma.$transaction(
+      ids.map((id, index) => prisma.portfolio.update({ where: { id }, data: { order: index } })),
+    )
+    console.log('[PORTFOLIO][REORDER] success')
+
+    const items = await prisma.portfolio.findMany({ orderBy: { order: 'asc' } })
+    res.json(sendSuccess(withIdArray(items)))
   }),
 }
 
@@ -264,7 +369,11 @@ export const virtualDesignController = {
 
     payload.isPublished = payload.isPublished ?? true
 
-    const item = await prisma.virtualDesign.create({ data: payload })
+    const item = await withMediaSettingsFallback(
+      (data) => prisma.virtualDesign.create({ data }),
+      payload,
+      'VIRTUAL][CREATE',
+    )
     res.status(201).json(sendSuccess(withId(item)))
   }),
 
@@ -294,7 +403,11 @@ export const virtualDesignController = {
       payload.videoPublicId = upload.publicId
     }
 
-    const item = await prisma.virtualDesign.update({ where: { id: req.params.id }, data: payload })
+    const item = await withMediaSettingsFallback(
+      (data) => prisma.virtualDesign.update({ where: { id: req.params.id }, data }),
+      payload,
+      'VIRTUAL][UPDATE',
+    )
     res.json(sendSuccess(withId(item)))
   }),
 
@@ -354,24 +467,29 @@ export const upsertAbout = asyncHandler(async (req, res) => {
 
   const existing = await prisma.about.findFirst()
   if (!existing) {
-    // First-time create: supply defaults for required (non-nullable) columns
-    // the minimal admin form does not send, so Prisma validation never 500s.
-    const created = await prisma.about.create({
-      data: {
-        story: payload.story ?? '',
-        companyDescription: payload.companyDescription ?? '',
-        mission: payload.mission ?? '',
-        vision: payload.vision ?? '',
-        location: payload.location ?? '',
-        contactEmail: payload.contactEmail ?? env.emailFrom ?? '',
-        socials: payload.socials ?? {},
-        ...payload,
-      },
-    })
+    const createPayload = {
+      story: payload.story ?? '',
+      companyDescription: payload.companyDescription ?? '',
+      mission: payload.mission ?? '',
+      vision: payload.vision ?? '',
+      location: payload.location ?? '',
+      contactEmail: payload.contactEmail ?? env.emailFrom ?? '',
+      socials: payload.socials ?? {},
+      ...payload,
+    }
+    const created = await withMediaSettingsFallback(
+      (data) => prisma.about.create({ data }),
+      createPayload,
+      'ABOUT][CREATE',
+    )
     return res.status(201).json(sendSuccess(withId(created)))
   }
 
-  const updated = await prisma.about.update({ where: { id: existing.id }, data: payload })
+  const updated = await withMediaSettingsFallback(
+    (data) => prisma.about.update({ where: { id: existing.id }, data }),
+    payload,
+    'ABOUT][UPDATE',
+  )
   res.json(sendSuccess(withId(updated)))
 })
 
