@@ -170,7 +170,18 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 export const getSettings = async (req, res) => {
   try {
     const settings = await prisma.settings.findFirst({ orderBy: { createdAt: 'desc' } })
-    res.json(sendSuccess(settings ? withId(settings) : null))
+    if (!settings) {
+      return res.json(sendSuccess({
+        id: null,
+        siteName: 'HOK Interior Designs',
+        supportEmail: 'info@hokinterior.com',
+        maintenanceMode: false,
+        currency: 'USD',
+        shippingPolicy: '',
+        returnPolicy: '',
+      }))
+    }
+    res.json(sendSuccess(withId(settings)))
   } catch (error) {
     console.error("FULL ERROR:", error)
     console.error("MESSAGE:", error.message)

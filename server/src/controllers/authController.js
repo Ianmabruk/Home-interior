@@ -129,10 +129,13 @@ export const login = asyncHandler(async (req, res) => {
 
 export const refresh = asyncHandler(async (req, res) => {
   const body = req.body || {}
-  const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME] || body.refreshToken
+  const refreshToken = body.refreshToken || req.cookies?.[REFRESH_COOKIE_NAME]
   if (!refreshToken) {
     console.warn('[AUTH][refresh] rejected: no refresh token in cookie or body')
-    throw new ApiError(400, 'Refresh token required')
+    return res.status(401).json({
+      success: false,
+      message: 'Refresh token missing',
+    })
   }
 
   // Verify the JWT signature/expiry. Any failure is a clean 401 (never 500),

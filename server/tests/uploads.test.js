@@ -298,12 +298,12 @@ describe('HOMEPAGE feed aggregates all published content', () => {
 })
 
 describe('AUTH /refresh robustness', () => {
-  it('returns 400 (not 500 TypeError) when body is empty and no cookie', async () => {
+  it('returns 401 (not 500 TypeError) when body is empty and no cookie', async () => {
     const res = await request(app)
       .post('/api/auth/refresh')
       .set('Content-Type', 'application/json')
       .send('')
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(401)
     expect(res.body.message).toMatch(/refresh token/i)
   })
 

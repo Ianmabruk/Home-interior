@@ -591,6 +591,9 @@ export const upsertAbout = async (req, res) => {
         socials: payload.socials ?? {},
         ...payload,
       }
+      if (!createPayload.socials || typeof createPayload.socials !== 'object') {
+        createPayload.socials = {}
+      }
       const created = await prismaSafeWrite(
         (data) => prisma.about.create({ data }),
         createPayload,
@@ -607,9 +610,18 @@ export const upsertAbout = async (req, res) => {
       }
     }
 
+    const safeUpdatePayload = {
+      ...payload,
+      socials: payload.socials ?? existing.socials ?? {},
+    }
+    if (!safeUpdatePayload.socials || typeof safeUpdatePayload.socials !== 'object') {
+      safeUpdatePayload.socials = existing.socials ?? {}
+    }
+    delete safeUpdatePayload.id
+
     const updated = await prismaSafeWrite(
       (data) => prisma.about.update({ where: { id: existing.id }, data }),
-      payload,
+      safeUpdatePayload,
       'ABOUT][UPDATE',
     )
     res.json(sendSuccess(withId(updated)))

@@ -154,9 +154,11 @@ app.use(
     standardHeaders: true,
     legacyHeaders: false,
     // trust proxy is set to 1 (above) so req.ip resolves the real client
-    // from X-Forwarded-For. Keep validate true so the limiter enforces
-    // per-client limits behind Render/Netlify/Cloudflare proxies.
-    validate: { xForwardedForHeader: true },
+    // from X-Forwarded-For. We disable XFF validation here so Render
+    // requests without an X-Forwarded-For header do not crash the
+    // server with ERR_ERL_UNEXPECTED_X_FORWARDED_FOR. Per-client limiting
+    // still works because req.ip is derived from trust proxy.
+    validate: { xForwardedForHeader: false },
   }),
 )
 
