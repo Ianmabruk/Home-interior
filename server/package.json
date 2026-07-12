@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "start": "prisma generate && prisma migrate deploy && node src/index.js",
-    "build": "prisma generate && prisma migrate deploy",
-    "postinstall": "prisma generate",
+    "start": "npx prisma generate && npx prisma migrate deploy && node src/index.js",
+    "build": "npx prisma generate && npx prisma migrate deploy",
+    "postinstall": "npx prisma generate",
     "lint": "node --check src/index.js",
     "seed": "node src/seeds/seed.js",
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.js",
