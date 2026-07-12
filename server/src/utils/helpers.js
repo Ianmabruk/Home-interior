@@ -1,3 +1,5 @@
+import { ApiError } from './ApiError.js'
+
 export const withId = (item) => ({ ...item, _id: item.id })
 export const withIdArray = (items) => items.map((item) => withId(item))
 
@@ -29,4 +31,17 @@ export const parseMediaSettings = (value) => {
   const zoom = ALLOWED_ZOOMS.has(zoomNumber) ? zoomNumber : DEFAULT_MEDIA_SETTINGS.zoom
 
   return { position, zoom, fit }
+}
+
+export const parseBody = (schema, body) => {
+  const result = schema.safeParse(body)
+  if (!result.success) {
+    const issues = result.error.issues || []
+    const message = issues.map((e) => {
+      const path = Array.isArray(e.path) && e.path.length ? `${e.path.join('.')}: ` : ''
+      return `${path}${e.message}`
+    }).join(', ') || 'Validation error'
+    throw new ApiError(400, message, issues)
+  }
+  return result.data
 }

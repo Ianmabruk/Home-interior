@@ -3,6 +3,7 @@ import { prisma } from '../config/db.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
+import { parseBody } from '../utils/helpers.js'
 
 const withId = (item) => ({ ...item, _id: item.id })
 const withIdArray = (items) => items.map((item) => withId(item))
@@ -26,7 +27,7 @@ export const me = asyncHandler(async (req, res) => {
 })
 
 export const updateMe = asyncHandler(async (req, res) => {
-  const data = updateMeSchema.parse(req.body)
+  const data = parseBody(updateMeSchema, req.body)
   const user = await prisma.user.update({
     where: { id: req.user.userId },
     data: {

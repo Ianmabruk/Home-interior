@@ -4,7 +4,7 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
 import { sendEmail, buildQuoteEmailTemplate } from '../config/sendgrid.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
-import { withId, withIdArray } from '../utils/helpers.js'
+import { withId, withIdArray, parseBody } from '../utils/helpers.js'
 
 const messageSchema = z.object({
   name: z.string().min(2),
@@ -27,13 +27,13 @@ const replySchema = z.object({
 })
 
 export const createMessage = asyncHandler(async (req, res) => {
-  const payload = messageSchema.parse(req.body)
+  const payload = parseBody(messageSchema, req.body)
   const created = await prisma.message.create({ data: payload })
   res.status(201).json(sendSuccess(withId(created)))
 })
 
 export const createQuote = asyncHandler(async (req, res) => {
-  const payload = quoteSchema.parse(req.body)
+  const payload = parseBody(quoteSchema, req.body)
   const created = await prisma.message.create({
     data: {
       ...payload,
@@ -73,7 +73,7 @@ export const listMessages = asyncHandler(async (req, res) => {
 })
 
 export const replyToMessage = asyncHandler(async (req, res) => {
-  const { messageId, reply } = replySchema.parse(req.body)
+  const { messageId, reply } = parseBody(replySchema, req.body)
   const message = await prisma.message.findUnique({ where: { id: messageId } })
   if (!message) {
     return res.status(404).json({ message: 'Message not found' })

@@ -4,6 +4,7 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
 import { sendEmail, buildReceiptEmailTemplate } from '../config/sendgrid.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
+import { parseBody } from '../utils/helpers.js'
 
 const withId = (item) => ({ ...item, _id: item.id })
 const withIdArray = (items) => items.map((item) => withId(item))
@@ -35,7 +36,7 @@ export const createOrder = asyncHandler(async (req, res) => {
     throw new ApiError(403, 'Your account is not active. Contact support.')
   }
 
-  const data = orderSchema.parse(req.body)
+  const data = parseBody(orderSchema, req.body)
 
   const productIds = data.items.map((item) => item.productId)
   const products = await prisma.product.findMany({

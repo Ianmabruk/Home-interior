@@ -7,6 +7,7 @@ import { ApiError } from '../utils/ApiError.js'
 import { sendEmail, buildWelcomeEmailTemplate, buildLoginEmailTemplate } from '../config/sendgrid.js'
 import { signAccessToken, signRefreshToken, verifyRefreshToken, setRefreshCookie, clearRefreshCookie, REFRESH_COOKIE_NAME } from '../utils/tokens.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
+import { parseBody } from '../utils/helpers.js'
 
 const withId = (item) => ({ ...item, _id: item.id })
 const withIdArray = (items) => items.map((item) => withId(item))
@@ -31,7 +32,7 @@ const makeAuthResponse = (user) => {
 }
 
 export const register = asyncHandler(async (req, res) => {
-  const body = registerSchema.parse(req.body)
+  const body = parseBody(registerSchema, req.body)
   const exists = await prisma.user.findFirst({ where: { email: body.email } })
   if (exists) {
     console.warn(`[AUTH][register] rejected: user already exists ${body.email}`)
@@ -70,7 +71,7 @@ export const register = asyncHandler(async (req, res) => {
 })
 
 export const login = asyncHandler(async (req, res) => {
-  const body = loginSchema.parse(req.body)
+  const body = parseBody(loginSchema, req.body)
   const user = await prisma.user.findFirst({ where: { email: body.email } })
   if (!user) {
     console.warn(`[AUTH][login] rejected: invalid credentials for ${body.email}`)
@@ -168,7 +169,7 @@ export const refresh = asyncHandler(async (req, res) => {
 })
 
 export const forgotPassword = asyncHandler(async (req, res) => {
-  const email = z.string().email().parse(req.body.email)
+  const { email } = parseBody(z.object({ email: z.string().email() }), req.body)
   const user = await prisma.user.findFirst({ where: { email } })
 
   if (!user) {
@@ -195,8 +196,12 @@ export const forgotPassword = asyncHandler(async (req, res) => {
 })
 
 export const resetPassword = asyncHandler(async (req, res) => {
-  const token = z.string().min(10).parse(req.params.token)
-  const password = z.string().min(8).parse(req.body.password)
+  const token = req.params.token
+  const { password } = parseBody(z.object({ password: z.string().min(8) }), req.body)
+
+  if (!token || token.length < 10) {
+    throw new ApiError(400, 'Invalid reset token')
+  }
 
   const user = await prisma.user.findFirst({
     where: {

@@ -4,7 +4,7 @@ import { ApiError } from '../utils/ApiError.js'
 import { uploadImage, uploadVideo } from '../services/uploadService.js'
 import { sendEmail, buildNewProductEmailTemplate } from '../config/sendgrid.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
-import { withId, withIdArray, parseMaybeJson, parseMediaSettings } from '../utils/helpers.js'
+import { withId, withIdArray, parseMaybeJson, parseMediaSettings, parseBody } from '../utils/helpers.js'
 
 // Multipart/form-data sends every field as a string, so `z.coerce.boolean()`
 // is unsafe here: it turns the string 'false' into `true` (any non-empty
@@ -179,7 +179,7 @@ export const getProduct = async (req, res) => {
 
 export const createProduct = async (req, res) => {
   try {
-    const data = productSchema.parse(req.body)
+    const data = parseBody(productSchema, req.body)
     const files = req.files || []
 
     const uploads = await Promise.all(
@@ -248,7 +248,7 @@ export const createProduct = async (req, res) => {
 
 export const updateProduct = async (req, res) => {
   try {
-    const data = productSchema.partial().parse(req.body)
+    const data = parseBody(productSchema.partial(), req.body)
     const product = await prisma.product.findUnique({ where: { id: req.params.id } })
     if (!product) {
       throw new ApiError(404, 'Product not found')

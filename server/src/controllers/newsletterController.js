@@ -2,13 +2,14 @@ import { z } from 'zod'
 import { prisma } from '../config/db.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
+import { parseBody } from '../utils/helpers.js'
 
 const newsletterSchema = z.object({
   email: z.string().email(),
 })
 
 export const subscribeNewsletter = asyncHandler(async (req, res) => {
-  const { email } = newsletterSchema.parse(req.body)
+  const { email } = parseBody(newsletterSchema, req.body)
 
   const exists = await prisma.newsletterSubscription.findFirst({ where: { email } })
   if (exists) {
