@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Luxury interior design palette
+        // Luxury interior design palette (approved preview exact matches)
         primary: '#FFF8F0',
         secondary: '#F5EBDD',
         sidebar: '#6B4E3D',
@@ -19,6 +19,13 @@ export default {
         success: '#2E7D32',
         warning: '#FF8A3D',
         error: '#D32F2F',
+        // Approved preview exact palette
+        bgPrimary: '#F5EFE6',
+        bgSecondary: '#EDE4D7',
+        accent: '#C47B45',
+        textPrimaryDark: '#3A2E26',
+        footerBlack: '#0B0B0B',
+        cardCream: '#FFF9F2',
         // Backward-compatible aliases
         creamWhite: '#FFF8F0',
         softBeige: '#F5EBDD',

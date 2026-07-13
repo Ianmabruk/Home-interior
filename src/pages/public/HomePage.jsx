@@ -1,12 +1,11 @@
 import { motion } from 'framer-motion'
-import React, { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
-import { SectionTitle } from '../../components/common/SectionTitle'
 import { api } from '../../services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import PositionedImage from '../../components/common/PositionedImage'
-import ProjectVideoShowcase from '../../components/common/ProjectVideoShowcase'
+import { getOptimizedVideoUrl, getVideoPosterUrl } from '../../utils/cloudinaryHelpers'
 
 const sortByOrderThenDate = (items) =>
   [...(items || [])].sort((a, b) => {
@@ -15,17 +14,28 @@ const sortByOrderThenDate = (items) =>
     return new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
   })
 
-const toShowcaseItem = (project) => {
-  if (!project) return null
-  const mediaArr = Array.isArray(project.media) ? project.media : []
-  const firstMedia = mediaArr.find((m) => m?.type === 'video' && m.url) || mediaArr.find((m) => m?.url)
-  if (firstMedia) {
-    return { type: firstMedia.type || 'video', url: firstMedia.url, mediaSettings: project.mediaSettings }
-  }
-  if (project.videoUrl) return { type: 'video', url: project.videoUrl, mediaSettings: project.mediaSettings }
-  if (project.coverImageUrl) return { type: 'image', url: project.coverImageUrl, mediaSettings: project.mediaSettings }
-  return null
-}
+const SERVICES = [
+  {
+    title: 'Interior Design',
+    description: 'Custom residential and commercial interiors.',
+    icon: '✦',
+  },
+  {
+    title: 'Space Planning',
+    description: 'Efficient layouts maximizing usability.',
+    icon: '◎',
+  },
+  {
+    title: 'Custom Furniture',
+    description: 'Bespoke furniture and décor solutions.',
+    icon: '❖',
+  },
+  {
+    title: 'Project Management',
+    description: 'End-to-end project execution.',
+    icon: '◈',
+  },
+]
 
 export const HomePage = () => {
   const [feed, setFeed] = useState({
@@ -34,6 +44,9 @@ export const HomePage = () => {
     about: null,
   })
   const [loading, setLoading] = useState(true)
+  const [heroVideoUrl, setHeroVideoUrl] = useState(null)
+  const [heroPosterUrl, setHeroPosterUrl] = useState(null)
+  const heroVideoRef = useRef(null)
 
   const loadFeed = useCallback(() => {
     const projectsP = api
@@ -56,12 +69,19 @@ export const HomePage = () => {
         const about = aboutR.status === 'fulfilled' ? aboutR.value : null
 
         const sortedProjects = sortByOrderThenDate(projects)
+        const sortedPortfolio = sortByOrderThenDate(portfolio)
 
         setFeed({
           projects: sortedProjects,
-          portfolio,
+          portfolio: sortedPortfolio,
           about,
         })
+
+        const heroProject = sortedProjects.find((p) => p.videoUrl) || sortedProjects[0]
+        if (heroProject) {
+          setHeroVideoUrl(heroProject.videoUrl || (Array.isArray(heroProject.media) && heroProject.media.find((m) => m?.type === 'video' && m.url)?.url))
+          setHeroPosterUrl(heroProject.coverImageUrl || (Array.isArray(heroProject.media) && heroProject.media.find((m) => m?.url)?.url))
+        }
       })
       .finally(() => setLoading(false))
   }, [])
@@ -77,10 +97,18 @@ export const HomePage = () => {
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
   }, [loadFeed])
 
+  // Ensure hero video autoplays on all devices
+  useEffect(() => {
+    const v = heroVideoRef.current
+    if (!v || !heroVideoUrl) return
+    v.muted = true
+    v.play().catch(() => {})
+  }, [heroVideoUrl])
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-cream">
-        <div className="section-pad container-wide">
+      <div className="min-h-screen bg-bgPrimary">
+        <div className="container-wide section-pad">
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-4">
             <div className="skeleton col-span-2 aspect-[4/3]" />
             <div className="skeleton aspect-[4/3]" />
@@ -94,181 +122,186 @@ export const HomePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-bgPrimary text-textPrimaryDark">
       {/* ══════════════════════════════════════════
-          SECTION 1 — PROJECTS VIDEO SHOWCASE
+          SECTION 1 — HERO VIDEO
       ══════════════════════════════════════════ */}
-      <section className="relative w-full">
-        {feed.projects.length > 0 ? (
-          <ProjectVideoShowcase videos={feed.projects.map(toShowcaseItem).filter(Boolean)} className="aspect-[16/9] w-full" />
-        ) : (
-          <div className="flex aspect-[16/9] w-full items-center justify-center bg-linen">
-            <div className="text-center px-4">
-              <p className="font-display text-2xl text-ink/30 sm:text-3xl">No projects yet</p>
-              <p className="mt-2 text-sm text-ink/50">Upload projects from the Admin Dashboard</p>
+      <section className="relative w-full px-4 pt-4 md:px-6 lg:px-8">
+        <div className="relative overflow-hidden rounded-[24px] md:rounded-[30px] bg-bgSecondary shadow-2xl shadow-black/10 ring-1 ring-black/5 h-[55vh] md:h-[80vh]">
+          {heroVideoUrl ? (
+            <video
+              ref={heroVideoRef}
+              src={getOptimizedVideoUrl(heroVideoUrl, { width: 1280 })}
+              poster={heroPosterUrl ? getVideoPosterUrl(heroPosterUrl, { width: 1280 }) : undefined}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              fetchPriority="high"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-bgSecondary">
+              <p className="font-display text-2xl text-textPrimaryDark/30">Upload a project video to get started</p>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </section>
 
       {/* ══════════════════════════════════════════
-          SECTION 2 — PORTFOLIO GALLERY
+          SECTION 2 — PORTFOLIO PROJECTS
       ══════════════════════════════════════════ */}
-      <section className="section-pad bg-cream">
-          <div className="container-wide px-6 md:px-12 lg:px-20">
-            <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:mb-10 md:mb-12 md:flex-row md:items-end">
-              <SectionTitle eyebrow="Portfolio" title="Curated Interiors" align="left" />
-              <Link
-                to="/portfolio"
-                className="hidden items-center gap-2 text-2xs font-medium uppercase tracking-widest text-ink/45 transition hover:text-orange md:inline-flex"
-              >
-                View Full Portfolio <ArrowRight size={13} strokeWidth={1.5} />
-              </Link>
-            </div>
+      <section className="section-pad bg-bgPrimary">
+        <div className="container-wide px-6 md:px-12 lg:px-20">
+          <div className="mb-10 text-center">
+            <p className="text-2xs font-medium uppercase tracking-widest text-accent mb-3">Portfolio</p>
+            <h2 className="font-display text-4xl font-medium leading-tight text-textPrimaryDark md:text-5xl">Curated Interiors</h2>
+            <p className="mt-4 max-w-2xl mx-auto text-base text-textPrimaryDark/55">Luxury Interior Design Portfolio</p>
+          </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-4">
-              {feed.portfolio.slice(0, 6).map((item, i) => (
-                <motion.div
-                  key={item._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-60px' }}
-                  transition={{ duration: 0.6, delay: i * 0.05 }}
-                  className={`group relative overflow-hidden rounded-2xl bg-sand ${
-                    i === 0 ? 'col-span-2' : ''
-                  }`}
-                >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            {feed.portfolio.slice(0, 6).map((item, i) => (
+              <motion.div
+                key={item._id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ duration: 0.6, delay: i * 0.08 }}
+                className="group relative overflow-hidden rounded-[24px] bg-cardCream shadow-lg shadow-black/5 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1"
+              >
+                <div className="relative aspect-[4/3] overflow-hidden">
                   <PositionedImage
                     src={item.imageUrl}
                     alt={item.title}
                     settings={item.mediaSettings}
-                    className={`transition duration-700 group-hover:scale-105 ${
-                      i === 0 ? 'aspect-[4/3] sm:aspect-[16/10]' : 'aspect-[4/3]'
-                    }`}
+                    className="h-full w-full transition duration-500 group-hover:scale-105"
                     loading="lazy"
-                    sizes={i === 0 ? '(min-width:768px) 66vw, 100vw' : '(min-width:768px) 33vw, 50vw'}
+                    sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw"
                   />
-                  <div className="absolute inset-0 bg-ink/0 transition-all duration-500 group-hover:bg-ink/20" />
-                  <div className="absolute inset-0 flex items-end opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                    <div className="p-3 w-full bg-gradient-to-t from-black/60 to-transparent sm:p-4">
-                      <p className="font-display text-lg font-medium text-white sm:text-xl">
-                        {item.title}
-                      </p>
-                      {item.category && (
-                        <p className="text-2xs font-medium uppercase tracking-widest text-white/65">
-                          {item.category}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                </div>
+                <div className="p-5">
+                  <h3 className="font-display text-xl font-medium text-textPrimaryDark">{item.title}</h3>
+                  {item.category && (
+                    <p className="mt-1 text-2xs font-medium uppercase tracking-widest text-accent">{item.category}</p>
+                  )}
+                  {item.description && (
+                    <p className="mt-2 text-sm leading-relaxed text-textPrimaryDark/60 line-clamp-2">{item.description}</p>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
 
-            <div className="mt-8 text-center md:hidden">
-              <Link to="/portfolio" className="btn-outline">
+          {feed.portfolio.length > 6 && (
+            <div className="mt-10 text-center">
+              <Link to="/portfolio" className="btn-primary">
                 View Full Portfolio <ArrowRight size={14} strokeWidth={1.5} />
               </Link>
             </div>
-          </div>
-        </section>
+          )}
+        </div>
+      </section>
 
       {/* ══════════════════════════════════════════
-          SECTION 3 — ABOUT
+          SECTION 3 — WHAT WE DO
       ══════════════════════════════════════════ */}
-      <section className="relative bg-linen">
-        {feed.about ? (
-          <React.Fragment>
-            <div className="flex items-center justify-center py-16 sm:py-20 md:py-24">
-              <div className="container-wide px-6 md:px-12 lg:px-20">
-                <div className="grid items-center gap-10 sm:gap-12 md:grid-cols-2 md:gap-16">
-                  <motion.div
-                    initial={{ opacity: 0, x: -30 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.8 }}
-                    className="relative"
-                  >
-                    {feed.about.aboutImageUrl ? (
-                      <div className="w-full overflow-hidden rounded-2xl aspect-[4/3] sm:aspect-[4/5]">
-                        <PositionedImage
-                          src={feed.about.aboutImageUrl}
-                          alt="Workspace"
-                          settings={feed.about.mediaSettings}
-                          loading="lazy"
-                          sizes="(min-width:768px) 50vw, 100vw"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-full rounded-2xl bg-sand flex aspect-[4/3] items-center justify-center sm:aspect-[4/5]">
-                        <p className="text-sm text-ink/30">Premium workspace</p>
-                      </div>
-                    )}
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, x: 30 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.8, delay: 0.2 }}
-                  >
-                    <p className="eyebrow mb-4">About HOK</p>
-                    <h2 className="font-display text-3xl font-medium leading-tight text-ink sm:text-4xl md:text-4xl lg:text-5xl">
-                      Crafting Excellence
-                    </h2>
-                    {feed.about.story && (
-                      <p className="mt-3 text-sm leading-relaxed text-ink/55 sm:text-base sm:mt-4">
-                        {feed.about.story}
-                      </p>
-                    )}
-                    {feed.about.companyDescription && (
-                      <p className="mt-3 text-sm leading-relaxed text-ink/55 sm:text-base">
-                        {feed.about.companyDescription}
-                      </p>
-                    )}
-                    {feed.about.mission && (
-                      <div className="mt-5 border-l-4 border-orange pl-5 sm:mt-6">
-                        <p className="text-sm leading-relaxed text-ink/70 sm:text-base">{feed.about.mission}</p>
-                      </div>
-                    )}
-                    {feed.about.vision && (
-                      <div className="mt-4 border-l-4 border-sand pl-5">
-                        <p className="text-sm leading-relaxed text-ink/70 sm:text-base">{feed.about.vision}</p>
-                      </div>
-                    )}
-                  </motion.div>
-                </div>
-              </div>
-            </div>
+      <section className="section-pad bg-bgSecondary">
+        <div className="container-wide px-6 md:px-12 lg:px-20">
+          <div className="mb-10 text-center">
+            <p className="text-2xs font-medium uppercase tracking-widest text-accent mb-3">Services</p>
+            <h2 className="font-display text-4xl font-medium leading-tight text-textPrimaryDark md:text-5xl">What We Do</h2>
+          </div>
 
-            <div className="pb-16 sm:pb-20 md:pb-24 md:py-0">
-              <div className="container-wide px-6 text-center md:px-12 lg:px-20">
-                <Link to="/about" className="btn-primary">
-                  Learn More <ArrowRight size={14} strokeWidth={1.5} />
-                </Link>
-              </div>
-            </div>
-          </React.Fragment>
-        ) : (
-          <div className="flex items-center justify-center py-16 sm:py-20 md:py-24">
-            <div className="container-wide px-6 text-center md:px-12 lg:px-20">
-              <p className="eyebrow mb-4">Our Philosophy</p>
-              <h2 className="font-display text-3xl font-medium leading-tight text-ink sm:text-4xl md:text-4xl lg:text-5xl">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
+            {SERVICES.map((service, i) => (
+              <motion.div
+                key={service.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                className="rounded-[20px] bg-cardCream p-6 md:p-8 shadow-lg shadow-black/5 transition-all duration-300 hover:scale-[1.03] hover:shadow-xl"
+              >
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
+                  <span className="text-xl">{service.icon}</span>
+                </div>
+                <h3 className="font-display text-xl font-medium text-textPrimaryDark">{service.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-textPrimaryDark/60">{service.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          SECTION 4 — ABOUT HOK
+      ══════════════════════════════════════════ */}
+      <section className="section-pad bg-bgPrimary">
+        <div className="container-wide px-6 md:px-12 lg:px-20">
+          <div className="grid items-center gap-10 sm:gap-12 md:grid-cols-2 md:gap-16">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="relative"
+            >
+              {feed.about?.aboutImageUrl ? (
+                <div className="w-full overflow-hidden rounded-[28px] shadow-xl shadow-black/10 aspect-[4/3] sm:aspect-[4/5]">
+                  <PositionedImage
+                    src={feed.about.aboutImageUrl}
+                    alt="Workspace"
+                    settings={feed.about.mediaSettings}
+                    loading="lazy"
+                    sizes="(min-width:768px) 50vw, 100vw"
+                  />
+                </div>
+              ) : (
+                <div className="w-full rounded-[28px] bg-bgSecondary flex aspect-[4/3] items-center justify-center sm:aspect-[4/5] shadow-xl shadow-black/10">
+                  <p className="text-sm text-textPrimaryDark/30">Premium workspace</p>
+                </div>
+              )}
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+            >
+              <p className="text-2xs font-medium uppercase tracking-widest text-accent mb-4">About HOK</p>
+              <h2 className="font-display text-3xl font-medium leading-tight text-textPrimaryDark sm:text-4xl md:text-4xl lg:text-5xl">
                 Crafting Excellence
               </h2>
-              <p className="mt-3 text-sm leading-relaxed text-ink/55 sm:text-base sm:mt-4">
-                Every space tells a story. We transform visions into reality with meticulous attention to detail.
-              </p>
-              <div className="mt-5 border-l-4 border-orange pl-5 sm:mt-6 inline-block text-left">
-                <p className="text-sm leading-relaxed text-ink/70 sm:text-base">About content has not been configured yet.</p>
-              </div>
+              {feed.about?.story && (
+                <p className="mt-3 text-sm leading-relaxed text-textPrimaryDark/55 sm:text-base sm:mt-4">
+                  {feed.about.story}
+                </p>
+              )}
+              {feed.about?.companyDescription && (
+                <p className="mt-3 text-sm leading-relaxed text-textPrimaryDark/55 sm:text-base">
+                  {feed.about.companyDescription}
+                </p>
+              )}
+              {feed.about?.mission && (
+                <div className="mt-5 border-l-4 border-accent pl-5 sm:mt-6">
+                  <p className="text-sm leading-relaxed text-textPrimaryDark/70 sm:text-base">{feed.about.mission}</p>
+                </div>
+              )}
+              {feed.about?.vision && (
+                <div className="mt-4 border-l-4 border-border pl-5">
+                  <p className="text-sm leading-relaxed text-textPrimaryDark/70 sm:text-base">{feed.about.vision}</p>
+                </div>
+              )}
               <div className="mt-8">
                 <Link to="/about" className="btn-primary">
                   Learn More <ArrowRight size={14} strokeWidth={1.5} />
                 </Link>
               </div>
-            </div>
+            </motion.div>
           </div>
-        )}
+        </div>
       </section>
     </div>
   )

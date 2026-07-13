@@ -107,15 +107,16 @@ export const Footer = () => {
              {[
                { to: '/shop', label: 'Shop' },
                { to: '/portfolio', label: 'Portfolio' },
-               { to: '/virtual-interior-design', label: 'Virtual Interior Design' },
+               { to: '/virtual-interior-design', label: 'Services' },
                { to: '/about', label: 'About Us' },
+               { to: '/chat', label: 'Contact' },
              ].map((link) => (
-              <li key={link.to}>
-                <Link to={link.to} className="transition-colors hover:text-orange">
-                  {link.label}
-                </Link>
-              </li>
-            ))}
+               <li key={link.to}>
+                 <Link to={link.to} className="transition-colors hover:text-accentOrange">
+                   {link.label}
+                 </Link>
+               </li>
+             ))}
           </ul>
         </div>
 

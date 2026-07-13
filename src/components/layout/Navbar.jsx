@@ -8,9 +8,11 @@ import { useCurrency } from '../../context/CurrencyContext'
 
 const FULL_NAV_ITEMS = [
   { to: '/', label: 'Home' },
-  { to: '/shop', label: 'Shop' },
-  { to: '/virtual-interior-design', label: 'Virtual Interior Design' },
   { to: '/about', label: 'About' },
+  { to: '/virtual-interior-design', label: 'Services' },
+  { to: '/virtual-interior-design', label: 'Projects' },
+  { to: '/shop', label: 'Shop' },
+  { to: '/chat', label: 'Contact' },
 ]
 
 export const Navbar = () => {
@@ -40,7 +42,6 @@ export const Navbar = () => {
     return () => { document.body.style.overflow = '' }
   }, [menuOpen])
 
-  // Close profile dropdown on outside click
   useEffect(() => {
     if (!profileOpen) return
     const handler = (e) => {
@@ -55,19 +56,14 @@ export const Navbar = () => {
   return (
     <header
       className={`fixed left-0 right-0 top-0 z-50 transition-all duration-500 ${
-        scrolled ? 'bg-cream/98 shadow-soft backdrop-blur-sm' : 'bg-cream/95 backdrop-blur-sm'
+        scrolled ? 'bg-bgPrimary/98 shadow-soft backdrop-blur-sm' : 'bg-bgPrimary/95 backdrop-blur-sm'
       }`}
     >
-      {/* Announcement bar */}
-      <div className="hidden border-b border-sand/50 bg-linen py-2 text-center text-2xs font-medium uppercase tracking-widest text-ink/45 md:block">
-        Complimentary design consultation — Book yours today
-      </div>
-
       <div className="container-wide flex items-center justify-between px-6 py-4 md:px-12 lg:px-20">
         {/* Logo */}
         <Link to="/" className="flex-shrink-0 leading-tight">
-          <p className="font-display text-2xl font-semibold tracking-wide text-black md:text-3xl">HOK</p>
-          <p className="text-2xs font-medium uppercase tracking-widest text-orange">Interior Designs</p>
+          <p className="font-display text-2xl font-semibold tracking-wide text-textPrimaryDark md:text-3xl">HOK</p>
+          <p className="text-2xs font-medium uppercase tracking-widest text-accent">Interior Designs</p>
         </Link>
 
         {/* Desktop Nav */}
@@ -77,10 +73,10 @@ export const Navbar = () => {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `relative text-2xs font-medium uppercase tracking-widest transition-colors duration-200 after:absolute after:-bottom-0.5 after:left-0 after:h-px after:bg-ink after:transition-all after:duration-300 hover:scale-105 transform-gpu ${
+                `relative text-2xs font-medium uppercase tracking-widest transition-colors duration-200 after:absolute after:-bottom-0.5 after:left-0 after:h-px after:bg-textPrimaryDark after:transition-all after:duration-300 hover:scale-105 transform-gpu ${
                   isActive
-                    ? 'text-ink after:w-full'
-                    : 'text-ink/50 hover:text-ink after:w-0 hover:after:w-full'
+                    ? 'text-textPrimaryDark after:w-full'
+                    : 'text-textPrimaryDark/50 hover:text-textPrimaryDark after:w-0 hover:after:w-full'
                 }`
               }
             >
@@ -91,43 +87,39 @@ export const Navbar = () => {
 
         {/* Desktop Actions */}
         <div className="hidden items-center gap-0.5 md:flex">
-          {/* Wishlist */}
           <Link
             to="/wishlist"
-            className="relative p-2.5 text-ink/55 transition-colors hover:text-ink"
+            className="relative p-2.5 text-textPrimaryDark/55 transition-colors hover:text-textPrimaryDark"
             aria-label="Wishlist"
           >
             <Heart size={17} strokeWidth={1.5} />
             {wishlist.length > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-ink text-[9px] font-semibold text-white">
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-textPrimaryDark text-[9px] font-semibold text-white">
                 {wishlist.length > 9 ? '9+' : wishlist.length}
               </span>
             )}
           </Link>
 
-          {/* Cart */}
           <Link
             to="/cart"
-            className="relative p-2.5 text-ink/55 transition-colors hover:text-ink"
+            className="relative p-2.5 text-textPrimaryDark/55 transition-colors hover:text-textPrimaryDark"
             aria-label="Cart"
           >
             <ShoppingBag size={17} strokeWidth={1.5} />
             {cart.length > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-ink text-[9px] font-semibold text-white">
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-textPrimaryDark text-[9px] font-semibold text-white">
                 {cart.length > 9 ? '9+' : cart.length}
               </span>
             )}
           </Link>
 
-          {/* Chat */}
-          <Link to="/chat" className="p-2.5 text-ink/55 transition-colors hover:text-ink" aria-label="Chat">
+          <Link to="/chat" className="p-2.5 text-textPrimaryDark/55 transition-colors hover:text-textPrimaryDark" aria-label="Chat">
             <MessageCircle size={17} strokeWidth={1.5} />
           </Link>
 
-          {/* Currency Switcher */}
           <div className="relative ml-1" data-currency-menu>
             <button
-              className="flex items-center gap-1 p-2.5 text-ink/55 transition-colors hover:text-ink"
+              className="flex items-center gap-1 p-2.5 text-textPrimaryDark/55 transition-colors hover:text-textPrimaryDark"
               aria-label="Switch currency"
               onClick={() => {
                 const next = currencies[(currencies.findIndex((c) => c.code === currency) + 1) % currencies.length]
@@ -140,10 +132,9 @@ export const Navbar = () => {
             </button>
           </div>
 
-          {/* Profile */}
           <div className="relative ml-1" data-profile-menu>
             <button
-              className="flex items-center gap-1 p-2.5 text-ink/55 transition-colors hover:text-ink"
+              className="flex items-center gap-1 p-2.5 text-textPrimaryDark/55 transition-colors hover:text-textPrimaryDark"
               onClick={() => setProfileOpen((p) => !p)}
               aria-label="Account"
               aria-expanded={profileOpen}
@@ -163,34 +154,34 @@ export const Navbar = () => {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 4, scale: 0.98 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-0 mt-1 w-52 border border-sand bg-white py-1 shadow-lift"
+                  className="absolute right-0 mt-1 w-52 border border-border bg-white py-1 shadow-lift"
                 >
                   {!user ? (
                     <>
-                      <Link to="/login" className="block px-5 py-3 text-xs font-medium uppercase tracking-wider text-ink/65 transition hover:bg-linen hover:text-ink">
+                      <Link to="/login" className="block px-5 py-3 text-xs font-medium uppercase tracking-wider text-textPrimaryDark/65 transition hover:bg-linen hover:text-textPrimaryDark">
                         Sign In
                       </Link>
-                      <Link to="/register" className="block px-5 py-3 text-xs font-medium uppercase tracking-wider text-ink/65 transition hover:bg-linen hover:text-ink">
+                      <Link to="/register" className="block px-5 py-3 text-xs font-medium uppercase tracking-wider text-textPrimaryDark/65 transition hover:bg-linen hover:text-textPrimaryDark">
                         Sign Up
                       </Link>
                     </>
                   ) : (
                     <>
-                      <div className="border-b border-sand px-5 py-3">
-                        <p className="text-xs font-medium text-ink">{user.fullName || user.name}</p>
-                        <p className="text-2xs text-ink/40">{user.email}</p>
+                      <div className="border-b border-border px-5 py-3">
+                        <p className="text-xs font-medium text-textPrimaryDark">{user.fullName || user.name}</p>
+                        <p className="text-2xs text-textPrimaryDark/40">{user.email}</p>
                       </div>
-                      <Link to="/account" className="block px-5 py-3 text-xs font-medium uppercase tracking-wider text-ink/65 transition hover:bg-linen hover:text-ink">
+                      <Link to="/account" className="block px-5 py-3 text-xs font-medium uppercase tracking-wider text-textPrimaryDark/65 transition hover:bg-linen hover:text-textPrimaryDark">
                         Account
                       </Link>
                       {user.role === 'admin' && (
-                        <Link to="/admin" className="block px-5 py-3 text-xs font-medium uppercase tracking-wider text-ink/65 transition hover:bg-linen hover:text-ink">
+                        <Link to="/admin" className="block px-5 py-3 text-xs font-medium uppercase tracking-wider text-textPrimaryDark/65 transition hover:bg-linen hover:text-textPrimaryDark">
                           Admin Dashboard
                         </Link>
                       )}
                       <button
                         onClick={logout}
-                        className="w-full border-t border-sand px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-ink/65 transition hover:bg-linen hover:text-ink"
+                        className="w-full border-t border-border px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-textPrimaryDark/65 transition hover:bg-linen hover:text-textPrimaryDark"
                       >
                         Sign Out
                       </button>
@@ -200,28 +191,32 @@ export const Navbar = () => {
               )}
             </AnimatePresence>
           </div>
+
+          <Link to="/checkout" className="ml-3 btn-accent text-2xs">
+            Book Consultation
+          </Link>
         </div>
 
         {/* Mobile: icons + hamburger */}
         <div className="flex items-center gap-1 md:hidden">
-          <Link to="/wishlist" className="relative p-2 text-ink/55" aria-label="Wishlist">
+          <Link to="/wishlist" className="relative p-2 text-textPrimaryDark/55" aria-label="Wishlist">
             <Heart size={18} strokeWidth={1.5} />
             {wishlist.length > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-ink text-[9px] font-semibold text-white">
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-textPrimaryDark text-[9px] font-semibold text-white">
                 {wishlist.length}
               </span>
             )}
           </Link>
-          <Link to="/cart" className="relative p-2 text-ink/55" aria-label="Cart">
+          <Link to="/cart" className="relative p-2 text-textPrimaryDark/55" aria-label="Cart">
             <ShoppingBag size={18} strokeWidth={1.5} />
             {cart.length > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-ink text-[9px] font-semibold text-white">
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-textPrimaryDark text-[9px] font-semibold text-white">
                 {cart.length}
               </span>
             )}
           </Link>
           <button
-            className="p-2 text-ink"
+            className="p-2 text-textPrimaryDark"
             onClick={() => setMenuOpen((p) => !p)}
             aria-label="Toggle menu"
             aria-expanded={menuOpen}
@@ -239,23 +234,23 @@ export const Navbar = () => {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className="overflow-hidden border-t border-sand bg-cream md:hidden"
+            className="overflow-hidden border-t border-border bg-bgPrimary md:hidden"
           >
-<nav className="flex flex-col px-6 py-6">
-               {visibleNavItems.map((item) => (
-                 <NavLink
-                   key={item.to}
-                   to={item.to}
-                   className={({ isActive }) =>
-                     `border-b border-sand/60 py-4 text-sm font-medium uppercase tracking-widest transition-all duration-200 hover:translate-x-1 ${
-                       isActive ? 'text-ink' : 'text-ink/50 hover:text-ink'
-                     }`
-                   }
-                 >
-                   {item.label}
-                 </NavLink>
-               ))}
-              <Link to="/chat" className="border-b border-sand/60 py-4 text-sm font-medium uppercase tracking-widest text-ink/50 hover:text-ink transition-colors">
+            <nav className="flex flex-col px-6 py-6">
+              {visibleNavItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `border-b border-border/60 py-4 text-sm font-medium uppercase tracking-widest transition-all duration-200 hover:translate-x-1 ${
+                      isActive ? 'text-textPrimaryDark' : 'text-textPrimaryDark/50 hover:text-textPrimaryDark'
+                    }`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+              <Link to="/chat" className="border-b border-border/60 py-4 text-sm font-medium uppercase tracking-widest text-textPrimaryDark/50 hover:text-textPrimaryDark transition-colors">
                 Chat
               </Link>
 
@@ -273,7 +268,7 @@ export const Navbar = () => {
                 )}
               </div>
               {user?.role === 'admin' && (
-                <Link to="/admin" className="mt-3 text-center text-2xs font-medium uppercase tracking-widest text-warm hover:text-ink transition-colors">
+                <Link to="/admin" className="mt-3 text-center text-2xs font-medium uppercase tracking-widest text-warm hover:text-textPrimaryDark transition-colors">
                   Admin Dashboard
                 </Link>
               )}
