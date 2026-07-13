@@ -63,18 +63,18 @@ const rethrowAsHttpError = (err, label) => {
   throw err
 }
 
-// HOTFIX: projects.tags / projects.services columns do not exist in the
-// production database. Remove them from the allowed fields so they are never
-// written, and never selected (see PROJECT_SELECT below). Schema unchanged.
+// Allowed Project fields for the admin write path. `tags` and `services` are
+// included — the columns now exist in the database (added by the
+// 20260713150000 migration, and guaranteed present by the startup schema guard
+// in config/db.js). They default to [] when omitted.
 const PROJECT_FIELDS = new Set([
   'title', 'description', 'category', 'media', 'beforeAfterImages',
   'videoUrl', 'videoPublicId', 'coverImageUrl', 'order', 'isPublished',
-  'mediaSettings',
+  'mediaSettings', 'tags', 'services',
 ])
 
-// HOTFIX: explicit projection that omits the missing tags/services columns so
-// Prisma never generates a SELECT against them (which throws P2022). Only the
-// columns confirmed present in the production DB are selected.
+// Projection returned to the public + admin clients. Includes tags/services so
+// consumers can render service/feature tags.
 const PROJECT_SELECT = {
   id: true,
   title: true,
@@ -84,6 +84,8 @@ const PROJECT_SELECT = {
   mediaSettings: true,
   coverImageUrl: true,
   videoUrl: true,
+  tags: true,
+  services: true,
   isPublished: true,
   createdAt: true,
   updatedAt: true,
@@ -104,8 +106,8 @@ const stripUnknown = (obj, allowed) => {
 }
 
 export const projectsController = {
-  // HOTFIX: defensive select (omits missing tags/services) + never crash the
-  // homepage — return an empty list on any failure instead of a 500.
+  // Public list — returns tags/services now that those columns exist. Still
+  // never crashes the homepage: returns an empty list on any failure.
   list: asyncHandler(async (req, res) => {
     try {
       const items = await prisma.project.findMany({
@@ -127,9 +129,14 @@ export const projectsController = {
     const parsedMedia = parseMaybeJson(req.body.media, null)
     if (parsedMedia) payload.media = parsedMedia
 
-    // HOTFIX: do not write project.tags / project.services (columns missing in DB)
     const parsedBeforeAfter = parseMaybeJson(req.body.beforeAfterImages, null)
     if (parsedBeforeAfter) payload.beforeAfterImages = parsedBeforeAfter
+
+    // tags / services are JSON arrays. Default to [] when not provided.
+    const parsedTags = parseMaybeJson(req.body.tags, null)
+    payload.tags = Array.isArray(parsedTags) ? parsedTags : (parsedTags ? [parsedTags] : [])
+    const parsedServices = parseServices(req.body.services)
+    payload.services = parsedServices.length ? parsedServices : []
 
     const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
     if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
@@ -157,7 +164,6 @@ export const projectsController = {
   }),
 
   update: asyncHandler(async (req, res) => {
-    // HOTFIX: select omits missing tags/services columns
     const existing = await prisma.project.findUnique({ where: { id: req.params.id }, select: PROJECT_SELECT })
     if (!existing) {
       return res.status(404).json({ message: 'Project not found' })
@@ -167,12 +173,16 @@ export const projectsController = {
 
     if (payload.order !== undefined) payload.order = orderValue(payload.order)
 
-    // HOTFIX: do not write project.tags / project.services (columns missing in DB)
     const parsedBeforeAfter = parseMaybeJson(req.body.beforeAfterImages, null)
     if (parsedBeforeAfter) payload.beforeAfterImages = parsedBeforeAfter
 
     const parsedMedia = Array.isArray(req.body.media) ? req.body.media : parseMaybeJson(req.body.media, null)
     if (parsedMedia) payload.media = parsedMedia
+
+    const parsedTags = parseMaybeJson(req.body.tags, null)
+    payload.tags = Array.isArray(parsedTags) ? parsedTags : (parsedTags ? [parsedTags] : existing.tags || [])
+    const parsedServices = parseServices(req.body.services)
+    payload.services = parsedServices.length ? parsedServices : (existing.services || [])
 
     const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
     if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
@@ -203,7 +213,6 @@ export const projectsController = {
   }),
 
   remove: asyncHandler(async (req, res) => {
-    // HOTFIX: select omits missing tags/services columns
     const existing = await prisma.project.findUnique({ where: { id: req.params.id }, select: PROJECT_SELECT })
     if (existing) {
       const mediaDeletes = (existing.media || []).map((m) => m.publicId ? deleteMedia(m.publicId, m.type === 'video' ? 'video' : 'image') : Promise.resolve())
@@ -686,6 +695,8 @@ export const homepageFeed = asyncHandler(async (req, res) => {
         media: true,
         coverImageUrl: true,
         videoUrl: true,
+        tags: true,
+        services: true,
         order: true,
         mediaSettings: true,
       },

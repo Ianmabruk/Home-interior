@@ -4,7 +4,7 @@ import { ApiError } from '../utils/ApiError.js'
 import { uploadImage, uploadVideo, deleteMedia } from '../services/uploadService.js'
 import { sendEmail, buildNewProductEmailTemplate } from '../config/sendgrid.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
-import { withId, withIdArray, parseMaybeJson, parseMediaSettings, parseBody } from '../utils/helpers.js'
+import { withId, withIdArray, parseMaybeJson, parseListField, parseMediaSettings, parseBody } from '../utils/helpers.js'
 import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
 
 // Multipart/form-data sends every field as a string, so `z.coerce.boolean()`
@@ -28,7 +28,7 @@ const productSchema = z.object({
   vendor: z.string().optional(),
   stock: z.coerce.number().int().min(0),
   sku: z.string().min(2),
-  tags: z.array(z.string()).optional(),
+  tags: z.preprocess((v) => parseListField(v, []), z.array(z.string())),
   isFeatured: formBoolean,
   isPublished: formBoolean,
 })
@@ -192,9 +192,7 @@ export const createProduct = async (req, res) => {
       : parseMaybeJson(req.body.colorVariants, [])
     const colorVariants = Array.isArray(colorVariantsRaw) ? colorVariantsRaw : []
 
-    const tags = Array.isArray(req.body.tags)
-      ? req.body.tags
-      : parseMaybeJson(req.body.tags, [])
+    const tags = parseListField(req.body.tags, [])
 
     const product = await prismaSafeWrite(
       (writeData) => prisma.product.create({

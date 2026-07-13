@@ -13,6 +13,29 @@ export const parseMaybeJson = (value, fallback = null) => {
   try { return JSON.parse(value) } catch { return fallback }
 }
 
+// Accepts a field that may arrive as a JSON array, a JSON-encoded array
+// string, or a plain comma-separated string (how the admin forms submit
+// tag/list fields). Always returns an array; falls back to `fallback` ([]) for
+// empty/undefined/non-string/non-array input. This keeps the request contract
+// in sync with the frontend (which posts comma-separated strings) so a valid
+// product/project submission is never rejected as "expected array, received
+// string" nor silently loses the user's tags.
+export const parseListField = (value, fallback = []) => {
+  if (Array.isArray(value)) return value
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return fallback
+    try {
+      const parsed = JSON.parse(trimmed)
+      if (Array.isArray(parsed)) return parsed
+    } catch {
+      // not JSON — treat as comma-separated below
+    }
+    return trimmed.split(',').map((s) => s.trim()).filter(Boolean)
+  }
+  return fallback
+}
+
 export const DEFAULT_MEDIA_SETTINGS = { position: 'center', zoom: 100, fit: 'cover' }
 
 export const ALLOWED_POSITIONS = new Set([
