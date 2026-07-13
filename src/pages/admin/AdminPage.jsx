@@ -185,14 +185,18 @@ function AdminPage() {
       try {
         const res = await api.get('/admin/users')
         if (res.data) setUsers(res.data)
-      } catch { /* non-fatal */ }
+      } catch (err) {
+        console.error('[admin] users poll failed:', err?.response?.status, err?.response?.data || err?.message)
+      }
     }
     const pollOrders = async () => {
       if (!active) return
       try {
         const res = await api.get('/admin/orders')
         if (res.data) setOrders(res.data)
-      } catch { /* non-fatal */ }
+      } catch (err) {
+        console.error('[admin] orders poll failed:', err?.response?.status, err?.response?.data || err?.message)
+      }
     }
     pollUsers()
     pollOrders()
@@ -212,10 +216,10 @@ function AdminPage() {
     const load = async () => {
       try {
         const [overviewRes, revenueRes, customersRes, productsRes] = await Promise.all([
-          api.get('/analytics/overview').catch(() => ({ data: null })),
-          api.get('/analytics/revenue').catch(() => ({ data: null })),
-          api.get('/analytics/customers').catch(() => ({ data: null })),
-          api.get('/analytics/products').catch(() => ({ data: null })),
+          api.get('/analytics/overview').catch((err) => { console.error('[admin] analytics overview failed:', err?.response?.status, err?.response?.data || err?.message); return { data: null } }),
+          api.get('/analytics/revenue').catch((err) => { console.error('[admin] analytics revenue failed:', err?.response?.status, err?.response?.data || err?.message); return { data: null } }),
+          api.get('/analytics/customers').catch((err) => { console.error('[admin] analytics customers failed:', err?.response?.status, err?.response?.data || err?.message); return { data: null } }),
+          api.get('/analytics/products').catch((err) => { console.error('[admin] analytics products failed:', err?.response?.status, err?.response?.data || err?.message); return { data: null } }),
         ])
         if (!active) return
         setAnalytics({
@@ -224,7 +228,9 @@ function AdminPage() {
           customers: customersRes.data,
           products: productsRes.data,
         })
-      } catch { /* non-fatal */ }
+      } catch (err) {
+        console.error('[admin] analytics load failed:', err?.response?.status, err?.response?.data || err?.message)
+      }
     }
     load()
     const interval = setInterval(load, 20000)
@@ -234,9 +240,9 @@ function AdminPage() {
   // Refresh customers/testimonials/orders when admin content changes.
   useEffect(() => {
     const handler = () => {
-      api.get('/admin/users').then((r) => r.data && setUsers(r.data)).catch(() => {})
-      api.get('/admin/orders').then((r) => r.data && setOrders(r.data)).catch(() => {})
-      api.get('/admin/testimonials').then((r) => r.data && setTestimonials(r.data)).catch(() => {})
+      api.get('/admin/users').then((r) => r.data && setUsers(r.data)).catch((err) => console.error('[admin] users refresh failed:', err?.response?.status, err?.response?.data || err?.message))
+      api.get('/admin/orders').then((r) => r.data && setOrders(r.data)).catch((err) => console.error('[admin] orders refresh failed:', err?.response?.status, err?.response?.data || err?.message))
+      api.get('/admin/testimonials').then((r) => r.data && setTestimonials(r.data)).catch((err) => console.error('[admin] testimonials refresh failed:', err?.response?.status, err?.response?.data || err?.message))
     }
     window.addEventListener('admin:data-changed', handler)
     return () => window.removeEventListener('admin:data-changed', handler)

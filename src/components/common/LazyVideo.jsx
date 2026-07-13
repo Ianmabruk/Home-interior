@@ -23,12 +23,23 @@ export default function LazyVideo({
   const [active, setActive] = useState(eager)
   const reducedMotion = useReducedMotion()
   const shouldAutoPlay = autoPlay && !reducedMotion
+  const showVideo = eager || active
 
   // Force the `muted` DOM property (React's JSX `muted` attribute is not
   // reliably applied), so browsers permit muted autoplay for eager videos too.
   useEffect(() => {
     if (muted && videoRef.current) videoRef.current.muted = true
   }, [muted, active])
+
+  // Play as soon as the video source is attached and the section is meant to
+  // be active. This covers the case where the browser does not auto-play a
+  // dynamically-sourced <video> even when `autoplay` is present.
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v || !showVideo || !shouldAutoPlay) return
+    const p = v.play()
+    if (p && typeof p.catch === 'function') p.catch(() => {})
+  }, [showVideo, shouldAutoPlay])
 
   // Load (set src + autoplay) as soon as the element is near the viewport.
   useEffect(() => {
@@ -72,8 +83,6 @@ export default function LazyVideo({
     observer.observe(el)
     return () => observer.disconnect()
   }, [eager, shouldAutoPlay, muted])
-
-  const showVideo = eager || active
 
   return (
     <video

@@ -96,8 +96,6 @@ export const HomePage = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-cream">
-        {/* Hero renders immediately with the default poster so the LCP element
-            paints at JS time rather than after the homepage API call. */}
         <section className="relative h-screen max-h-[800px] min-h-[560px] overflow-hidden">
           <video
             poster={DEFAULT_HERO_POSTER}
@@ -108,25 +106,11 @@ export const HomePage = () => {
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="container-wide px-6 text-center sm:px-8 md:px-12 lg:px-20">
-              <p className="eyebrow mb-4 text-cream">Premium Interiors</p>
-              <h1 className="font-display text-4xl font-medium text-white sm:text-5xl md:text-6xl lg:text-7xl">
-                HOK Interior Designs
-              </h1>
-              <p className="mt-3 max-w-xl text-base text-cream/80 sm:text-lg md:max-w-2xl md:text-lg lg:max-w-3xl lg:text-xl">
-                Crafting spaces that inspire — from concept to completion.
-              </p>
-            </div>
-          </div>
         </section>
 
         <div className="section-pad container-wide">
-          {/* Portfolio skeleton sized to match the real grid (and the hero
-              above) so loading → loaded doesn't shift layout (CLS). */}
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-4">
             <div className="skeleton col-span-2 aspect-[4/3]" />
-            <div className="skeleton aspect-[4/3]" />
             <div className="skeleton aspect-[4/3]" />
             <div className="skeleton aspect-[4/3]" />
             <div className="skeleton aspect-[4/3]" />
@@ -154,23 +138,6 @@ export const HomePage = () => {
               className="h-full w-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="container-wide px-6 text-center sm:px-8 md:px-12 lg:px-20">
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 1, delay: 0.5 }}
-                >
-                  <p className="eyebrow mb-4 text-cream">Premium Interiors</p>
-                  <h1 className="font-display text-4xl font-medium text-white sm:text-5xl md:text-6xl lg:text-7xl">
-                    {feed.heroVideo.title || 'HOK Interior Designs'}
-                  </h1>
-                  <p className="mt-3 max-w-xl text-base text-cream/80 sm:text-lg md:max-w-2xl md:text-lg lg:max-w-3xl lg:text-xl">
-                    {feed.heroVideo.description || 'Crafting spaces that inspire — from concept to completion.'}
-                  </p>
-                </motion.div>
-              </div>
-            </div>
           </div>
         ) : (
           <div className="flex h-full items-center justify-center bg-linen">
@@ -187,16 +154,6 @@ export const HomePage = () => {
       ══════════════════════════════════════════ */}
       <section className="section-pad bg-white">
         <div className="container-wide px-6 md:px-12 lg:px-20">
-          <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:mb-10 md:mb-12 md:flex-row md:items-end">
-            <SectionTitle eyebrow="Projects" title="Our Work" align="left" />
-            <Link
-              to="/projects"
-              className="hidden items-center gap-2 text-2xs font-medium uppercase tracking-widest text-ink/45 transition hover:text-orange md:inline-flex"
-            >
-              View All Projects <ArrowRight size={13} strokeWidth={1.5} />
-            </Link>
-          </div>
-
           {feed.projects.length > 0 ? (
             <CinematicProjects projects={feed.projects.slice(0, 4)} />
           ) : (
@@ -207,12 +164,6 @@ export const HomePage = () => {
               </div>
             </div>
           )}
-
-          <div className="mt-8 text-center md:hidden">
-            <Link to="/projects" className="btn-outline">
-              View All Projects <ArrowRight size={14} strokeWidth={1.5} />
-            </Link>
-          </div>
         </div>
       </section>
 
