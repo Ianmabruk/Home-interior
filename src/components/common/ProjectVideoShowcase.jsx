@@ -52,7 +52,7 @@ export default function ProjectVideoShowcase({ videos, className = '' }) {
   }, [current?.url])
 
   const attemptPlay = (v) => {
-    if (!v) return
+    if (!v || !v.paused) return
     if (playTimerRef.current) {
       clearTimeout(playTimerRef.current)
       playTimerRef.current = null
@@ -119,8 +119,11 @@ export default function ProjectVideoShowcase({ videos, className = '' }) {
     if (!v || !isVideo || !current) return
     if (inView && !isTransitioning) {
       v.muted = true
+      const wasPaused = v.paused
       attemptPlay(v)
-      console.log('[showcase] video started:', current.url)
+      if (wasPaused) {
+        console.log('[showcase] video started:', current.url)
+      }
     } else {
       v.pause()
       clearPlayTimers()
@@ -164,6 +167,13 @@ export default function ProjectVideoShowcase({ videos, className = '' }) {
               console.log('[showcase] video ended:', current.url)
               clearPlayTimers()
               goNext()
+            }}
+            onPlaying={() => {
+              playRetryRef.current = 0
+              console.log('[showcase] video playing:', current.url)
+            }}
+            onError={(e) => {
+              console.warn('[showcase] video error:', current.url, e.currentTarget.error?.code, e.currentTarget.error?.message)
             }}
             onCanPlay={() => {
               if (inView && videoRef.current && !isTransitioning) {
