@@ -181,6 +181,7 @@ export default function ProjectVideoShowcase({ videos, className = '' }) {
                 attemptPlay(videoRef.current)
               }
             }}
+            crossOrigin="anonymous"
             className="h-full w-full object-cover"
           />
         ) : (

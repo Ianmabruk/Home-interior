@@ -112,100 +112,22 @@ function AdminPage() {
   const [selectedMedia, setSelectedMedia] = useState([])
   const fileInputRef = useRef(null)
 
-  useEffect(() => {
-    return () => {
-      [mediaPreview, productImagePreview, virtualVideoPreview, aboutImagePreview, variantImagePreview].forEach((url) => {
-        if (url && typeof url === 'string' && url.startsWith('blob:')) URL.revokeObjectURL(url)
-      })
-    }
-  }, [mediaPreview, productImagePreview, virtualVideoPreview, aboutImagePreview, variantImagePreview])
-
+  // Load data once on mount, and refresh when admin changes content.
+  // No background polling — avoids unnecessary API calls and render loops.
   useEffect(() => {
     fetchAll()
   }, [])
 
-  // Poll for new orders and raise a notification when an unseen order appears.
   useEffect(() => {
-    let active = true
-    const persistSeen = () => {
-      try {
-        localStorage.setItem('hok_seen_order_ids', JSON.stringify([...seenOrderIdsRef.current]))
-      } catch { /* ignore quota errors */ }
+    const handler = () => {
+      fetchAll()
     }
-    const poll = async () => {
-      if (!active) return
-      try {
-        const res = await api.get('/admin/overview')
-        const orders = res.data?.recentOrders || []
-        if (firstPollRef.current) {
-          firstPollRef.current = false
-          orders.forEach((o) => seenOrderIdsRef.current.add(o._id))
-          persistSeen()
-          return
-        }
-        const fresh = []
-        for (const o of orders) {
-          if (!seenOrderIdsRef.current.has(o._id)) {
-            seenOrderIdsRef.current.add(o._id)
-            fresh.push(o)
-          }
-        }
-        if (fresh.length) {
-          persistSeen()
-          const mapped = fresh.map((o) => ({
-            id: o._id,
-            title: 'New Order Received',
-            customerName: o.customerName || 'Customer',
-            orderNumber: '#' + String(o._id).slice(-6).toUpperCase(),
-            total: o.total,
-            createdAt: o.createdAt,
-          }))
-          setOrderNotifications((prev) => [...mapped, ...prev].slice(0, 30))
-          setUnreadOrders((c) => c + mapped.length)
-          setNotifToast(mapped[0])
-        }
-      } catch { /* network/permission errors are non-fatal for polling */ }
-    }
-    poll()
-    const interval = setInterval(poll, 15000)
-    return () => { active = false; clearInterval(interval) }
-  }, [])
+    window.addEventListener('admin:data-changed', handler)
+    return () => window.removeEventListener('admin:data-changed', handler)
+  }, [fetchAll])
 
-  // Real-time refresh: customers (FIX #2), orders (FIX #4) and analytics
-  // (FIX #5) are polled so a new registration / order / sale shows up in the
-  // dashboard instantly without a manual page reload.
-  useEffect(() => {
-    let active = true
-    const pollUsers = async () => {
-      if (!active) return
-      try {
-        const res = await api.get('/admin/users')
-        if (res.data) setUsers(res.data)
-      } catch (err) {
-        console.error('[admin] users poll failed:', err?.response?.status, err?.response?.data || err?.message)
-      }
-    }
-    const pollOrders = async () => {
-      if (!active) return
-      try {
-        const res = await api.get('/admin/orders')
-        if (res.data) setOrders(res.data)
-      } catch (err) {
-        console.error('[admin] orders poll failed:', err?.response?.status, err?.response?.data || err?.message)
-      }
-    }
-    pollUsers()
-    pollOrders()
-    const usersInterval = setInterval(pollUsers, 15000)
-    const ordersInterval = setInterval(pollOrders, 10000)
-    return () => {
-      active = false
-      clearInterval(usersInterval)
-      clearInterval(ordersInterval)
-    }
-  }, [])
-
-  // Fetch real analytics whenever the analytics or dashboard tab is opened.
+  // Load analytics only when the analytics or dashboard tab is active.
+  // Fetches once per tab switch — no repeating interval.
   useEffect(() => {
     if (activeTab !== 'analytics' && activeTab !== 'general') return
     let active = true
@@ -229,8 +151,7 @@ function AdminPage() {
       }
     }
     load()
-    const interval = setInterval(load, 20000)
-    return () => { active = false; clearInterval(interval) }
+    return () => { active = false }
   }, [activeTab])
 
   // Refresh customers/testimonials/orders when admin content changes.

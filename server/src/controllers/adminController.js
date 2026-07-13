@@ -27,12 +27,14 @@ export const dashboardOverview = asyncHandler(async (req, res) => {
   const productCount = products.length
   const orders = sortOrdersByDate(ordersRaw)
   const analytics = analyticsRaw
-  const totalSales = orders.reduce((sum, order) => sum + order.total, 0)
+  const totalSales = orders
+    .filter((order) => order.status !== 'cancelled')
+    .reduce((sum, order) => sum + (Number(order.total) || 0), 0)
   const thisMonth = new Date()
   thisMonth.setDate(1)
 
   const monthlySales = orders
-    .filter((order) => new Date(order.createdAt) >= thisMonth)
+    .filter((order) => order.status !== 'cancelled' && new Date(order.createdAt) >= thisMonth)
     .reduce((sum, order) => sum + order.total, 0)
 
   const visits = analytics.reduce((sum, row) => sum + (row.visits || 0), 0)

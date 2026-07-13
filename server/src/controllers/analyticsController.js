@@ -49,7 +49,7 @@ export const overview = asyncHandler(async (req, res) => {
 
   const totalRevenue = orders.reduce((s, o) => s + (Number(o.total) || 0), 0)
   const paidRevenue = orders
-    .filter((o) => o.paymentStatus === 'paid' || o.status !== 'cancelled')
+    .filter((o) => o.paymentStatus === 'paid' && o.status !== 'cancelled')
     .reduce((s, o) => s + (Number(o.total) || 0), 0)
   const totalOrders = orders.length
   const totalCustomers = users.filter((u) => u.role !== 'admin').length
