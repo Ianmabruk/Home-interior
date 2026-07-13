@@ -644,10 +644,15 @@ export const upsertAbout = async (req, res) => {
 }
 
 export const homepageFeed = asyncHandler(async (req, res) => {
-  const [projects, portfolio, about] = await Promise.all([
-    // Limit the payload at the DB layer and select only the fields the
-    // homepage renders. Smaller transfer = faster mobile TTI.
-    prisma.project.findMany({
+  // Each section is queried independently inside its own try/catch so a
+  // missing/empty record (or a single failing query) can NEVER 500 the whole
+  // homepage. Every branch falls back to a safe empty value and is logged.
+  let projects = []
+  let portfolio = []
+  let about = null
+
+  try {
+    projects = await prisma.project.findMany({
       where: { isPublished: true },
       orderBy: { order: 'asc' },
       take: 8,
@@ -662,8 +667,14 @@ export const homepageFeed = asyncHandler(async (req, res) => {
         order: true,
         mediaSettings: true,
       },
-    }),
-    prisma.portfolio.findMany({
+    })
+  } catch (err) {
+    console.error('[HOMEPAGE DEBUG] projects query failed:', err?.message)
+    projects = []
+  }
+
+  try {
+    portfolio = await prisma.portfolio.findMany({
       where: { isPublished: true },
       orderBy: { order: 'asc' },
       take: 12,
@@ -678,8 +689,14 @@ export const homepageFeed = asyncHandler(async (req, res) => {
         isPublished: true,
         createdAt: true,
       },
-    }),
-    prisma.about.findFirst({
+    })
+  } catch (err) {
+    console.error('[HOMEPAGE DEBUG] portfolio query failed:', err?.message)
+    portfolio = []
+  }
+
+  try {
+    about = await prisma.about.findFirst({
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -690,16 +707,19 @@ export const homepageFeed = asyncHandler(async (req, res) => {
         vision: true,
         mediaSettings: true,
       },
-    }),
-  ])
+    })
+  } catch (err) {
+    console.error('[HOMEPAGE DEBUG] about query failed:', err?.message)
+    about = null
+  }
 
-  const sortedProjects = sortByOrderThenDate(projects).slice(0, 6)
-  const sortedPortfolio = sortByOrderThenDate(portfolio).slice(0, 12)
+  const sortedProjects = sortByOrderThenDate(projects || []).slice(0, 6)
+  const sortedPortfolio = sortByOrderThenDate(portfolio || []).slice(0, 12)
   const featuredProjects = sortedProjects.slice(0, 3)
 
   // Pick the newest published project that actually has a video URL, so the
   // hero never renders empty when the first-ordered project is an image-only
-  // entry. Falls back to the first project if no video exists at all.
+  // entry. Falls back to the first project, then to null if none exist.
   const heroProject =
     sortedProjects.find((p) => p?.videoUrl) || sortedProjects[0] || null
   const heroVideo = heroProject?.videoUrl ? {
@@ -708,7 +728,22 @@ export const homepageFeed = asyncHandler(async (req, res) => {
     description: heroProject.description,
   } : null
 
-  res.json(sendSuccess({ heroVideo, projects: withIdArray(sortedProjects), featuredProjects: withIdArray(featuredProjects), portfolio: withIdArray(sortedPortfolio), about: withId(about) }))
+  // Structured debug log — exactly which section had data.
+  console.log('[HOMEPAGE DEBUG]', {
+    heroVideo: heroVideo ? 'found' : 'null',
+    featuredProject: heroProject ? 'found' : 'missing',
+    projectCount: sortedProjects.length,
+    portfolioCount: sortedPortfolio.length,
+    about: about ? 'found' : 'null',
+  })
+
+  res.json(sendSuccess({
+    heroVideo,
+    projects: withIdArray(sortedProjects),
+    featuredProjects: withIdArray(featuredProjects),
+    portfolio: withIdArray(sortedPortfolio),
+    about: withId(about),
+  }))
 })
 
 export const getAnalytics = asyncHandler(async (req, res) => {
