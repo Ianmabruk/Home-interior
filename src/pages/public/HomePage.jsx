@@ -14,29 +14,6 @@ const sortByOrderThenDate = (items) =>
     return new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
   })
 
-const SERVICES = [
-  {
-    title: 'Interior Design',
-    description: 'Custom residential and commercial interiors.',
-    icon: '✦',
-  },
-  {
-    title: 'Space Planning',
-    description: 'Efficient layouts maximizing usability.',
-    icon: '◎',
-  },
-  {
-    title: 'Custom Furniture',
-    description: 'Bespoke furniture and décor solutions.',
-    icon: '❖',
-  },
-  {
-    title: 'Project Management',
-    description: 'End-to-end project execution.',
-    icon: '◈',
-  },
-]
-
 export const HomePage = () => {
   const [feed, setFeed] = useState({
     projects: [],
@@ -150,9 +127,12 @@ export const HomePage = () => {
       </section>
 
       {/* ══════════════════════════════════════════
-          SECTION 2 — PORTFOLIO PROJECTS
+          SECTION 2 — PORTFOLIO
+          Background: #EFE4D5
+          Border top/bottom: 1px solid rgba(58,46,38,0.08)
+          Spacing: 80px top, 80px bottom
       ══════════════════════════════════════════ */}
-      <section className="section-pad bg-bgPrimary">
+      <section className="border-t border-b" style={{ borderColor: 'rgba(58,46,38,0.08)', backgroundColor: '#EFE4D5', paddingTop: '80px', paddingBottom: '80px' }}>
         <div className="container-wide px-6 md:px-12 lg:px-20">
           <div className="mb-10 text-center">
             <p className="text-2xs font-medium uppercase tracking-widest text-accent mb-3">Portfolio</p>
@@ -205,41 +185,12 @@ export const HomePage = () => {
       </section>
 
       {/* ══════════════════════════════════════════
-          SECTION 3 — WHAT WE DO
+          SECTION 3 — ABOUT HOK
+          Background: #FFFDF9
+          Border top/bottom: 1px solid rgba(58,46,38,0.08)
       ══════════════════════════════════════════ */}
-      <section className="section-pad bg-bgSecondary">
-        <div className="container-wide px-6 md:px-12 lg:px-20">
-          <div className="mb-10 text-center">
-            <p className="text-2xs font-medium uppercase tracking-widest text-accent mb-3">Services</p>
-            <h2 className="font-display text-4xl font-medium leading-tight text-textPrimaryDark md:text-5xl">What We Do</h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
-            {SERVICES.map((service, i) => (
-              <motion.div
-                key={service.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-40px' }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="rounded-[20px] bg-cardCream p-6 md:p-8 shadow-lg shadow-black/5 transition-all duration-300 hover:scale-[1.03] hover:shadow-xl"
-              >
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
-                  <span className="text-xl">{service.icon}</span>
-                </div>
-                <h3 className="font-display text-xl font-medium text-textPrimaryDark">{service.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-textPrimaryDark/60">{service.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════
-          SECTION 4 — ABOUT HOK
-      ══════════════════════════════════════════ */}
-      <section className="section-pad bg-bgPrimary">
-        <div className="container-wide px-6 md:px-12 lg:px-20">
+      <section className="border-t border-b" style={{ borderColor: 'rgba(58,46,38,0.08)', backgroundColor: '#FFFDF9' }}>
+        <div className="container-wide px-6 md:px-12 lg:px-20 py-16 md:py-24">
           <div className="grid items-center gap-10 sm:gap-12 md:grid-cols-2 md:gap-16">
             <motion.div
               initial={{ opacity: 0, x: -30 }}

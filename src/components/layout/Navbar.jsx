@@ -1,4 +1,4 @@
-import { Heart, Menu, MessageCircle, ShoppingBag, User, X, ChevronDown, Globe } from 'lucide-react'
+import { Heart, Menu, ShoppingBag, User, X, ChevronDown, Globe } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
@@ -7,12 +7,9 @@ import { useShop } from '../../context/ShopContext'
 import { useCurrency } from '../../context/CurrencyContext'
 
 const FULL_NAV_ITEMS = [
-  { to: '/', label: 'Home' },
-  { to: '/about', label: 'About' },
-  { to: '/virtual-interior-design', label: 'Services' },
-  { to: '/virtual-interior-design', label: 'Projects' },
   { to: '/shop', label: 'Shop' },
-  { to: '/chat', label: 'Contact' },
+  { to: '/virtual-interior-design', label: 'Virtual Interior Design' },
+  { to: '/about', label: 'About' },
 ]
 
 export const Navbar = () => {
@@ -111,10 +108,6 @@ export const Navbar = () => {
                 {cart.length > 9 ? '9+' : cart.length}
               </span>
             )}
-          </Link>
-
-          <Link to="/chat" className="p-2.5 text-textPrimaryDark/55 transition-colors hover:text-textPrimaryDark" aria-label="Chat">
-            <MessageCircle size={17} strokeWidth={1.5} />
           </Link>
 
           <div className="relative ml-1" data-currency-menu>
@@ -250,9 +243,6 @@ export const Navbar = () => {
                   {item.label}
                 </NavLink>
               ))}
-              <Link to="/chat" className="border-b border-border/60 py-4 text-sm font-medium uppercase tracking-widest text-textPrimaryDark/50 hover:text-textPrimaryDark transition-colors">
-                Chat
-              </Link>
 
               <div className="mt-6 flex gap-3">
                 {!user ? (

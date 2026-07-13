@@ -56,12 +56,12 @@ export const Footer = () => {
   }, [testimonials.length])
 
   return (
-    <footer className="bg-black text-white">
+    <footer className="bg-footerBlack text-white" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
       {/* Newsletter band */}
       <div className="border-b border-white/10 bg-black/90">
         <div className="container-wide flex flex-col items-center gap-6 px-6 py-12 text-center md:flex-row md:justify-between md:text-left md:px-12 lg:px-20">
           <div>
-            <p className="text-2xs font-medium uppercase tracking-widest text-orange mb-2">Stay Inspired</p>
+            <p className="text-2xs font-medium uppercase tracking-widest text-accentOrange mb-2">Stay Inspired</p>
             <h3 className="font-display text-3xl font-medium text-white md:text-4xl">
               Design Notes & Curated Drops
             </h3>
