@@ -7,7 +7,7 @@ import { sendSuccess } from '../utils/sendSuccess.js'
 import { invalidateMaintenanceCache } from '../utils/maintenance.js'
 import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
 
-const withId = (item) => ({ ...item, _id: item.id })
+const withId = (item) => (item == null ? item : { ...item, _id: item.id })
 const withIdArray = (items) => items.map((item) => withId(item))
 const sortOrdersByDate = (orders) => orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 

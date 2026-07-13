@@ -6,7 +6,7 @@ import { sendSuccess } from '../utils/sendSuccess.js'
 import { parseBody } from '../utils/helpers.js'
 import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
 
-const withId = (item) => ({ ...item, _id: item.id })
+const withId = (item) => (item == null ? item : { ...item, _id: item.id })
 const withIdArray = (items) => items.map((item) => withId(item))
 
 const updateMeSchema = z.object({
