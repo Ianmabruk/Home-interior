@@ -187,6 +187,39 @@ export const aboutSeed = {
 
 export const virtualDesignSeed = []
 
+export const testimonialsSeed = [
+  {
+    clientName: 'Amara Okeke',
+    position: 'Homeowner',
+    company: 'Kilimani Residence',
+    testimonial:
+      'HOK transformed our living space into something straight out of a magazine. The attention to detail and calm, luxurious palette exceeded every expectation.',
+    rating: 5,
+    displayOrder: 0,
+    isActive: true,
+  },
+  {
+    clientName: 'Daniel Mwangi',
+    position: 'CEO',
+    company: 'Savannah Group',
+    testimonial:
+      'Working with HOK on our office interior was seamless. They listened, delivered on time, and the result is both elegant and functional.',
+    rating: 5,
+    displayOrder: 1,
+    isActive: true,
+  },
+  {
+    clientName: 'Lilian Achieng',
+    position: 'Interior Enthusiast',
+    company: 'Lavington',
+    testimonial:
+      'The cinematic project showcase sold me immediately. Their team turned our vague ideas into a home we are genuinely proud of.',
+    rating: 4,
+    displayOrder: 2,
+    isActive: true,
+  },
+]
+
 export const analyticsSeed = [
   { date: new Date('2026-01-01'), visits: 1240, revenue: 18300, orders: 21, newUsers: 55 },
   { date: new Date('2026-02-01'), visits: 1650, revenue: 22400, orders: 27, newUsers: 70 },

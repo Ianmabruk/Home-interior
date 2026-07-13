@@ -9,12 +9,20 @@ import PositionedImage from '../common/PositionedImage'
 export const ProductCard = memo(({ product, onQuickView }) => {
   const { addToCart, toggleWishlist, wishlist } = useShop()
   const { formatPrice } = useCurrency()
-  const primaryImage = product.images?.[0]?.url || 'https://images.unsplash.com/photo-1586023943478-ae8b06f48d80?auto=format&fit=crop&w=800&q=80'
+  // FIX #1: resolve the storefront default variant exactly like the detail
+  // page (isDefault flag, then first variant) so the shop card and the product
+  // page agree on which color shows first (White, not an arbitrary variant).
+  const variants = product.colorVariants || []
+  const defaultVariant = variants.length ? (variants.find((v) => v.isDefault) || variants[0]) : null
+  const primaryImage =
+    defaultVariant?.imageUrl ||
+    product.images?.[0]?.url ||
+    'https://images.unsplash.com/photo-1586023943478-ae8b06f48d80?auto=format&fit=crop&w=800&q=80'
   const salePercent = product.discountPrice
     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
     : null
   const isWishlisted = wishlist?.some((w) => w._id === product._id)
-  const price = product.discountPrice || product.price
+  const price = (defaultVariant?.priceOverride ?? product.discountPrice) || product.price
 
   return (
     <motion.article
@@ -54,7 +62,7 @@ export const ProductCard = memo(({ product, onQuickView }) => {
             <Heart size={15} strokeWidth={1.5} fill={isWishlisted ? 'currentColor' : 'none'} />
           </button>
           <button
-            onClick={() => addToCart(product, 1)}
+            onClick={() => addToCart(product, 1, defaultVariant ? { colorName: defaultVariant.colorName, colorHex: defaultVariant.colorHex, imageUrl: defaultVariant.imageUrl } : null)}
             disabled={product.stock === 0}
             className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center bg-white rounded-full shadow-md text-ink/50 transition hover:bg-linen disabled:opacity-40"
             aria-label="Add to cart"

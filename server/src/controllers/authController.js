@@ -104,7 +104,7 @@ export const login = asyncHandler(async (req, res) => {
       where: { id: user.id },
       data: writeData,
     }),
-    { refreshToken: tokens.refreshToken },
+    { refreshToken: tokens.refreshToken, lastLoginAt: new Date() },
     'AUTH][LOGIN',
   )
 

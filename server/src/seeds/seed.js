@@ -10,6 +10,7 @@ import {
   productsSeed,
   projectsSeed,
   settingsSeed,
+  testimonialsSeed,
   virtualDesignSeed,
 } from './seedData.js'
 
@@ -22,6 +23,7 @@ const seed = async () => {
     await prisma.project.deleteMany()
     await prisma.product.deleteMany()
     await prisma.virtualDesign.deleteMany()
+    await prisma.testimonial.deleteMany()
     await prisma.about.deleteMany()
     await prisma.settings.deleteMany()
     await prisma.newsletterSubscription.deleteMany()
@@ -44,6 +46,10 @@ const seed = async () => {
 
     for (const row of analyticsSeed) {
       await prisma.analytics.create({ data: row })
+    }
+
+    for (const item of testimonialsSeed) {
+      await prisma.testimonial.create({ data: item })
     }
 
     await prisma.about.create({ data: aboutSeed })

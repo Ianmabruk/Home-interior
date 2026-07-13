@@ -353,7 +353,7 @@ export const addColorVariant = async (req, res) => {
     const product = await prisma.product.findUnique({ where: { id: req.params.id } })
     if (!product) throw new ApiError(404, 'Product not found')
 
-    const { colorName, colorHex = '', stockQuantity = 0, priceOverride, sku } = req.body
+    const { colorName, colorHex = '', stockQuantity = 0, priceOverride, sku, setAsDefault } = req.body
     if (!colorName) throw new ApiError(400, 'colorName is required')
     if (!req.file) throw new ApiError(400, 'Image file is required')
 
@@ -361,7 +361,8 @@ export const addColorVariant = async (req, res) => {
 
     const currentVariants = Array.isArray(product.colorVariants) ? product.colorVariants : []
     const filtered = currentVariants.filter((v) => v.colorName !== colorName)
-    const isDefault = currentVariants.length === 0
+    const forceDefault = setAsDefault === true || setAsDefault === 'true'
+    const isDefault = forceDefault || filtered.length === 0
     const newVariant = {
       colorName,
       colorHex,
@@ -373,9 +374,60 @@ export const addColorVariant = async (req, res) => {
       isDefault: Boolean(isDefault),
     }
 
+    // When this new variant is flagged default, clear the flag on the others
+    // so exactly one variant carries isDefault.
+    const variants = [...filtered, newVariant].map((v) => ({
+      ...v,
+      isDefault: v.colorName === newVariant.colorName ? true : false,
+    }))
+
     const updated = await prisma.product.update({
       where: { id: req.params.id },
-      data: { colorVariants: [...filtered, newVariant] },
+      data: { colorVariants: variants },
+    })
+
+    res.json(sendSuccess(withId(updated)))
+  } catch (error) {
+    console.error("FULL ERROR:", error)
+    console.error("MESSAGE:", error.message)
+    console.error("STACK:", error.stack)
+    console.error("PRISMA CODE:", error.code)
+    console.error("BODY:", req.body)
+    console.error("PARAMS:", req.params)
+    console.error("QUERY:", req.query)
+    if (error instanceof ApiError) {
+      return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
+    }
+    res.status(500).json({
+      success: false,
+      route: req.originalUrl || req.path,
+      error: error.message,
+      rawMessage: error.message,
+      code: error.code,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    })
+  }
+}
+
+export const setDefaultVariant = async (req, res) => {
+  try {
+    const product = await prisma.product.findUnique({ where: { id: req.params.id } })
+    if (!product) throw new ApiError(404, 'Product not found')
+
+    const colorName = decodeURIComponent(req.params.colorName)
+    const currentVariants = Array.isArray(product.colorVariants) ? product.colorVariants : []
+    const target = currentVariants.find((v) => v.colorName === colorName)
+    if (!target) throw new ApiError(404, 'Variant not found')
+
+    // Ensure exactly one variant is flagged isDefault.
+    const variants = currentVariants.map((v) => ({
+      ...v,
+      isDefault: v.colorName === colorName,
+    }))
+
+    const updated = await prisma.product.update({
+      where: { id: req.params.id },
+      data: { colorVariants: variants },
     })
 
     res.json(sendSuccess(withId(updated)))

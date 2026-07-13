@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import multer from 'multer'
-import { createProduct, deleteProduct, getProduct, listProducts, listAllProducts, updateProduct, addColorVariant, removeColorVariant } from '../controllers/productController.js'
+import { createProduct, deleteProduct, getProduct, listProducts, listAllProducts, updateProduct, addColorVariant, removeColorVariant, setDefaultVariant } from '../controllers/productController.js'
 import { auth, authorize } from '../middleware/auth.js'
 import { sanitizeInput, validateFileUpload } from '../middleware/validate.js'
 
@@ -17,5 +17,6 @@ router.patch('/:id', auth, authorize('admin'), upload.array('images', 8), valida
 router.delete('/:id', auth, authorize('admin'), deleteProduct)
 router.post('/:id/variants', auth, authorize('admin'), upload.single('image'), validateVariantImage, sanitizeInput, addColorVariant)
 router.delete('/:id/variants/:colorName', auth, authorize('admin'), removeColorVariant)
+router.patch('/:id/variants/:colorName/default', auth, authorize('admin'), setDefaultVariant)
 
 export default router

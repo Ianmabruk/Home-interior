@@ -4,6 +4,7 @@ import { forgotPassword, login, logout, refresh, register, resetPassword } from 
 const router = Router()
 
 router.post('/register', register)
+router.post('/signup', register)
 router.post('/login', login)
 router.post('/refresh', refresh)
 router.post('/logout', logout)

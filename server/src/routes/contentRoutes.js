@@ -14,6 +14,7 @@ import {
   deleteMediaController,
   uploadMediaController,
 } from '../controllers/contentController.js'
+import { testimonialController } from '../controllers/testimonialController.js'
 import { auth, authorize } from '../middleware/auth.js'
 import { sanitizeInput, validateFileUpload, validateBody } from '../middleware/validate.js'
 import { auditLog } from '../middleware/auditLog.js'
@@ -70,6 +71,9 @@ router.delete('/portfolio/:id', auth, authorize('admin'), writeLimiter, auditLog
 
 router.get('/about', getAbout)
 router.put('/about', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, upsertAbout)
+
+// Testimonials — public carousel feed (active only).
+router.get('/testimonials', testimonialController.listPublic)
 
 router.get('/virtual-design', virtualDesignController.list)
 router.post('/virtual-design', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, virtualDesignController.create)

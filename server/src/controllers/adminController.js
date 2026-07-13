@@ -92,9 +92,9 @@ export const dashboardOverview = asyncHandler(async (req, res) => {
 })
 
 export const listUsers = asyncHandler(async (req, res) => {
-  const limit = Math.min(Number(req.query.limit) || 100, 200)
+  const limit = Math.min(Number(req.query.limit) || 200, 500)
   const users = await prisma.user.findMany({
-    select: { id: true, fullName: true, email: true, role: true, isActive: true, createdAt: true },
+    select: { id: true, fullName: true, email: true, role: true, isActive: true, createdAt: true, lastLoginAt: true },
     orderBy: { createdAt: 'desc' },
     take: limit,
   })
@@ -133,8 +133,26 @@ export const listAllOrders = asyncHandler(async (req, res) => {
     orderBy: { createdAt: 'desc' },
     take: limit,
   })
-  const sorted = sortOrdersByDate(orders)
-  res.json(sendSuccess(withIdArray(sorted)))
+  const userIds = [...new Set(orders.map((o) => o.userId).filter(Boolean))]
+  const users = userIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, fullName: true, email: true },
+      })
+    : []
+  const userById = new Map(users.map((u) => [u.id, u]))
+
+  const enriched = orders.map((o) => {
+    const u = o.userId ? userById.get(o.userId) : null
+    return {
+      ...withId(o),
+      customerName: u?.fullName || 'Guest',
+      customerEmail: u?.email || '',
+    }
+  })
+
+  const sorted = sortOrdersByDate(enriched)
+  res.json(sendSuccess(sorted))
 })
 
 export const updateOrderStatus = asyncHandler(async (req, res) => {

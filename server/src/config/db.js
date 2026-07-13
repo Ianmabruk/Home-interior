@@ -19,6 +19,7 @@ const MODEL_TABLE_MAP = {
   NewsletterSubscription: 'newsletter_subscriptions',
   Analytics: 'analytics',
   Message: 'messages',
+  Testimonial: 'testimonials',
 }
 
 export const verifyTables = async () => {

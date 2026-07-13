@@ -20,6 +20,7 @@ model User {
   passwordResetToken   String?   @map("password_reset_token")
   passwordResetExpires DateTime? @map("password_reset_expires")
   isActive             Boolean?  @default(true) @map("is_active")
+  lastLoginAt          DateTime? @map("last_login_at")
   cart                 Json?
   addresses            Json?
   createdAt            DateTime  @default(now()) @map("created_at")
@@ -207,4 +208,23 @@ model Message {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("messages")
+}
+
+// Client testimonials shown in the website footer carousel and managed from
+// the admin dashboard. Photos are uploaded to Cloudinary.
+model Testimonial {
+  id          String   @id @default(uuid()) @map("_id")
+  clientName  String   @map("client_name")
+  position    String?
+  company     String?
+  testimonial String
+  photoUrl    String?  @map("photo_url")
+  photoPublicId String? @map("photo_public_id")
+  rating      Int      @default(5)
+  displayOrder Int     @default(0) @map("display_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("testimonials")
 }

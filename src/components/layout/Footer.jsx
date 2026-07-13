@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { SHOP_CATEGORIES } from '../../utils/constants'
 import { NewsletterForm } from '../common/NewsletterForm'
 import { api } from '../../services/api'
-import { Instagram, Facebook } from 'lucide-react'
+import { Instagram, Facebook, Star } from 'lucide-react'
 import { SiTiktok } from 'react-icons/si'
 import { SiPinterest } from 'react-icons/si'
 
@@ -36,10 +37,23 @@ const SOCIAL_LINKS = [
 
 export const Footer = () => {
   const [about, setAbout] = useState(null)
+  const [testimonials, setTestimonials] = useState([])
+  const [active, setActive] = useState(0)
 
   useEffect(() => {
     api.get('/content/about').then((res) => setAbout(res.data)).catch(() => setAbout(null))
   }, [])
+
+  useEffect(() => {
+    api.get('/content/testimonials').then((res) => setTestimonials(res.data || [])).catch(() => setTestimonials([]))
+  }, [])
+
+  // Auto-advance the carousel with a smooth fade (FIX #3).
+  useEffect(() => {
+    if (testimonials.length < 2) return undefined
+    const id = setInterval(() => setActive((i) => (i + 1) % testimonials.length), 6000)
+    return () => clearInterval(id)
+  }, [testimonials.length])
 
   return (
     <footer className="bg-black text-white">
@@ -154,6 +168,67 @@ export const Footer = () => {
           </div>
         </div>
       </div>
+
+      {/* Testimonials carousel (FIX #3) */}
+      {testimonials.length > 0 && (
+        <div className="border-t border-white/10 bg-black px-6 py-16 md:px-12 lg:px-20">
+          <div className="container-wide">
+            <p className="text-2xs font-medium uppercase tracking-[0.3em] text-orange text-center mb-8">
+              What Our Clients Say
+            </p>
+            <div className="relative mx-auto max-w-3xl min-h-[220px] flex items-center justify-center">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={active}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.6, ease: 'easeInOut' }}
+                  className="text-center"
+                >
+                  {testimonials[active]?.photoUrl && (
+                    <img
+                      src={testimonials[active].photoUrl}
+                      alt={testimonials[active].clientName}
+                      className="mx-auto mb-5 h-16 w-16 rounded-full object-cover ring-2 ring-orange/40"
+                      loading="lazy"
+                    />
+                  )}
+                  <div className="mb-4 flex items-center justify-center gap-1 text-orange">
+                    {Array.from({ length: testimonials[active]?.rating || 5 }).map((_, i) => (
+                      <Star key={i} size={14} fill="currentColor" />
+                    ))}
+                  </div>
+                  <p className="mx-auto max-w-2xl text-base leading-relaxed text-white/85 md:text-lg">
+                    “{testimonials[active]?.testimonial}”
+                  </p>
+                  <p className="mt-5 text-sm font-medium text-white">{testimonials[active]?.clientName}</p>
+                  {testimonials[active]?.position && (
+                    <p className="text-2xs uppercase tracking-widest text-white/50">
+                      {[testimonials[active].position, testimonials[active].company].filter(Boolean).join(' · ')}
+                    </p>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {testimonials.length > 1 && (
+              <div className="mt-8 flex items-center justify-center gap-2">
+                {testimonials.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActive(i)}
+                    aria-label={`Show testimonial ${i + 1}`}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      i === active ? 'w-8 bg-orange' : 'w-2 bg-white/30 hover:bg-white/50'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Bottom bar */}
       <div className="border-t border-white/10 px-6 py-5 md:px-12 lg:px-20">

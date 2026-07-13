@@ -1,4 +1,4 @@
-import { BarChart3, Boxes, Film, FolderKanban, Info, Mail, Sparkles, LayoutDashboard, ShoppingBag, TrendingUp, Users, FileText, Settings, Search, Grid, List, Check, Trash2, Edit, Eye, Bell, ChevronLeft, ChevronRight, UploadCloud, X, Plus, Menu, LogOut, Activity, DollarSign, Layers, MessageSquare, ChevronDown, Send, Image as ImageIcon, Video } from 'lucide-react'
+import { BarChart3, Boxes, Film, FolderKanban, Info, Mail, Sparkles, LayoutDashboard, ShoppingBag, TrendingUp, Users, FileText, Settings, Search, Grid, List, Check, Trash2, Edit, Bell, ChevronLeft, ChevronRight, UploadCloud, X, Plus, Menu, LogOut, Activity, DollarSign, Layers, MessageSquare, Send, Image as ImageIcon, Video } from 'lucide-react'
 import { useEffect, useRef, useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '../../services/api'
@@ -53,7 +53,10 @@ function AdminPage() {
   const [messages, setMessages] = useState([])
   const [virtualDesigns, setVirtualDesigns] = useState([])
   const [users, setUsers] = useState([])
-  const [analyticsData, setAnalyticsData] = useState([])
+  const [, setAnalyticsData] = useState([])
+  const [orders, setOrders] = useState([])
+  const [analytics, setAnalytics] = useState(null) // real analytics from /analytics/*
+  const [, setTestimonials] = useState([])
   const [activeTab, setActiveTab] = useState('general')
   const [status, setStatus] = useState('')
 
@@ -85,6 +88,7 @@ function AdminPage() {
   const [variantSku, setVariantSku] = useState('')
   const [variantStockQuantity, setVariantStockQuantity] = useState(0)
   const [variantPriceOverride, setVariantPriceOverride] = useState('')
+  const [variantSetDefault, setVariantSetDefault] = useState(false)
   const [variantImageFile, setVariantImageFile] = useState(null)
   const [variantImagePreview, setVariantImagePreview] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState({ type: null, id: null })
@@ -171,6 +175,73 @@ function AdminPage() {
     return () => { active = false; clearInterval(interval) }
   }, [])
 
+  // Real-time refresh: customers (FIX #2), orders (FIX #4) and analytics
+  // (FIX #5) are polled so a new registration / order / sale shows up in the
+  // dashboard instantly without a manual page reload.
+  useEffect(() => {
+    let active = true
+    const pollUsers = async () => {
+      if (!active) return
+      try {
+        const res = await api.get('/admin/users')
+        if (res.data) setUsers(res.data)
+      } catch { /* non-fatal */ }
+    }
+    const pollOrders = async () => {
+      if (!active) return
+      try {
+        const res = await api.get('/admin/orders')
+        if (res.data) setOrders(res.data)
+      } catch { /* non-fatal */ }
+    }
+    pollUsers()
+    pollOrders()
+    const usersInterval = setInterval(pollUsers, 15000)
+    const ordersInterval = setInterval(pollOrders, 10000)
+    return () => {
+      active = false
+      clearInterval(usersInterval)
+      clearInterval(ordersInterval)
+    }
+  }, [])
+
+  // Fetch real analytics whenever the analytics or dashboard tab is opened.
+  useEffect(() => {
+    if (activeTab !== 'analytics' && activeTab !== 'general') return
+    let active = true
+    const load = async () => {
+      try {
+        const [overviewRes, revenueRes, customersRes, productsRes] = await Promise.all([
+          api.get('/analytics/overview').catch(() => ({ data: null })),
+          api.get('/analytics/revenue').catch(() => ({ data: null })),
+          api.get('/analytics/customers').catch(() => ({ data: null })),
+          api.get('/analytics/products').catch(() => ({ data: null })),
+        ])
+        if (!active) return
+        setAnalytics({
+          overview: overviewRes.data,
+          revenue: revenueRes.data,
+          customers: customersRes.data,
+          products: productsRes.data,
+        })
+      } catch { /* non-fatal */ }
+    }
+    load()
+    const interval = setInterval(load, 20000)
+    return () => { active = false; clearInterval(interval) }
+  }, [activeTab])
+
+  // Refresh customers/testimonials/orders when admin content changes.
+  useEffect(() => {
+    const handler = () => {
+      api.get('/admin/users').then((r) => r.data && setUsers(r.data)).catch(() => {})
+      api.get('/admin/orders').then((r) => r.data && setOrders(r.data)).catch(() => {})
+      api.get('/admin/testimonials').then((r) => r.data && setTestimonials(r.data)).catch(() => {})
+    }
+    window.addEventListener('admin:data-changed', handler)
+    return () => window.removeEventListener('admin:data-changed', handler)
+  }, [])
+
   useEffect(() => {
     if (!notifToast) return
     const t = setTimeout(() => setNotifToast(null), 6000)
@@ -206,10 +277,12 @@ function AdminPage() {
       api.get('/content/virtual-design').catch(() => ({ data: [] })),
       api.get('/admin/users').catch(() => ({ data: [] })),
       api.get('/content/analytics').catch(() => ({ data: [] })),
+      api.get('/admin/orders').catch(() => ({ data: [] })),
+      api.get('/admin/testimonials').catch(() => ({ data: [] })),
       api.get('/admin/settings').catch(() => ({ data: null })),
       api.get('/content/about').catch(() => ({ data: null })),
     ])
-      .then(([overviewRes, projectsRes, portfolioRes, productsRes, messagesRes, virtualRes, usersRes, analyticsRes, settingsRes, aboutRes]) => {
+      .then(([overviewRes, projectsRes, portfolioRes, productsRes, messagesRes, virtualRes, usersRes, analyticsRes, ordersRes, testimonialsRes, settingsRes, aboutRes]) => {
         if (overviewRes.data) setOverview(overviewRes.data)
         setProjects(projectsRes.data || [])
         setPortfolio(portfolioRes.data || [])
@@ -218,6 +291,8 @@ function AdminPage() {
         setVirtualDesigns(virtualRes.data || [])
         setUsers(usersRes.data || [])
         setAnalyticsData(analyticsRes.data || [])
+        setOrders(ordersRes.data || [])
+        setTestimonials(testimonialsRes.data || [])
         if (aboutRes.data) setAbout(aboutRes.data)
         if (settingsRes.data) {
           setSettingsForm({
@@ -366,6 +441,7 @@ function AdminPage() {
       payload.append('sku', variantSku || '')
       payload.append('stockQuantity', String(variantStockQuantity || 0))
       if (variantPriceOverride !== '') payload.append('priceOverride', String(variantPriceOverride))
+      if (variantSetDefault) payload.append('setAsDefault', 'true')
       if (variantImageFile) payload.append('image', variantImageFile)
       await api.post(`/products/${productId}/variants`, payload, { onUploadProgress })
       setVariantColorName(''); setVariantColorHex(''); setVariantSku(''); setVariantStockQuantity(0); setVariantPriceOverride('')
@@ -570,19 +646,6 @@ function AdminPage() {
     </div>
   )
 
-  const SkeletonTable = ({ rows = 5 }) => (
-    <div className="space-y-2">
-      {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="skeleton-table-row">
-          <div className="skeleton-cell w-1/4" />
-          <div className="skeleton-cell w-1/3" />
-          <div className="skeleton-cell w-1/6" />
-          <div className="skeleton-cell w-1/6" />
-        </div>
-      ))}
-    </div>
-  )
-
   const EmptyState = ({ icon: Icon, title, desc, action }) => (
     <div className="empty-state">
       {Icon && <div className="empty-state-icon"><Icon size={28} /></div>}
@@ -666,32 +729,32 @@ function AdminPage() {
             <MetricCard title="Orders" value={overview?.ordersCount || 0} icon={ShoppingBag} color="cyan" />
             <MetricCard title="Projects" value={overview?.projectCount || 0} icon={Film} color="indigo" />
             <MetricCard title="Portfolio" value={overview?.portfolioCount || 0} icon={FolderKanban} color="amber" />
-            <MetricCard title="Visits" value={overview?.visits || 0} icon={Activity} color="blue" />
+            <MetricCard title="Customers" value={analytics?.overview?.totalCustomers || overview?.userCount || 0} icon={Activity} color="blue" />
           </div>
         </>
       )}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="admin-card">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h3 className="font-display text-lg text-textPrimary">Revenue Trend</h3>
-              <p className="text-2xs text-textSecondary/50">Monthly performance</p>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="admin-card">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="font-display text-lg text-textPrimary">Revenue Trend</h3>
+                  <p className="text-2xs text-textSecondary/50">Last 30 days (live data)</p>
+                </div>
+                <span className="badge-success">Live</span>
+              </div>
+              <PremiumAreaChart data={(analytics?.revenue?.perDay || []).map((d) => d.revenue || 0)} color="#FF8A3D" />
             </div>
-            <span className="badge-success">Live</span>
-          </div>
-          <PremiumAreaChart data={analyticsData.map((d) => d.revenue || 0)} color="#FF8A3D" />
-        </div>
-        <div className="admin-card">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h3 className="font-display text-lg text-textPrimary">Visitors</h3>
-              <p className="text-2xs text-textSecondary/50">Monthly visits</p>
+            <div className="admin-card">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="font-display text-lg text-textPrimary">New Customers</h3>
+                  <p className="text-2xs text-textSecondary/50">Last 30 days (live data)</p>
+                </div>
+                <span className="badge-neutral">Daily</span>
+              </div>
+              <PremiumBarChart data={(analytics?.customers?.perDay || []).map((d) => d.newCustomers || 0)} labels={(analytics?.customers?.perDay || []).map((_, i) => `D${i + 1}`)} />
             </div>
-            <span className="badge-neutral">Monthly</span>
           </div>
-          <PremiumBarChart data={analyticsData.map((d) => d.visits || 0)} labels={analyticsData.map((_, i) => `M${i + 1}`)} />
-        </div>
-      </div>
       <RecentActivityFeed recent={[...projects, ...portfolio].slice(0, 5)} />
     </div>
   )
@@ -728,26 +791,92 @@ function AdminPage() {
     </div>
   )
 
-  const renderAnalytics = () => (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Total Visitors" value={analyticsData.reduce((s, d) => s + (d.visits || 0), 0)} icon={Eye} color="blue" />
-        <MetricCard title="Total Revenue" value={analyticsData.reduce((s, d) => s + (d.revenue || 0), 0)} icon={DollarSign} color="emerald" prefix="$" />
-        <MetricCard title="New Users" value={analyticsData.reduce((s, d) => s + (d.newUsers || 0), 0)} icon={Users} color="violet" />
-        <MetricCard title="Orders" value={analyticsData.reduce((s, d) => s + (d.orders || 0), 0)} icon={ShoppingBag} color="orange" />
-      </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="admin-card">
-          <h3 className="font-display text-lg text-textPrimary mb-3">Visitor Trends</h3>
-          <PremiumAreaChart data={analyticsData.map((d) => d.visits || 0)} color="#6B4E3D" />
+  const renderAnalytics = () => {
+    const ov = analytics?.overview
+    const rev = analytics?.revenue
+    const cust = analytics?.customers
+    const prod = analytics?.products
+    const revenueSeries = (rev?.perDay || []).map((d) => d.revenue || 0)
+    const customerSeries = (cust?.perDay || []).map((d) => d.newCustomers || 0)
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard title="Total Revenue" value={ov?.totalRevenue || 0} icon={DollarSign} color="emerald" prefix="$" />
+          <MetricCard title="Total Orders" value={ov?.totalOrders || 0} icon={ShoppingBag} color="orange" />
+          <MetricCard title="Total Customers" value={ov?.totalCustomers || 0} icon={Users} color="violet" />
+          <MetricCard title="Total Products" value={ov?.totalProducts || 0} icon={Boxes} color="blue" />
         </div>
-        <div className="admin-card">
-          <h3 className="font-display text-lg text-textPrimary mb-3">Revenue</h3>
-          <PremiumAreaChart data={analyticsData.map((d) => d.revenue || 0)} color="#FF8A3D" />
+
+        {!analytics && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        )}
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="admin-card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-display text-lg text-textPrimary">Revenue Trend</h3>
+              <span className="badge-success">Live</span>
+            </div>
+            <PremiumAreaChart data={revenueSeries} color="#FF8A3D" />
+          </div>
+          <div className="admin-card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-display text-lg text-textPrimary">Customer Growth</h3>
+              <span className="badge-neutral">Daily</span>
+            </div>
+            <PremiumAreaChart data={customerSeries} color="#6B4E3D" />
+          </div>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="admin-card">
+            <h3 className="font-display text-lg text-textPrimary mb-3">Popular Products</h3>
+            {prod?.topProducts?.length ? (
+              <div className="space-y-2">
+                {prod.topProducts.map((p, i) => (
+                  <div key={p.productId} className="flex items-center justify-between rounded-xl bg-lightBeige/50 px-3 py-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-2xs font-semibold text-textSecondary/50 w-5">{i + 1}</span>
+                      <span className="text-sm font-medium text-textPrimary truncate">{p.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-2xs text-textSecondary">
+                      <span>{p.units} sold</span>
+                      <span className="font-semibold text-textPrimary">${(p.revenue || 0).toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-textSecondary/50">No sales data yet.</p>
+            )}
+          </div>
+          <div className="admin-card">
+            <h3 className="font-display text-lg text-textPrimary mb-3">Recent Activity</h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between rounded-xl bg-lightBeige/50 px-3 py-2">
+                <span className="text-sm text-textPrimary">Avg. Order Value</span>
+                <span className="text-sm font-semibold text-textPrimary">${(ov?.avgOrderValue || 0).toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-lightBeige/50 px-3 py-2">
+                <span className="text-sm text-textPrimary">New Customers (month)</span>
+                <span className="text-sm font-semibold text-textPrimary">{ov?.newCustomersThisMonth || 0}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-lightBeige/50 px-3 py-2">
+                <span className="text-sm text-textPrimary">Low Stock Items</span>
+                <span className="text-sm font-semibold text-textPrimary">{ov?.lowStockCount || 0}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-lightBeige/50 px-3 py-2">
+                <span className="text-sm text-textPrimary">Out of Stock</span>
+                <span className="text-sm font-semibold text-error">{ov?.outOfStockCount || 0}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   const renderProjects = () => (
     <div className="space-y-6">
@@ -942,14 +1071,24 @@ function AdminPage() {
                 <div className="mt-3 border-t border-border pt-3">
                   <p className="text-2xs font-medium uppercase tracking-widest text-textSecondary/60 mb-2">Color Variants</p>
                   <div className="flex flex-wrap gap-2">
-                    {item.colorVariants?.map((v) => (
-                      <div key={v.colorName} className="flex items-center gap-2 rounded-full border border-border bg-lightBeige px-2 py-1">
-                        {v.imageUrl && <img src={v.imageUrl} alt={v.colorName} className="h-5 w-5 rounded-full object-cover" />}
-                        {!v.imageUrl && <span className="h-5 w-5 rounded-full border border-black/10" style={{ backgroundColor: v.colorHex || '#ccc' }} />}
-                        <span className="text-2xs font-medium text-textPrimary">{v.colorName}</span>
-                        <button onClick={() => removeVariant(item._id, v.colorName)} className="text-textSecondary/40 hover:text-error"><X size={12} /></button>
-                      </div>
-                    ))}
+                  {item.colorVariants?.map((v) => (
+                    <div key={v.colorName} className="flex items-center gap-2 rounded-full border border-border bg-lightBeige px-2 py-1">
+                      {v.isDefault && <span title="Default variant" className="text-amber">★</span>}
+                      {v.imageUrl && <img src={v.imageUrl} alt={v.colorName} className="h-5 w-5 rounded-full object-cover" />}
+                      {!v.imageUrl && <span className="h-5 w-5 rounded-full border border-black/10" style={{ backgroundColor: v.colorHex || '#ccc' }} />}
+                      <span className="text-2xs font-medium text-textPrimary">{v.colorName}</span>
+                      {!v.isDefault && (
+                        <button
+                          onClick={async () => { try { await api.patch(`/products/${item._id}/variants/${encodeURIComponent(v.colorName)}/default`); fetchAll() } catch { /* ignore */ } }}
+                          className="text-2xs font-medium text-accentOrange hover:underline"
+                          title="Set as default variant"
+                        >
+                          Set default
+                        </button>
+                      )}
+                      <button onClick={() => removeVariant(item._id, v.colorName)} className="text-textSecondary/40 hover:text-error"><X size={12} /></button>
+                    </div>
+                  ))}
                   </div>
 
                   {editingVariants === item._id && (
@@ -962,6 +1101,10 @@ function AdminPage() {
                         <input value={variantPriceOverride} onChange={(e) => setVariantPriceOverride(e.target.value)} type="number" step="0.01" className="input" placeholder="Price override" />
                       </div>
                       <input type="file" accept="image/*" onChange={handleVariantImageChange} className="w-full text-xs text-textSecondary" />
+                      <label className="flex items-center gap-2 text-xs text-textSecondary">
+                        <input type="checkbox" checked={variantSetDefault} onChange={(e) => setVariantSetDefault(e.target.checked)} className="rounded border-border" />
+                        Set as default variant
+                      </label>
                       {variantImagePreview && <img src={variantImagePreview} alt="Preview" className="h-12 w-12 rounded-lg object-cover" />}
                       <div className="flex gap-2">
                         <button type="button" onClick={() => addVariant(item._id)} className="btn-accent flex-1 text-2xs">Save Variant</button>
@@ -989,48 +1132,69 @@ function AdminPage() {
     </div>
   )
 
+  const orderStatusClass = (status) => ({
+    pending: 'bg-amber/10 text-amber',
+    processing: 'bg-blue/10 text-blue',
+    shipped: 'bg-indigo/10 text-indigo',
+    delivered: 'bg-success/10 text-success',
+    cancelled: 'bg-error/10 text-error',
+  }[status] || 'bg-lightBeige text-textSecondary')
+
   const renderOrders = () => {
-    const allOrders = overview?.recentOrders || []
+    const allOrders = orders || []
+    const totals = analytics?.overview
     return (
       <div className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard title="Total Orders" value={overview?.ordersCount || 0} icon={ShoppingBag} color="orange" />
+          <MetricCard title="Total Orders" value={totals?.totalOrders || allOrders.length || 0} icon={ShoppingBag} color="orange" />
           <MetricCard title="Pending" value={allOrders.filter((o) => o.status === 'pending').length || 0} icon={Activity} color="amber" />
-          <MetricCard title="Completed" value={allOrders.filter((o) => o.status === 'delivered').length || 0} icon={Check} color="emerald" />
-          <MetricCard title="Revenue" value={`$${(overview?.totalSales || 0).toLocaleString()}`} icon={DollarSign} color="blue" />
+          <MetricCard title="Delivered" value={allOrders.filter((o) => o.status === 'delivered').length || 0} icon={Check} color="emerald" />
+          <MetricCard title="Revenue" value={`$${((totals?.totalRevenue || 0)).toLocaleString()}`} icon={DollarSign} color="blue" />
         </div>
         <div className="admin-card">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-display text-xl text-textPrimary">Recent Orders</h3>
-            <span className="badge-neutral">{allOrders.length} total</span>
+            <h3 className="font-display text-xl text-textPrimary">All Orders</h3>
+            <span className="badge-success">{allOrders.length} total · live</span>
           </div>
           <div className="overflow-x-auto">
-            <table className="premium-table">
-              <thead>
-                <tr>
-                  <th className="text-left">Order <ChevronDown size={12} className="inline ml-1 text-textSecondary/40" /></th>
-                  <th className="text-left">Customer</th>
-                  <th className="text-left">Date <ChevronDown size={12} className="inline ml-1 text-textSecondary/40" /></th>
-                  <th className="text-left">Status</th>
-                  <th className="text-left">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {overview === null ? (
-                  <tr><td colSpan={4}><SkeletonTable rows={4} /></td></tr>
-                ) : (
-                   allOrders.slice(0, 10).map((order) => (
+            {allOrders.length === 0 ? (
+              <EmptyState icon={ShoppingBag} title="No orders yet" desc="Orders placed on the storefront will appear here instantly." />
+            ) : (
+              <table className="premium-table">
+                <thead>
+                  <tr>
+                    <th className="text-left">Order</th>
+                    <th className="text-left">Customer</th>
+                    <th className="text-left">Items</th>
+                    <th className="text-left">Date</th>
+                    <th className="text-left">Payment</th>
+                    <th className="text-left">Status</th>
+                    <th className="text-left">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allOrders.map((order) => (
                     <tr key={order._id}>
                       <td className="font-medium">#{order._id.slice(-6).toUpperCase()}</td>
                       <td className="text-textSecondary">{order.customerName || '—'}</td>
+                      <td className="text-textSecondary">{(order.items?.length || 0)}</td>
                       <td className="text-textSecondary">{new Date(order.createdAt).toLocaleDateString()}</td>
-                      <td><StatusBadge active={order.status === 'delivered'} /></td>
-                      <td className="font-medium">${order.total?.toLocaleString()}</td>
+                      <td>
+                        <span className={`badge-${order.paymentStatus === 'paid' ? 'success' : order.paymentStatus === 'refunded' ? 'warning' : 'neutral'}`}>
+                          {order.paymentStatus || 'pending'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`px-2 py-1 rounded-lg text-2xs capitalize ${orderStatusClass(order.status)}`}>
+                          {order.status || 'pending'}
+                        </span>
+                      </td>
+                      <td className="font-medium">${(order.total || 0).toLocaleString()}</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>
@@ -1042,10 +1206,10 @@ function AdminPage() {
     return (
       <div className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard title="Total Customers" value={users.length} icon={Users} color="blue" />
+          <MetricCard title="Total Customers" value={users.filter((u) => u.role !== 'admin').length} icon={Users} color="blue" />
           <MetricCard title="Active" value={users.filter((u) => u.isActive).length} icon={Check} color="emerald" />
           <MetricCard title="Admins" value={users.filter((u) => u.role === 'admin').length} icon={Users} color="violet" />
-          <MetricCard title="New This Month" value={overview?.newUsers || 0} icon={TrendingUp} color="orange" />
+          <MetricCard title="New This Month" value={analytics?.overview?.newCustomersThisMonth || 0} icon={TrendingUp} color="orange" />
         </div>
         <div className="admin-card">
           <div className="flex items-center gap-3 mb-4">
@@ -1058,11 +1222,12 @@ function AdminPage() {
             <table className="premium-table">
               <thead>
                 <tr>
-                  <th className="text-left">Name <ChevronDown size={12} className="inline ml-1 text-textSecondary/40" /></th>
+                  <th className="text-left">Name</th>
                   <th className="text-left">Email</th>
                   <th className="text-left">Role</th>
                   <th className="text-left">Status</th>
-                  <th className="text-left">Joined</th>
+                  <th className="text-left">Registered</th>
+                  <th className="text-left">Last Login</th>
                 </tr>
               </thead>
               <tbody>
@@ -1073,10 +1238,11 @@ function AdminPage() {
                     <td><span className={`px-2 py-1 rounded-lg text-2xs ${u.role === 'admin' ? 'bg-accentOrange/10 text-accentOrange' : 'bg-lightBeige text-textSecondary'}`}>{u.role}</span></td>
                     <td><StatusBadge active={u.isActive} /></td>
                     <td className="text-textSecondary">{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td className="text-textSecondary">{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : '—'}</td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={5}><EmptyState icon={Users} title="No customers found" desc="Try adjusting your search query." /></td></tr>
+                  <tr><td colSpan={6}><EmptyState icon={Users} title="No customers found" desc="Try adjusting your search query." /></td></tr>
                 )}
               </tbody>
             </table>
@@ -1086,42 +1252,7 @@ function AdminPage() {
     )
   }
 
-  const renderTestimonials = () => (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard title="Messages" value={messages.length} icon={Mail} color="blue" />
-        <MetricCard title="Unread" value={messages.filter((m) => !m.isRead).length} icon={Bell} color="orange" />
-        <MetricCard title="Today" value={messages.filter((m) => new Date(m.createdAt).toDateString() === new Date().toDateString()).length} icon={Activity} color="emerald" />
-        <MetricCard title="This Week" value={messages.filter((m) => { const d = new Date(m.createdAt); const now = new Date(); return d >= new Date(now.setDate(now.getDate() - 7)); }).length} icon={TrendingUp} color="violet" />
-      </div>
-      {messages.length === 0 ? (
-        <EmptyState icon={MessageSquare} title="No messages yet" desc="Customer testimonials and enquiries will appear here." />
-      ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {messages.map((msg, idx) => (
-            <motion.div
-              key={msg._id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.03, duration: 0.2 }}
-              className="rounded-2xl border border-border bg-white p-5 shadow-card hover:shadow-lift transition-all"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="font-medium text-textPrimary">{msg.name}</p>
-                  <p className="text-2xs text-textSecondary">{msg.email}</p>
-                </div>
-                <span className={`badge-${!msg.isRead ? 'warning' : 'neutral'}`}>{!msg.isRead ? 'New' : 'Read'}</span>
-              </div>
-              <p className="text-xs font-medium uppercase tracking-widest text-textSecondary/60 mb-1">{msg.subject}</p>
-              <p className="text-sm text-textSecondary mt-2 line-clamp-3">{msg.content}</p>
-              <p className="text-2xs text-textSecondary/40 mt-3">{new Date(msg.createdAt).toLocaleDateString()}</p>
-            </motion.div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
+  const renderTestimonials = () => <TestimonialsManager />
 
   const renderBlog = () => (
     <div className="space-y-6">
@@ -1545,5 +1676,193 @@ function AdminPage() {
     </div>
   )
 }
+
+
+// ── Testimonials manager (FIX #3): module-scope so it is not re-created on every
+// AdminPage render (which would remount it and reset its state on each poll).
+// ── Testimonials manager (FIX #3): admin CRUD over client testimonials
+// that are rendered in the public footer carousel. ──────────────────────
+function TestimonialsManager() {
+  const [list, setList] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(null)
+  const [photoFile, setPhotoFile] = useState(null)
+  const [photoPreview, setPhotoPreview] = useState(null)
+  const [form, setForm] = useState({
+    clientName: '', position: '', company: '', testimonial: '', rating: 5, displayOrder: 0, isActive: true,
+  })
+  const [status, setStatus] = useState('')
+
+  const showToast = (message, type = 'success') => {
+    setStatus(`${type === 'error' ? 'ERROR' : 'SUCCESS'}: ${message}`)
+    window.clearTimeout(showToast._t)
+    showToast._t = window.setTimeout(() => setStatus(''), 4000)
+  }
+
+  const refresh = () => {
+    api.get('/admin/testimonials').then((r) => { setList(r.data || []); setLoading(false) }).catch(() => setLoading(false))
+  }
+
+  useEffect(() => { refresh() }, [])
+
+  useEffect(() => {
+    return () => {
+      if (photoPreview && typeof photoPreview === 'string' && photoPreview.startsWith('blob:')) URL.revokeObjectURL(photoPreview)
+    }
+  }, [photoPreview])
+
+  const startEdit = (t) => {
+    setEditing(t._id)
+    setForm({
+      clientName: t.clientName || '',
+      position: t.position || '',
+      company: t.company || '',
+      testimonial: t.testimonial || '',
+      rating: t.rating || 5,
+      displayOrder: t.displayOrder || 0,
+      isActive: t.isActive ?? true,
+    })
+    setPhotoPreview(t.photoUrl || null)
+    setPhotoFile(null)
+  }
+
+  const resetForm = () => {
+    setEditing(null)
+    setForm({ clientName: '', position: '', company: '', testimonial: '', rating: 5, displayOrder: list.length, isActive: true })
+    setPhotoFile(null); setPhotoPreview(null)
+  }
+
+  const onPhotoChange = (e) => {
+    const f = e.target.files?.[0] || null
+    setPhotoFile(f)
+    if (f && f.type?.startsWith('image/')) setPhotoPreview(URL.createObjectURL(f))
+    else setPhotoPreview(null)
+  }
+
+  const submit = async (e) => {
+    e.preventDefault()
+    try {
+      const payload = new FormData()
+      Object.entries(form).forEach(([k, v]) => payload.append(k, String(v)))
+      if (photoFile) payload.append('photo', photoFile)
+      if (editing) await api.patch(`/admin/testimonials/${editing}`, payload)
+      else await api.post('/admin/testimonials', payload)
+      window.dispatchEvent(new CustomEvent('admin:data-changed', { detail: { type: 'testimonials-changed' } }))
+      resetForm(); refresh(); showToast(editing ? 'Testimonial updated.' : 'Testimonial created.')
+    } catch (err) {
+      showToast(err?.response?.data?.message || 'Save failed.', 'error')
+    }
+  }
+
+  const remove = async (id) => {
+    try {
+      await api.delete(`/admin/testimonials/${id}`)
+      window.dispatchEvent(new CustomEvent('admin:data-changed', { detail: { type: 'testimonials-changed' } }))
+      refresh(); showToast('Testimonial deleted.')
+    } catch (err) { showToast(err?.response?.data?.message || 'Delete failed.', 'error') }
+  }
+
+  const toggleActive = async (t) => {
+    try {
+      await api.patch(`/admin/testimonials/${t._id}`, { isActive: !t.isActive })
+      window.dispatchEvent(new CustomEvent('admin:data-changed', { detail: { type: 'testimonials-changed' } }))
+      refresh()
+    } catch { /* ignore */ }
+  }
+
+  const move = async (index, dir) => {
+    const next = [...list]
+    const target = index + dir
+    if (target < 0 || target >= next.length) return
+    ;[next[index], next[target]] = [next[target], next[index]]
+    try {
+      await api.patch('/admin/testimonials/reorder', { order: next.map((t) => t._id) })
+      window.dispatchEvent(new CustomEvent('admin:data-changed', { detail: { type: 'testimonials-changed' } }))
+      refresh()
+    } catch { /* ignore */ }
+  }
+
+  return (
+    <div className="space-y-6">
+      {status && (
+        <div className={`toast ${status.includes('ERROR') ? 'toast-error' : 'toast-success'}`}>
+          {status.replace(/^(SUCCESS|ERROR):\s*/, '')}
+        </div>
+      )}
+      <form onSubmit={submit} className="admin-card-glass space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-xl text-textPrimary">{editing ? 'Edit' : 'Add'} Testimonial</h2>
+          {editing && <button type="button" onClick={resetForm} className="text-xs text-textSecondary hover:text-accentOrange">Cancel</button>}
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <input value={form.clientName} onChange={(e) => setForm((f) => ({ ...f, clientName: e.target.value }))} className="input" placeholder="Client Name" required />
+          <input value={form.position} onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))} className="input" placeholder="Position / Role" />
+          <input value={form.company} onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))} className="input" placeholder="Company" />
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-textSecondary">Rating</label>
+            <select value={form.rating} onChange={(e) => setForm((f) => ({ ...f, rating: Number(e.target.value) }))} className="select flex-1">
+              {[5, 4, 3, 2, 1].map((r) => <option key={r} value={r}>{r} ★</option>)}
+            </select>
+          </div>
+        </div>
+        <textarea value={form.testimonial} onChange={(e) => setForm((f) => ({ ...f, testimonial: e.target.value }))} className="textarea" placeholder="Testimonial text" required rows={3} />
+        <div className="flex items-center gap-4">
+          <label className="cursor-pointer rounded-xl border border-border bg-lightBeige px-4 py-2 text-2xs font-medium uppercase tracking-widest text-textSecondary hover:bg-lightBeige/60 transition">
+            {photoPreview ? 'Change Photo' : 'Upload Photo'}
+            <input type="file" accept="image/*" className="hidden" onChange={onPhotoChange} />
+          </label>
+          {photoPreview && <img src={photoPreview} alt="preview" className="h-12 w-12 rounded-full object-cover" />}
+          <label className="flex items-center gap-2 text-sm text-textSecondary">
+            <input type="checkbox" checked={form.isActive} onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))} className="rounded border-border" />
+            Active (show in footer)
+          </label>
+        </div>
+        <button className="btn-primary w-full" disabled={!form.clientName || !form.testimonial}>
+          {editing ? 'Update' : 'Create'} Testimonial
+        </button>
+      </form>
+
+      <div className="admin-card">
+        <h3 className="font-display text-lg text-textPrimary mb-3">Testimonials ({list.length})</h3>
+        {loading ? (
+          <p className="text-sm text-textSecondary/50">Loading…</p>
+        ) : list.length === 0 ? (
+          <div className="py-10 text-center">
+            <p className="font-display text-2xl text-textSecondary/60">No testimonials yet</p>
+            <p className="mt-1 text-sm text-textSecondary/45">Add client testimonials to feature in the footer.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {list.map((t, i) => (
+              <div key={t._id} className="flex items-start gap-3 rounded-2xl border border-border bg-white p-4">
+                {t.photoUrl ? <img src={t.photoUrl} alt={t.clientName} className="h-12 w-12 rounded-full object-cover flex-shrink-0" /> : <div className="h-12 w-12 rounded-full bg-lightBeige flex items-center justify-center text-textSecondary flex-shrink-0"><Users size={18} /></div>}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-textPrimary">{t.clientName}</p>
+                    <span className="text-2xs text-amber">{'★'.repeat(t.rating || 0)}</span>
+                    <span className={`badge-${t.isActive ? 'success' : 'neutral'}`}>{t.isActive ? 'Active' : 'Hidden'}</span>
+                  </div>
+                  <p className="text-2xs text-textSecondary">{[t.position, t.company].filter(Boolean).join(' · ')}</p>
+                  <p className="text-sm text-textSecondary/80 mt-1 line-clamp-2">{t.testimonial}</p>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex gap-1">
+                    <button onClick={() => move(i, -1)} className="p-1 rounded-lg hover:bg-lightBeige" aria-label="Move up"><ChevronLeft size={14} className="rotate-90" /></button>
+                    <button onClick={() => move(i, 1)} className="p-1 rounded-lg hover:bg-lightBeige" aria-label="Move down"><ChevronRight size={14} className="rotate-90" /></button>
+                  </div>
+                  <button onClick={() => toggleActive(t)} className="text-2xs text-accentOrange hover:underline">{t.isActive ? 'Hide' : 'Show'}</button>
+                  <button onClick={() => startEdit(t)} className="text-2xs text-textSecondary hover:text-accentOrange flex items-center gap-1"><Edit size={11} /> Edit</button>
+                  <button onClick={() => remove(t._id)} className="text-2xs text-error hover:underline flex items-center gap-1"><Trash2 size={11} /> Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+
 
 export { AdminPage }

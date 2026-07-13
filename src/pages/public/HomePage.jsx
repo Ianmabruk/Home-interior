@@ -6,6 +6,7 @@ import { SectionTitle } from '../../components/common/SectionTitle'
 import { api } from '../../services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import PositionedImage from '../../components/common/PositionedImage'
+import CinematicProjects from '../../components/common/CinematicProjects'
 import { getOptimizedVideoUrl, getVideoPosterUrl } from '../../utils/cloudinaryHelpers'
 
 // Default hero poster shown the instant the page renders (before the homepage
@@ -197,51 +198,7 @@ export const HomePage = () => {
           </div>
 
           {feed.projects.length > 0 ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {feed.projects.slice(0, 3).map((p, i) => {
-                const mediaArr = Array.isArray(p.media) ? p.media : []
-                const mediaImg = mediaArr.find((m) => m?.type === 'image' && m.url) || mediaArr.find((m) => m?.url)
-                const img =
-                  p.coverImageUrl ||
-                  (mediaImg && mediaImg.url) ||
-                  (p.videoUrl ? getVideoPosterUrl(p.videoUrl, { width: 800 }) : null)
-                return (
-                  <motion.article
-                    key={p._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: '-60px' }}
-                    transition={{ duration: 0.6, delay: i * 0.05 }}
-                    className="group overflow-hidden rounded-2xl border border-sand bg-linen transition-shadow hover:shadow-lift"
-                  >
-                    <div className="aspect-[4/3] overflow-hidden bg-sand">
-                      {img ? (
-                        <PositionedImage
-                          src={img}
-                          alt={p.title}
-                          settings={p.mediaSettings}
-                          className="transition duration-700 group-hover:scale-105"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                          <p className="text-sm text-ink/30">No image</p>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-5">
-                      {p.category && (
-                        <p className="text-2xs font-medium uppercase tracking-widest text-orange">{p.category}</p>
-                      )}
-                      <h3 className="mt-1 font-display text-xl font-medium text-ink">{p.title}</h3>
-                      {p.description && (
-                        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink/55">{p.description}</p>
-                      )}
-                    </div>
-                  </motion.article>
-                )
-              })}
-            </div>
+            <CinematicProjects projects={feed.projects.slice(0, 4)} />
           ) : (
             <div className="flex aspect-[16/9] w-full items-center justify-center rounded-2xl bg-linen">
               <div className="text-center px-4">
