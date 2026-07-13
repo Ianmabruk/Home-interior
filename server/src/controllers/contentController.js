@@ -685,6 +685,7 @@ export const homepageFeed = asyncHandler(async (req, res) => {
         id: true,
         aboutImageUrl: true,
         story: true,
+        companyDescription: true,
         mission: true,
         vision: true,
         mediaSettings: true,
@@ -696,7 +697,11 @@ export const homepageFeed = asyncHandler(async (req, res) => {
   const sortedPortfolio = sortByOrderThenDate(portfolio).slice(0, 12)
   const featuredProjects = sortedProjects.slice(0, 3)
 
-  const heroProject = sortedProjects?.[0]
+  // Pick the newest published project that actually has a video URL, so the
+  // hero never renders empty when the first-ordered project is an image-only
+  // entry. Falls back to the first project if no video exists at all.
+  const heroProject =
+    sortedProjects.find((p) => p?.videoUrl) || sortedProjects[0] || null
   const heroVideo = heroProject?.videoUrl ? {
     url: heroProject.videoUrl,
     title: heroProject.title,

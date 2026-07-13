@@ -1,12 +1,15 @@
 # Render deployment configuration
 # Deploys ONLY the backend service from the server/ directory.
 #
-# IMPORTANT: Update the database name in DATABASE_URL if your Neon
-# database instance is not named "hok-interior-db".
+# IMPORTANT: The live backend is served at home-interior-backend.onrender.com
+# (verified). The service name MUST match that subdomain so `render deploy`
+# updates the correct service. If this name drifts from the live subdomain,
+# a second, orphaned service gets created and the public site stops receiving
+# deploys. The database instance name below is independent of the service name.
 
 services:
   - type: web
-    name: hok-interior-backend
+    name: home-interior-backend
     runtime: node
     rootDir: server
     buildCommand: npm install

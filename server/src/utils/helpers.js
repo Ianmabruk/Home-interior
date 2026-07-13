@@ -1,7 +1,12 @@
 import { ApiError } from './ApiError.js'
 
-export const withId = (item) => ({ ...item, _id: item.id })
-export const withIdArray = (items) => items.map((item) => withId(item))
+// Null-safe: several controllers (e.g. homepageFeed) pass the result of
+// findFirst() which can be `null`. The previous `{ ...item, _id: item.id }`
+// threw "Cannot read properties of null" and 500'd the whole response (the
+// homepage feed in particular). Returning null through keeps the contract
+// `{ data: null }` that callers already handle.
+export const withId = (item) => (item == null ? item : { ...item, _id: item.id })
+export const withIdArray = (items) => (Array.isArray(items) ? items : []).map((item) => withId(item))
 
 export const parseMaybeJson = (value, fallback = null) => {
   if (typeof value !== 'string') return fallback

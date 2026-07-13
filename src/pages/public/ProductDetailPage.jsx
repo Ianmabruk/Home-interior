@@ -17,9 +17,12 @@ export const ProductDetailPage = () => {
       .get(`/products/${id}`)
       .then((res) => {
         setProduct(res.data)
-        // Default to first color variant if available
-        if (res.data?.colorVariants?.length) {
-          setActiveColor(res.data.colorVariants[0].colorName)
+        // Default to the variant flagged isDefault (e.g. White); fall back to
+        // the first variant, then none.
+        const variants = res.data?.colorVariants || []
+        if (variants.length) {
+          const def = variants.find((v) => v.isDefault) || variants[0]
+          setActiveColor(def.colorName)
         }
       })
       .catch(() => setProduct(null))

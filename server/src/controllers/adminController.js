@@ -12,14 +12,17 @@ const withIdArray = (items) => items.map((item) => withId(item))
 const sortOrdersByDate = (orders) => orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
 export const dashboardOverview = asyncHandler(async (req, res) => {
-  const [products, userCount, ordersRaw, analyticsRaw, portfolioCount, projectCount] = await Promise.all([
+  const [products, userCount, ordersRaw, analyticsRaw, portfolioCount, projectCount, users] = await Promise.all([
     prisma.product.findMany(),
     prisma.user.count(),
     prisma.order.findMany(),
     prisma.analytics.findMany({ orderBy: { date: 'asc' } }),
     prisma.portfolio.count(),
     prisma.project.count(),
+    prisma.user.findMany({ select: { id: true, fullName: true, email: true } }),
   ])
+
+  const userById = new Map(users.map((u) => [u.id, u]))
 
   const productCount = products.length
   const orders = sortOrdersByDate(ordersRaw)
@@ -59,7 +62,10 @@ export const dashboardOverview = asyncHandler(async (req, res) => {
     }
   }
 
-  const recentOrders = sortOrdersByDate(orders).slice(0, 10)
+  const recentOrders = sortOrdersByDate(orders).slice(0, 10).map((o) => {
+    const u = userById.get(o.userId)
+    return { ...o, _id: o.id, customerName: u?.fullName || u?.email || 'Customer' }
+  })
   const topProducts = Array.from(soldByProduct.values())
     .sort((a, b) => b.units - a.units)
     .slice(0, 5)

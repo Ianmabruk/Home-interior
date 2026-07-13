@@ -6,7 +6,6 @@ import { SectionTitle } from '../../components/common/SectionTitle'
 import { api } from '../../services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import PositionedImage from '../../components/common/PositionedImage'
-import ProjectVideoShowcase from '../../components/common/ProjectVideoShowcase'
 import { getOptimizedVideoUrl, getVideoPosterUrl } from '../../utils/cloudinaryHelpers'
 
 // Default hero poster shown the instant the page renders (before the homepage
@@ -96,21 +95,6 @@ export const HomePage = () => {
       </div>
     )
   }
-
-  // Featured project media: prefer a video (from anywhere in media[] or the
-  // videoUrl field); otherwise fall back to the cover image so the section
-  // always reflects what the admin uploaded.
-  const featuredMedia = feed.featuredProjects
-    .map((p) => {
-      const mediaArr = Array.isArray(p.media) ? p.media : []
-      const videoItem = mediaArr.find((m) => m?.type === 'video' && m.url)
-      const videoUrl = videoItem?.url || p.videoUrl
-      if (videoUrl) return { type: 'video', url: videoUrl, mediaSettings: p.mediaSettings }
-      const imageUrl = p.coverImageUrl || mediaArr.find((m) => m?.url)?.url
-      if (imageUrl) return { type: 'image', url: imageUrl, mediaSettings: p.mediaSettings }
-      return null
-    })
-    .filter(Boolean)
 
   return (
     <div className="min-h-screen bg-cream">
@@ -220,31 +204,7 @@ export const HomePage = () => {
         </section>
 
       {/* ══════════════════════════════════════════
-          SECTION 3 — FEATURED PROJECTS (auto-playing video reel)
-      ══════════════════════════════════════════ */}
-      <section className="section-pad bg-cream">
-        <div className="container-wide px-6 md:px-12 lg:px-20">
-          <SectionTitle eyebrow="Projects" title="Featured Work" align="left" />
-          <div className="mt-10">
-            {featuredMedia.length > 0 ? (
-              <ProjectVideoShowcase
-                videos={featuredMedia}
-                className="aspect-[16/10] w-full rounded-2xl"
-              />
-            ) : (
-              <div className="flex aspect-[16/10] w-full items-center justify-center rounded-2xl bg-linen">
-                <div className="text-center px-4">
-                  <p className="font-display text-2xl text-ink/30 sm:text-3xl">No featured projects yet</p>
-                  <p className="mt-2 text-sm text-ink/50">Upload projects from the Admin Dashboard</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════
-          SECTION 4 — ABOUT PARALLAX
+          SECTION 3 — ABOUT
       ══════════════════════════════════════════ */}
       <section className="relative bg-linen">
         {feed.about ? (
@@ -281,16 +241,28 @@ export const HomePage = () => {
                     viewport={{ once: true }}
                     transition={{ duration: 0.8, delay: 0.2 }}
                   >
-                    <p className="eyebrow mb-4">Our Philosophy</p>
+                    <p className="eyebrow mb-4">About HOK</p>
                     <h2 className="font-display text-3xl font-medium leading-tight text-ink sm:text-4xl md:text-4xl lg:text-5xl">
                       Crafting Excellence
                     </h2>
-                    <p className="mt-3 text-sm leading-relaxed text-ink/55 sm:text-base sm:mt-4">
-                      Every space tells a story. We transform visions into reality with meticulous attention to detail.
-                    </p>
+                    {feed.about.story && (
+                      <p className="mt-3 text-sm leading-relaxed text-ink/55 sm:text-base sm:mt-4">
+                        {feed.about.story}
+                      </p>
+                    )}
+                    {feed.about.companyDescription && (
+                      <p className="mt-3 text-sm leading-relaxed text-ink/55 sm:text-base">
+                        {feed.about.companyDescription}
+                      </p>
+                    )}
                     {feed.about.mission && (
                       <div className="mt-5 border-l-4 border-orange pl-5 sm:mt-6">
                         <p className="text-sm leading-relaxed text-ink/70 sm:text-base">{feed.about.mission}</p>
+                      </div>
+                    )}
+                    {feed.about.vision && (
+                      <div className="mt-4 border-l-4 border-sand pl-5">
+                        <p className="text-sm leading-relaxed text-ink/70 sm:text-base">{feed.about.vision}</p>
                       </div>
                     )}
                   </motion.div>

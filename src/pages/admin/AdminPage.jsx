@@ -82,11 +82,26 @@ function AdminPage() {
   const [editingVariants, setEditingVariants] = useState(null)
   const [variantColorName, setVariantColorName] = useState('')
   const [variantColorHex, setVariantColorHex] = useState('')
+  const [variantSku, setVariantSku] = useState('')
   const [variantStockQuantity, setVariantStockQuantity] = useState(0)
   const [variantPriceOverride, setVariantPriceOverride] = useState('')
   const [variantImageFile, setVariantImageFile] = useState(null)
   const [variantImagePreview, setVariantImagePreview] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState({ type: null, id: null })
+
+  // Real-time new-order notifications (Task G). We poll the admin overview
+  // every 15s; the first poll simply seeds the set of already-known orders
+  // (so we don't spam on load), subsequent polls surface genuinely new ones
+  // as a toast + bell badge. Seen ids persist in localStorage so notifications
+  // still work correctly after a page refresh or redeploy.
+  const [orderNotifications, setOrderNotifications] = useState([])
+  const [unreadOrders, setUnreadOrders] = useState(0)
+  const [showNotif, setShowNotif] = useState(false)
+  const [notifToast, setNotifToast] = useState(null)
+  const seenOrderIdsRef = useRef(
+    new Set(JSON.parse(localStorage.getItem('hok_seen_order_ids') || '[]')),
+  )
+  const firstPollRef = useRef(true)
 
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState('grid')
@@ -108,6 +123,61 @@ function AdminPage() {
   useEffect(() => {
     fetchAll()
   }, [])
+
+  // Poll for new orders and raise a notification when an unseen order appears.
+  useEffect(() => {
+    let active = true
+    const persistSeen = () => {
+      try {
+        localStorage.setItem('hok_seen_order_ids', JSON.stringify([...seenOrderIdsRef.current]))
+      } catch { /* ignore quota errors */ }
+    }
+    const poll = async () => {
+      if (!active) return
+      try {
+        const res = await api.get('/admin/overview')
+        const orders = res.data?.recentOrders || []
+        if (firstPollRef.current) {
+          firstPollRef.current = false
+          orders.forEach((o) => seenOrderIdsRef.current.add(o._id))
+          persistSeen()
+          return
+        }
+        const fresh = []
+        for (const o of orders) {
+          if (!seenOrderIdsRef.current.has(o._id)) {
+            seenOrderIdsRef.current.add(o._id)
+            fresh.push(o)
+          }
+        }
+        if (fresh.length) {
+          persistSeen()
+          const mapped = fresh.map((o) => ({
+            id: o._id,
+            title: 'New Order Received',
+            customerName: o.customerName || 'Customer',
+            orderNumber: '#' + String(o._id).slice(-6).toUpperCase(),
+            total: o.total,
+            createdAt: o.createdAt,
+          }))
+          setOrderNotifications((prev) => [...mapped, ...prev].slice(0, 30))
+          setUnreadOrders((c) => c + mapped.length)
+          setNotifToast(mapped[0])
+        }
+      } catch { /* network/permission errors are non-fatal for polling */ }
+    }
+    poll()
+    const interval = setInterval(poll, 15000)
+    return () => { active = false; clearInterval(interval) }
+  }, [])
+
+  useEffect(() => {
+    if (!notifToast) return
+    const t = setTimeout(() => setNotifToast(null), 6000)
+    return () => clearTimeout(t)
+  }, [notifToast])
+
+  const markNotificationsRead = () => setUnreadOrders(0)
 
   // When the About tab is opened, hydrate the form from the saved record so
   // existing content + image are displayed in the admin dashboard, and load
@@ -293,11 +363,12 @@ function AdminPage() {
       const payload = new FormData()
       payload.append('colorName', variantColorName)
       payload.append('colorHex', variantColorHex || '')
+      payload.append('sku', variantSku || '')
       payload.append('stockQuantity', String(variantStockQuantity || 0))
       if (variantPriceOverride !== '') payload.append('priceOverride', String(variantPriceOverride))
       if (variantImageFile) payload.append('image', variantImageFile)
       await api.post(`/products/${productId}/variants`, payload, { onUploadProgress })
-      setVariantColorName(''); setVariantColorHex(''); setVariantStockQuantity(0); setVariantPriceOverride('')
+      setVariantColorName(''); setVariantColorHex(''); setVariantSku(''); setVariantStockQuantity(0); setVariantPriceOverride('')
       setVariantImageFile(null); setVariantImagePreview(null)
       fetchAll(); resetProgress(); setSuccess('Variant added.')
     } catch (error) { resetProgress(); setFailure(error, 'Add variant failed.') }
@@ -885,6 +956,7 @@ function AdminPage() {
                     <div className="mt-3 space-y-2">
                       <input value={variantColorName} onChange={(e) => setVariantColorName(e.target.value)} className="input" placeholder="Color name (e.g. White)" />
                       <input value={variantColorHex} onChange={(e) => setVariantColorHex(e.target.value)} className="input" placeholder="Color hex (e.g. #FFFFFF)" />
+                      <input value={variantSku} onChange={(e) => setVariantSku(e.target.value)} className="input" placeholder="SKU (e.g. PILLOW-RED)" />
                       <div className="grid grid-cols-2 gap-2">
                         <input value={variantStockQuantity} onChange={(e) => setVariantStockQuantity(Number(e.target.value))} type="number" className="input" placeholder="Stock" />
                         <input value={variantPriceOverride} onChange={(e) => setVariantPriceOverride(e.target.value)} type="number" step="0.01" className="input" placeholder="Price override" />
@@ -893,7 +965,7 @@ function AdminPage() {
                       {variantImagePreview && <img src={variantImagePreview} alt="Preview" className="h-12 w-12 rounded-lg object-cover" />}
                       <div className="flex gap-2">
                         <button type="button" onClick={() => addVariant(item._id)} className="btn-accent flex-1 text-2xs">Save Variant</button>
-                        <button type="button" onClick={() => { setEditingVariants(null); setVariantColorName(''); setVariantColorHex(''); setVariantStockQuantity(0); setVariantPriceOverride(''); setVariantImageFile(null); setVariantImagePreview(null) }} className="btn-secondary text-2xs">Cancel</button>
+                        <button type="button" onClick={() => { setEditingVariants(null); setVariantColorName(''); setVariantColorHex(''); setVariantSku(''); setVariantStockQuantity(0); setVariantPriceOverride(''); setVariantImageFile(null); setVariantImagePreview(null) }} className="btn-secondary text-2xs">Cancel</button>
                       </div>
                     </div>
                   )}
@@ -937,6 +1009,7 @@ function AdminPage() {
               <thead>
                 <tr>
                   <th className="text-left">Order <ChevronDown size={12} className="inline ml-1 text-textSecondary/40" /></th>
+                  <th className="text-left">Customer</th>
                   <th className="text-left">Date <ChevronDown size={12} className="inline ml-1 text-textSecondary/40" /></th>
                   <th className="text-left">Status</th>
                   <th className="text-left">Total</th>
@@ -946,9 +1019,10 @@ function AdminPage() {
                 {overview === null ? (
                   <tr><td colSpan={4}><SkeletonTable rows={4} /></td></tr>
                 ) : (
-                  allOrders.slice(0, 10).map((order) => (
+                   allOrders.slice(0, 10).map((order) => (
                     <tr key={order._id}>
                       <td className="font-medium">#{order._id.slice(-6).toUpperCase()}</td>
+                      <td className="text-textSecondary">{order.customerName || '—'}</td>
                       <td className="text-textSecondary">{new Date(order.createdAt).toLocaleDateString()}</td>
                       <td><StatusBadge active={order.status === 'delivered'} /></td>
                       <td className="font-medium">${order.total?.toLocaleString()}</td>
@@ -1323,10 +1397,43 @@ function AdminPage() {
           <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search…" className="w-full pl-10 pr-4 py-2.5 text-sm rounded-full border border-border bg-white/70 focus:ring-2 focus:ring-accentOrange/20 outline-none text-textPrimary placeholder:text-textSecondary/40" />
         </div>
         <div className="flex items-center gap-2">
-          <button className="relative p-2.5 rounded-full hover:bg-lightBeige transition text-textSecondary">
-            <Bell size={18} />
-            {messages.length > 0 && <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accentOrange" />}
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => { setShowNotif((s) => !s); if (!showNotif) markNotificationsRead() }}
+              className="relative p-2.5 rounded-full hover:bg-lightBeige transition text-textSecondary"
+              title="Order notifications"
+            >
+              <Bell size={18} />
+              {unreadOrders > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-error text-white text-3xs flex items-center justify-center">
+                  {unreadOrders > 99 ? '99+' : unreadOrders}
+                </span>
+              )}
+            </button>
+            {showNotif && (
+              <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-white shadow-lift border border-border z-50 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                  <p className="font-display text-sm text-textPrimary">Order Notifications</p>
+                  <button onClick={() => setShowNotif(false)} className="text-textSecondary/50 hover:text-textPrimary"><X size={14} /></button>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {orderNotifications.length === 0 ? (
+                    <p className="px-4 py-6 text-center text-2xs text-textSecondary/60">No new orders yet.</p>
+                  ) : (
+                    orderNotifications.map((n) => (
+                      <div key={n.id} className="px-4 py-3 border-b border-border last:border-0">
+                        <p className="text-sm font-medium text-textPrimary">{n.title}</p>
+                        <p className="text-2xs text-textSecondary mt-0.5">
+                          {n.customerName} · {n.orderNumber} · ${(n.total || 0).toLocaleString()}
+                        </p>
+                        <p className="text-3xs text-textSecondary/40 mt-0.5">{new Date(n.createdAt).toLocaleString()}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
           <button className="relative p-2.5 rounded-full hover:bg-lightBeige transition text-textSecondary">
             <Mail size={18} />
             {messages.length > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-error text-white text-3xs flex items-center justify-center">{messages.length}</span>}
@@ -1355,6 +1462,23 @@ function AdminPage() {
             <h1 className="font-display text-3xl md:text-4xl capitalize text-textPrimary">{tabs.find((t) => t.id === activeTab)?.label || activeTab}</h1>
             <p className="text-sm text-textSecondary mt-1">Manage your {activeTab.replace('-', ' ')}</p>
           </motion.div>
+
+          <AnimatePresence>
+            {notifToast && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="toast mb-5 toast-success flex items-center gap-2"
+              >
+                <Bell size={16} />
+                <span className="flex-1">
+                  <span className="font-semibold">{notifToast.title}</span> — {notifToast.customerName} ({notifToast.orderNumber})
+                </span>
+                <button onClick={() => setNotifToast(null)} className="opacity-60 hover:opacity-100"><X size={14} /></button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <AnimatePresence>
             {status && (

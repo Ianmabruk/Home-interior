@@ -193,7 +193,11 @@ const cachePublic = (req, res, next) => {
     norm.startsWith('/content/') ||
     (norm.startsWith('/products') && !norm.startsWith('/products/admin'))
   if (cacheable) {
-    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
+    // Short TTL. Admin uploads must show on the public site within seconds, so
+    // we no longer serve stale content for 5 minutes. The browser revalidates
+    // every request (max-age=0); the CDN holds a 20s edge copy for perf. The
+    // frontend service worker additionally uses NetworkFirst for these paths.
+    res.set('Cache-Control', 'public, max-age=0, s-maxage=20, stale-while-revalidate=20')
     res.set('Vary', 'Accept-Encoding')
   }
   next()

@@ -41,12 +41,17 @@ export default defineConfig({
             },
           },
           {
-            // Read-only public content/product APIs — stale-while-revalidate so
-            // the UI is instant while fresh data loads in the background.
+            // Read-only public content/product APIs — NetworkFirst so admin
+            // uploads appear on the public site immediately. The cache is only
+            // used as an offline fallback (clientsClaim + skipWaiting keep the
+            // SW fresh on deploy). Without this, StaleWhileRevalidate served
+            // cached API responses for up to 5 minutes, making admin content
+            // "not appear" on the user site.
             urlPattern: /\/api\/(content|products)(\/.*)?$/i,
-            handler: 'StaleWhileRevalidate',
+            handler: 'NetworkFirst',
             options: {
               cacheName: 'api-content',
+              networkTimeoutSeconds: 10,
               expiration: { maxEntries: 60, maxAgeSeconds: 60 * 5 },
               cacheableResponse: { statuses: [0, 200] },
             },

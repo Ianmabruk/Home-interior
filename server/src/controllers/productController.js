@@ -355,7 +355,7 @@ export const addColorVariant = async (req, res) => {
     const product = await prisma.product.findUnique({ where: { id: req.params.id } })
     if (!product) throw new ApiError(404, 'Product not found')
 
-    const { colorName, colorHex = '', stockQuantity = 0, priceOverride } = req.body
+    const { colorName, colorHex = '', stockQuantity = 0, priceOverride, sku } = req.body
     if (!colorName) throw new ApiError(400, 'colorName is required')
     if (!req.file) throw new ApiError(400, 'Image file is required')
 
@@ -367,6 +367,7 @@ export const addColorVariant = async (req, res) => {
     const newVariant = {
       colorName,
       colorHex,
+      sku: sku ? String(sku) : undefined,
       imageUrl: upload.secure_url,
       imagePublicId: upload.public_id,
       stockQuantity: Number(stockQuantity),
