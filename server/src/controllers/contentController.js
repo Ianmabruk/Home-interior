@@ -64,17 +64,18 @@ const rethrowAsHttpError = (err, label) => {
 }
 
 // Allowed Project fields for the admin write path. `tags` and `services` are
-// included — the columns now exist in the database (added by the
-// 20260713150000 migration, and guaranteed present by the startup schema guard
-// in config/db.js). They default to [] when omitted.
+// intentionally NOT included — they are not part of the Project model/schema,
+// so referencing them would cause a PrismaClientValidationError (and historically
+// a P2022 on production where the columns never existed). Project records rely on
+// title/description/category/media/videoUrl/coverImageUrl/order/mediaSettings.
 const PROJECT_FIELDS = new Set([
   'title', 'description', 'category', 'media', 'beforeAfterImages',
   'videoUrl', 'videoPublicId', 'coverImageUrl', 'order', 'isPublished',
-  'mediaSettings', 'tags', 'services',
+  'mediaSettings',
 ])
 
-// Projection returned to the public + admin clients. Includes tags/services so
-// consumers can render service/feature tags.
+// Projection returned to the public + admin clients. Deliberately excludes
+// tags/services (not part of the Project model) to avoid P2022.
 const PROJECT_SELECT = {
   id: true,
   title: true,
@@ -84,8 +85,6 @@ const PROJECT_SELECT = {
   mediaSettings: true,
   coverImageUrl: true,
   videoUrl: true,
-  tags: true,
-  services: true,
   isPublished: true,
   createdAt: true,
   updatedAt: true,
@@ -106,8 +105,9 @@ const stripUnknown = (obj, allowed) => {
 }
 
 export const projectsController = {
-  // Public list — returns tags/services now that those columns exist. Still
-  // never crashes the homepage: returns an empty list on any failure.
+  // Public list — defensive explicit select (never queries tags/services, which
+  // are not part of the Project model). Never crashes the homepage: returns an
+  // empty list on any failure.
   list: asyncHandler(async (req, res) => {
     try {
       const items = await prisma.project.findMany({
@@ -131,12 +131,6 @@ export const projectsController = {
 
     const parsedBeforeAfter = parseMaybeJson(req.body.beforeAfterImages, null)
     if (parsedBeforeAfter) payload.beforeAfterImages = parsedBeforeAfter
-
-    // tags / services are JSON arrays. Default to [] when not provided.
-    const parsedTags = parseMaybeJson(req.body.tags, null)
-    payload.tags = Array.isArray(parsedTags) ? parsedTags : (parsedTags ? [parsedTags] : [])
-    const parsedServices = parseServices(req.body.services)
-    payload.services = parsedServices.length ? parsedServices : []
 
     const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
     if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
@@ -178,11 +172,6 @@ export const projectsController = {
 
     const parsedMedia = Array.isArray(req.body.media) ? req.body.media : parseMaybeJson(req.body.media, null)
     if (parsedMedia) payload.media = parsedMedia
-
-    const parsedTags = parseMaybeJson(req.body.tags, null)
-    payload.tags = Array.isArray(parsedTags) ? parsedTags : (parsedTags ? [parsedTags] : existing.tags || [])
-    const parsedServices = parseServices(req.body.services)
-    payload.services = parsedServices.length ? parsedServices : (existing.services || [])
 
     const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
     if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
@@ -695,8 +684,6 @@ export const homepageFeed = asyncHandler(async (req, res) => {
         media: true,
         coverImageUrl: true,
         videoUrl: true,
-        tags: true,
-        services: true,
         order: true,
         mediaSettings: true,
       },

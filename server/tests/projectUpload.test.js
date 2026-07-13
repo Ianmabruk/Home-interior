@@ -103,8 +103,9 @@ describe('Admin Project Dashboard — video upload', () => {
       url: 'https://test.cloudinary.com/project-video.mp4',
       publicId: 'test-video-id',
     })
-    expect(capturedCreate.tags).toEqual([])
-    expect(capturedCreate.services).toEqual([])
+    // Project model has no tags/services columns — they must not be written.
+    expect(capturedCreate.tags).toBeUndefined()
+    expect(capturedCreate.services).toBeUndefined()
     expect(capturedCreate.isPublished).toBe(true)
   })
 

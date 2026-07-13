@@ -63,31 +63,19 @@ export const verifyMediaSettingsColumns = async () => {
   console.log('✅ media_settings columns verified on all content tables')
 }
 
-// Prisma scalar type -> PostgreSQL column type. Used only to auto-heal drift
-// (add missing nullable columns), never for destructive changes.
-const PRISMA_TO_PG = {
-  String: 'TEXT',
-  Int: 'INTEGER',
-  BigInt: 'BIGINT',
-  Float: 'DOUBLE PRECISION',
-  Decimal: 'DECIMAL',
-  Boolean: 'BOOLEAN',
-  DateTime: 'TIMESTAMP',
-  Json: 'JSONB',
-  Bytes: 'BYTEA',
-}
-
-// The live database has historically drifted from schema.prisma: the
+// The live database has historically drifted from schema.prisma (the
 // schema-hardening migrations that added columns like projects.tags /
-// projects.services never ran on the production DB (the deploy uses
+// projects.services never ran on the production DB, because the deploy uses
 // `prisma db push`, which is additive but can be skipped / can fail without
 // re-applying). When a column the Prisma client expects is absent, every query
 // against that model throws P2022 and 500s the endpoint.
 //
-// This guard (a) logs a clear warning for ANY column mismatch across every
-// model, and (b) idempotently adds back any MISSING NULLABLE column via
-// ADD COLUMN IF NOT EXISTS. Because it runs on every boot it is deploy-mechanism
-// independent and prevents the silent schema-drift failures from recurring.
+// This guard is a READ-ONLY startup check: it compares every Prisma model's
+// columns against the live database (via information_schema) and logs a clear
+// warning for ANY mismatch. It deliberately does NOT alter the database
+// (no ADD COLUMN) — fixing drift is done by aligning application code with the
+// schema (e.g. removing references to columns that don't exist), not by
+// mutating PostgreSQL at boot.
 export const verifyAndHealSchema = async () => {
   let models
   try {
@@ -97,8 +85,7 @@ export const verifyAndHealSchema = async () => {
     return
   }
 
-  let healed = 0
-  let warned = 0
+  let warnings = 0
 
   for (const model of models) {
     const table = model.dbName || toSnake(model.name)
@@ -116,36 +103,17 @@ export const verifyAndHealSchema = async () => {
     for (const field of model.fields) {
       if (field.kind !== 'scalar') continue
       const column = field.dbName || field.name
-      const pgType = PRISMA_TO_PG[field.type]
-      if (!pgType) continue
-
       if (!actualSet.has(column)) {
-        // Only auto-heal nullable columns. Adding a NOT NULL column to a table
-        // that already has rows would fail, so required missing columns are
-        // flagged but not auto-added (a deliberate, safe choice).
-        if (field.isRequired) {
-          console.warn(`[SCHEMA GUARD] ⚠️  Missing REQUIRED column ${table}.${column} (${pgType}) — not auto-added (would need a default).`)
-          warned += 1
-          continue
-        }
-        try {
-          await prisma.$executeRawUnsafe(
-            `ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "${column}" ${pgType}`,
-          )
-          console.log(`[SCHEMA GUARD] ✅ Healed drift: added ${table}.${column} (${pgType})`)
-          healed += 1
-        } catch (err) {
-          console.error(`[SCHEMA GUARD] ❌ Failed to add ${table}.${column}:`, err?.message)
-          warned += 1
-        }
+        console.warn(`[SCHEMA GUARD] ⚠️  Drift: ${table}.${column} exists in schema.prisma but is MISSING from the database.`)
+        warnings += 1
       }
     }
   }
 
-  if (healed === 0 && warned === 0) {
+  if (warnings === 0) {
     console.log('✅ Schema guard: Prisma models match database columns (no drift).')
   } else {
-    console.log(`[SCHEMA GUARD] Summary — healed: ${healed}, warnings: ${warned}`)
+    console.log(`[SCHEMA GUARD] Summary — ${warnings} drift warning(s). Align application code with the schema; no database changes were made.`)
   }
 }
 
