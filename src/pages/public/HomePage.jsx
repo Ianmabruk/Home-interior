@@ -129,21 +129,23 @@ export const HomePage = () => {
 
       {/* ══════════════════════════════════════════
           SECTION 2 — PROJECTS VIDEO SHOWCASE
-          Full-width, prominent, autoplaying videos
+          Full-width, no rounded corners, no cards
+          Mobile min: 500px, Tablet min: 600px, Desktop min: 700px
       ══════════════════════════════════════════ */}
-      <section className="px-4 py-6 md:px-6 md:py-10 lg:px-8">
-        <div className="w-full">
-          {feed.projects.length > 0 ? (
-            <ProjectVideoShowcase videos={feed.projects} className="w-full rounded-[24px] md:rounded-[32px] min-h-[420px] md:min-h-[560px] lg:min-h-[640px]" />
-          ) : (
-            <div className="flex min-h-[420px] md:min-h-[560px] w-full items-center justify-center rounded-[24px] md:rounded-[32px] bg-bgSecondary">
-              <div className="text-center px-4">
-                <p className="font-display text-2xl text-textPrimaryDark/30">No projects yet</p>
-                <p className="mt-2 text-sm text-textPrimaryDark/50">Upload projects from the Admin Dashboard</p>
-              </div>
+      <section className="relative w-full bg-black">
+        {feed.projects.length > 0 ? (
+          <ProjectVideoShowcase
+            videos={feed.projects}
+            className="w-full min-h-[500px] md:min-h-[600px] lg:min-h-[700px]"
+          />
+        ) : (
+          <div className="flex min-h-[500px] md:min-h-[600px] lg:min-h-[700px] w-full items-center justify-center bg-bgSecondary">
+            <div className="text-center px-4">
+              <p className="font-display text-2xl text-textPrimaryDark/30">No projects yet</p>
+              <p className="mt-2 text-sm text-textPrimaryDark/50">Upload projects from the Admin Dashboard</p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </section>
 
       {/* ══════════════════════════════════════════

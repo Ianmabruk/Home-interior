@@ -1,15 +1,25 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { getOptimizedVideoUrl, getVideoPosterUrl } from '../../utils/cloudinaryHelpers'
 import PositionedImage from './PositionedImage'
 
 const IMAGE_DURATION_MS = 6000
+const MAX_PLAY_RETRIES = 8
+const PLAY_RETRY_DELAYS = [100, 200, 400, 600, 800, 1000, 1200, 1500]
+
+function resolveShowcaseItem(project) {
+  if (!project) return null
+  const mediaArr = Array.isArray(project.media) ? project.media : []
+  const firstVideo = mediaArr.find((m) => m && m.type === 'video' && m.url)
+  const firstMedia = mediaArr.find((m) => m && m.url)
+  const url = project.videoUrl || firstVideo?.url || firstMedia?.url || project.coverImageUrl
+  if (!url) return null
+  const type = project.videoUrl || firstVideo ? 'video' : firstMedia?.type || 'image'
+  return { type, url, mediaSettings: project.mediaSettings }
+}
 
 export default function ProjectVideoShowcase({ videos, className = '' }) {
   const list = useMemo(
-    () =>
-      (videos || [])
-        .filter((v) => v && v.url)
-        .map((v) => ({ type: v.type || 'video', url: v.url, mediaSettings: v.mediaSettings })),
+    () => (videos || []).map(resolveShowcaseItem).filter(Boolean),
     [videos],
   )
 
@@ -20,13 +30,50 @@ export default function ProjectVideoShowcase({ videos, className = '' }) {
 
   const videoRef = useRef(null)
   const containerRef = useRef(null)
+  const playRetryRef = useRef(0)
+  const playTimerRef = useRef(null)
   const lastLoadedUrlRef = useRef(null)
+  const currentUrlRef = useRef(null)
 
   const safeIndex = list.length ? index % list.length : 0
   const current = list[safeIndex]
   const isVideo = current?.type === 'video'
 
-  const goNext = useCallback(() => {
+  const clearPlayTimers = () => {
+    if (playTimerRef.current) {
+      clearTimeout(playTimerRef.current)
+      playTimerRef.current = null
+    }
+    playRetryRef.current = 0
+  }
+
+  useEffect(() => {
+    currentUrlRef.current = current?.url || null
+  }, [current?.url])
+
+  const attemptPlay = (v) => {
+    if (!v) return
+    if (playTimerRef.current) {
+      clearTimeout(playTimerRef.current)
+      playTimerRef.current = null
+    }
+    if (playRetryRef.current >= MAX_PLAY_RETRIES) {
+      console.warn('[showcase] max play retries reached for', currentUrlRef.current)
+      return
+    }
+    const attempt = playRetryRef.current
+    playRetryRef.current += 1
+    const p = v.play()
+    if (p && typeof p.catch === 'function') {
+      p.catch(() => {
+        if (attempt < MAX_PLAY_RETRIES - 1) {
+          playTimerRef.current = setTimeout(() => attemptPlay(v), PLAY_RETRY_DELAYS[attempt] || 1000)
+        }
+      })
+    }
+  }
+
+  const goNext = () => {
     if (isTransitioning || list.length <= 1) return
     setIsTransitioning(true)
     const nextIndex = (safeIndex + 1) % list.length
@@ -39,21 +86,21 @@ export default function ProjectVideoShowcase({ videos, className = '' }) {
       setFadeKey((k) => k + 1)
       setIsTransitioning(false)
     }, 400)
-  }, [isTransitioning, safeIndex, current?.url, list])
+  }
 
   useEffect(() => {
     const el = containerRef.current
     if (!el) return undefined
     const io = new IntersectionObserver(
       ([entry]) => setInView(entry.isIntersecting),
-      { threshold: 0.1 },
+      { threshold: 0.05 },
     )
     io.observe(el)
     return () => io.disconnect()
   }, [])
 
-  // Reload video element when the active video URL changes.
   useEffect(() => {
+    clearPlayTimers()
     const v = videoRef.current
     if (!v || !isVideo || !current) return
     if (lastLoadedUrlRef.current === current.url) return
@@ -61,32 +108,27 @@ export default function ProjectVideoShowcase({ videos, className = '' }) {
     v.muted = true
     v.load()
     console.log('[showcase] video loaded:', current.url)
-  }, [current, isVideo, goNext])
+  }, [current, isVideo])
 
-  // Play/pause on visibility or transition changes.
   useEffect(() => {
     const v = videoRef.current
     if (!v || !isVideo || !current) return
     if (inView && !isTransitioning) {
       v.muted = true
-      const p = v.play()
-      if (p && typeof p.catch === 'function') {
-        p.catch((err) => {
-          console.warn('[showcase] play() failed for', current.url, err)
-        })
-      }
+      attemptPlay(v)
       console.log('[showcase] video started:', current.url)
     } else {
       v.pause()
+      clearPlayTimers()
     }
-  }, [inView, current, isVideo, isTransitioning])
+  }, [inView, current, isVideo, isTransitioning]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-advance images on a timer. Videos advance via onEnded.
   useEffect(() => {
+    clearPlayTimers()
     if (isVideo || !current || list.length < 2 || !inView) return undefined
     const t = setTimeout(goNext, IMAGE_DURATION_MS)
     return () => clearTimeout(t)
-  }, [safeIndex, current, isVideo, inView, list.length, goNext])
+  }, [safeIndex, isVideo, inView, list.length, current]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!current) return null
 
@@ -95,7 +137,7 @@ export default function ProjectVideoShowcase({ videos, className = '' }) {
   return (
     <div
       ref={containerRef}
-      className={`relative overflow-hidden rounded-[32px] bg-linen shadow-2xl shadow-black/10 ring-1 ring-black/5 transition-transform duration-500 hover:scale-[1.01] ${className}`}
+      className={`relative w-full overflow-hidden bg-black ${className || ''}`}
     >
       <div
         key={fadeKey}
@@ -115,12 +157,13 @@ export default function ProjectVideoShowcase({ videos, className = '' }) {
             fetchPriority="high"
             onEnded={() => {
               console.log('[showcase] video ended:', current.url)
+              clearPlayTimers()
               goNext()
             }}
             onCanPlay={() => {
               if (inView && videoRef.current && !isTransitioning) {
                 videoRef.current.muted = true
-                videoRef.current.play().catch(() => {})
+                attemptPlay(videoRef.current)
               }
             }}
             className="h-full w-full object-cover"
