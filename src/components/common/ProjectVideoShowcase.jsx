@@ -1,36 +1,46 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getOptimizedVideoUrl, getVideoPosterUrl } from '../../utils/cloudinaryHelpers'
 import PositionedImage from './PositionedImage'
 
-// Auto-advancing, infinitely looping showcase of project media.
-//  - Accepts mixed items: { type: 'video' | 'image', url, mediaSettings }.
-//    Videos autoplay (muted, inline) and advance on end; images advance on a
-//    timer, so the section always shows whatever the admin uploaded instead of
-//    silently dropping image-only projects.
-//  - Only the active video downloads/decodes; the next poster is preloaded so
-//    switching is instant with no black flash.
-//  - Pauses when scrolled out of view (IntersectionObserver) to save CPU/battery.
-//  - No text/buttons/overlays — media only (per design).
 const IMAGE_DURATION_MS = 6000
 
 export default function ProjectVideoShowcase({ videos, className = '' }) {
-  // Backwards compatible: bare { url } items are treated as videos.
-  const list = (videos || [])
-    .filter((v) => v && v.url)
-    .map((v) => ({ type: v.type || 'video', url: v.url, mediaSettings: v.mediaSettings }))
+  const list = useMemo(
+    () =>
+      (videos || [])
+        .filter((v) => v && v.url)
+        .map((v) => ({ type: v.type || 'video', url: v.url, mediaSettings: v.mediaSettings })),
+    [videos],
+  )
+
   const [index, setIndex] = useState(0)
   const [inView, setInView] = useState(true)
+  const [fadeKey, setFadeKey] = useState(0)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+
   const videoRef = useRef(null)
   const containerRef = useRef(null)
-  // Clamp during render so a shorter list (after a feed refetch) never reads
-  // past the end — no state update inside an effect needed.
+  const lastLoadedUrlRef = useRef(null)
+
   const safeIndex = list.length ? index % list.length : 0
   const current = list[safeIndex]
   const isVideo = current?.type === 'video'
 
-  const goNext = () => setIndex((i) => (list.length ? (i + 1) % list.length : 0))
+  const goNext = useCallback(() => {
+    if (isTransitioning || list.length <= 1) return
+    setIsTransitioning(true)
+    const nextIndex = (safeIndex + 1) % list.length
+    console.log('[showcase] transitioning:', {
+      current: { index: safeIndex, url: current?.url },
+      next: { index: nextIndex, url: list[nextIndex]?.url },
+    })
+    setTimeout(() => {
+      setIndex(nextIndex)
+      setFadeKey((k) => k + 1)
+      setIsTransitioning(false)
+    }, 400)
+  }, [isTransitioning, safeIndex, current?.url, list])
 
-  // Pause decoding work when the section is offscreen.
   useEffect(() => {
     const el = containerRef.current
     if (!el) return undefined
@@ -42,76 +52,91 @@ export default function ProjectVideoShowcase({ videos, className = '' }) {
     return () => io.disconnect()
   }, [])
 
-  // (Re)load whenever the active video changes.
+  // Reload video element when the active video URL changes.
   useEffect(() => {
     const v = videoRef.current
     if (!v || !isVideo || !current) return
-    // React does not reliably set the `muted` DOM property from the JSX
-    // attribute; without it, browsers block muted autoplay. Force it here.
+    if (lastLoadedUrlRef.current === current.url) return
+    lastLoadedUrlRef.current = current.url
     v.muted = true
     v.load()
-  }, [current, isVideo])
+    console.log('[showcase] video loaded:', current.url)
+  }, [current, isVideo, goNext])
 
-  // Play/pause the active video on visibility change.
+  // Play/pause on visibility or transition changes.
   useEffect(() => {
     const v = videoRef.current
     if (!v || !isVideo || !current) return
-    if (inView) {
+    if (inView && !isTransitioning) {
       v.muted = true
       const p = v.play()
-      if (p && typeof p.catch === 'function') p.catch(() => {})
+      if (p && typeof p.catch === 'function') {
+        p.catch((err) => {
+          console.warn('[showcase] play() failed for', current.url, err)
+        })
+      }
+      console.log('[showcase] video started:', current.url)
     } else {
       v.pause()
     }
-  }, [inView, current, isVideo])
+  }, [inView, current, isVideo, isTransitioning])
 
-  // Auto-advance images on a timer (videos advance via onEnded).
+  // Auto-advance images on a timer. Videos advance via onEnded.
   useEffect(() => {
     if (isVideo || !current || list.length < 2 || !inView) return undefined
     const t = setTimeout(goNext, IMAGE_DURATION_MS)
     return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [safeIndex, isVideo, inView, list.length])
+  }, [safeIndex, current, isVideo, inView, list.length, goNext])
 
   if (!current) return null
 
   const nextItem = list.length > 1 ? list[(safeIndex + 1) % list.length] : null
 
   return (
-    <div ref={containerRef} className={`relative overflow-hidden bg-linen ${className}`}>
-      {isVideo ? (
-        <video
-          ref={videoRef}
-          key={current.url}
-          src={getOptimizedVideoUrl(current.url, { width: 1280 })}
-          poster={getVideoPosterUrl(current.url, { width: 1280 })}
-          autoPlay
-          muted
-          loop={list.length === 1}
-          playsInline
-          preload="metadata"
-          fetchPriority="high"
-          onEnded={goNext}
-          onCanPlay={() => {
-            if (inView && videoRef.current) {
-              videoRef.current.muted = true
-              videoRef.current.play().catch(() => {})
-            }
-          }}
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <PositionedImage
-          src={current.url}
-          alt=""
-          settings={current.mediaSettings}
-          className="h-full w-full"
-          loading="eager"
-        />
-      )}
+    <div
+      ref={containerRef}
+      className={`relative overflow-hidden rounded-[32px] bg-linen shadow-2xl shadow-black/10 ring-1 ring-black/5 transition-transform duration-500 hover:scale-[1.01] ${className}`}
+    >
+      <div
+        key={fadeKey}
+        className="absolute inset-0 transition-opacity duration-400 ease-in-out"
+        style={{ opacity: isTransitioning ? 0 : 1 }}
+      >
+        {isVideo ? (
+          <video
+            ref={videoRef}
+            src={getOptimizedVideoUrl(current.url, { width: 1280 })}
+            poster={getVideoPosterUrl(current.url, { width: 1280 })}
+            autoPlay
+            muted
+            loop={list.length === 1}
+            playsInline
+            preload="auto"
+            fetchPriority="high"
+            onEnded={() => {
+              console.log('[showcase] video ended:', current.url)
+              goNext()
+            }}
+            onCanPlay={() => {
+              if (inView && videoRef.current && !isTransitioning) {
+                videoRef.current.muted = true
+                videoRef.current.play().catch(() => {})
+              }
+            }}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <PositionedImage
+            src={current.url}
+            alt=""
+            settings={current.mediaSettings}
+            className="h-full w-full"
+            loading="eager"
+          />
+        )}
+      </div>
 
-      {/* Preload the next item's poster/image so the transition is seamless. */}
-      {nextItem && (
+      {nextItem && !isTransitioning && (
         <img
           src={nextItem.type === 'video' ? getVideoPosterUrl(nextItem.url, { width: 1280 }) : nextItem.url}
           alt=""
@@ -120,14 +145,13 @@ export default function ProjectVideoShowcase({ videos, className = '' }) {
         />
       )}
 
-      {/* Progress dots (no text) */}
       {list.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
+        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2 rounded-full bg-black/20 px-4 py-2 backdrop-blur-md">
           {list.map((_, i) => (
             <span
               key={i}
-              className={`h-1.5 rounded-full bg-white transition-all duration-300 ${
-                i === safeIndex ? 'w-6' : 'w-1.5 bg-white/50'
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === safeIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/50'
               }`}
             />
           ))}

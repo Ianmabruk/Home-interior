@@ -1,56 +1,62 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+/* eslint-disable react-hooks/set-state-in-effect -- async auth load is the intended effect purpose */
+import { createContext, useContext, useEffect, useMemo, useCallback, useState } from 'react'
 import { api } from '../services/api'
 
 const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('hok_access_token') : null
+    return !token
+  })
 
-  const loadUser = async () => {
+  const loadUser = useCallback(async () => {
     try {
+      console.info('[auth] loading user profile')
       const response = await api.get('/users/me')
       setUser(response.data)
-    } catch {
+      console.info('[auth] user profile loaded:', response.data?.email)
+    } catch (err) {
+      console.warn('[auth] failed to load user profile:', err?.response?.status, err?.message)
       setUser(null)
     } finally {
       setLoading(false)
     }
-  }
-
-  useEffect(() => {
-    const token = localStorage.getItem('hok_access_token')
-    if (!token) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLoading(false)
-      return
-    }
-
-    loadUser()
   }, [])
 
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('hok_access_token') : null
+    if (!token) return
+    console.info('[auth] access token found, restoring session')
+    loadUser()
+  }, [loadUser])
+
   const login = async (email, password) => {
+    console.info('[auth] login attempt:', email)
     const response = await api.post('/auth/login', { email, password })
-    // Only the short-lived access token is kept in JS storage. The refresh
-    // token is delivered as an httpOnly cookie by the backend and is never
-    // readable from script (XSS-safe).
     localStorage.setItem('hok_access_token', response.data.accessToken)
     setUser(response.data.user)
+    console.info('[auth] login success:', response.data.user?.email)
     return response
   }
 
   const register = async (fullName, email, password) => {
+    console.info('[auth] register attempt:', email)
     const response = await api.post('/auth/register', { fullName, email, password })
     localStorage.setItem('hok_access_token', response.data.accessToken)
     setUser(response.data.user)
+    console.info('[auth] register success:', response.data.user?.email)
+    return response
   }
 
   const logout = async () => {
+    console.info('[auth] logout')
     try {
       await api.post('/auth/logout')
     } catch {
-      /* ignore network errors on logout */
+      // ignore network errors on logout
     }
     localStorage.removeItem('hok_access_token')
     setUser(null)
@@ -67,7 +73,7 @@ export const AuthProvider = ({ children }) => {
       logout,
       refreshUser: loadUser,
     }),
-    [user, loading],
+    [user, loading, loadUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
