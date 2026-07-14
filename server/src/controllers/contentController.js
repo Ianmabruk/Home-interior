@@ -149,10 +149,21 @@ export const projectsController = {
 
     payload.isPublished = payload.isPublished ?? true
 
-    console.log('PROJECT CREATE PAYLOAD', JSON.stringify(payload, null, 2))
+    const data = {
+      title: 'Project',
+      order: payload.order,
+      media: payload.media,
+      mediaSettings: payload.mediaSettings,
+      videoUrl: payload.videoUrl,
+      videoPublicId: payload.videoPublicId,
+      coverImageUrl: payload.coverImageUrl,
+      isPublished: payload.isPublished,
+    }
+
+    console.log('PROJECT CREATE PAYLOAD', JSON.stringify(data, null, 2))
 
     const item = await prisma.project.create({
-      data: payload
+      data: data
     })
     res.status(201).json(sendSuccess(withId(item)))
   }),
