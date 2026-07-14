@@ -107,11 +107,13 @@ function AdminPage() {
   const [mediaSearch, setMediaSearch] = useState('')
   const [selectedMedia, setSelectedMedia] = useState([])
   const fileInputRef = useRef(null)
+  const [projectReorderList, setProjectReorderList] = useState([])
+  const [isSavingProjectOrder, setIsSavingProjectOrder] = useState(false)
 
   const fetchAll = useCallback(() => {
     Promise.all([
       api.get('/admin/overview').catch(() => ({ data: null })),
-      api.get('/content/projects').catch(() => ({ data: [] })),
+      api.get('/project-v2').catch(() => ({ data: [] })),
       api.get('/content/portfolio').catch(() => ({ data: [] })),
       api.get('/products/admin/all', { params: { sort: '-createdAt', limit: 100 } }).catch(() => ({ data: { items: [] } })),
       api.get('/messages').catch(() => ({ data: [] })),
@@ -161,6 +163,10 @@ function AdminPage() {
     window.addEventListener('admin:data-changed', handler)
     return () => window.removeEventListener('admin:data-changed', handler)
   }, [fetchAll])
+
+  useEffect(() => {
+    setProjectReorderList(projects.map((p) => p._id))
+  }, [projects])
 
   // Load analytics only when the analytics or dashboard tab is active.
   // Fetches once per tab switch — no repeating interval.
@@ -249,37 +255,30 @@ function AdminPage() {
   const mediaItems = useMemo(() => {
     const items = []
     portfolio.forEach((p) => items.push({ id: p._id, type: 'image', kind: 'portfolio', title: p.title || 'Untitled', category: p.category, src: p.imageUrl }))
-    projects.forEach((p) => items.push({ id: p._id, type: p.videoUrl ? 'video' : 'image', kind: 'projects', title: p.title || 'Untitled', category: p.category, src: p.videoUrl || p.coverImageUrl }))
+    projects.forEach((p) => items.push({ id: p._id, type: 'video', kind: 'projects', title: 'Project Video', category: p.isPublished ? 'Published' : 'Draft', src: p.videoUrl }))
     virtualDesigns.forEach((p) => items.push({ id: p._id, type: 'video', kind: 'virtual', title: p.title || 'Untitled', category: 'Virtual', src: p.videoUrl }))
     return items
   }, [portfolio, projects, products, virtualDesigns])
 
   const submitProject = async (event) => {
     event.preventDefault()
-    if (!mediaFile && !editingProject) { setFailure(null, 'Please choose a file to upload.'); return }
+    if (!mediaFile) { setFailure(null, 'Please choose a video to upload.'); return }
     try {
       setIsUploading(true); setUploadProgress(0)
       const payload = new FormData()
+      payload.append('video', mediaFile)
       payload.append('order', String(projectForm.order || 0))
-      payload.append('resourceType', resourceType)
-      payload.append('mediaSettings', JSON.stringify(normalizeMediaSettings(mediaSettings)))
-      if (mediaFile) payload.append('media', mediaFile)
-      if (editingProject) {
-        await api.patch(`/content/projects/${editingProject._id}`, payload, { onUploadProgress })
-        setEditingProject(null)
-      } else {
-        await api.post('/content/projects', payload, { onUploadProgress })
-      }
+      await api.post('/project-v2/upload', payload, { onUploadProgress })
       setProjectForm({ order: 0 })
-      setMediaFile(null); setMediaPreview(null); setMediaSettings(DEFAULT_MEDIA_SETTINGS)
+      setMediaFile(null); setMediaPreview(null)
       window.dispatchEvent(new CustomEvent('admin:data-changed', { detail: { type: 'projects-changed' } }))
-      fetchAll(); resetProgress(); setSuccess('Project saved successfully.')
+      fetchAll(); resetProgress(); setSuccess('Project video saved.')
     } catch (error) { resetProgress(); setFailure(error, 'Project save failed.') }
   }
 
   const deleteProject = async (id) => {
     try {
-      await api.delete(`/content/projects/${id}`)
+      await api.delete(`/project-v2/${id}`)
       setDeleteConfirm({ type: null, id: null })
       fetchAll()
       setSuccess('Project deleted.')
@@ -287,6 +286,28 @@ function AdminPage() {
       const msg = error?.response?.data?.message || 'Delete failed.'
       console.error('[admin] delete project failed:', msg, error?.response?.status, error?.response?.data)
       setFailure(error, 'Delete failed.')
+    }
+  }
+
+  const togglePublishProjectV2 = async (id) => {
+    try {
+      await api.patch(`/project-v2/${id}/publish`)
+      fetchAll()
+    } catch (error) {
+      setFailure(error, 'Publish toggle failed.')
+    }
+  }
+
+  const reorderProjectsV2 = async (idList) => {
+    try {
+      setIsSavingProjectOrder(true)
+      await api.patch('/project-v2/reorder', { order: idList })
+      fetchAll()
+      setSuccess('Order saved.')
+    } catch (error) {
+      setFailure(error, 'Reorder failed.')
+    } finally {
+      setIsSavingProjectOrder(false)
     }
   }
 
@@ -799,52 +820,93 @@ function AdminPage() {
     )
   }
 
-  const renderProjects = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-end gap-2">
-        <button onClick={() => setViewMode('grid')} className={`p-2 rounded-xl border transition ${viewMode === 'grid' ? 'border-accentOrange bg-accentOrange/10 text-accentOrange' : 'border-border bg-white text-textSecondary hover:bg-lightBeige/50'}`}><Grid size={16} /></button>
-        <button onClick={() => setViewMode('list')} className={`p-2 rounded-xl border transition ${viewMode === 'list' ? 'border-accentOrange bg-accentOrange/10 text-accentOrange' : 'border-border bg-white text-textSecondary hover:bg-lightBeige/50'}`}><List size={16} /></button>
-      </div>
-      <form onSubmit={submitProject} className="admin-card-glass space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl text-textPrimary">{editingProject ? 'Edit' : 'Add'} Project</h2>
-          {editingProject && <button type="button" onClick={() => setEditingProject(null)} className="text-xs text-textSecondary hover:text-accentOrange">Cancel</button>}
-        </div>
-        <div className="grid sm:grid-cols-2 gap-3">
-          <select value={resourceType} onChange={(e) => { setResourceType(e.target.value); setMediaPreview(setPreview(mediaFile, e.target.value === 'video' ? 'video' : 'image')) }} className="select">
-            <option value="video">Video</option>
-            <option value="image">Image</option>
-          </select>
-          <input value={projectForm.order} onChange={(e) => setProjectForm((p) => ({ ...p, order: Number(e.target.value) || 0 }))} type="number" className="input" placeholder="Order (optional)" />
-        </div>
-        <DropZone onFile={handleMediaChange} preview={mediaPreview} onClear={() => { setMediaFile(null); setMediaPreview(null) }} accept="video/*,image/*" kind={resourceType === 'video' ? 'video' : 'image'} />
-        <div className="rounded-2xl border border-border bg-white p-4 space-y-4">
-          <ImagePositionControls value={mediaSettings} onChange={setMediaSettings} />
-          <ImagePositionPreview src={mediaPreview} settings={mediaSettings} />
-        </div>
-        <ProgressBar />
-        <button className="btn-primary w-full" disabled={isUploading}>
-          {isUploading ? 'Uploading…' : editingProject ? 'Update' : 'Upload'}
-        </button>
-      </form>
-      <div className={viewMode === 'grid' ? 'grid gap-5 sm:grid-cols-2' : 'space-y-4'}>
-        {projects.map((item) => (
-          <article key={item._id} className={`overflow-hidden rounded-2xl border border-border bg-white shadow-card hover:shadow-lift transition-shadow ${viewMode === 'list' ? 'flex' : ''}`}>
-            <div className={viewMode === 'list' ? 'w-48 flex-shrink-0' : ''}>
-              {item.videoUrl ? <video src={item.videoUrl} className="h-44 w-full object-cover" autoPlay muted /> : <PositionedImage src={item.coverImageUrl} alt={item.title || 'Project media'} settings={item.mediaSettings} className="h-44 w-full" />}
+  const renderProjects = () => {
+    const moveItem = (index, direction) => {
+      setProjectReorderList((prev) => {
+        const next = [...prev]
+        const target = index + direction
+        if (target < 0 || target >= next.length) return prev
+        ;[next[index], next[target]] = [next[target], next[index]]
+        return next
+      })
+    }
+
+    const handleReorderSave = () => {
+      reorderProjectsV2(projectReorderList)
+    }
+
+    return (
+      <div className="space-y-6">
+        <form onSubmit={submitProject} className="admin-card-glass space-y-4">
+          <h2 className="font-display text-xl text-textPrimary">Upload Project Video</h2>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <input
+              value={projectForm.order}
+              onChange={(e) => setProjectForm((p) => ({ ...p, order: Number(e.target.value) || 0 }))}
+              type="number"
+              className="input"
+              placeholder="Display Order"
+            />
+          </div>
+          <DropZone
+            onFile={handleMediaChange}
+            preview={mediaPreview}
+            onClear={() => { setMediaFile(null); setMediaPreview(null) }}
+            accept="video/mp4,video/webm,video/quicktime"
+            kind="video"
+          />
+          <ProgressBar />
+          <button className="btn-primary w-full" disabled={isUploading || !mediaFile}>
+            {isUploading ? 'Uploading…' : 'Upload Video'}
+          </button>
+        </form>
+
+        <div className="admin-card-glass space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-xl text-textPrimary">Project Videos ({projects.length})</h2>
+            {projectReorderList.length > 0 && (
+              <button onClick={handleReorderSave} className="btn-secondary text-2xs" disabled={isSavingProjectOrder}>
+                {isSavingProjectOrder ? 'Saving…' : 'Save Order'}
+              </button>
+            )}
+          </div>
+
+          {projects.length === 0 ? (
+            <p className="text-sm text-textSecondary/50 text-center py-8">No project videos uploaded yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {projects.map((item, index) => (
+                <div key={item._id} className="flex items-center gap-4 rounded-xl border border-border bg-white p-3">
+                  <div className="flex flex-col gap-1">
+                    <button onClick={() => moveItem(index, -1)} disabled={index === 0} className="p-1 rounded hover:bg-lightBeige disabled:opacity-30"><ChevronLeft size={14} /></button>
+                    <button onClick={() => moveItem(index, 1)} disabled={index === projects.length - 1} className="p-1 rounded hover:bg-lightBeige disabled:opacity-30"><ChevronRight size={14} /></button>
+                  </div>
+                  <div className="w-32 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-black">
+                    <video src={item.videoUrl} className="h-full w-full object-cover" muted />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-textPrimary truncate">Order: {item.order ?? index}</p>
+                    <p className="text-2xs text-textSecondary/50 mt-1">Uploaded {new Date(item.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <button
+                    onClick={() => togglePublishProjectV2(item._id)}
+                    className={`px-3 py-1.5 rounded-full text-2xs font-medium transition ${
+                      item.isPublished
+                        ? 'bg-success/10 text-success hover:bg-success/20'
+                        : 'bg-lightBeige text-textSecondary hover:bg-lightBeige/80'
+                    }`}
+                  >
+                    {item.isPublished ? 'Published' : 'Draft'}
+                  </button>
+                  <button onClick={() => setDeleteConfirm({ type: 'project', id: item._id })} className="p-2 rounded-lg hover:bg-error/10 text-textSecondary hover:text-error transition"><Trash2 size={14} /></button>
+                </div>
+              ))}
             </div>
-            <div className="p-4 flex-1">
-              <p className="text-xs text-textSecondary/70">{item.category || 'Uncategorized'}</p>
-              <div className="mt-3 flex gap-2">
-                <button onClick={() => { setEditingProject(item); setProjectForm({ order: item.order || 0 }); setMediaSettings(normalizeMediaSettings(item.mediaSettings)) }} className="btn-secondary text-2xs flex items-center gap-1"><Edit size={12} /> Edit</button>
-                <button onClick={() => setDeleteConfirm({ type: 'project', id: item._id })} className="btn-danger text-2xs flex items-center gap-1"><Trash2 size={12} /> Delete</button>
-              </div>
-            </div>
-          </article>
-        ))}
+          )}
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   const renderPortfolio = () => (
     <div className="grid gap-8 lg:grid-cols-[400px_1fr]">

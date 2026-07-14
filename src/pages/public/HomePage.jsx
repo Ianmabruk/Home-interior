@@ -24,7 +24,7 @@ export const HomePage = () => {
 
   const loadFeed = useCallback(() => {
     const projectsP = api
-      .get('/content/projects')
+      .get('/project-v2')
       .then((res) => res.data || [])
       .catch(() => [])
     const portfolioP = api

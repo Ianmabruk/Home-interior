@@ -8,13 +8,9 @@ const PLAY_RETRY_DELAYS = [100, 200, 400, 600, 800, 1000, 1200, 1500]
 
 function resolveShowcaseItem(project) {
   if (!project) return null
-  const mediaArr = Array.isArray(project.media) ? project.media : []
-  const firstVideo = mediaArr.find((m) => m && m.type === 'video' && m.url)
-  const firstMedia = mediaArr.find((m) => m && m.url)
-  const url = project.videoUrl || firstVideo?.url || firstMedia?.url || project.coverImageUrl
+  const url = project.videoUrl || project.thumbnailUrl
   if (!url) return null
-  const type = project.videoUrl || firstVideo ? 'video' : firstMedia?.type || 'image'
-  return { type, url, mediaSettings: project.mediaSettings }
+  return { type: 'video', url }
 }
 
 export default function ProjectVideoShowcase({ videos, className = '' }) {
