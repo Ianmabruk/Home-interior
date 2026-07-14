@@ -122,48 +122,30 @@ export const projectsController = {
   }),
 
   create: asyncHandler(async (req, res) => {
-    const payload = stripUnknown({ ...req.body }, PROJECT_FIELDS)
-
-    if (payload.order !== undefined) payload.order = orderValue(payload.order)
-
-    const parsedMedia = parseMaybeJson(req.body.media, null)
-    if (parsedMedia) payload.media = parsedMedia
-
-    const parsedBeforeAfter = parseMaybeJson(req.body.beforeAfterImages, null)
-    if (parsedBeforeAfter) payload.beforeAfterImages = parsedBeforeAfter
-
-    const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
-    if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
-
     const upload = await handleFileUpload(req, 'hok/projects')
-    if (upload) {
-      const mediaItem = { type: upload.kind, url: upload.url, publicId: upload.publicId }
-      payload.media = [...(Array.isArray(payload.media) ? payload.media : []), mediaItem]
-      if (upload.kind === 'video') {
-        payload.videoUrl = upload.url
-        payload.videoPublicId = upload.publicId
-      } else {
-        payload.coverImageUrl = upload.url
-      }
+    const media = upload
+      ? [{ type: upload.kind, url: upload.url, publicId: upload.publicId }]
+      : []
+
+    const mediaSettings = parseMediaSettings(req.body.mediaSettings) || {
+      position: 'center',
+      zoom: 100,
+      fit: 'cover',
     }
 
-    payload.isPublished = payload.isPublished ?? true
-
-    const data = {
-      title: 'Project',
-      order: payload.order,
-      media: payload.media,
-      mediaSettings: payload.mediaSettings,
-      videoUrl: payload.videoUrl,
-      videoPublicId: payload.videoPublicId,
-      coverImageUrl: payload.coverImageUrl,
-      isPublished: payload.isPublished,
+    const payload = {
+      order: Number(req.body.order || 0),
+      media,
+      videoUrl: upload?.url || null,
+      videoPublicId: upload?.publicId || null,
+      mediaSettings,
+      isPublished: true,
     }
 
-    console.log('PROJECT CREATE PAYLOAD', JSON.stringify(data, null, 2))
+    console.log('PROJECT CREATE PAYLOAD', JSON.stringify(payload, null, 2))
 
     const item = await prisma.project.create({
-      data: data
+      data: payload,
     })
     res.status(201).json(sendSuccess(withId(item)))
   }),
