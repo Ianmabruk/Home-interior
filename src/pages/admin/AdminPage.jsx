@@ -248,10 +248,9 @@ function AdminPage() {
 
   const mediaItems = useMemo(() => {
     const items = []
-    portfolio.forEach((p) => items.push({ id: p._id, type: 'image', kind: 'portfolio', title: p.title, category: p.category, src: p.imageUrl }))
-    projects.forEach((p) => items.push({ id: p._id, type: p.videoUrl ? 'video' : 'image', kind: 'projects', title: p.title, category: p.category, src: p.videoUrl || p.coverImageUrl }))
-    products.forEach((p) => items.push({ id: p._id, type: 'image', kind: 'products', title: p.name, category: p.category, src: p.images?.[0]?.url }))
-    virtualDesigns.forEach((p) => items.push({ id: p._id, type: 'video', kind: 'virtual', title: p.title, category: 'Virtual', src: p.videoUrl }))
+    portfolio.forEach((p) => items.push({ id: p._id, type: 'image', kind: 'portfolio', title: p.title || 'Untitled', category: p.category, src: p.imageUrl }))
+    projects.forEach((p) => items.push({ id: p._id, type: p.videoUrl ? 'video' : 'image', kind: 'projects', title: p.title || 'Untitled', category: p.category, src: p.videoUrl || p.coverImageUrl }))
+    virtualDesigns.forEach((p) => items.push({ id: p._id, type: 'video', kind: 'virtual', title: p.title || 'Untitled', category: 'Virtual', src: p.videoUrl }))
     return items
   }, [portfolio, projects, products, virtualDesigns])
 
@@ -703,7 +702,7 @@ function AdminPage() {
               <Layers size={16} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-textPrimary truncate">{item.title}</p>
+              <p className="text-sm font-medium text-textPrimary truncate">{item.title || 'Untitled'}</p>
               <p className="text-2xs text-textSecondary/60">{item.category || 'Content'}</p>
             </div>
             <span className="text-2xs text-textSecondary/40">{new Date(item.createdAt).toLocaleDateString()}</span>
@@ -832,11 +831,10 @@ function AdminPage() {
         {projects.map((item) => (
           <article key={item._id} className={`overflow-hidden rounded-2xl border border-border bg-white shadow-card hover:shadow-lift transition-shadow ${viewMode === 'list' ? 'flex' : ''}`}>
             <div className={viewMode === 'list' ? 'w-48 flex-shrink-0' : ''}>
-              {item.videoUrl ? <video src={item.videoUrl} className="h-44 w-full object-cover" autoPlay muted /> : <PositionedImage src={item.coverImageUrl} alt={item.title} settings={item.mediaSettings} className="h-44 w-full" />}
+              {item.videoUrl ? <video src={item.videoUrl} className="h-44 w-full object-cover" autoPlay muted /> : <PositionedImage src={item.coverImageUrl} alt={item.title || 'Project media'} settings={item.mediaSettings} className="h-44 w-full" />}
             </div>
             <div className="p-4 flex-1">
-              <h3 className="font-display text-xl text-textPrimary">{item.title}</h3>
-              <p className="text-xs text-textSecondary/70 mt-1">{item.category}</p>
+              <p className="text-xs text-textSecondary/70">{item.category || 'Uncategorized'}</p>
               <div className="mt-3 flex gap-2">
                 <button onClick={() => { setEditingProject(item); setProjectForm({ order: item.order || 0 }); setMediaSettings(normalizeMediaSettings(item.mediaSettings)) }} className="btn-secondary text-2xs flex items-center gap-1"><Edit size={12} /> Edit</button>
                 <button onClick={() => setDeleteConfirm({ type: 'project', id: item._id })} className="btn-danger text-2xs flex items-center gap-1"><Trash2 size={12} /> Delete</button>
@@ -1234,11 +1232,11 @@ function AdminPage() {
                   {item.type === 'video' ? (
                     <video src={item.src} className="w-full object-cover" muted />
                   ) : (
-                    <img src={item.src} alt={item.title} className="w-full object-cover" />
+                    <img src={item.src} alt={item.title || 'Media'} className="w-full object-cover" />
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-darkBrown/80 via-darkBrown/0 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                     <div className="text-white">
-                      <p className="text-sm font-medium truncate">{item.title}</p>
+                      <p className="text-sm font-medium truncate">{item.title || 'Untitled'}</p>
                       <span className="text-2xs uppercase tracking-widest text-softOrange">{item.category}</span>
                     </div>
                   </div>

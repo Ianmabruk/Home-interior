@@ -744,11 +744,7 @@ export const homepageFeed = asyncHandler(async (req, res) => {
   // entry. Falls back to the first project, then to null if none exist.
   const heroProject =
     sortedProjects.find((p) => p?.videoUrl) || sortedProjects[0] || null
-  const heroVideo = heroProject?.videoUrl ? {
-    url: heroProject.videoUrl,
-    title: heroProject.title,
-    description: heroProject.description,
-  } : null
+  const heroVideo = heroProject?.videoUrl ? { url: heroProject.videoUrl } : null
 
   // Structured debug log — exactly which section had data.
   console.log('[HOMEPAGE DEBUG]', {

@@ -109,6 +109,31 @@ describe('Admin Project Dashboard — video upload', () => {
     expect(capturedCreate.isPublished).toBe(true)
   })
 
+  it('creates a project without a title (title is optional)', async () => {
+    let capturedCreate
+    mockPrisma.project.create.mockImplementation(({ data }) => {
+      capturedCreate = data
+      return Promise.resolve({ id: 'proj-notitle', ...data })
+    })
+
+    const response = await request(app)
+      .post('/api/content/projects')
+      .set('Authorization', `Bearer ${token}`)
+      .field('order', '1')
+      .field('resourceType', 'video')
+      .field('mediaSettings', JSON.stringify({ position: 'center', zoom: 100, fit: 'cover' }))
+      .attach('media', Buffer.from('fake-video-bytes'), {
+        filename: 'showcase.mp4',
+        contentType: 'video/mp4',
+      })
+
+    expect(response.status).toBe(201)
+    expect(response.body.success).toBe(true)
+    expect(capturedCreate.videoUrl).toBe('https://test.cloudinary.com/project-video.mp4')
+    expect(capturedCreate.title).toBeUndefined()
+    expect(capturedCreate.isPublished).toBe(true)
+  })
+
   it('returns 401 when not authenticated', async () => {
     const response = await request(app)
       .post('/api/content/projects')
