@@ -130,7 +130,7 @@ describe('Admin Project Dashboard — video upload', () => {
     expect(response.status).toBe(201)
     expect(response.body.success).toBe(true)
     expect(capturedCreate.videoUrl).toBe('https://test.cloudinary.com/project-video.mp4')
-    expect(capturedCreate.title).toBeUndefined()
+    expect(capturedCreate.title).toMatch(/^project-[0-9a-f-]+$/)
     expect(capturedCreate.isPublished).toBe(true)
   })
 
