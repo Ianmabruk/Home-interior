@@ -66,10 +66,12 @@ export const AboutPage = () => {
 
   if (!about) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-primary-bg">
-        <div className="text-center">
-          <h1 className="font-display text-6xl font-medium text-ink">About</h1>
-          <p className="mt-6 text-sm text-ink/40">About content has not been configured yet.</p>
+      <div className="flex min-h-[70vh] items-center justify-center bg-primary-bg px-6">
+        <div className="text-center max-w-lg">
+          <h1 className="font-display text-6xl font-medium text-charcoal">About</h1>
+          <p className="mt-6 text-base text-stone leading-relaxed">
+            About content has not been configured yet. The admin can add the company story, mission, vision, values, and gallery images from the <strong className="text-charcoal">Admin Dashboard → About</strong> section.
+          </p>
           <Link to="/" className="btn-primary mt-8">Go Home</Link>
         </div>
       </div>

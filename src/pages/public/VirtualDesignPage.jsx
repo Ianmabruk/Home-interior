@@ -1,6 +1,6 @@
-import { Maximize2, X, Play, Sparkles, Video, Image, Layers, Zap } from 'lucide-react'
+import { Maximize2, X, Play, Sparkles, Video } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
@@ -17,42 +17,12 @@ const staggerContainer = {
   show: { transition: { staggerChildren: 0.06 } },
 }
 
-const processSteps = [
-  { number: '01', title: 'Discovery Call', desc: 'We discuss your vision, style preferences, and functional needs.' },
-  { number: '02', title: 'Concept Development', desc: 'Our designers create mood boards and initial layouts.' },
-  { number: '03', title: 'Design Refinement', desc: 'We refine the design with your feedback and material selections.' },
-  { number: '04', title: 'Final Presentation', desc: 'Complete 3D renders, detailed specs, and shopping lists delivered.' },
-]
-
-const consultationPackages = [
-  {
-    name: 'Essentials',
-    price: '$299',
-    description: 'Perfect for single rooms',
-    features: ['1-hour video consultation', 'Mood board & color palette', 'Layout suggestions', 'Product recommendations', 'Follow-up email summary'],
-  },
-  {
-    name: 'Complete',
-    price: '$599',
-    description: 'Full home transformation',
-    features: ['2-hour video consultation', 'Detailed mood boards per room', 'Space plans & furniture layouts', 'Curated shopping list', '2 revisions included'],
-    popular: true,
-  },
-  {
-    name: 'Premium',
-    price: '$1,299',
-    description: 'Luxury full-service design',
-    features: ['3+ hour consultation', 'Photorealistic 3D renders', 'Custom furniture sourcing', 'Contractor coordination', 'Unlimited revisions', 'Project management'],
-  },
-]
-
 export const VirtualDesignPage = () => {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [fullscreen, setFullscreen] = useState(null)
-  const [activeTab, setActiveTab] = useState('projects')
 
   const loadVirtualDesign = () => {
     api.get('/content/virtual-design')
@@ -121,82 +91,7 @@ export const VirtualDesignPage = () => {
             <h1 className="font-['Playfair_Display'] text-5xl font-medium text-white md:text-7xl lg:text-8xl leading-[0.95]">
               Virtual Interiors
             </h1>
-            <p className="mt-6 max-w-2xl mx-auto text-lg text-white/60 leading-relaxed">
-              Step inside our luxury projects with cinematic walkthroughs and detailed presentations.
-            </p>
-            <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Link to="/virtual-interior-design" className="group inline-flex items-center justify-center gap-3 rounded-full bg-forest px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-white transition-all duration-300 hover:bg-forestDark hover:shadow-[0_10px_40px_rgba(31,77,58,0.2)] hover:-translate-y-0.5">
-                <Sparkles size={14} strokeWidth={1.5} />
-                Book Virtual Consultation
-              </Link>
-              <Link to="#process" className="inline-flex items-center justify-center gap-3 rounded-full border border-white/25 px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-white transition-all duration-300 hover:bg-white hover:text-charcoal hover:border-white">
-                View Design Process
-              </Link>
-            </div>
           </motion.div>
-        </div>
-      </section>
-
-      {/* Stats Bar */}
-      <section className="bg-white/50 border-y border-border py-12">
-        <div className="container-wide px-6 md:px-12 lg:px-20">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
-            {[
-              { label: 'Projects Completed', value: '247+' },
-              { label: 'Virtual Consultations', value: '1,200+' },
-              { label: 'Client Satisfaction', value: '98%' },
-              { label: 'Countries Served', value: '15+' },
-            ].map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: i * 0.1 }}
-                className="text-center"
-              >
-                <p className="font-['Playfair_Display'] text-4xl md:text-5xl font-semibold text-charcoal">{stat.value}</p>
-                <p className="mt-2 text-sm text-stone">{stat.label}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Process Section */}
-      <section id="process" className="bg-primary-bg px-6 md:px-12 lg:px-20 py-24 md:py-36">
-        <div className="container-wide">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="mb-16 md:mb-24 text-center"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-bronze mb-4">Our Process</p>
-            <h2 className="font-['Playfair_Display'] text-4xl font-medium leading-tight text-charcoal md:text-5xl lg:text-6xl">
-              Designing Virtually,<br />Delivering Reality
-            </h2>
-          </motion.div>
-
-          <div className="grid gap-8 md:grid-cols-4">
-            {processSteps.map((step, i) => (
-              <motion.div
-                key={step.number}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: i * 0.1 }}
-                className="group relative p-6 md:p-8 bg-white rounded-3xl border border-border shadow-soft hover:shadow-lift transition-all duration-500"
-              >
-                <div className="mb-4 inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-secondary/60 text-forest transition-all duration-500 group-hover:bg-forest group-hover:text-white group-hover:scale-110">
-                  <span className="text-2xl font-semibold">{step.number}</span>
-                </div>
-                <h3 className="font-['Playfair_Display'] text-xl md:text-2xl font-medium text-charcoal leading-tight mb-2">{step.title}</h3>
-                <p className="text-sm text-stone leading-relaxed">{step.desc}</p>
-              </motion.div>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -344,87 +239,6 @@ export const VirtualDesignPage = () => {
               </motion.div>
             </div>
           </section>
-        </div>
-      </section>
-
-      {/* Consultation Packages */}
-      <section className="relative overflow-hidden bg-charcoal">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(184,138,90,0.12),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(232,211,190,0.06),transparent_60%)]" />
-        <div className="relative section-pad">
-          <div className="container-narrow px-6 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-champagne/50 mb-4">Start Your Journey</p>
-              <h2 className="font-['Playfair_Display'] text-4xl font-medium text-white md:text-5xl lg:text-6xl leading-[1.05]">
-                Ready to Transform<br />Your Space?
-              </h2>
-              <p className="mt-6 max-w-lg mx-auto text-base text-white/50 leading-relaxed">
-                Book a virtual consultation and let our experts bring your dream interior to life.
-              </p>
-              <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-                <Link to="/virtual-interior-design" className="inline-flex items-center gap-3 rounded-full bg-bronze px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-white transition-all duration-300 hover:bg-bronzeDark hover:shadow-[0_10px_40px_rgba(184,138,90,0.2)] hover:-translate-y-0.5">
-                  <Sparkles size={14} strokeWidth={1.5} />
-                  Book Virtual Consultation
-                </Link>
-                <Link to="/portfolio" className="inline-flex items-center justify-center gap-3 rounded-full border border-white/25 px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-white transition-all duration-300 hover:bg-white hover:text-charcoal hover:border-white">
-                  View Portfolio
-                </Link>
-              </div>
-            </motion.div>
-
-            {/* Consultation Packages */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-100px' }}
-              transition={{ duration: 0.8, delay: 0.3 }}
-              className="mt-24"
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-champagne/50 mb-12 text-center">Consultation Packages</p>
-              <div className="grid gap-8 md:grid-cols-3">
-                {consultationPackages.map((pkg, i) => (
-                  <motion.div
-                    key={pkg.name}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.6, delay: i * 0.1 }}
-                    className={`relative group p-8 rounded-3xl bg-white/5 border ${pkg.popular ? 'border-bronze/30' : 'border-white/10'} ${pkg.popular ? 'shadow-[0_0_0_1px_rgba(184,138,90,0.2)]' : ''}`}
-                  >
-                    {pkg.popular && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-bronze text-white text-[10px] font-semibold uppercase tracking-widest px-3 py-1 rounded-full">
-                        Most Popular
-                      </span>
-                    )}
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-bronze mb-2">{pkg.name}</p>
-                    <div className="mb-4">
-                      <span className="font-['Playfair_Display'] text-4xl font-medium text-white">{pkg.price}</span>
-                      <span className="text-white/40 ml-2">/ project</span>
-                    </div>
-                    <p className="text-sm text-white/50 mb-6">{pkg.description}</p>
-                    <ul className="space-y-3 mb-8">
-                      {pkg.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-3 text-sm text-white/70">
-                          <div className="flex-shrink-0 mt-1 w-5 h-5 rounded-full bg-bronze/20 flex items-center justify-center">
-                            <Zap size={10} strokeWidth={2} className="text-bronze" />
-                          </div>
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <button className={`w-full rounded-full py-3 text-[11px] font-semibold uppercase tracking-[0.08em] transition-all duration-300 ${pkg.popular ? 'bg-bronze text-white hover:bg-bronzeDark hover:shadow-[0_10px_40px_rgba(184,138,90,0.2)]' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20'}`}>
-                      Select Package
-                    </button>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
         </div>
       </section>
 

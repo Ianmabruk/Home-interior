@@ -19,12 +19,15 @@ const normalizeSocials = (socials = {}) =>
 
 export const SocialIcons = ({ className = '', socials = {}, dark = false }) => {
   const items = normalizeSocials(socials)
+  const showDefaults = items.length === 0
 
-  if (!items.length) return null
+  const displayItems = showDefaults
+    ? socialOrder.map((key) => ({ key, url: '#', label: capitalize(key), isDefault: true }))
+    : items.map((item) => ({ ...item, isDefault: false }))
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      {items.map((item) => {
+      {displayItems.map((item) => {
         const Icon = iconMap[item.key]
         return (
           <a
@@ -35,9 +38,9 @@ export const SocialIcons = ({ className = '', socials = {}, dark = false }) => {
             aria-label={item.label}
             className={`inline-flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
               dark
-                ? 'border-black/15 bg-white text-ink hover:bg-orange hover:border-orange hover:text-ink'
-                : 'border-white/20 bg-white/5 text-white hover:bg-orange hover:border-orange hover:text-ink'
-            }`}
+                ? 'border-white/20 bg-white/5 text-white hover:bg-bronze hover:border-bronze hover:text-charcoal'
+                : 'border-white/20 bg-white/5 text-white hover:bg-bronze hover:border-bronze hover:text-charcoal'
+            } ${item.isDefault ? 'opacity-40 cursor-default' : ''}`}
           >
             <Icon size={16} />
           </a>
