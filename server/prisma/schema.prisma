@@ -8,6 +8,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ProductCategory {
+  MIRRORS
+  FRAMES
+  THROW_PILLOWS
+}
+
 model User {
   id                   String    @id @default(uuid()) @map("_id")
   fullName             String    @map("full_name")
@@ -69,7 +75,7 @@ model Product {
   discountPrice Float?   @map("discount_price")
   images        Json
   colorVariants Json     @map("color_variants")
-  category      String
+  category      ProductCategory
   vendor        String?  @default("")
   stock         Int
   sku           String   @unique
@@ -84,14 +90,15 @@ model Product {
 }
 
 model ProjectV2 {
-  id            String    @id @default(uuid()) @map("_id")
-  videoUrl      String    @map("video_url")
-  videoPublicId String    @map("video_public_id")
-  thumbnailUrl  String?   @map("thumbnail_url")
-  order         Int       @default(0)
-  isPublished   Boolean?  @default(true) @map("is_published")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id              String    @id @default(uuid()) @map("_id")
+  videoUrl        String    @map("video_url")
+  videoPublicId   String    @map("video_public_id")
+  thumbnailUrl    String?   @map("thumbnail_url")
+  thumbnailPublicId String? @map("thumbnail_public_id")
+  order           Int       @default(0)
+  isPublished     Boolean?  @default(true) @map("is_published")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   @@map("project_v2")
 }
@@ -116,17 +123,19 @@ model Project {
 }
 
 model Portfolio {
-  id            String   @id @default(uuid()) @map("_id")
-  title         String
-  description   String?
-  category      String
-  imageUrl      String?  @map("image_url")
-  imagePublicId String?  @map("image_public_id")
-  order         Int?     @default(0)
-  mediaSettings Json?    @map("media_settings")
-  isPublished   Boolean? @default(true) @map("is_published")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(uuid()) @map("_id")
+  title           String
+  description     String?
+  category        String
+  imageUrl        String?  @map("image_url")
+  imagePublicId   String?  @map("image_public_id")
+  beforeAfterImages Json? @map("before_after_images")
+  gallery         Json?
+  order           Int?     @default(0)
+  mediaSettings   Json?    @map("media_settings")
+  isPublished     Boolean? @default(true) @map("is_published")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@map("portfolios")
 }

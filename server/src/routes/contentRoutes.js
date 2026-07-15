@@ -65,8 +65,8 @@ router.delete('/projects/:id', auth, authorize('admin'), writeLimiter, auditLog,
 
 router.get('/portfolio', portfolioController.list)
 router.patch('/portfolio/reorder', auth, authorize('admin'), writeLimiter, auditLog, sanitizeInput, portfolioController.reorder)
-router.post('/portfolio', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, validatePortfolioBody, portfolioController.create)
-router.patch('/portfolio/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, validatePortfolioBody, portfolioController.update)
+router.post('/portfolio', auth, authorize('admin'), writeLimiter, auditLog, upload.any(), validateUpload, sanitizeInput, validatePortfolioBody, portfolioController.create)
+router.patch('/portfolio/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.any(), validateUpload, sanitizeInput, validatePortfolioBody, portfolioController.update)
 router.delete('/portfolio/:id', auth, authorize('admin'), writeLimiter, auditLog, portfolioController.remove)
 
 router.get('/about', getAbout)

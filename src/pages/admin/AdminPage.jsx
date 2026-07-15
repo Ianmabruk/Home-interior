@@ -1,4 +1,4 @@
-import { BarChart3, Boxes, Film, FolderKanban, Info, Mail, Sparkles, LayoutDashboard, ShoppingBag, TrendingUp, Users, FileText, Settings, Search, Grid, List, Check, Trash2, Edit, Bell, ChevronLeft, ChevronRight, UploadCloud, X, Plus, Menu, LogOut, Activity, DollarSign, Layers, MessageSquare, Send, Image as ImageIcon, Video } from 'lucide-react'
+import { BarChart3, Boxes, Film, FolderKanban, Sparkles, Info, Mail, LayoutDashboard, ShoppingBag, TrendingUp, Users, FileText, Settings, Search, Check, Trash2, Edit, Bell, ChevronLeft, ChevronRight, UploadCloud, X, Plus, Menu, LogOut, Activity, DollarSign, Layers, MessageSquare, Send, Image as ImageIcon, Video } from 'lucide-react'
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '../../services/api'
@@ -72,10 +72,9 @@ function AdminPage() {
   const [productImagePreview, setProductImagePreview] = useState(null)
   const [virtualVideoFile, setVirtualVideoFile] = useState(null)
   const [virtualVideoPreview, setVirtualVideoPreview] = useState(null)
-  const [resourceType, setResourceType] = useState('video')
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
-  const [editingProject, setEditingProject] = useState(null)
+  const [resourceType, setResourceType] = useState('video') // eslint-disable-line no-unused-vars
   const [editingPortfolio, setEditingPortfolio] = useState(null)
   const [editingVirtual, setEditingVirtual] = useState(null)
   const [editingVariants, setEditingVariants] = useState(null)
@@ -88,6 +87,10 @@ function AdminPage() {
   const [variantImageFile, setVariantImageFile] = useState(null)
   const [variantImagePreview, setVariantImagePreview] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState({ type: null, id: null })
+  const [portfolioBeforeFile, setPortfolioBeforeFile] = useState(null)
+  const [portfolioBeforePreview, setPortfolioBeforePreview] = useState(null)
+  const [portfolioGalleryFiles, setPortfolioGalleryFiles] = useState([])
+  const [portfolioGalleryPreviews, setPortfolioGalleryPreviews] = useState([])
 
   // Real-time new-order notifications (Task G). We poll the admin overview
   // every 15s; the first poll simply seeds the set of already-known orders
@@ -100,7 +103,6 @@ function AdminPage() {
   const [notifToast, setNotifToast] = useState(null)
 
   const [searchTerm, setSearchTerm] = useState('')
-  const [viewMode, setViewMode] = useState('grid')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileSidebar, setMobileSidebar] = useState(false)
   const [mediaFilter, setMediaFilter] = useState('all')
@@ -323,6 +325,10 @@ function AdminPage() {
       payload.append('order', String(portfolioForm.order || 0))
       payload.append('mediaSettings', JSON.stringify(normalizeMediaSettings(mediaSettings)))
       if (mediaFile) payload.append('media', mediaFile)
+      if (portfolioBeforeFile) payload.append('beforeImage', portfolioBeforeFile)
+      if (portfolioGalleryFiles.length > 0) {
+        portfolioGalleryFiles.forEach((file) => payload.append('gallery', file))
+      }
       if (editingPortfolio) {
         await api.patch(`/content/portfolio/${editingPortfolio._id}`, payload, { onUploadProgress })
         setEditingPortfolio(null)
@@ -331,10 +337,23 @@ function AdminPage() {
       }
       setPortfolioForm({ title: '', category: '', description: '', order: 0 })
       setMediaFile(null); setMediaPreview(null)
+      setPortfolioBeforeFile(null); setPortfolioBeforePreview(null)
+      setPortfolioGalleryFiles([]); setPortfolioGalleryPreviews([])
       setMediaSettings(DEFAULT_MEDIA_SETTINGS)
       window.dispatchEvent(new CustomEvent('admin:data-changed', { detail: { type: 'portfolio-changed' } }))
       fetchAll(); resetProgress(); setSuccess('Portfolio item saved.')
     } catch (error) { resetProgress(); setFailure(error, 'Portfolio save failed.') }
+  }
+
+  const handleBeforeImageChange = (file) => {
+    setPortfolioBeforeFile(file)
+    if (file?.type?.startsWith('image/')) setPortfolioBeforePreview(URL.createObjectURL(file))
+    else setPortfolioBeforePreview(null)
+  }
+
+  const handleGalleryChange = (file) => {
+    setPortfolioGalleryFiles((prev) => [...prev, file])
+    if (file?.type?.startsWith('image/')) setPortfolioGalleryPreviews((prev) => [...prev, URL.createObjectURL(file)])
   }
 
   const deletePortfolio = async (id) => {
@@ -920,6 +939,23 @@ function AdminPage() {
         <textarea value={portfolioForm.description} onChange={(e) => setPortfolioForm((p) => ({ ...p, description: e.target.value }))} className="textarea" placeholder="Description" />
         <input value={portfolioForm.order} onChange={(e) => setPortfolioForm((p) => ({ ...p, order: Number(e.target.value) || 0 }))} type="number" className="input" placeholder="Order" />
         <DropZone onFile={handleMediaChange} preview={mediaPreview} onClear={() => { setMediaFile(null); setMediaPreview(null) }} accept="image/*" kind="image" />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-2xs font-medium uppercase tracking-widest text-textSecondary/70 mb-1">Before Image</label>
+            <DropZone onFile={handleBeforeImageChange} preview={portfolioBeforePreview} onClear={() => { setPortfolioBeforeFile(null); setPortfolioBeforePreview(null) }} accept="image/*" kind="image" />
+          </div>
+          <div>
+            <label className="block text-2xs font-medium uppercase tracking-widest text-textSecondary/70 mb-1">Gallery Images</label>
+            <DropZone onFile={handleGalleryChange} preview={null} onClear={() => { setPortfolioGalleryFiles([]); setPortfolioGalleryPreviews([]) }} accept="image/*" kind="image" multiple />
+            {portfolioGalleryPreviews.length > 0 && (
+              <div className="mt-2 grid grid-cols-3 gap-1">
+                {portfolioGalleryPreviews.map((src, i) => (
+                  <img key={i} src={src} alt={`Gallery ${i + 1}`} className="h-12 w-full rounded object-cover" />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
         <div className="rounded-2xl border border-border bg-white p-4 space-y-4">
           <ImagePositionControls value={mediaSettings} onChange={setMediaSettings} />
           <ImagePositionPreview src={mediaPreview} settings={mediaSettings} />

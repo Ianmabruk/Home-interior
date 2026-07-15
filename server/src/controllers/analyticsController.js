@@ -41,7 +41,7 @@ const buildSeries = (fromDate, mapFn) => {
 
 export const overview = asyncHandler(async (req, res) => {
   const [products, users, orders, lowStockRows] = await Promise.all([
-    prisma.product.findMany({ select: { id: true, name: true, price: true, stock: true, isActive: true } }),
+    prisma.product.findMany({ select: { id: true, name: true, price: true, stock: true, isPublished: true } }),
     prisma.user.findMany({ select: { id: true, role: true, createdAt: true } }),
     prisma.order.findMany({ select: { id: true, total: true, status: true, paymentStatus: true, createdAt: true, userId: true, items: true } }),
     prisma.product.count({ where: { stock: { lte: 5 } } }),

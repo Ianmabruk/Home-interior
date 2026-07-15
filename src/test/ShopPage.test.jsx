@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from '../context/AuthContext'
 import { ShopProvider } from '../context/ShopContext'
+import { CurrencyProvider } from '../context/CurrencyContext'
 
 vi.mock('lucide-react', () => ({
   Search: () => <span data-testid="search">Search</span>,
@@ -12,14 +13,9 @@ vi.mock('lucide-react', () => ({
   Heart: () => <span data-testid="heart">Heart</span>,
   ShoppingBag: () => <span data-testid="shopping-bag">Bag</span>,
   ChevronDown: () => <span data-testid="chevron">↓</span>,
-  BedDouble: () => <span data-testid="bed">Bed</span>,
-  BriefcaseBusiness: () => <span data-testid="briefcase">Briefcase</span>,
-  Building2: () => <span data-testid="building">Building</span>,
-  Lamp: () => <span data-testid="lamp">Lamp</span>,
-  Sparkles: () => <span data-testid="sparkles">Sparkles</span>,
-  Sofa: () => <span data-testid="sofa">Sofa</span>,
-  TreePalm: () => <span data-testid="tree">Tree</span>,
-  UtensilsCrossed: () => <span data-testid="utensils">Utensils</span>,
+  Square: () => <span data-testid="square">Square</span>,
+  PictureInPicture: () => <span data-testid="picture">Picture</span>,
+  Armchair: () => <span data-testid="armchair">Armchair</span>,
   SlidersHorizontal: () => <span data-testid="sliders">Sliders</span>,
   X: () => <span data-testid="x">X</span>,
   Menu: () => <span data-testid="menu">Menu</span>,
@@ -42,7 +38,9 @@ const renderWithProviders = (ui, { route = '/' } = {}) => {
     <BrowserRouter>
       <AuthProvider>
         <ShopProvider>
-          {ui}
+          <CurrencyProvider>
+            {ui}
+          </CurrencyProvider>
         </ShopProvider>
       </AuthProvider>
     </BrowserRouter>

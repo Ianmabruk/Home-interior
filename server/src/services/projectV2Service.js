@@ -10,6 +10,7 @@ const V2_SELECT = {
   videoUrl: true,
   videoPublicId: true,
   thumbnailUrl: true,
+  thumbnailPublicId: true,
   order: true,
   isPublished: true,
   createdAt: true,
@@ -38,12 +39,14 @@ export const projectV2Service = {
     const videoUrl = result.secure_url
     const thumbnailUrl =
       result.thumbnail_url || result.assets?.thumbnail?.secure_url || null
+    const thumbnailPublicId = result.assets?.thumbnail?.public_id || null
 
     const record = await prisma.projectV2.create({
       data: {
         videoUrl,
         videoPublicId: publicId,
         thumbnailUrl,
+        thumbnailPublicId,
         order,
         isPublished: true,
       },
@@ -81,13 +84,10 @@ export const projectV2Service = {
           console.error('[PROJECT_V2][DELETE] Cloudinary delete failed:', err?.message),
         )
       }
-      if (existing.thumbnailUrl) {
-        const thumbPublicId = existing.thumbnailUrl.split('/').slice(-2).join('/').replace(/\.[^.]+$/, '')
-        if (thumbPublicId) {
-          await deleteMedia(thumbPublicId, 'image').catch((err) =>
-            console.error('[PROJECT_V2][DELETE] thumbnail Cloudinary delete failed:', err?.message),
-          )
-        }
+      if (existing.thumbnailPublicId) {
+        await deleteMedia(existing.thumbnailPublicId, 'image').catch((err) =>
+          console.error('[PROJECT_V2][DELETE] thumbnail Cloudinary delete failed:', err?.message),
+        )
       }
     }
     await prisma.projectV2.delete({ where: { id } })

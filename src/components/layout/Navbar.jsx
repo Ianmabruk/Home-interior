@@ -1,20 +1,17 @@
-import { User, ChevronDown } from 'lucide-react'
-import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
-import { Link, NavLink, useLocation } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
+import { useState, useEffect } from 'react'
+import { Link, NavLink } from 'react-router-dom'
+import { Menu, X } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const NAV_ITEMS = [
-  { to: '/portfolio', label: 'Portfolio' },
+  { to: '/shop', label: 'Shop' },
   { to: '/virtual-interior-design', label: 'Virtual Interior Design' },
   { to: '/about', label: 'About' },
 ]
 
 export const Navbar = () => {
-  const [profileOpen, setProfileOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const { user, logout } = useAuth()
-  const location = useLocation()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50)
@@ -23,18 +20,18 @@ export const Navbar = () => {
   }, [])
 
   useEffect(() => {
-    if (!profileOpen) return
-    const handler = (e) => {
-      if (!e.target.closest('[data-profile-menu]')) setProfileOpen(false)
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [profileOpen])
+    return () => { document.body.style.overflow = '' }
+  }, [mobileOpen])
 
   return (
     <header
       className={`fixed left-0 right-0 top-0 z-50 transition-all duration-500 ${
-        scrolled ? 'bg-bgPrimary/98 shadow-soft backdrop-blur-sm' : 'bg-bgPrimary/95 backdrop-blur-sm'
+        scrolled ? 'bg-primary/98 shadow-soft backdrop-blur-sm' : 'bg-primary/95 backdrop-blur-sm'
       }`}
     >
       <div className="container-wide flex items-center justify-between px-6 py-4 md:px-12 lg:px-20">
@@ -64,94 +61,82 @@ export const Navbar = () => {
         </nav>
 
         {/* Desktop Actions — right */}
-        <div className="hidden items-center gap-3 md:flex">
-          <div className="h-5 w-px bg-border" />
-          <Link to="/shop" className="btn-accent text-2xs">
-            Shop With Us
+        <div className="hidden items-center gap-4 md:flex">
+          <Link
+            to="/virtual-interior-design"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-darkBrown px-6 py-3 text-2xs font-medium uppercase tracking-widest text-white transition-all duration-200 hover:bg-textPrimaryDark hover:shadow-lg"
+            style={{ height: '48px' }}
+          >
+            Book Consultation
           </Link>
-          <div key={location.pathname} className="relative ml-1" data-profile-menu>
-            <button
-              className="flex items-center gap-1 p-2.5 text-textPrimaryDark/55 transition-colors hover:text-textPrimaryDark"
-              onClick={() => setProfileOpen((p) => !p)}
-              aria-label="Account"
-              aria-expanded={profileOpen}
-            >
-              <User size={17} strokeWidth={1.5} />
-              <ChevronDown
-                size={11}
-                strokeWidth={2}
-                className={`transition-transform duration-200 ${profileOpen ? 'rotate-180' : ''}`}
-              />
-            </button>
-
-            <AnimatePresence>
-              {profileOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 4, scale: 0.98 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute right-0 mt-1 w-52 border border-border bg-white py-1 shadow-lift"
-                >
-                  {!user ? (
-                    <>
-                      <Link to="/login" className="block px-5 py-3 text-xs font-medium uppercase tracking-wider text-textPrimaryDark/65 transition hover:bg-linen hover:text-textPrimaryDark">
-                        Login
-                      </Link>
-                      <Link to="/register" className="block px-5 py-3 text-xs font-medium uppercase tracking-wider text-textPrimaryDark/65 transition hover:bg-linen hover:text-textPrimaryDark">
-                        Sign Up
-                      </Link>
-                    </>
-                  ) : (
-                    <button
-                      onClick={logout}
-                      className="w-full border-t border-border px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-textPrimaryDark/65 transition hover:bg-linen hover:text-textPrimaryDark"
-                    >
-                      Sign Out
-                    </button>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
         </div>
 
-        {/* Mobile: Shop With Us + account icon */}
-        <div className="flex items-center gap-2 md:hidden">
-          <Link to="/shop" className="btn-accent text-2xs py-2 px-4">
-            Shop With Us
-          </Link>
-          <div key={location.pathname} className="relative" data-profile-menu>
-            <button
-              className="p-2 text-textPrimaryDark"
-              onClick={() => setProfileOpen((p) => !p)}
-              aria-label="Account"
-            >
-              <User size={20} strokeWidth={1.5} />
-            </button>
-            <AnimatePresence>
-              {profileOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 4, scale: 0.98 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute right-0 mt-1 w-52 border border-border bg-white py-1 shadow-lift"
-                >
-                  {!user ? (
-                    <>
-                      <Link to="/login" className="block px-5 py-3 text-xs font-medium text-textPrimaryDark/65 transition hover:bg-linen">Login</Link>
-                      <Link to="/register" className="block px-5 py-3 text-xs font-medium text-textPrimaryDark/65 transition hover:bg-linen">Sign Up</Link>
-                    </>
-                  ) : (
-                    <button onClick={logout} className="w-full border-t border-border px-5 py-3 text-left text-xs font-medium text-textPrimaryDark/65 transition hover:bg-linen">Sign Out</button>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
+        {/* Mobile: Hamburger */}
+        <button
+          className="flex items-center justify-center p-2 text-textPrimaryDark md:hidden"
+          onClick={() => setMobileOpen((p) => !p)}
+          aria-label="Toggle menu"
+          aria-expanded={mobileOpen}
+        >
+          {mobileOpen ? <X size={24} strokeWidth={1.5} /> : <Menu size={24} strokeWidth={1.5} />}
+        </button>
       </div>
+
+      {/* Mobile slide-in menu */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
+              onClick={() => setMobileOpen(false)}
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="fixed right-0 top-0 bottom-0 z-50 w-80 bg-primary shadow-2xl md:hidden"
+            >
+              <div className="flex items-center justify-between px-6 py-4 border-b border-borderSubtle">
+                <p className="font-display text-xl font-semibold text-textPrimaryDark">HOK</p>
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="p-2 text-textPrimaryDark"
+                  aria-label="Close menu"
+                >
+                  <X size={24} strokeWidth={1.5} />
+                </button>
+              </div>
+              <nav className="flex flex-col px-6 py-8 gap-6">
+                {NAV_ITEMS.map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setMobileOpen(false)}
+                    className="text-lg font-display font-medium text-textPrimaryDark hover:text-accent transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+                <div className="mt-4 pt-4 border-t border-borderSubtle">
+                  <Link
+                    to="/virtual-interior-design"
+                    onClick={() => setMobileOpen(false)}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-darkBrown px-6 py-3 text-2xs font-medium uppercase tracking-widest text-white transition-all duration-200 hover:bg-textPrimaryDark w-full"
+                    style={{ height: '48px' }}
+                  >
+                    Book Consultation
+                  </Link>
+                </div>
+              </nav>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </header>
   )
 }

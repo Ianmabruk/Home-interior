@@ -6,14 +6,22 @@ import { sendSuccess } from '../utils/sendSuccess.js'
 import { env } from '../config/env.js'
 import { withId, withIdArray, parseMaybeJson, parseMediaSettings, DEFAULT_MEDIA_SETTINGS } from '../utils/helpers.js'
 import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
-import fs from 'fs/promises'
-import path from 'path'
 
-const PROJECTS_TEMP_PATH = path.join(process.cwd(), 'temp', 'projects.json')
-
-const ensureTempDir = async () => {
-  const dir = path.dirname(PROJECTS_TEMP_PATH)
-  await fs.mkdir(dir, { recursive: true })
+const PROJECT_SELECT = {
+  id: true,
+  title: true,
+  description: true,
+  category: true,
+  media: true,
+  beforeAfterImages: true,
+  videoUrl: true,
+  videoPublicId: true,
+  coverImageUrl: true,
+  order: true,
+  mediaSettings: true,
+  isPublished: true,
+  createdAt: true,
+  updatedAt: true,
 }
 
 const readTempProjects = async () => {
@@ -47,6 +55,23 @@ const handleFileUpload = async (req, folder, defaultKind = 'image') => {
     ? await uploadVideo(req.file.buffer, folder, mimeType)
     : await uploadImage(req.file.buffer, folder, mimeType)
   return { url: result.secure_url, publicId: result.public_id, kind }
+}
+
+const handleMultipleUploads = async (files, folder, defaultKind = 'image') => {
+  if (!Array.isArray(files) || files.length === 0) return []
+  const results = await Promise.all(
+    files.map((file) => {
+      const kind = file.mimetype?.startsWith('video/') ? 'video' : defaultKind
+      const uploadFn = kind === 'video' ? uploadVideo : uploadImage
+      return uploadFn(file.buffer, folder, file.mimetype)
+    }),
+  )
+  return results.map((result) => ({ url: result.secure_url, publicId: result.public_id, kind: result.resource_type || 'image' }))
+}
+
+const findFileByFieldname = (req, fieldname) => {
+  const files = Array.isArray(req.files) ? req.files : []
+  return files.find((f) => f.fieldname === fieldname) || null
 }
 
 const sortByOrderThenDate = (items) => items.sort((a, b) => {
@@ -113,7 +138,7 @@ const PROJECT_SELECT = {
   updatedAt: true,
 }
 const PORTFOLIO_FIELDS = new Set([
-  'title', 'description', 'category', 'imageUrl', 'imagePublicId', 'order', 'isPublished', 'mediaSettings',
+  'title', 'description', 'category', 'imageUrl', 'imagePublicId', 'beforeAfterImages', 'gallery', 'order', 'isPublished', 'mediaSettings',
 ])
 const VIRTUAL_DESIGN_FIELDS = new Set([
   'title', 'description', 'videoUrl', 'videoPublicId', 'thumbnailUrl', 'services',
@@ -133,25 +158,22 @@ export const projectsController = {
   // empty list on any failure.
   list: asyncHandler(async (req, res) => {
     try {
-      const stored = await readTempProjects()
-      const items = Array.isArray(stored.projects) ? stored.projects : []
+      const items = await prisma.project.findMany({
+        where: { isPublished: true },
+        orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+        select: PROJECT_SELECT,
+      })
       res.json(sendSuccess(withIdArray(sortByOrderThenDate(items))))
     } catch (error) {
-      console.error('[PROJECTS][LIST] temp read failed:', error?.message)
+      console.error('[PROJECTS][LIST] db query failed:', error?.message)
       res.json(sendSuccess([]))
     }
   }),
 
   create: asyncHandler(async (req, res) => {
-    console.log('PROJECT_CONTROLLER_VERSION_20260714')
-    console.log('DEPLOY_COMMIT_CHECK', 'e009cbfe9aff688b868c170f6ec5c27f2a3532a1')
-    console.log('DEPLOY CHECK', 'route=/api/content/projects', 'method=POST')
-
     const upload = await handleFileUpload(req, 'hok/projects')
-    console.log('DEPLOY CHECK', 'upload result:', upload ? 'success' : 'null/undefined')
 
     if (!upload) {
-      console.log('DEPLOY CHECK', 'No file uploaded - returning 400')
       return res.status(400).json({ success: false, message: 'No file uploaded' })
     }
 
@@ -161,33 +183,19 @@ export const projectsController = {
       fit: 'cover',
     }
 
-    const project = {
-      id: Date.now().toString(),
-      videoUrl: upload.url,
-      videoPublicId: upload.publicId,
-      media: [{ type: upload.kind, url: upload.url, publicId: upload.publicId }],
-      mediaSettings,
-      order: Number(req.body.order || 0),
-      isPublished: true,
-      createdAt: new Date().toISOString(),
-    }
-
-    console.log('DEPLOY CHECK', 'project object:', JSON.stringify(project, null, 2))
-
-    try {
-      const stored = await readTempProjects()
-      stored.projects.push(project)
-      await writeTempProjects(stored)
-      console.log('DEPLOY CHECK', 'temp write success')
-    } catch (writeErr) {
-      console.error('DEPLOY CHECK', 'temp write failed:', writeErr)
-      return res.status(500).json({ success: false, message: 'Failed to save project' })
-    }
-
-    res.status(201).json({
-      success: true,
-      project,
+    const project = await prisma.project.create({
+      data: {
+        videoUrl: upload.url,
+        videoPublicId: upload.publicId,
+        media: [{ type: upload.kind, url: upload.url, publicId: upload.publicId }],
+        mediaSettings,
+        order: Number(req.body.order || 0),
+        isPublished: true,
+      },
+      select: PROJECT_SELECT,
     })
+
+    res.status(201).json(sendSuccess(withId(project)))
   }),
 
   update: asyncHandler(async (req, res) => {
@@ -209,21 +217,23 @@ export const projectsController = {
     const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
     if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
 
-    const upload = await handleFileUpload(req, 'hok/projects')
-    if (upload) {
+    const mediaFile = findFileByFieldname(req, 'media')
+    if (mediaFile) {
       const mediaList = Array.isArray(existing.media) ? existing.media : []
       const mediaDeletes = mediaList.map((m) => m.publicId ? deleteMedia(m.publicId, m.type === 'video' ? 'video' : 'image') : Promise.resolve())
-      if (existing.videoPublicId && existing.videoPublicId !== upload.publicId) {
+      if (existing.videoPublicId) {
         mediaDeletes.push(deleteMedia(existing.videoPublicId, 'video'))
       }
       await Promise.all(mediaDeletes)
-      const mediaItem = { type: upload.kind, url: upload.url, publicId: upload.publicId }
+
+      const upload = await uploadImage(mediaFile.buffer, 'hok/projects', mediaFile.mimetype)
+      const mediaItem = { type: upload.resource_type || 'image', url: upload.secure_url, publicId: upload.public_id }
       payload.media = [mediaItem]
-      if (upload.kind === 'video') {
-        payload.videoUrl = upload.url
-        payload.videoPublicId = upload.publicId
+      if (upload.resource_type === 'video') {
+        payload.videoUrl = upload.secure_url
+        payload.videoPublicId = upload.public_id
       } else {
-        payload.coverImageUrl = upload.url
+        payload.coverImageUrl = upload.secure_url
       }
     }
 
@@ -288,10 +298,23 @@ export const portfolioController = {
       const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
       if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
 
-      const upload = await handleFileUpload(req, 'hok/portfolio')
-      if (upload) {
-        payload.imageUrl = upload.url
-        payload.imagePublicId = upload.publicId
+      const mediaFile = findFileByFieldname(req, 'media')
+      if (mediaFile) {
+        const upload = await uploadImage(mediaFile.buffer, 'hok/portfolio', mediaFile.mimetype)
+        payload.imageUrl = upload.secure_url
+        payload.imagePublicId = upload.public_id
+      }
+
+      const beforeFile = findFileByFieldname(req, 'beforeImage')
+      if (beforeFile) {
+        const beforeUpload = await uploadImage(beforeFile.buffer, 'hok/portfolio', beforeFile.mimetype)
+        payload.beforeAfterImages = [{ url: beforeUpload.secure_url, publicId: beforeUpload.public_id, label: 'Before' }]
+      }
+
+      const galleryFiles = (Array.isArray(req.files) ? req.files : []).filter((f) => f.fieldname === 'gallery')
+      if (galleryFiles.length > 0) {
+        const galleryUploads = await handleMultipleUploads(galleryFiles, 'hok/portfolio')
+        payload.gallery = galleryUploads.map((u) => ({ url: u.url, publicId: u.publicId }))
       }
 
       const item = await prismaSafeWrite(
@@ -341,17 +364,46 @@ export const portfolioController = {
       const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
       if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
 
-      const upload = await handleFileUpload(req, 'hok/portfolio')
-      if (upload) {
+      const mediaFile = findFileByFieldname(req, 'media')
+      if (mediaFile) {
         if (existing.imagePublicId) {
           try {
             await deleteMedia(existing.imagePublicId, 'image')
           } catch (deleteErr) {
-            console.error('[PORTFOLIO][UPDATE] delete old media failed:', deleteErr?.message)
+            console.error('[PORTFOLIO][UPDATE] delete old media failed:', deleteErr?.message')
           }
+        }
+        const upload = await uploadImage(mediaFile.buffer, 'hok/portfolio', mediaFile.mimetype)
+        payload.imageUrl = upload.secure_url
+        payload.imagePublicId = upload.public_id
+      }
+
+      const beforeFile = findFileByFieldname(req, 'beforeImage')
+      if (beforeFile) {
+        const beforeUpload = await uploadImage(beforeFile.buffer, 'hok/portfolio', beforeFile.mimetype)
+        payload.beforeAfterImages = [{ url: beforeUpload.secure_url, publicId: beforeUpload.public_id, label: 'Before' }]
+      }
+
+      const galleryFiles = (Array.isArray(req.files) ? req.files : []).filter((f) => f.fieldname === 'gallery')
+      if (galleryFiles.length > 0) {
+        const galleryUploads = await handleMultipleUploads(galleryFiles, 'hok/portfolio')
+        payload.gallery = galleryUploads.map((u) => ({ url: u.url, publicId: u.publicId }))
+      }
         }
         payload.imageUrl = upload.url
         payload.imagePublicId = upload.publicId
+      }
+
+      if (req.body.beforeImage) {
+        const beforeUpload = await handleFileUpload(req, 'hok/portfolio')
+        if (beforeUpload) {
+          payload.beforeAfterImages = [{ url: beforeUpload.url, publicId: beforeUpload.publicId, label: 'Before' }]
+        }
+      }
+
+      if (req.files && Array.isArray(req.files.gallery)) {
+        const galleryUploads = await handleMultipleUploads(req.files.gallery, 'hok/portfolio')
+        payload.gallery = galleryUploads.map((u) => ({ url: u.url, publicId: u.publicId }))
       }
 
       const item = await prismaSafeWrite(

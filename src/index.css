@@ -6,19 +6,19 @@
    text doesn't reflow — this eliminates the font-swap layout shift (CLS) that
    otherwise hits headings (e.g. the footer) on first load. */
 @font-face {
-  font-family: 'Cormorant Garamond Fallback';
-  src: local('Times New Roman');
-  size-adjust: 88%;
-  ascent-override: 92%;
-  descent-override: 22%;
+  font-family: 'Playfair Display Fallback';
+  src: local('Georgia');
+  size-adjust: 105%;
+  ascent-override: 90%;
+  descent-override: 25%;
   line-gap-override: 0%;
 }
 @font-face {
-  font-family: 'DM Sans Fallback';
+  font-family: 'Inter Fallback';
   src: local('Arial');
-  size-adjust: 105%;
-  ascent-override: 95%;
-  descent-override: 24%;
+  size-adjust: 100%;
+  ascent-override: 92%;
+  descent-override: 22%;
   line-gap-override: 0%;
 }
 
@@ -35,9 +35,11 @@
 
   body {
     margin: 0;
-    font-family: 'DM Sans', system-ui, sans-serif;
-    background: #FFF8F0;
-    color: #2D241E;
+    font-family: 'Inter', 'Inter Fallback', system-ui, sans-serif;
+    background: #F7F2EA;
+    color: #2D241D;
+    line-height: 1.6;
+    letter-spacing: 0.02em;
   }
 
   * {
@@ -45,8 +47,8 @@
   }
 
   ::selection {
-    background: #FF8A3D;
-    color: #2D241E;
+    background: #B67A4B;
+    color: #FFFFFF;
   }
 
   /* Custom scrollbar for premium feel */
@@ -60,12 +62,12 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #E7D7C8;
+    background: rgba(45,36,29,0.15);
     border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #6B4E3D;
+    background: rgba(45,36,29,0.3);
   }
 }
 
@@ -308,6 +310,25 @@
 }
 
 @layer utilities {
+  .container-wide {
+    max-width: 1440px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+  }
+
+  .section-pad {
+    padding-top: 80px;
+    padding-bottom: 80px;
+  }
+
+  @media (min-width: 768px) {
+    .section-pad {
+      padding-top: 120px;
+      padding-bottom: 120px;
+    }
+  }
+
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }

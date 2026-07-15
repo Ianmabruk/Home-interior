@@ -1,25 +1,20 @@
-import { BedDouble, BriefcaseBusiness, Building2, Lamp, Sparkles, Sofa, TreePalm, UtensilsCrossed, SlidersHorizontal, X, ChevronDown, Menu } from 'lucide-react'
+import { Square, PictureInPicture, Armchair, Sparkles, SlidersHorizontal, X, ChevronDown, Menu } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useMemo, useState } from 'react'
 import { ProductCard } from '../../components/shop/ProductCard'
 import { api } from '../../services/api'
 import { SHOP_CATEGORIES, CURRENCIES } from '../../utils/constants'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
+import { useCurrency } from '../../context/CurrencyContext'
 
 const categoryIcons = {
-  'Living Room': Sofa,
-  Kitchen: UtensilsCrossed,
-  Bedroom: BedDouble,
-  Dining: UtensilsCrossed,
-  Outdoor: TreePalm,
-  Commercial: Building2,
-  Decor: Sparkles,
-  Lighting: Lamp,
-  Office: BriefcaseBusiness,
-  'Custom Designs': Sparkles,
+  Mirrors: Square,
+  Frames: PictureInPicture,
+  'Throw Pillows': Armchair,
 }
 
 export const ShopPage = () => {
+  const { currency, changeCurrency, formatPrice } = useCurrency()
   const [allProducts, setAllProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState('')
@@ -30,12 +25,6 @@ export const ShopPage = () => {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [currencyOpen, setCurrencyOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  const [currency, setCurrency] = useState('USD')
-  const changeCurrency = (newCurrency) => {
-    setCurrency(newCurrency)
-    localStorage.setItem('hok_currency', newCurrency)
-  }
 
   const loadProducts = () => {
     api.get('/products', { params: { sort: '-createdAt', limit: 100 } })
@@ -63,9 +52,8 @@ export const ShopPage = () => {
     }
     if (category) next = next.filter((item) => item.category === category)
 
-    const rate = currency === 'KES' ? 129 : currency === 'EUR' ? 0.92 : 1
-    if (minPrice) next = next.filter((item) => (item.discountPrice || item.price) * rate >= Number(minPrice))
-    if (maxPrice) next = next.filter((item) => (item.discountPrice || item.price) * rate <= Number(maxPrice))
+    if (minPrice) next = next.filter((item) => formatPrice(item.discountPrice || item.price) >= Number(minPrice))
+    if (maxPrice) next = next.filter((item) => formatPrice(item.discountPrice || item.price) <= Number(maxPrice))
 
     switch (sortBy) {
       case 'price-low':
@@ -81,7 +69,7 @@ export const ShopPage = () => {
         next.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     }
     return next
-  }, [allProducts, category, query, minPrice, maxPrice, sortBy, currency])
+  }, [allProducts, category, query, minPrice, maxPrice, sortBy, currency, formatPrice])
 
   const hasFilters = category || query || minPrice || maxPrice
   const clearFilters = () => { setCategory(''); setQuery(''); setMinPrice(''); setMaxPrice('') }
@@ -358,7 +346,7 @@ export const ShopPage = () => {
                 className="flex flex-col lg:flex-row gap-4 py-4 overflow-hidden"
               >
                 <div className="flex-1">
-                  <label className="label">Min Price ({currency})</label>
+                  <label className="label">Min Price ({CURRENCIES.find(c => c.code === currency)?.symbol || currency})</label>
                   <input
                     value={minPrice}
                     onChange={(e) => setMinPrice(e.target.value)}
@@ -368,7 +356,7 @@ export const ShopPage = () => {
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="label">Max Price ({currency})</label>
+                  <label className="label">Max Price ({CURRENCIES.find(c => c.code === currency)?.symbol || currency})</label>
                   <input
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(e.target.value)}
