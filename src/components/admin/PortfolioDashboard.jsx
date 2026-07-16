@@ -75,8 +75,8 @@ export const PortfolioDashboard = () => {
       completionDate: item.completionDate || '',
       order: item.order || 0,
     })
-    setMediaFiles(item.images ? item.images.map(img => null) : [])
-    setMediaPreviews(item.images ? item.images.map(img => img.url || img) : [])
+    setMediaFiles(item.gallery ? item.gallery.map(img => null) : [])
+    setMediaPreviews(item.gallery ? item.gallery.map(img => img.url || img) : [])
     setShowForm(true)
   }
 
@@ -101,13 +101,13 @@ export const PortfolioDashboard = () => {
       payload.append('order', String(form.order || 0))
       
       mediaFiles.forEach((file, index) => {
-        if (file) payload.append('media', file)
+        if (file) payload.append('gallery', file)
       })
       // Also send existing image URLs for editing
       if (editingId) {
         mediaPreviews.forEach((preview, index) => {
           if (preview && !mediaFiles[index]) {
-            payload.append('existingImages', preview)
+            payload.append('existingGallery', preview)
           }
         })
       }
