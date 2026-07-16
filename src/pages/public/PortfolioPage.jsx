@@ -196,7 +196,7 @@ export const PortfolioPage = () => {
                     loading="lazy"
                     sizes="(min-width:1024px) 25vw, (min-width:640px) 50vw, 100vw"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/70 via-[var(--primary)]/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/85 via-[var(--primary)]/40 to-transparent opacity-100" />
                 </div>
 
                 <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">

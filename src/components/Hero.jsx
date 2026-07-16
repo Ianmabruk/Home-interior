@@ -238,7 +238,7 @@ export const Hero = ({ onBookConsultation }) => {
               onClick={onBookConsultation}
               className="btn-luxury-secondary group"
             >
-              Explore Collection
+              Book Consultation
               <CalendarCheck size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
             </button>
           </motion.div>

@@ -137,7 +137,7 @@ export const FeaturedProjects = () => {
                   loading="lazy"
                   decoding="async"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-luxury-text/80 via-luxury-text/30 to-transparent opacity-70 transition-all duration-700 group-hover:opacity-90" />
+                <div className="absolute inset-0 bg-gradient-to-t from-luxury-text/85 via-luxury-text/40 to-transparent opacity-100" />
               </Link>
 
               <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">

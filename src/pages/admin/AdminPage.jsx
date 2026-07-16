@@ -19,11 +19,7 @@ import {
   Newspaper,
   Sparkles,
   LogOut,
-  TrendingUp,
-  Package,
-  DollarSign,
-  Users,
-  Clock,
+  Star,
 } from 'lucide-react'
 import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
@@ -35,6 +31,7 @@ import { VirtualInteriorDashboard } from '../../components/admin/VirtualInterior
 import { AboutDashboard } from '../../components/admin/AboutDashboard'
 import { ConsultationDashboard } from '../../components/admin/ConsultationDashboard'
 import { NewsletterDashboard } from '../../components/admin/NewsletterDashboard'
+import { TestimonialDashboard } from '../../components/admin/TestimonialDashboard'
 
 const tabs = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -42,6 +39,7 @@ const tabs = [
   { id: 'shop', label: 'Shop', icon: ShoppingBag },
   { id: 'virtual', label: 'Virtual Interior Design', icon: Brush },
   { id: 'about', label: 'About', icon: Info },
+  { id: 'testimonials', label: 'Testimonials', icon: Star },
   { id: 'consultations', label: 'Consultations', icon: MessageSquare },
   { id: 'newsletter', label: 'Newsletter', icon: Newspaper },
   { id: 'settings', label: 'Settings', icon: Settings2 },
@@ -300,6 +298,7 @@ export const AdminPage = () => {
               {activeTab === 'shop' && <ShopDashboard />}
               {activeTab === 'virtual' && <VirtualInteriorDashboard />}
               {activeTab === 'about' && <AboutDashboard />}
+              {activeTab === 'testimonials' && <TestimonialDashboard />}
               {activeTab === 'consultations' && <ConsultationDashboard />}
               {activeTab === 'newsletter' && <NewsletterDashboard />}
               {activeTab === 'settings' && (

@@ -27,6 +27,7 @@ export const Navbar = () => {
   const location = useLocation()
   const ticking = useRef(false)
   const navRef = useRef(null)
+  const userMenuRef = useRef(null)
 
   useEffect(() => {
     const onScroll = () => {
@@ -62,6 +63,16 @@ export const Navbar = () => {
     setUserMenuOpen(false)
     setSearchOpen(false)
   }, [location])
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const handleLogout = async () => {
     await logout()
@@ -110,7 +121,7 @@ export const Navbar = () => {
             role="banner"
           >
             <div className="container-wide flex items-center justify-between px-4 md:px-8 lg:px-12 h-[90px]">
-              {/* Logo - Left */}
+              {/* LEFT SECTION - Logo */}
               <Link
                 to="/"
                 className="flex-shrink-0 leading-tight group"
@@ -126,7 +137,7 @@ export const Navbar = () => {
                 </div>
               </Link>
 
-              {/* Desktop Navigation - Center */}
+              {/* CENTER SECTION - Navigation Items */}
               <nav className="hidden md:flex items-center gap-8 lg:gap-8" role="navigation" aria-label="Main navigation">
                 <motion.div
                   variants={{ hidden: {}, show: { transition: { staggerChildren: 0.05 } } }}
@@ -150,8 +161,8 @@ export const Navbar = () => {
                   {/* Vertical Divider */}
                   <div className="w-px h-8 bg-[#E6D8C9]/40 mx-2 hidden lg:block" aria-hidden="true" />
 
-                  {/* Account Button - Desktop */}
-                  <div className="relative" role="menu" aria-label="User menu">
+                  {/* RIGHT SECTION - User Dropdown */}
+                  <div className="relative" role="menu" aria-label="User menu" ref={userMenuRef}>
                     <motion.button
                       onClick={() => setUserMenuOpen((p) => !p)}
                       whileHover={{ scale: 1.02 }}
