@@ -115,8 +115,8 @@ const PORTFOLIO_FIELDS = new Set([
   'title', 'description', 'category', 'imageUrl', 'imagePublicId', 'beforeAfterImages', 'gallery', 'order', 'isPublished', 'mediaSettings',
 ])
 const VIRTUAL_DESIGN_FIELDS = new Set([
-  'title', 'description', 'videoUrl', 'videoPublicId', 'thumbnailUrl', 'services',
-  'beforeAfterImages', 'category', 'tags', 'ctaPrimary', 'ctaSecondary', 'isPublished', 'mediaSettings',
+  'title', 'description', 'videoUrl', 'videoPublicId', 'thumbnailUrl', 'imageUrl', 'imagePublicId', 'images',
+  'services', 'beforeAfterImages', 'category', 'tags', 'ctaPrimary', 'ctaSecondary', 'isPublished', 'mediaSettings',
 ])
 const stripUnknown = (obj, allowed) => {
   const out = {}
@@ -500,10 +500,39 @@ export const virtualDesignController = {
     const parsedTags = parseMaybeJson(req.body.tags, null)
     payload.tags = Array.isArray(parsedTags) ? parsedTags : (parsedTags ? [parsedTags] : [])
 
-    const upload = await handleFileUpload(req, 'hok/virtual-design')
-    if (upload) {
-      payload.videoUrl = upload.url
-      payload.videoPublicId = upload.publicId
+    // Handle multiple image uploads
+    const imageFiles = (Array.isArray(req.files) ? req.files : []).filter((f) => f.fieldname === 'images')
+    if (imageFiles.length > 0) {
+      const uploads = await handleMultipleUploads(imageFiles, 'hok/virtual-design')
+      payload.images = uploads.map((u) => ({ url: u.url, publicId: u.publicId, kind: u.kind }))
+      if (!payload.imageUrl && uploads[0]) {
+        payload.imageUrl = uploads[0].url
+        payload.imagePublicId = uploads[0].publicId
+      }
+    }
+
+    // Handle single video upload
+    const videoFile = findFileByFieldname(req, 'video')
+    if (videoFile) {
+      const upload = await uploadVideo(videoFile.buffer, 'hok/virtual-design', videoFile.mimetype)
+      payload.videoUrl = upload.secure_url
+      payload.videoPublicId = upload.public_id
+    }
+
+    // Handle thumbnail upload
+    const thumbnailFile = findFileByFieldname(req, 'thumbnail')
+    if (thumbnailFile) {
+      const upload = await uploadImage(thumbnailFile.buffer, 'hok/virtual-design', thumbnailFile.mimetype)
+      payload.thumbnailUrl = upload.secure_url
+      // thumbnailUrl has no stored publicId in this model
+    }
+
+    // Handle single image upload (for imageUrl)
+    const imageFile = findFileByFieldname(req, 'image')
+    if (imageFile) {
+      const upload = await uploadImage(imageFile.buffer, 'hok/virtual-design', imageFile.mimetype)
+      payload.imageUrl = upload.secure_url
+      payload.imagePublicId = upload.public_id
     }
 
     payload.isPublished = payload.isPublished ?? true
@@ -536,17 +565,55 @@ export const virtualDesignController = {
     const parsedTags = parseMaybeJson(req.body.tags, null)
     payload.tags = Array.isArray(parsedTags) ? parsedTags : (parsedTags ? [parsedTags] : existing.tags || [])
 
-    const upload = await handleFileUpload(req, 'hok/virtual-design')
-    if (upload) {
-      if (existing.videoPublicId && existing.videoPublicId !== upload.publicId) {
+    // Handle multiple image uploads
+    const imageFiles = (Array.isArray(req.files) ? req.files : []).filter((f) => f.fieldname === 'images')
+    if (imageFiles.length > 0) {
+      const uploads = await handleMultipleUploads(imageFiles, 'hok/virtual-design')
+      const newImages = uploads.map((u) => ({ url: u.url, publicId: u.publicId, kind: u.kind }))
+      // Merge with existing images
+      const existingImages = Array.isArray(existing.images) ? existing.images : []
+      payload.images = [...existingImages, ...newImages]
+      if (!payload.imageUrl && uploads[0]) {
+        payload.imageUrl = uploads[0].url
+        payload.imagePublicId = uploads[0].publicId
+      }
+    }
+
+    // Handle single video upload
+    const videoFile = findFileByFieldname(req, 'video')
+    if (videoFile) {
+      if (existing.videoPublicId) {
         try {
           await deleteMedia(existing.videoPublicId, 'video')
         } catch (deleteErr) {
-          console.error('[VIRTUAL][UPDATE] delete old media failed:', deleteErr?.message)
+          console.error('[VIRTUAL][UPDATE] delete old video failed:', deleteErr?.message)
         }
       }
-      payload.videoUrl = upload.url
-      payload.videoPublicId = upload.publicId
+      const upload = await uploadVideo(videoFile.buffer, 'hok/virtual-design', videoFile.mimetype)
+      payload.videoUrl = upload.secure_url
+      payload.videoPublicId = upload.public_id
+    }
+
+    // Handle thumbnail upload
+    const thumbnailFile = findFileByFieldname(req, 'thumbnail')
+    if (thumbnailFile) {
+      const upload = await uploadImage(thumbnailFile.buffer, 'hok/virtual-design', thumbnailFile.mimetype)
+      payload.thumbnailUrl = upload.secure_url
+    }
+
+    // Handle single image upload
+    const imageFile = findFileByFieldname(req, 'image')
+    if (imageFile) {
+      if (existing.imagePublicId) {
+        try {
+          await deleteMedia(existing.imagePublicId, 'image')
+        } catch (deleteErr) {
+          console.error('[VIRTUAL][UPDATE] delete old image failed:', deleteErr?.message)
+        }
+      }
+      const upload = await uploadImage(imageFile.buffer, 'hok/virtual-design', imageFile.mimetype)
+      payload.imageUrl = upload.secure_url
+      payload.imagePublicId = upload.public_id
     }
 
     const item = await prismaSafeWrite(
@@ -562,8 +629,14 @@ export const virtualDesignController = {
     if (existing) {
       const mediaDeletes = []
       if (existing.videoPublicId) mediaDeletes.push(deleteMedia(existing.videoPublicId, 'video'))
+      if (existing.imagePublicId) mediaDeletes.push(deleteMedia(existing.imagePublicId, 'image'))
       if (existing.thumbnailUrl) {
         // thumbnailUrl has no stored publicId, cannot delete programmatically
+      }
+      if (existing.images && Array.isArray(existing.images)) {
+        existing.images.forEach((img) => {
+          if (img.publicId) mediaDeletes.push(deleteMedia(img.publicId, img.kind === 'video' ? 'video' : 'image'))
+        })
       }
       await Promise.all(mediaDeletes)
     }

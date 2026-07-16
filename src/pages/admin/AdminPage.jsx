@@ -200,7 +200,7 @@ export const AdminPage = () => {
       />
 
       <div className={`flex flex-1 flex-col lg:pl-[${isCollapsed ? 88 : 300}px]`}>
-        <header className="sticky top-4 z-30 mx-4 lg:mx-6">
+        <header className="sticky top-4 z-30 mx-4 lg:mx-0">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}

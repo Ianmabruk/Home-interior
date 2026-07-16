@@ -73,8 +73,8 @@ export const VirtualDesignPage = () => {
 
   const categories = Array.from(new Set(items.map((i) => i.category).filter(Boolean)))
 
-  const filtered = items.filter((item) => {
-    if (viewMode === 'images' && !item.imageUrl && !item.journey?.before?.images?.length && !item.journey?.after?.images?.length) return false
+const filtered = items.filter((item) => {
+    if (viewMode === 'images' && !item.imageUrl && !item.images?.length && !item.journey?.before?.images?.length && !item.journey?.after?.images?.length) return false
     if (viewMode === 'videos' && !item.videoUrl && !item.journey?.before?.videos?.length && !item.journey?.after?.videos?.length) return false
     if (viewMode === 'journey' && !item.journey) return false
     if (categoryFilter && item.category !== categoryFilter) return false
@@ -326,50 +326,53 @@ export const VirtualDesignPage = () => {
                 className="group"
               >
                 <div className="relative overflow-hidden rounded-3xl bg-white border border-[var(--border)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
-                  {/* Media */}
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    {/* Regular Project - Image */}
-                    {item.imageUrl && !item.videoUrl && !item.journey && (
-                      <>
-                        <img
-                          src={getOptimizedUrl(item.imageUrl, { width: 640 })}
-                          alt={item.title}
-                          className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleImageFullscreen(item) }}
-                          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                          aria-label="View fullscreen"
-                        >
-                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                            <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
-                          </div>
-                        </button>
-                      </>
-                    )}
-                    
-                    {/* Regular Project - Video */}
-                    {item.videoUrl && !item.imageUrl && !item.journey && (
-                      <>
-                        <LazyVideo
-                          src={getOptimizedVideoUrl(item.videoUrl, { width: 640 })}
-                          poster={getVideoPosterUrl(item.videoUrl, { width: 640 })}
-                          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleVideoFullscreen(item) }}
-                          className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110"
-                          aria-label="Play video"
-                        >
-                          <Play size={20} strokeWidth={1.5} className="ml-1" />
-                        </button>
-                      </>
-                    )}
+{/* Media */}
+                    <div className="relative aspect-[4/3] overflow-hidden">
+                      {/* Regular Project - Multiple Images */}
+                      {item.images && item.images.length > 0 && !item.videoUrl && !item.journey && (
+                        <>
+                          <img
+                            src={getOptimizedUrl(item.images[0].url, { width: 640 })}
+                            alt={item.title}
+                            className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleImageFullscreen({ ...item, imageUrl: item.images[0].url }) }}
+                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                            aria-label="View fullscreen"
+                          >
+                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
+                              <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
+                            </div>
+                          </button>
+                        </>
+                      )}
+                      
+                      {/* Regular Project - Single Image (legacy) */}
+                      {item.imageUrl && !item.images?.length && !item.videoUrl && !item.journey && (
+                        <>
+                          <img
+                            src={getOptimizedUrl(item.imageUrl, { width: 640 })}
+                            alt={item.title}
+                            className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleImageFullscreen(item) }}
+                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                            aria-label="View fullscreen"
+                          >
+                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
+                              <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
+                            </div>
+                          </button>
+                        </>
+                      )}
 
-                    {/* Project Journey */}
+                      {/* Project Journey */}
                     {item.journey && (
                       <>
                         {/* Show before images first */}
@@ -453,7 +456,7 @@ export const VirtualDesignPage = () => {
                     )}
 
                     {/* Overlay for fullscreen image (regular projects) */}
-                    {item.imageUrl && !item.videoUrl && !item.journey && (
+                    {(item.imageUrl || item.images?.length) && !item.videoUrl && !item.journey && (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleImageFullscreen(item) }}
                         className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
@@ -466,7 +469,7 @@ export const VirtualDesignPage = () => {
                     )}
 
                     {/* Play button for items with both image and video (regular projects) */}
-                    {item.imageUrl && item.videoUrl && !item.journey && (
+                    {(item.imageUrl || item.images?.length) && item.videoUrl && !item.journey && (
                       <>
                         <img
                           src={getOptimizedUrl(item.imageUrl, { width: 640 })}
