@@ -29,6 +29,53 @@ export const subscribeNewsletter = asyncHandler(async (req, res) => {
     { email },
     'NEWSLETTER][SUBSCRIBE',
   )
+
+  // Send welcome email to new subscriber
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Welcome to HOK Interior Designs</title>
+        <style>
+          body { font-family: 'Inter', system-ui, -apple-system, sans-serif; margin: 0; padding: 0; background-color: #FAF8F4; color: #2B2B2B; }
+          .container { max-width: 640px; margin: 0 auto; padding: 40px 24px; }
+          .logo { font-family: 'Playfair Display', Georgia, serif; font-size: 32px; font-weight: 600; color: #1F4D3A; letter-spacing: 0.05em; }
+          .brand { font-family: 'Inter', system-ui, sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.25em; color: #B88A5A; margin-top: 2px; }
+          .header { margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid #EDE7DE; }
+          .title { font-family: 'Playfair Display', Georgia, serif; font-size: 24px; color: #1F4D3A; margin: 24px 0 12px; }
+          .body-text { font-size: 15px; line-height: 1.8; color: #2B2B2B; }
+          .footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid #EDE7DE; font-size: 12px; color: #8B7355; }
+          .accent-line { width: 40px; height: 2px; background: #B88A5A; margin: 16px 0; }
+          a { color: #1F4D3A; text-decoration: none; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">HOK</div>
+            <div class="brand">Interior Designs</div>
+          </div>
+          <div class="accent-line"></div>
+          <h1 class="title">Welcome to HOK</h1>
+          <div class="body-text">
+            <p>Thank you for subscribing to our Design Notes & Curated Inspiration newsletter.</p>
+            <p>You'll now receive exclusive design inspiration, curated collections, and interior trends directly in your inbox.</p>
+            <p>Expect beautiful interiors, expert tips, and first access to new collections.</p>
+          </div>
+          <div class="footer">
+            <p>HOK Interior Designs</p>
+            <p>Creating elegant interiors that blend comfort, beauty, and functionality.</p>
+            <p style="margin-top: 8px;"><a href="https://hokinteriors.com">hokinteriors.com</a></p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `
+
+  await sendEmail({ to: email, subject: 'Welcome to HOK Interior Designs', html })
+
   res.status(201).json(sendSuccess({ message: 'Subscribed successfully' }))
 })
 

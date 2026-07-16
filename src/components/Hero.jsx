@@ -18,14 +18,16 @@ export const Hero = ({ onBookConsultation }) => {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await api.get('/content/homepage')
-        const imgs = res.data?.images || res.data?.heroImages || res.data?.slides || []
-        if (Array.isArray(imgs) && imgs.length > 0) {
+        const res = await api.get('/content/portfolio', { params: { limit: 5, sort: '-createdAt', isPublished: true } })
+        const portfolioItems = res.data?.items || res.data || []
+        if (Array.isArray(portfolioItems) && portfolioItems.length > 0) {
           setImages(
-            imgs.map((img) => ({
-              url: img.url || img.imageUrl || img.src,
-              alt: img.alt || img.title || 'Luxury interior design',
-            })),
+            portfolioItems
+              .filter(item => item.imageUrl)
+              .map((item) => ({
+                url: item.imageUrl,
+                alt: item.title || 'Luxury interior design project',
+              })),
           )
         }
       } catch {
@@ -58,11 +60,11 @@ export const Hero = ({ onBookConsultation }) => {
 
   return (
     <section
-      className="relative h-screen min-h-[600px] overflow-hidden bg-charcoal"
+      className="relative h-screen min-h-[600px] overflow-hidden bg-charcoal rounded-[32px] mx-4 md:mx-8 lg:mx-12 mt-20 md:mt-24"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Background Slides */}
+      {/* Background Slides with Parallax */}
       {!loading && images.length > 0 && (
         <div className="absolute inset-0">
           <AnimatePresence mode="wait">

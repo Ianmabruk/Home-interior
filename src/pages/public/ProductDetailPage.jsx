@@ -4,7 +4,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useShop } from '../../context/ShopContext'
 import { useCurrency } from '../../context/CurrencyContext'
 import { api } from '../../services/api'
-import { Star, Heart, ShoppingBag, Truck, Shield, ArrowLeft, ChevronRight, Check } from 'lucide-react'
+import { Star, Heart, ShoppingBag, Truck, Shield, ArrowLeft, ChevronRight, Check, Package, Ruler, Palette, Sparkles, AlertCircle, RefreshCw } from 'lucide-react'
 import PositionedImage from '../../components/common/PositionedImage'
 
 const fadeUp = {

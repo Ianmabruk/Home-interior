@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { motion } from 'framer-motion'
@@ -24,6 +25,11 @@ import {
   Edit,
   Menu,
   X as XIcon,
+  LogIn,
+  UserPlus,
+  LayoutDashboard,
+  Heart,
+  Bookmark,
 } from 'lucide-react'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
@@ -301,32 +307,69 @@ const ChangePasswordModal = ({ isOpen, onClose, onSubmit }) => {
   )
 }
 
-export const AccountPage = () => {
-  const { user, refreshUser, loading: authLoading } = useAuth()
-  const [orders, setOrders] = useState([])
-  const [ordersLoading, setOrdersLoading] = useState(true)
+// Guest state component
+const GuestAccountPage = ({ onLogin, onRegister }) => {
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-12 md:px-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center max-w-2xl mx-auto py-20 px-6"
+      >
+        <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-bronze/10 text-bronze">
+          <User size={32} strokeWidth={1.5} />
+        </div>
+        <h1 className="font-['Playfair_Display'] text-4xl md:text-5xl font-medium text-charcoal mb-4">
+          Welcome to HOK
+        </h1>
+        <p className="text-base md:text-lg text-stone/60 mb-10 max-w-lg mx-auto leading-relaxed">
+          Create an account to access your orders, save products, and manage your consultations.
+        </p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            to="/login"
+            onClick={onLogin}
+            className="group inline-flex items-center justify-center gap-3 rounded-full bg-forest px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-white transition-all duration-300 hover:bg-forestDark hover:shadow-[0_8px_30px_rgba(31,77,58,0.15)] hover:-translate-y-0.5"
+          >
+            <LogIn size={14} strokeWidth={1.5} />
+            Login
+          </Link>
+          <Link
+            to="/register"
+            onClick={onRegister}
+            className="group inline-flex items-center justify-center gap-3 rounded-full border border-border bg-white px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-charcoal transition-all duration-300 hover:border-bronze hover:text-bronze"
+          >
+            <UserPlus size={14} strokeWidth={1.5} />
+            Register
+          </Link>
+        </div>
+        <p className="mt-8 text-sm text-stone/50">
+          By continuing, you agree to our <Link to="/terms" className="underline hover:text-bronze">Terms of Service</Link> and <Link to="/privacy" className="underline hover:text-bronze">Privacy Policy</Link>.
+        </p>
+      </motion.div>
+    </div>
+  )
+}
+
+// Logged in user account page
+const LoggedInAccountPage = ({ user, orders, ordersLoading, onLogout, onChangePassword }) => {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const [changingPassword, setChangingPassword] = useState(false)
   const [passwordError, setPasswordError] = useState('')
 
   useEffect(() => {
-    const loadOrders = async () => {
-      try {
-        const res = await api.get('/orders/me')
-        setOrders(res.data || [])
-      } catch (err) {
-        console.warn('[account] failed to load orders:', err?.response?.status, err?.message)
-        setOrders([])
-      } finally {
-        setOrdersLoading(false)
-      }
+    if (changePasswordOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
     }
-    if (user) loadOrders()
-  }, [user])
+    return () => { document.body.style.overflow = '' }
+  }, [changePasswordOpen])
 
-  useEffect(() => {
-    refreshUser()
-  }, [refreshUser])
+  const pendingOrders = orders.filter(o => ['pending', 'processing', 'confirmed', 'design_review', 'in_design'].includes(o.status))
+  const activeOrders = orders.filter(o => ['shipped', 'design_approved'].includes(o.status))
+  const completedOrders = orders.filter(o => ['delivered'].includes(o.status))
+  const cancelledOrders = orders.filter(o => ['cancelled'].includes(o.status))
 
   const handleChangePassword = async (current, newPass) => {
     setChangingPassword(true)
@@ -336,12 +379,10 @@ export const AccountPage = () => {
       setChangePasswordOpen(false)
     } catch (err) {
       throw err
-    } finally {
-      setChangingPassword(false)
     }
   }
 
-  if (authLoading) {
+  if (ordersLoading) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-12 md:px-8">
         <div className="animate-pulse space-y-8">
@@ -354,11 +395,6 @@ export const AccountPage = () => {
       </div>
     )
   }
-
-  const pendingOrders = orders.filter(o => ['pending', 'processing', 'confirmed', 'design_review', 'in_design'].includes(o.status))
-  const activeOrders = orders.filter(o => ['shipped', 'design_approved'].includes(o.status))
-  const completedOrders = orders.filter(o => ['delivered'].includes(o.status))
-  const cancelledOrders = orders.filter(o => ['cancelled'].includes(o.status))
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 md:px-8">
@@ -478,6 +514,10 @@ export const AccountPage = () => {
               </div>
               <h2 className="font-['Playfair_Display'] text-2xl font-medium text-charcoal">No Orders Yet</h2>
               <p className="mt-2 text-stone/60">When you place an order, it will appear here.</p>
+              <Link to="/shop" className="btn-primary inline-flex mt-6">
+                <Sparkles size={14} strokeWidth={1.5} />
+                Start Shopping
+              </Link>
             </motion.div>
           ) : (
             <>
@@ -591,4 +631,72 @@ export const AccountPage = () => {
       />
     </div>
   )
+}
+
+export const AccountPage = () => {
+  const { user, refreshUser, loading: authLoading, logout } = useAuth()
+  const [orders, setOrders] = useState([])
+  const [ordersLoading, setOrdersLoading] = useState(true)
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const loadOrders = async () => {
+      try {
+        const res = await api.get('/orders/me')
+        setOrders(res.data || [])
+      } catch (err) {
+        console.warn('[account] failed to load orders:', err?.response?.status, err?.message)
+        setOrders([])
+      } finally {
+        setOrdersLoading(false)
+      }
+    }
+    if (user) loadOrders()
+  }, [user])
+
+  useEffect(() => {
+    refreshUser()
+  }, [refreshUser])
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/')
+  }
+
+  const handleChangePassword = async (current, newPass) => {
+    setChangingPassword(true)
+    setPasswordError('')
+    try {
+      await api.post('/auth/change-password', { currentPassword: current, newPassword: newPass })
+      setChangePasswordOpen(false)
+    } catch (err) {
+      throw err
+    } finally {
+      setChangingPassword(false)
+    }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-12 md:px-8">
+        <div className="animate-pulse space-y-8">
+          <div className="h-14 w-64 rounded bg-stone-100" />
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="h-64 rounded-2xl bg-stone-100" />
+            <div className="md:col-span-2 h-64 rounded-2xl bg-stone-100" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show guest state if not logged in
+  if (!user) {
+    return <GuestAccountPage onLogin={() => navigate('/login')} onRegister={() => navigate('/register')} />
+  }
+
+  return <LoggedInAccountPage user={user} orders={orders} ordersLoading={ordersLoading} onLogout={handleLogout} onChangePassword={handleChangePassword} />
 }
