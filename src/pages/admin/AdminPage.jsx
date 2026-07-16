@@ -199,7 +199,7 @@ export const AdminPage = () => {
         onCloseMobile={() => setMobileSidebar(false)}
       />
 
-      <div className={`flex flex-1 flex-col lg:pl-[${isCollapsed ? 88 : 280}px]`}>
+      <div className={`flex flex-1 flex-col lg:pl-[${isCollapsed ? 88 : 300}px]`}>
         <header className="sticky top-4 z-30 mx-4 lg:mx-6">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
