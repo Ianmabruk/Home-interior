@@ -843,6 +843,7 @@ export const homepageFeed = asyncHandler(async (req, res) => {
   let projects = []
   let portfolio = []
   let about = null
+  let virtualDesigns = []
 
   try {
     projects = await prisma.project.findMany({
@@ -906,21 +907,48 @@ export const homepageFeed = asyncHandler(async (req, res) => {
     about = null
   }
 
+  // Fetch virtual designs as fallback for hero video
+  try {
+    virtualDesigns = await prisma.virtualDesign.findMany({
+      where: { isPublished: true },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: {
+        id: true,
+        title: true,
+        videoUrl: true,
+        videos: true,
+        imageUrl: true,
+        images: true,
+        order: true,
+      },
+    })
+  } catch (err) {
+    console.error('[HOMEPAGE DEBUG] virtualDesigns query failed:', err?.message)
+    virtualDesigns = []
+  }
+
   const sortedProjects = sortByOrderThenDate(projects || []).slice(0, 6)
   const sortedPortfolio = sortByOrderThenDate(portfolio || []).slice(0, 12)
   const featuredProjects = sortedProjects.slice(0, 3)
 
   // Pick the newest published project that actually has a video URL, so the
   // hero never renders empty when the first-ordered project is an image-only
-  // entry. Falls back to the first project, then to null if none exist.
+  // entry. Falls back to the first project, then to virtual designs, then to null.
   const heroProject =
     sortedProjects.find((p) => p?.videoUrl) || sortedProjects[0] || null
-  const heroVideo = heroProject?.videoUrl ? { url: heroProject.videoUrl } : null
+
+  // If no project has video, try virtual designs
+  let heroVideo = heroProject?.videoUrl ? { url: heroProject.videoUrl } : null
+  if (!heroVideo && virtualDesigns.length > 0) {
+    const vd = virtualDesigns.find(v => v.videoUrl) || virtualDesigns[0]
+    if (vd?.videoUrl) heroVideo = { url: vd.videoUrl }
+  }
 
   // Structured debug log — exactly which section had data.
   console.log('[HOMEPAGE DEBUG]', {
     heroVideo: heroVideo ? 'found' : 'null',
-    featuredProject: heroProject ? 'found' : 'missing',
+    featuredProject: heroProject ? 'found' : (virtualDesigns.length > 0 ? 'found (virtual design)' : 'missing'),
     projectCount: sortedProjects.length,
     portfolioCount: sortedPortfolio.length,
     about: about ? 'found' : 'null',
