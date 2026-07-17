@@ -189,7 +189,7 @@ export const AdminPage = () => {
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
-      <Sidebar
+<Sidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}
         sidebarOpen={sidebarOpen}
@@ -197,9 +197,11 @@ export const AdminPage = () => {
         setIsCollapsed={setIsCollapsed}
         mobileOpen={mobileSidebar}
         onCloseMobile={() => setMobileSidebar(false)}
+        user={user}
+        onLogout={logout}
       />
 
-      <div className={`flex flex-1 flex-col lg:pl-[${isCollapsed ? 88 : 300}px]`}>
+      <div className="flex flex-1 flex-col">
         <header className="sticky top-4 z-30 mx-4 lg:mx-0">
           <motion.div
             initial={{ opacity: 0, y: -10 }}

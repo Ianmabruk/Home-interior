@@ -31,6 +31,7 @@ export const PortfolioPage = () => {
   const [selected, setSelected] = useState(null)
   const [page, setPage] = useState(1)
   const [galleryIndex, setGalleryIndex] = useState(0)
+  const [heroImage] = useState('https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1920&q=80')
 
   const loadPortfolio = () => {
     api.get('/content/portfolio')

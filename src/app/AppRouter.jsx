@@ -4,6 +4,9 @@ import { Layout } from '../components/layout/Layout'
 import { ProtectedRoute } from './ProtectedRoute'
 import { ErrorBoundary } from '../components/common/ErrorBoundary'
 
+const PortfolioDetailPage = lazy(() => import('../pages/public/PortfolioDetailPage').then((m) => ({ default: m.PortfolioDetailPage })))
+const VirtualDesignDetailPage = lazy(() => import('../pages/public/VirtualDesignDetailPage').then((m) => ({ default: m.VirtualDesignDetailPage })))
+
 const RouteFallback = () => (
   <div className="flex min-h-[60vh] items-center justify-center">
     <div className="h-10 w-10 animate-spin rounded-full border-2 border-borderSubtle border-t-accent" />
@@ -62,9 +65,11 @@ export const AppRouter = () => {
         <Route path="/shop" element={<ErrorBoundaryRoute element={<ShopPage />} />} />
         <Route path="/shop/:id" element={<ErrorBoundaryRoute element={<ProductDetailPage />} />} />
         <Route path="/portfolio" element={<ErrorBoundaryRoute element={<PortfolioPage />} />} />
+        <Route path="/portfolio/:id" element={<ErrorBoundaryRoute element={<PortfolioDetailPage />} />} />
         <Route path="/about" element={<ErrorBoundaryRoute element={<AboutPage />} />} />
         <Route path="/virtual-design" element={<ErrorBoundaryRoute element={<VirtualDesignPage />} />} />
         <Route path="/virtual-interior-design" element={<ErrorBoundaryRoute element={<VirtualDesignPage />} />} />
+        <Route path="/virtual-interior-design/project/:id" element={<ErrorBoundaryRoute element={<VirtualDesignDetailPage />} />} />
         <Route path="/chat" element={<ErrorBoundaryRoute element={<ChatPage />} />} />
 
         <Route element={<ProtectedRoute />}>

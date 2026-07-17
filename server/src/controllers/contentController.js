@@ -117,6 +117,7 @@ const PORTFOLIO_FIELDS = new Set([
 const VIRTUAL_DESIGN_FIELDS = new Set([
   'title', 'description', 'videoUrl', 'videoPublicId', 'thumbnailUrl', 'imageUrl', 'imagePublicId', 'images',
   'services', 'beforeAfterImages', 'category', 'tags', 'ctaPrimary', 'ctaSecondary', 'isPublished', 'mediaSettings',
+  'coverImageIndex', 'status',
 ])
 const stripUnknown = (obj, allowed) => {
   const out = {}
@@ -237,27 +238,24 @@ export const projectsController = {
 export const portfolioController = {
   list: async (req, res) => {
     try {
-    const items = await prisma.portfolio.findMany({ where: { isPublished: true } })
-    res.json(sendSuccess(withIdArray(sortByOrderThenDate(items))))
+      const items = await prisma.portfolio.findMany({ where: { isPublished: true } })
+      res.json(sendSuccess(withIdArray(sortByOrderThenDate(items))))
     } catch (error) {
-      console.error("FULL ERROR:", error)
-      console.error("MESSAGE:", error.message)
-      console.error("STACK:", error.stack)
-      console.error("PRISMA CODE:", error.code)
-      console.error("BODY:", req.body)
-      console.error("PARAMS:", req.params)
-      console.error("QUERY:", req.query)
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
+      console.error('[PORTFOLIO][LIST] error:', error?.message)
+      res.json(sendSuccess([]))
+    }
+  },
+
+  get: async (req, res) => {
+    try {
+      const item = await prisma.portfolio.findUnique({ where: { id: req.params.id } })
+      if (!item) {
+        return res.status(404).json({ success: false, message: 'Portfolio not found' })
       }
-      res.status(500).json({
-        success: false,
-        route: req.originalUrl || req.path,
-        error: error.message,
-        rawMessage: error.message,
-        code: error.code,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-      })
+      res.json(sendSuccess(withId(item)))
+    } catch (error) {
+      console.error('[PORTFOLIO][GET] error:', error?.message)
+      res.status(500).json({ success: false, message: 'Failed to fetch portfolio item' })
     }
   },
 
@@ -485,6 +483,14 @@ export const virtualDesignController = {
     res.json(sendSuccess(withIdArray(items)))
   }),
 
+  get: asyncHandler(async (req, res) => {
+    const item = await prisma.virtualDesign.findUnique({ where: { id: req.params.id } })
+    if (!item) {
+      return res.status(404).json({ success: false, message: 'VirtualDesign not found' })
+    }
+    res.json(sendSuccess(withId(item)))
+  }),
+
   create: asyncHandler(async (req, res) => {
     const payload = stripUnknown({ ...req.body }, VIRTUAL_DESIGN_FIELDS)
 
@@ -499,6 +505,16 @@ export const virtualDesignController = {
 
     const parsedTags = parseMaybeJson(req.body.tags, null)
     payload.tags = Array.isArray(parsedTags) ? parsedTags : (parsedTags ? [parsedTags] : [])
+
+    // Handle cover image index
+    if (req.body.coverImageIndex !== undefined) {
+      payload.coverImageIndex = Number(req.body.coverImageIndex) || 0
+    }
+
+    // Handle status
+    if (req.body.status) {
+      payload.status = req.body.status
+    }
 
     // Handle multiple image uploads
     const imageFiles = (Array.isArray(req.files) ? req.files : []).filter((f) => f.fieldname === 'images')
@@ -524,7 +540,6 @@ export const virtualDesignController = {
     if (thumbnailFile) {
       const upload = await uploadImage(thumbnailFile.buffer, 'hok/virtual-design', thumbnailFile.mimetype)
       payload.thumbnailUrl = upload.secure_url
-      // thumbnailUrl has no stored publicId in this model
     }
 
     // Handle single image upload (for imageUrl)
@@ -564,6 +579,16 @@ export const virtualDesignController = {
 
     const parsedTags = parseMaybeJson(req.body.tags, null)
     payload.tags = Array.isArray(parsedTags) ? parsedTags : (parsedTags ? [parsedTags] : existing.tags || [])
+
+    // Handle cover image index
+    if (req.body.coverImageIndex !== undefined) {
+      payload.coverImageIndex = Number(req.body.coverImageIndex) || 0
+    }
+
+    // Handle status
+    if (req.body.status !== undefined) {
+      payload.status = req.body.status
+    }
 
     // Handle multiple image uploads
     const imageFiles = (Array.isArray(req.files) ? req.files : []).filter((f) => f.fieldname === 'images')

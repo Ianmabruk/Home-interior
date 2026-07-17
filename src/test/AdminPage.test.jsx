@@ -56,6 +56,7 @@ vi.mock('lucide-react', () => ({
   Newspaper: () => <span data-testid="newspaper">News</span>,
   Shield: () => <span data-testid="shield">Shield</span>,
   Settings2: () => <span data-testid="settings2">Settings</span>,
+  Star: () => <span data-testid="star">Star</span>,
 }))
 
 vi.mock('react-router-dom', async () => {

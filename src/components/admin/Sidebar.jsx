@@ -1,4 +1,3 @@
-import { useAuth } from '../../context/AuthContext'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -9,10 +8,12 @@ import {
   Info,
   MessageSquare,
   Newspaper,
-  Settings,
+  Settings as SettingsIcon,
   LogOut,
   Sparkles,
   Star,
+  Menu,
+  X,
 } from 'lucide-react'
 
 const tabs = [
@@ -24,28 +25,22 @@ const tabs = [
   { id: 'testimonials', label: 'Testimonials', icon: Star },
   { id: 'consultations', label: 'Consultations', icon: MessageSquare },
   { id: 'newsletter', label: 'Newsletter', icon: Newspaper },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ]
 
-export const Sidebar = ({ activeTab, onTabChange, sidebarOpen, mobileOpen, onCloseMobile }) => {
-  const { user, logout } = useAuth()
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('adminSidebarCollapsed') === 'true'
-    }
-    return false
-  })
+export const Sidebar = ({ activeTab, onTabChange, sidebarOpen, mobileOpen, onCloseMobile, isCollapsed, setIsCollapsed, user, onLogout }) => {
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
-    localStorage.setItem('adminSidebarCollapsed', isCollapsed)
-  }, [isCollapsed])
-
-  const handleLogout = () => {
-    logout?.()
-  }
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   return (
     <>
+      {/* Mobile Overlay */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -54,17 +49,21 @@ export const Sidebar = ({ activeTab, onTabChange, sidebarOpen, mobileOpen, onClo
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-[#1B1714]/60 backdrop-blur-sm z-30 lg:hidden"
             onClick={onCloseMobile}
+            aria-hidden="true"
           />
         )}
       </AnimatePresence>
 
+      {/* Sidebar */}
       <motion.aside
         initial={false}
         animate={{
-          width: sidebarOpen ? (isCollapsed ? 88 : 300) : (mobileOpen ? 300 : 0),
+          width: isMobile ? (mobileOpen ? 300 : 0) : (isCollapsed ? 88 : 300),
         }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed inset-y-0 left-0 z-40 flex flex-col bg-[#1B1714] text-white border-r border-white/10 shadow-2xl overflow-hidden"
+        className={`fixed inset-y-0 left-0 z-40 flex flex-col bg-[#1B1714] text-white border-r border-white/10 shadow-2xl overflow-hidden ${
+          isMobile ? 'transform transition-transform duration-300' : ''
+        } ${mobileOpen && isMobile ? 'translate-x-0' : isMobile ? '-translate-x-full' : ''}`}
       >
         {/* Logo Section */}
         <div className="flex items-center gap-3 h-20 px-5 border-b border-white/10 flex-shrink-0">
@@ -90,29 +89,31 @@ export const Sidebar = ({ activeTab, onTabChange, sidebarOpen, mobileOpen, onClo
           </AnimatePresence>
         </div>
 
-        {/* Collapse Toggle Button */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="mx-3 mt-2 mb-4 p-2 rounded-xl hover:bg-white/5 transition-colors text-white/70 hover:text-white"
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={`transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
+        {/* Collapse Toggle Button (Desktop only) */}
+        {!isMobile && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="mx-3 mt-2 mb-4 p-2 rounded-xl hover:bg-white/5 transition-colors text-white/70 hover:text-white"
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </motion.button>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
+            >
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </motion.button>
+        )}
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">
@@ -129,12 +130,14 @@ export const Sidebar = ({ activeTab, onTabChange, sidebarOpen, mobileOpen, onClo
                   onTabChange(item.id)
                   onCloseMobile()
                 }}
-                className={`relative w-full flex items-center ${sidebarOpen && !isCollapsed ? 'gap-3 px-4' : 'justify-center px-2'} py-3 text-sm font-medium transition-all duration-200 rounded-xl ${
+                className={`relative w-full flex items-center ${
+                  sidebarOpen && !isCollapsed && !isMobile ? 'gap-3 px-4' : 'justify-center px-2'
+                } py-3 text-sm font-medium transition-all duration-200 rounded-xl ${
                   isActive
                     ? 'text-[var(--accent)] bg-white/10 rounded-xl shadow-sm font-semibold'
                     : 'text-white/75 hover:bg-white/5 hover:text-white'
                 }`}
-                title={!sidebarOpen || isCollapsed ? item.label : undefined}
+                title={(!sidebarOpen || isCollapsed || isMobile) && !isActive ? item.label : undefined}
               >
                 {isActive && (
                   <motion.div
@@ -147,7 +150,7 @@ export const Sidebar = ({ activeTab, onTabChange, sidebarOpen, mobileOpen, onClo
                   <Icon size={18} className="flex-shrink-0" />
                 </span>
                 <AnimatePresence>
-                  {sidebarOpen && !isCollapsed && (
+                  {(sidebarOpen && !isCollapsed && !isMobile) && (
                     <motion.span
                       initial={{ opacity: 0, x: -5 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -166,7 +169,7 @@ export const Sidebar = ({ activeTab, onTabChange, sidebarOpen, mobileOpen, onClo
 
         {/* User Section */}
         <div className="p-3 border-t border-white/10 flex-shrink-0">
-          {sidebarOpen && !isCollapsed ? (
+          {sidebarOpen && !isCollapsed && !isMobile ? (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -183,7 +186,7 @@ export const Sidebar = ({ activeTab, onTabChange, sidebarOpen, mobileOpen, onClo
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={handleLogout}
+                onClick={onLogout}
                 className="p-2 rounded-xl hover:bg-white/10 text-white/70 hover:text-white transition"
                 title="Logout"
               >
@@ -194,7 +197,7 @@ export const Sidebar = ({ activeTab, onTabChange, sidebarOpen, mobileOpen, onClo
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={handleLogout}
+              onClick={onLogout}
               className="flex w-full items-center justify-center p-2.5 rounded-xl hover:bg-white/10 text-white/70 hover:text-white transition"
               title="Logout"
             >

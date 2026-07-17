@@ -168,6 +168,7 @@ model VirtualDesign {
   imageUrl          String?  @map("image_url")
   imagePublicId     String?  @map("image_public_id")
   images            Json?    @map("images")
+  coverImageIndex   Int?     @default(0) @map("cover_image_index")
   services          Json
   beforeAfterImages Json?    @map("before_after_images")
   category          String?
@@ -175,6 +176,7 @@ model VirtualDesign {
   ctaPrimary        String?  @default("Start Your Project") @map("cta_primary")
   ctaSecondary      String?  @default("Learn More") @map("cta_secondary")
   mediaSettings     Json?    @map("media_settings")
+  status            String?  @default("draft") @map("status")
   isPublished       Boolean? @default(true) @map("is_published")
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")

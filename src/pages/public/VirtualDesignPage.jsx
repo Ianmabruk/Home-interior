@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Maximize2, Play, Video, Image, Search, Filter, X as XIcon, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { X, Maximize2, Play, Video, Image, Search, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../../services/api'
 import { getOptimizedUrl, getOptimizedVideoUrl, getVideoPosterUrl } from '../../utils/cloudinaryHelpers'
 import LazyVideo from '../../components/common/LazyVideo'
@@ -37,7 +37,7 @@ export const VirtualDesignPage = () => {
   const [fullscreen, setFullscreen] = useState(null)
   const [imageFullscreen, setImageFullscreen] = useState(null)
   const [galleryIndex, setGalleryIndex] = useState(0)
-  const [selectedProject, setSelectedProject] = useState(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     const load = async () => {
@@ -108,13 +108,7 @@ const filtered = items.filter((item) => {
   }
 
   const openProjectDetail = (item) => {
-    setSelectedProject(item)
-    document.body.style.overflow = 'hidden'
-  }
-
-  const closeProjectDetail = () => {
-    setSelectedProject(null)
-    document.body.style.overflow = ''
+    navigate(`/virtual-interior-design/project/${item._id}`)
   }
 
   if (loading) {
@@ -601,18 +595,18 @@ const filtered = items.filter((item) => {
               {/* Get all images for this project */}
               {(() => {
                 const project = items.find(i => i._id === imageFullscreen._id || i.title === imageFullscreen.title)
-                const images = project ? getProjectImages(project) : [imageFullscreen.imageUrl]
-                return images.length > 1 ? (
+                const projectImages = project ? getProjectImages(project) : [imageFullscreen.imageUrl]
+                return projectImages.length > 1 ? (
                   <>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setGalleryIndex(prev => prev === 0 ? images.length - 1 : prev - 1) }}
+                      onClick={(e) => { e.stopPropagation(); setGalleryIndex(prev => prev === 0 ? projectImages.length - 1 : prev - 1) }}
                       className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full bg-white/90 backdrop-blur text-[var(--primary)] hover:bg-white shadow-lg transition-all duration-300 hover:shadow-xl"
                       aria-label="Previous image"
                     >
                       <ChevronLeft size={24} strokeWidth={2} />
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setGalleryIndex(prev => prev === images.length - 1 ? 0 : prev + 1) }}
+                      onClick={(e) => { e.stopPropagation(); setGalleryIndex(prev => prev === projectImages.length - 1 ? 0 : prev + 1) }}
                       className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full bg-white/90 backdrop-blur text-[var(--primary)] hover:bg-white shadow-lg transition-all duration-300 hover:shadow-xl"
                       aria-label="Next image"
                     >
@@ -623,20 +617,26 @@ const filtered = items.filter((item) => {
               })()}
               
               <div className="relative h-full w-full flex items-center justify-center p-4">
-                <img
-                  src={getOptimizedUrl(images[galleryIndex] || imageFullscreen.imageUrl, { width: 1920 })}
-                  alt={imageFullscreen.title}
-                  className="max-h-[80vh] max-w-full object-contain"
-                />
+                {(() => {
+                  const project = items.find(i => i._id === imageFullscreen._id || i.title === imageFullscreen.title)
+                  const projectImages = project ? getProjectImages(project) : [imageFullscreen.imageUrl]
+                  return (
+                    <img
+                      src={getOptimizedUrl(projectImages[galleryIndex] || imageFullscreen.imageUrl, { width: 1920 })}
+                      alt={imageFullscreen.title}
+                      className="max-h-[80vh] max-w-full object-contain"
+                    />
+                  )
+                })()}
               </div>
               
               {/* Thumbnail Navigation */}
               {(() => {
                 const project = items.find(i => i._id === imageFullscreen._id || i.title === imageFullscreen.title)
-                const images = project ? getProjectImages(project) : [imageFullscreen.imageUrl]
-                return images.length > 1 ? (
+                const projectImages = project ? getProjectImages(project) : [imageFullscreen.imageUrl]
+                return projectImages.length > 1 ? (
                   <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                    {images.map((img, idx) => (
+                    {projectImages.map((img, idx) => (
                       <button
                         key={idx}
                         onClick={(e) => { e.stopPropagation(); setGalleryIndex(idx) }}
@@ -673,126 +673,7 @@ const filtered = items.filter((item) => {
         )}
       </AnimatePresence>
 
-        {/* Project Detail Modal - Collage View */}
-        <AnimatePresence>
-          {selectedProject && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8 bg-[var(--primary)]/98 backdrop-blur-sm"
-                onClick={closeProjectDetail}
-                aria-hidden="true"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                className="fixed inset-4 md:inset-10 lg:inset-20 z-50 bg-white rounded-3xl overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.3)]"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="project-detail-title"
-              >
-                <button
-                  onClick={closeProjectDetail}
-                  className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/90 backdrop-blur text-[var(--primary)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-all duration-300"
-                  aria-label="Close project"
-                >
-                  <X size={20} strokeWidth={2} />
-                </button>
-                
-                <div className="h-full w-full flex flex-col">
-                  {/* Header */}
-                  <div className="absolute top-0 left-0 right-0 p-6 md:p-8 bg-gradient-to-t from-[var(--primary)]/90 via-[var(--primary)]/50 to-transparent text-white z-10">
-                    {selectedProject.category && (
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-2">{selectedProject.category}</p>
-                    )}
-                    <h2 id="project-detail-title" className="font-display text-3xl md:text-4xl font-normal leading-tight">{selectedProject.title}</h2>
-                  </div>
-
-                  {/* Collage Grid */}
-                  <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-                    {(() => {
-                      const projectImages = getProjectImages(selectedProject)
-                      if (projectImages.length === 0) return null
-                      
-                      return (
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                          {projectImages.map((img, idx) => (
-                            <motion.div
-                              key={idx}
-                              initial={{ opacity: 0, scale: 0.95 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: idx * 0.05, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                              className="relative group"
-                              onClick={() => { setImageFullscreen({ imageUrl: img, title: selectedProject.title, category: selectedProject.category }); setGalleryIndex(idx) }}
-                            >
-                              <img
-                                src={getOptimizedUrl(img, { width: 800 })}
-                                alt={`${selectedProject.title} - Image ${idx + 1}`}
-                                className="w-full aspect-[4/3] object-cover rounded-2xl transition-all duration-500 group-hover:scale-105 group-hover:shadow-2xl"
-                                loading="lazy"
-                              />
-                              <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
-                              <div className="absolute bottom-3 left-3 right-3 text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                View Image {idx + 1} of {projectImages.length}
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                      )
-                    })()}
-                  </div>
-
-                  {/* Project Details */}
-                  <div className="p-6 md:p-8 bg-[var(--bg)]/95 backdrop-blur-sm border-t border-[var(--border)]">
-                    {selectedProject.description && (
-                      <div className="mb-6">
-                        <h3 className="font-display text-xl font-normal text-[var(--primary)] mb-3">Description</h3>
-                        <p className="text-base leading-relaxed text-[var(--primary)]/70">{selectedProject.description}</p>
-                      </div>
-                    )}
-                    <div className="grid gap-4 md:grid-cols-3">
-                      {selectedProject.location && (
-                        <div className="flex items-center gap-3 text-sm text-[var(--primary)]/60">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent)]">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                            <circle cx="12" cy="10" r="3" />
-                          </svg>
-                          <span>{selectedProject.location}</span>
-                        </div>
-                      )}
-                      {selectedProject.year && (
-                        <div className="flex items-center gap-3 text-sm text-[var(--primary)]/60">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent)]">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                            <line x1="16" y1="2" x2="16" y2="6" />
-                            <line x1="8" y1="2" x2="8" y2="6" />
-                            <line x1="3" y1="10" x2="21" y2="10" />
-                          </svg>
-                          <span>Completed: {selectedProject.year}</span>
-                        </div>
-                      )}
-                      {selectedProject.client && (
-                        <div className="flex items-center gap-3 text-sm text-[var(--primary)]/60">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent)]">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                            <circle cx="12" cy="7" r="4" />
-                          </svg>
-                          <span>Client: {selectedProject.client}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
-      {/* Video Fullscreen Modal */}
+        {/* Video Fullscreen Modal */}
       <AnimatePresence>
         {fullscreen && (
           <>

@@ -76,6 +76,7 @@ router.patch('/projects/:id', auth, authorize('admin'), writeLimiter, auditLog, 
 router.delete('/projects/:id', auth, authorize('admin'), writeLimiter, auditLog, projectsController.remove)
 
 router.get('/portfolio', portfolioController.list)
+router.get('/portfolio/:id', portfolioController.get)
 router.patch('/portfolio/reorder', auth, authorize('admin'), writeLimiter, auditLog, sanitizeInput, portfolioController.reorder)
 router.post('/portfolio', auth, authorize('admin'), writeLimiter, auditLog, upload.any(), validateUpload, sanitizeInput, validatePortfolioBody, portfolioController.create)
 router.patch('/portfolio/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.any(), validateUpload, sanitizeInput, validatePortfolioBody, portfolioController.update)
@@ -91,6 +92,7 @@ router.post('/consultations', validateConsultationBody, consultationController.c
 router.get('/testimonials', testimonialController.listPublic)
 
 router.get('/virtual-design', virtualDesignController.list)
+router.get('/virtual-design/:id', virtualDesignController.get)
 router.post('/virtual-design', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, virtualDesignController.create)
 router.patch('/virtual-design/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, virtualDesignController.update)
 router.delete('/virtual-design/:id', auth, authorize('admin'), writeLimiter, auditLog, virtualDesignController.remove)

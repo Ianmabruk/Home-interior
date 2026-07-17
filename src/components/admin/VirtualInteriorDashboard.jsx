@@ -10,9 +10,16 @@ import {
   Image,
   ArrowUpDown,
   Copy,
+  GripVertical,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react'
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
+import { uploadFiles, validateFiles, revokePreviews, createDragDropHandlers } from '../../utils/upload'
 import { getOptimizedVideoUrl, getVideoPosterUrl, getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
 const INITIAL_FORM = {
@@ -21,8 +28,10 @@ const INITIAL_FORM = {
   category: '',
   tags: '',
   mediaType: 'image',
-  beforeTitle: '',
-  afterTitle: '',
+  beforeTitle: 'Before',
+  afterTitle: 'After',
+  coverImageIndex: 0,
+  status: 'draft',
 }
 
 const INITIAL_JOURNEY = {
@@ -47,6 +56,10 @@ export const VirtualInteriorDashboard = () => {
   const [loading, setLoading] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
   const [activeTab, setActiveTab] = useState('items')
+  const [isDragOver, setIsDragOver] = useState(false)
+  const [dragOverIndex, setDragOverIndex] = useState(-1)
+  const [uploadProgress, setUploadProgress] = useState({})
+  const [uploading, setUploading] = useState(false)
   const fileRef = useRef(null)
   const journeyBeforeImageRef = useRef(null)
   const journeyBeforeVideoRef = useRef(null)
@@ -68,7 +81,7 @@ export const VirtualInteriorDashboard = () => {
 
   const handleFiles = (files, setter, previewSetter) => {
     const validFiles = Array.from(files).filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'))
-    setter(prev => [...prev, ...validFiles].slice(0, 20))
+    setter(prev => [...prev, ...validFiles].slice(0, 50))
     validFiles.forEach(f => previewSetter(prev => [...prev, URL.createObjectURL(f)]))
   }
 
@@ -77,6 +90,21 @@ export const VirtualInteriorDashboard = () => {
     previewsSetter(prev => {
       URL.revokeObjectURL(prev[index])
       return prev.filter((_, i) => i !== index)
+    })
+  }
+
+  const moveMedia = (fromIndex, toIndex, filesSetter, previewsSetter) => {
+    filesSetter(prev => {
+      const newArr = [...prev]
+      const [removed] = newArr.splice(fromIndex, 1)
+      newArr.splice(toIndex, 0, removed)
+      return newArr
+    })
+    previewsSetter(prev => {
+      const newArr = [...prev]
+      const [removed] = newArr.splice(fromIndex, 1)
+      newArr.splice(toIndex, 0, removed)
+      return newArr
     })
   }
 
@@ -90,9 +118,14 @@ export const VirtualInteriorDashboard = () => {
       mediaType: item.mediaType || 'image',
       beforeTitle: item.beforeTitle || 'Before',
       afterTitle: item.afterTitle || 'After',
+      coverImageIndex: item.coverImageIndex || 0,
+      status: item.status || 'draft',
     })
-    setMediaPreviews(item.imageUrl ? [item.imageUrl] : (item.videoUrl ? [item.videoUrl] : []))
-    setMediaFiles([])
+    const images = item.images && item.images.length > 0
+      ? item.images.map(img => typeof img === 'string' ? img : img.url)
+      : (item.imageUrl ? [item.imageUrl] : [])
+    setMediaPreviews(images)
+    setMediaFiles(images.map(() => null))
     if (item.journey) {
       setJourneyBeforePreviews(item.journey.before?.images || [])
       setJourneyBeforeImages(item.journey.before?.images?.map(() => null) || [])
@@ -121,38 +154,108 @@ export const VirtualInteriorDashboard = () => {
     setJourneyAfterVideoPreviews([])
   }
 
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = () => {
+    setIsDragOver(false)
+    setDragOverIndex(-1)
+  }
+
+  const handleDragStart = (e, index) => {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', index.toString())
+    e.target.classList.add('opacity-50')
+  }
+
+  const handleDragEnd = (e) => {
+    e.target.classList.remove('opacity-50')
+    setDragOverIndex(-1)
+  }
+
+  const handleDragEnter = (e, index) => {
+    e.preventDefault()
+    setDragOverIndex(index)
+  }
+
+  const handleDrop = (e, filesSetter, previewsSetter) => {
+    e.preventDefault()
+    setIsDragOver(false)
+    setDragOverIndex(-1)
+    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10)
+    const toIndex = Array.from(e.target.closest('.grid').children).findIndex(
+      el => el === e.target.closest('.relative.rounded-xl')
+    )
+    if (fromIndex !== toIndex && !isNaN(toIndex)) {
+      moveMedia(fromIndex, toIndex, filesSetter, previewsSetter)
+    }
+  }
+
   const submit = async (e) => {
     e.preventDefault()
     setLoading(true)
+    setUploading(true)
+    setUploadProgress({})
     try {
-      const payload = new FormData()
-      payload.append('title', form.title)
-      payload.append('description', form.description)
-      payload.append('category', form.category)
-      payload.append('tags', form.tags)
-      payload.append('mediaType', form.mediaType)
-      payload.append('beforeTitle', form.beforeTitle)
-      payload.append('afterTitle', form.afterTitle)
+      const allFiles = [
+        ...mediaFiles,
+        ...journeyBeforeImages,
+        ...journeyAfterImages,
+        ...journeyBeforeVideos,
+        ...journeyAfterVideos
+      ].filter(f => f)
 
-      mediaFiles.forEach(file => payload.append('media', file))
-      journeyBeforeImages.forEach(file => payload.append('beforeImages', file))
-      journeyAfterImages.forEach(file => payload.append('afterImages', file))
-      journeyBeforeVideos.forEach(file => payload.append('beforeVideos', file))
-      journeyAfterVideos.forEach(file => payload.append('afterVideos', file))
-
-      if (editingId) {
-        await api.patch(`/content/virtual-design/${editingId}`, payload)
-      } else {
-        await api.post('/content/virtual-design', payload)
+      if (allFiles.length > 0) {
+        await new Promise((resolve, reject) => {
+          uploadFiles({
+            files: allFiles,
+            endpoint: '/api/content/virtual-design',
+            fieldName: 'images',
+            additionalFields: {
+              title: form.title,
+              description: form.description,
+              category: form.category,
+              tags: form.tags,
+              coverImageIndex: String(form.coverImageIndex || 0),
+              status: form.status,
+              beforeTitle: form.beforeTitle,
+              afterTitle: form.afterTitle,
+              ...(editingId ? { id: editingId } : {})
+            },
+            maxConcurrent: 3,
+            maxRetries: 3,
+            onFileProgress: (file, progress) => {
+              setUploadProgress(prev => ({
+                ...prev,
+                [file.file.name]: progress
+              }))
+            },
+            onFileError: (file, error) => {
+              console.error('Upload error for', file.file.name, error)
+            },
+            onAllComplete: ({ successful, failed }) => {
+              if (failed.length > 0) {
+                reject(new Error(`${failed.length} file(s) failed to upload`))
+              } else {
+                resolve()
+              }
+            }
+          })
+        })
       }
-      resetForm()
+
       const res = await api.get('/content/virtual-design')
       setItems(Array.isArray(res.data) ? res.data : res.data?.items || [])
       emitAdminDataChanged({ type: 'virtual-changed' })
-    } catch {
-      // handle error
+      resetForm()
+    } catch (err) {
+      console.error('Submit error:', err)
     } finally {
       setLoading(false)
+      setUploading(false)
+      setUploadProgress({})
     }
   }
 
@@ -164,17 +267,16 @@ export const VirtualInteriorDashboard = () => {
       const res = await api.get('/content/virtual-design')
       setItems(Array.isArray(res.data) ? res.data : res.data?.items || [])
       emitAdminDataChanged({ type: 'virtual-changed' })
-    } catch {
-      // handle error
+    } catch (err) {
+      console.error('Delete error:', err)
     }
   }
 
-  const renderMediaUpload = ({ label, accept, files, previews, onClick, fileRef, onDrop, onDragOver, onDragLeave, isDragOver }) => (
+  const renderMediaUpload = ({ label, accept, files, previews, onClick, fileRef, isDragOver }) => (
     <motion.div
       whileHover={{ scale: 1.01 }}
-      onDrop={onDrop}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
       onClick={onClick}
       className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 ${
         isDragOver ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--border)] bg-[var(--bg)]/30'
@@ -183,7 +285,7 @@ export const VirtualInteriorDashboard = () => {
       {previews.length > 0 ? (
         <div className="p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-[var(--primary)]">{label} ({previews.length})</p>
+            <p className="text-sm font-medium text-[var(--primary)]">{label} ({previews.length}/50)</p>
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -200,7 +302,12 @@ export const VirtualInteriorDashboard = () => {
                 key={index}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="relative rounded-xl overflow-hidden group"
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragEnd={handleDragEnd}
+                onDragEnter={(e) => handleDragEnter(e, index)}
+                onDrop={(e) => handleDrop(e, setMediaFiles, setMediaPreviews)}
+                draggable
+                className={`relative rounded-xl overflow-hidden group ${dragOverIndex === index ? 'ring-2 ring-[var(--accent)]' : ''}`}
               >
                 {preview.startsWith('blob:') || preview.startsWith('http') ? (
                   preview.match(/\.(mp4|webm|mov)$/i) || (files[index] && files[index].type.startsWith('video/')) ? (
@@ -217,10 +324,32 @@ export const VirtualInteriorDashboard = () => {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); filesSetter(files => files.filter((_, i) => i !== index)); previewsSetter(prev => { URL.revokeObjectURL(prev[index]); return prev.filter((_, i) => i !== index) }) }}
+                  onClick={(e) => { e.stopPropagation(); removeMedia(index, setMediaFiles, setMediaPreviews) }}
                   className="absolute top-2 right-2 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-2 rounded-full hover:bg-[var(--primary)] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <X size={14} />
+                </motion.button>
+                <div className="absolute bottom-2 left-2 text-[10px] font-medium text-white bg-black/50 px-1.5 py-0.5 rounded">
+                  {index + 1}
+                </div>
+                {index === form.coverImageIndex && (
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="absolute top-2 left-2 bg-[var(--accent)] text-white px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-widest"
+                  >
+                    Cover
+                  </motion.div>
+                )}
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setForm(f => ({ ...f, coverImageIndex: index })) }}
+                  className="absolute bottom-2 right-2 bg-white/90 backdrop-blur-sm text-[var(--primary)] p-2 rounded-full hover:bg-white shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Set as cover"
+                >
+                  <CheckCircle size={14} />
                 </motion.button>
               </motion.div>
             ))}
@@ -237,7 +366,7 @@ export const VirtualInteriorDashboard = () => {
           </motion.div>
           <div>
             <p className="text-sm font-medium text-[var(--primary)]">Drop {accept === 'video/*' ? 'video' : 'images'} here or click to browse</p>
-            <p className="text-[10px] text-[var(--primary)]/50 mt-1">{accept === 'video/*' ? 'MP4, MOV up to 100MB' : 'PNG, JPG up to 10MB each (max 20)'}</p>
+            <p className="text-[10px] text-[var(--primary)]/50 mt-1">{accept === 'video/*' ? 'MP4, MOV up to 100MB' : 'PNG, JPG up to 10MB each (max 50)'}</p>
           </div>
         </div>
       )}
@@ -359,16 +488,32 @@ export const VirtualInteriorDashboard = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Media Type</label>
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Cover Image Index</label>
                 <select
-                  value={form.mediaType}
-                  onChange={(e) => setForm((f) => ({ ...f, mediaType: e.target.value }))}
+                  value={form.coverImageIndex}
+                  onChange={(e) => setForm((f) => ({ ...f, coverImageIndex: Number(e.target.value) }))}
                   className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
                 >
-                  <option value="image">Image</option>
-                  <option value="video">Video</option>
+                  {Array.from({ length: 50 }, (_, i) => i).map(i => (
+                    <option key={i} value={i}>Image {i + 1}</option>
+                  ))}
                 </select>
               </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Status</label>
+                <select
+                  value={form.status}
+                  onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                >
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Before Label</label>
                 <input
@@ -378,97 +523,56 @@ export const VirtualInteriorDashboard = () => {
                   placeholder="Before"
                 />
               </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">After Label</label>
-              <input
-                value={form.afterTitle}
-                onChange={(e) => setForm((f) => ({ ...f, afterTitle: e.target.value }))}
-                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                placeholder="After"
-              />
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">After Label</label>
+                <input
+                  value={form.afterTitle}
+                  onChange={(e) => setForm((f) => ({ ...f, afterTitle: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                  placeholder="After"
+                />
+              </div>
             </div>
 
             {/* Main Media Upload - Multiple Images */}
             <div className="space-y-2">
               <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 flex items-center gap-2">
                 <Image size={14} strokeWidth={1.5} />
-                Image Upload (Multiple)
+                Project Images (Drag to reorder, click cover badge to set cover)
               </label>
               <input ref={fileRef} type="file" accept="image/*" multiple onChange={(e) => handleFiles(e.target.files, setMediaFiles, setMediaPreviews)} className="hidden" />
-              <motion.div
-                whileHover={{ scale: 1.01 }}
-                onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files, setMediaFiles, setMediaPreviews) }}
-                onDragOver={(e) => { e.preventDefault() }}
-                onDragLeave={() => {}}
-                onClick={() => fileRef.current?.click()}
-                className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 ${
-                  false ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--border)] bg-[var(--bg)]/30'
-                }`}
-              >
-                {mediaPreviews.length > 0 ? (
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm font-medium text-[var(--primary)]">Main Media ({mediaPreviews.length}/10)</p>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        type="button"
-                        onClick={() => fileRef.current?.click()}
-                        className="text-xs text-[var(--accent)] hover:text-[var(--primary)] font-medium"
-                      >
-                        Add More
-                      </motion.button>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                      {mediaPreviews.map((preview, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="relative rounded-xl overflow-hidden group"
-                        >
-                          <img
-                            src={preview}
-                            alt={`Preview ${index + 1}`}
-                            className="h-40 w-full object-cover"
-                          />
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setMediaFiles(prev => prev.filter((_, i) => i !== index)); setMediaPreviews(prev => { URL.revokeObjectURL(prev[index]); return prev.filter((_, i) => i !== index) }) }}
-                            className="absolute top-2 right-2 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-2 rounded-full hover:bg-[var(--primary)] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X size={14} />
-                          </motion.button>
-                          <div className="absolute bottom-2 left-2 text-[10px] font-medium text-white bg-black/50 px-1.5 py-0.5 rounded">
-                            {index + 1}
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-3 py-8">
-                    <motion.div
-                      animate={{ y: [0, -5, 0] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--accent)]/10 to-[var(--secondary)]/10 flex items-center justify-center text-[var(--accent)]"
-                    >
-                      <Image size={28} />
-                    </motion.div>
-                    <div>
-                      <p className="text-sm font-medium text-[var(--primary)]">Drop images here or click to browse</p>
-                      <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG up to 10MB each (max 10 images)</p>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
+              {renderMediaUpload({
+                label: 'Project Images',
+                accept: 'image/*',
+                files: mediaFiles,
+                previews: mediaPreviews,
+                onClick: () => fileRef.current?.click(),
+                fileRef,
+                isDragOver: isDragOver,
+              })}
             </div>
 
             <div className="flex gap-3 pt-2">
+              {uploading && Object.keys(uploadProgress).length > 0 && (
+                <div className="w-full bg-[var(--secondary)]/50 rounded-xl p-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-widest text-[var(--primary)]/70 mb-2">Uploading Files</div>
+                  <div className="space-y-1">
+                    {Object.entries(uploadProgress).map(([name, progress]) => (
+                      <div key={name} className="flex items-center gap-2">
+                        <div className="flex-1 h-2 bg-[var(--border)] rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${progress.percentage}%` }}
+                            className="h-full bg-[var(--accent)] rounded-full"
+                            transition={{ duration: 0.3 }}
+                          />
+                        </div>
+                        <span className="text-[10px] text-[var(--primary)]/60 w-10 text-right">{progress.percentage}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -482,9 +586,9 @@ export const VirtualInteriorDashboard = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="flex-1 rounded-full bg-[var(--primary)] text-white py-3 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--primary)]/90 hover:shadow-lg"
-                disabled={loading}
+                disabled={loading || uploading}
               >
-                {loading ? 'Saving…' : editingId ? 'Update Project' : 'Upload Project'}
+                {uploading ? 'Uploading…' : loading ? 'Saving…' : editingId ? 'Update Project' : 'Upload Project'}
               </motion.button>
             </div>
           </motion.form>
@@ -509,18 +613,20 @@ export const VirtualInteriorDashboard = () => {
                       muted
                       loop
                     />
-                  ) : item.imageUrl ? (
+                  ) : item.images && item.images.length > 0 ? (
                     <img
-                      src={getOptimizedUrl(item.imageUrl, { width: 480 })}
+                      src={getOptimizedUrl(
+                        typeof item.images[item.coverImageIndex || 0] === 'string' 
+                          ? item.images[item.coverImageIndex || 0] 
+                          : item.images[item.coverImageIndex || 0]?.url,
+                        { width: 480 }
+                      )}
                       alt={item.title}
                       className="h-44 w-full object-cover"
                     />
-                  ) : (item.images && item.images.length > 0) ? (
+                  ) : item.imageUrl ? (
                     <img
-                      src={getOptimizedUrl(
-                        typeof item.images[0] === 'string' ? item.images[0] : item.images[0]?.url,
-                        { width: 480 }
-                      )}
+                      src={getOptimizedUrl(item.imageUrl, { width: 480 })}
                       alt={item.title}
                       className="h-44 w-full object-cover"
                     />
@@ -548,6 +654,20 @@ export const VirtualInteriorDashboard = () => {
                       <Trash2 size={14} />
                     </motion.button>
                   </div>
+                  {item.images && item.images.length > 1 && (
+                    <div className="absolute bottom-3 left-3 bg-black/50 text-white text-[10px] px-2 py-1 rounded">
+                      {item.images.length} images
+                    </div>
+                  )}
+                  {item.status && (
+                    <div className={`absolute top-3 left-3 px-2 py-1 rounded text-[10px] font-medium uppercase ${
+                      item.status === 'published' ? 'bg-green-500/90 text-white' :
+                      item.status === 'draft' ? 'bg-yellow-500/90 text-white' :
+                      'bg-gray-500/90 text-white'
+                    }`}>
+                      {item.status}
+                    </div>
+                  )}
                 </div>
                 <div className="p-5">
                   <h3 className="font-display text-lg text-[var(--primary)]">{item.title}</h3>
@@ -603,7 +723,7 @@ export const VirtualInteriorDashboard = () => {
             </motion.button>
           </motion.div>
 
-          {/* Journey Form - Simplified for this example */}
+          {/* Journey Form */}
           {editingId && (
             <motion.form
               initial={{ opacity: 0, height: 0, y: -20 }}
@@ -688,9 +808,8 @@ export const VirtualInteriorDashboard = () => {
                   <input ref={journeyBeforeImageRef} type="file" accept="image/*" multiple onChange={(e) => handleFiles(e.target.files, setJourneyBeforeImages, setJourneyBeforePreviews)} className="hidden" />
                   <motion.div
                     whileHover={{ scale: 1.01 }}
-                    onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files, setJourneyBeforeImages, setJourneyBeforePreviews) }}
-                    onDragOver={(e) => { e.preventDefault() }}
-                    onDragLeave={() => {}}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
                     onClick={() => journeyBeforeImageRef.current?.click()}
                     className="relative border-2 border-dashed rounded-2xl transition-all duration-300 border-[var(--border)] bg-[var(--bg)]/30"
                   >
@@ -724,9 +843,8 @@ export const VirtualInteriorDashboard = () => {
                   <input ref={journeyBeforeVideoRef} type="file" accept="video/*" multiple onChange={(e) => handleFiles(e.target.files, setJourneyBeforeVideos, setJourneyBeforeVideoPreviews)} className="hidden" />
                   <motion.div
                     whileHover={{ scale: 1.01 }}
-                    onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files, setJourneyBeforeVideos, setJourneyBeforeVideoPreviews) }}
-                    onDragOver={(e) => { e.preventDefault() }}
-                    onDragLeave={() => {}}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
                     onClick={() => journeyBeforeVideoRef.current?.click()}
                     className="relative border-2 border-dashed rounded-2xl transition-all duration-300 border-[var(--border)] bg-[var(--bg)]/30"
                   >
@@ -767,9 +885,8 @@ export const VirtualInteriorDashboard = () => {
                   <input ref={journeyAfterImageRef} type="file" accept="image/*" multiple onChange={(e) => handleFiles(e.target.files, setJourneyAfterImages, setJourneyAfterPreviews)} className="hidden" />
                   <motion.div
                     whileHover={{ scale: 1.01 }}
-                    onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files, setJourneyAfterImages, setJourneyAfterPreviews) }}
-                    onDragOver={(e) => { e.preventDefault() }}
-                    onDragLeave={() => {}}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
                     onClick={() => journeyAfterImageRef.current?.click()}
                     className="relative border-2 border-dashed rounded-2xl transition-all duration-300 border-[var(--border)] bg-[var(--bg)]/30"
                   >
@@ -803,9 +920,8 @@ export const VirtualInteriorDashboard = () => {
                   <input ref={journeyAfterVideoRef} type="file" accept="video/*" multiple onChange={(e) => handleFiles(e.target.files, setJourneyAfterVideos, setJourneyAfterVideoPreviews)} className="hidden" />
                   <motion.div
                     whileHover={{ scale: 1.01 }}
-                    onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files, setJourneyAfterVideos, setJourneyAfterVideoPreviews) }}
-                    onDragOver={(e) => { e.preventDefault() }}
-                    onDragLeave={() => {}}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
                     onClick={() => journeyAfterVideoRef.current?.click()}
                     className="relative border-2 border-dashed rounded-2xl transition-all duration-300 border-[var(--border)] bg-[var(--bg)]/30"
                   >
@@ -934,8 +1050,22 @@ export const VirtualInteriorDashboard = () => {
               <h3 className="font-display text-xl text-[var(--primary)] text-center mb-2">Confirm Delete</h3>
               <p className="text-sm text-[var(--primary)]/50 text-center mb-6">Are you sure? This action cannot be undone.</p>
               <div className="flex gap-3 justify-end">
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setDeleteId(null)} className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">Cancel</motion.button>
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={deleteItem} className="rounded-full bg-[var(--error)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-white transition hover:bg-[var(--error)] hover:shadow-lg">Delete</motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setDeleteId(null)}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={deleteItem}
+                  className="rounded-full bg-[var(--error)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-white transition hover:bg-[var(--error)] hover:shadow-lg"
+                >
+                  Delete
+                </motion.button>
               </div>
             </motion.div>
           </motion.div>
