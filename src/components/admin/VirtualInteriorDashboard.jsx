@@ -300,15 +300,20 @@ const deleteItem = async () => {
   }
 
   const renderMediaUpload = ({ label, accept, files, previews, onClick, isDragOver, setFiles, setPreviews }) => (
-    <motion.div
-      whileHover={{ scale: 1.01 }}
+    <button
+      type="button"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onClick={onClick}
-      className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 ${
+      className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 w-full focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 ${
         isDragOver ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--border)] bg-[var(--bg)]/30'
       }`}
+      style={{ padding: 0 }}
     >
+      <motion.div
+        whileHover={{ scale: 1.01 }}
+        className="w-full h-full"
+      >
       {previews.length > 0 ? (
         <div className="p-4 space-y-4">
           <div className="flex items-center justify-between">
@@ -398,7 +403,8 @@ const deleteItem = async () => {
         </div>
       )}
     </motion.div>
-  )
+  </button>
+)
 
   return (
     <div className="space-y-6">
