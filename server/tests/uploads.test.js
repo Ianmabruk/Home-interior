@@ -261,27 +261,6 @@ describe('PRODUCTS upload pipeline', () => {
   })
 })
 
-describe('PROJECTS upload pipeline (reference module)', () => {
-  it('uploads media → stores in media[] + coverImageUrl → returns record', async () => {
-    mockPrisma.project.create.mockImplementation(({ data }) =>
-      Promise.resolve({ id: 'proj-1', createdAt: new Date().toISOString(), ...data }),
-    )
-    const res = await request(app)
-      .post('/api/content/projects')
-      .set('Authorization', `Bearer ${adminToken()}`)
-      .field('title', 'Modern Villa')
-      .field('description', 'A modern villa project')
-      .field('category', 'Residential')
-      .field('resourceType', 'image')
-      .attach('media', PNG_1x1, 'villa.png')
-
-    expect(res.status).toBe(201)
-    const saved = mockPrisma.project.create.mock.calls[0][0].data
-    expect(saved.coverImageUrl).toContain('res.cloudinary.com')
-    expect(saved.media[0].url).toContain('res.cloudinary.com')
-  })
-})
-
 describe('HOMEPAGE feed aggregates all published content', () => {
   it('returns portfolio, virtualInteriorDesign, about and testimonials together', async () => {
     mockPrisma.portfolio.findMany.mockResolvedValue([

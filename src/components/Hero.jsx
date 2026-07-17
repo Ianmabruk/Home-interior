@@ -24,37 +24,20 @@ export const Hero = ({ onBookConsultation }) => {
 
         const carouselImages = []
 
-        if (data.about?.aboutImageUrl) {
-          carouselImages.push({
-            url: data.about.aboutImageUrl,
-            alt: 'HOK Interior Design Studio',
-            priority: true
+        // Use featuredPortfolio first for hero, fallback to regular portfolio
+        const heroItems = data.featuredPortfolio && data.featuredPortfolio.length > 0 
+          ? data.featuredPortfolio 
+          : (data.portfolio || [])
+
+        heroItems
+          .filter(item => item.imageUrl)
+          .slice(0, 5)
+          .forEach(item => {
+            carouselImages.push({
+              url: item.imageUrl,
+              alt: item.title || 'Luxury interior design project'
+            })
           })
-        }
-
-        if (data.portfolio && Array.isArray(data.portfolio)) {
-          data.portfolio
-            .filter(item => item.imageUrl)
-            .slice(0, 5)
-            .forEach(item => {
-              carouselImages.push({
-                url: item.imageUrl,
-                alt: item.title || 'Luxury interior design project'
-              })
-            })
-        }
-
-        if (data.virtualDesigns && Array.isArray(data.virtualDesigns)) {
-          data.virtualDesigns
-            .filter(item => item.imageUrl || item.images?.[0]?.url)
-            .slice(0, 4)
-            .forEach(item => {
-              carouselImages.push({
-                url: item.imageUrl || item.images?.[0]?.url,
-                alt: item.title || 'Virtual interior design project'
-              })
-            })
-        }
 
         if (carouselImages.length > 0) {
           setImages(carouselImages)

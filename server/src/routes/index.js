@@ -8,14 +8,12 @@ import analyticsRoutes from './analyticsRoutes.js'
 import orderRoutes from './orderRoutes.js'
 import productRoutes from './productRoutes.js'
 import userRoutes from './userRoutes.js'
-import projectV2Routes from './projectV2Routes.js'
 
 const router = Router()
 
 router.use('/auth', authRoutes)
 router.use('/products', productRoutes)
 router.use('/content', contentRoutes)
-router.use('/project-v2', projectV2Routes)
 router.use('/orders', orderRoutes)
 router.use('/users', userRoutes)
 router.use('/admin', adminRoutes)

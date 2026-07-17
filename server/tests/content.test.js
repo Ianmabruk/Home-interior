@@ -2,12 +2,9 @@ import { jest } from '@jest/globals'
 import request from 'supertest'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import fs from 'fs/promises'
-import path from 'path'
 import { createMockPrisma, resetMockPrisma } from './helpers.js'
 
 const mockPrisma = createMockPrisma()
-const PROJECTS_TEMP_PATH = path.join(process.cwd(), 'temp', 'projects.json')
 
 jest.unstable_mockModule('../src/config/db.js', () => ({
   prisma: mockPrisma,
@@ -67,134 +64,6 @@ describe('Content Management', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     resetMockPrisma(mockPrisma)
-    fs.writeFile(PROJECTS_TEMP_PATH, JSON.stringify({ projects: [] }), 'utf-8').catch(() => {})
-  })
-
-  describe('GET /api/content/projects', () => {
-    it('should list published projects', async () => {
-      const response = await request(app)
-        .get('/api/content/projects')
-
-      expect(response.status).toBe(200)
-      expect(response.body.success).toBe(true)
-      expect(Array.isArray(response.body.data)).toBe(true)
-    })
-  })
-
-  describe('POST /api/content/projects', () => {
-    it('should create project as admin', async () => {
-      const admin = {
-        id: 'admin-1',
-        email: 'admin@test.com',
-        role: 'admin',
-        isActive: true,
-      }
-      const token = generateToken(admin)
-
-      const response = await request(app)
-        .post('/api/content/projects')
-        .set('Authorization', `Bearer ${token}`)
-        .field('order', '0')
-        .field('resourceType', 'video')
-        .attach('media', Buffer.from('fake-video-bytes'), {
-          filename: 'showcase.mp4',
-          contentType: 'video/mp4',
-        })
-
-      expect(response.status).toBe(201)
-      expect(response.body.success).toBe(true)
-      expect(response.body.project).toBeDefined()
-      expect(response.body.project.videoUrl).toBe('https://test.cloudinary.com/project-video.mp4')
-      expect(response.body.project.isPublished).toBe(true)
-    })
-
-    it('should reject project creation without auth', async () => {
-      const response = await request(app)
-        .post('/api/content/projects')
-        .send({
-          title: 'New Project',
-        })
-
-      expect(response.status).toBe(401)
-    })
-  })
-
-  describe('PATCH /api/content/projects/:id', () => {
-    it('should update project as admin', async () => {
-      const admin = {
-        id: 'admin-1',
-        email: 'admin@test.com',
-        role: 'admin',
-        isActive: true,
-      }
-      const token = generateToken(admin)
-
-      mockPrisma.project.findUnique.mockResolvedValue({
-        id: 'proj-1',
-        title: 'Old Title',
-      })
-      mockPrisma.project.update.mockResolvedValue({
-        id: 'proj-1',
-        title: 'New Title',
-      })
-
-      const response = await request(app)
-        .patch('/api/content/projects/proj-1')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          title: 'New Title',
-        })
-
-      expect(response.status).toBe(200)
-      expect(response.body.data.title).toBe('New Title')
-    })
-
-    it('should return 404 for non-existent project', async () => {
-      const admin = {
-        id: 'admin-1',
-        email: 'admin@test.com',
-        role: 'admin',
-        isActive: true,
-      }
-      const token = generateToken(admin)
-
-      mockPrisma.project.findUnique.mockResolvedValue(null)
-
-      const response = await request(app)
-        .patch('/api/content/projects/non-existent')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          title: 'New Title',
-        })
-
-      expect(response.status).toBe(404)
-    })
-  })
-
-  describe('DELETE /api/content/projects/:id', () => {
-    it('should delete project as admin', async () => {
-      const admin = {
-        id: 'admin-1',
-        email: 'admin@test.com',
-        role: 'admin',
-        isActive: true,
-      }
-      const token = generateToken(admin)
-
-      mockPrisma.project.findUnique.mockResolvedValue({
-        id: 'proj-1',
-        title: 'Test Project',
-      })
-      mockPrisma.project.delete.mockResolvedValue({
-        id: 'proj-1',
-      })
-
-      const response = await request(app)
-        .delete('/api/content/projects/proj-1')
-        .set('Authorization', `Bearer ${token}`)
-
-      expect(response.status).toBe(200)
-    })
   })
 
   describe('GET /api/content/portfolio', () => {
@@ -213,6 +82,7 @@ describe('Content Management', () => {
 
       expect(response.status).toBe(200)
       expect(response.body.success).toBe(true)
+      expect(Array.isArray(response.body.data)).toBe(true)
     })
   })
 

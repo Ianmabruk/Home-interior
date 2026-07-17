@@ -88,20 +88,6 @@ model Product {
   @@map("products")
 }
 
-model ProjectV2 {
-  id              String    @id @default(uuid()) @map("_id")
-  videoUrl        String    @map("video_url")
-  videoPublicId   String    @map("video_public_id")
-  thumbnailUrl    String?   @map("thumbnail_url")
-  thumbnailPublicId String? @map("thumbnail_public_id")
-  order           Int       @default(0)
-  isPublished     Boolean?  @default(true) @map("is_published")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-
-  @@map("project_v2")
-}
-
 model Project {
   id                String   @id @default(uuid()) @map("_id")
   title             String?
@@ -137,6 +123,7 @@ model Portfolio {
   order           Int?     @default(0)
   mediaSettings   Json?    @map("media_settings")
   isPublished     Boolean? @default(true) @map("is_published")
+  isFeatured      Boolean? @default(false) @map("is_featured")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -144,6 +131,7 @@ model Portfolio {
   @@index([category])
   @@index([order])
   @@index([createdAt])
+  @@index([isFeatured])
   @@map("portfolios")
 }
 

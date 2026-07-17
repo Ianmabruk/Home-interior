@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Image, Save, MoreVertical } from 'lucide-react'
+import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Image, Save, MoreVertical, Star } from 'lucide-react'
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
 
@@ -10,7 +10,8 @@ const INITIAL_FORM = {
   description: '', 
   location: '',
   completionDate: '',
-  order: 0 
+  order: 0,
+  isFeatured: false
 }
 
 export const PortfolioDashboard = () => {
@@ -74,6 +75,7 @@ export const PortfolioDashboard = () => {
       location: item.location || '',
       completionDate: item.completionDate || '',
       order: item.order || 0,
+      isFeatured: item.isFeatured || false,
     })
     setMediaFiles(item.gallery ? item.gallery.map(img => null) : [])
     setMediaPreviews(item.gallery ? item.gallery.map(img => img.url || img) : [])
@@ -99,6 +101,7 @@ export const PortfolioDashboard = () => {
       if (form.location) payload.append('location', form.location)
       if (form.completionDate) payload.append('completionDate', form.completionDate)
       payload.append('order', String(form.order || 0))
+      payload.append('isFeatured', String(form.isFeatured))
       
       mediaFiles.forEach((file, index) => {
         if (file) payload.append('gallery', file)
@@ -260,6 +263,19 @@ export const PortfolioDashboard = () => {
               />
             </div>
 
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Featured in Hero</label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isFeatured}
+                  onChange={(e) => setForm((f) => ({ ...f, isFeatured: e.target.checked }))}
+                  className="w-5 h-5 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-2"
+                />
+                <span className="text-sm text-[var(--primary)]">Show this project in the homepage hero carousel</span>
+              </label>
+            </div>
+
             <input ref={fileRef} type="file" accept="image/*" multiple onChange={(e) => handleFiles(e.target.files)} className="hidden" />
             <motion.div
               whileHover={{ scale: 1.01 }}
@@ -361,31 +377,45 @@ export const PortfolioDashboard = () => {
         transition={{ duration: 0.5 }}
         className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
-        {portfolio.map((item, i) => (
-          <motion.article
-            layout
-            key={item._id || item.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="group bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500"
-          >
-            <div className="relative aspect-[3/4] overflow-hidden">
-              {item.imageUrl ? (
-                <img
-                  src={item.imageUrl}
-                  alt={item.title}
-                  className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
-                  <Images size={40} />
-                </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/85 via-[var(--primary)]/40 to-transparent opacity-100" />
-              
-              {/* View Project Button - Bottom Center */}
+{portfolio.map((item, i) => (
+            <motion.article
+              layout
+              key={item._id || item.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="group bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500"
+            >
+              <div className="relative aspect-[3/4] overflow-hidden">
+                {item.imageUrl ? (
+                  <img
+                    src={item.imageUrl}
+                    alt={item.title}
+                    className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
+                    <Images size={40} />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/85 via-[var(--primary)]/40 to-transparent opacity-100" />
+                
+                {/* Featured Badge - Top Left */}
+                {item.isFeatured && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="absolute top-3 left-3 z-10"
+                  >
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-white text-[10px] font-semibold uppercase tracking-widest rounded-full shadow-lg">
+                      <Star size={10} strokeWidth={2} />
+                      Featured
+                    </span>
+                  </motion.div>
+                )}
+                
+                {/* View Project Button - Bottom Center */}
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}

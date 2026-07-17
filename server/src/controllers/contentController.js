@@ -85,7 +85,7 @@ const rethrowAsHttpError = (err, label) => {
 // Projection returned to the public + admin clients. Deliberately excludes
 // tags/services (not part of the Project model) to avoid P2022.
 const PORTFOLIO_FIELDS = new Set([
-  'title', 'description', 'category', 'imageUrl', 'imagePublicId', 'beforeAfterImages', 'gallery', 'order', 'isPublished', 'mediaSettings',
+  'title', 'description', 'category', 'imageUrl', 'imagePublicId', 'beforeAfterImages', 'gallery', 'order', 'isPublished', 'isFeatured', 'mediaSettings',
 ])
 const VIRTUAL_DESIGN_FIELDS = new Set([
   'title', 'description', 'videoUrl', 'videoPublicId', 'videos', 'thumbnailUrl', 'imageUrl', 'imagePublicId', 'images',
@@ -120,6 +120,7 @@ export const portfolioController = {
             gallery: true,
             order: true,
             isPublished: true,
+            isFeatured: true,
             mediaSettings: true,
           },
         }),
@@ -157,6 +158,7 @@ get: asyncHandler(async (req, res) => {
 
       if (payload.order !== undefined) payload.order = orderValue(payload.order)
       payload.isPublished = toBoolean(req.body.isPublished, true)
+      payload.isFeatured = toBoolean(req.body.isFeatured, false)
 
       const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
       if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
@@ -220,6 +222,7 @@ get: asyncHandler(async (req, res) => {
 
       if (payload.order !== undefined) payload.order = orderValue(payload.order)
       payload.isPublished = toBoolean(req.body.isPublished, existing.isPublished)
+      payload.isFeatured = toBoolean(req.body.isFeatured, existing.isFeatured)
 
       const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
       if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
@@ -718,6 +721,7 @@ export const homepageFeed = asyncHandler(async (req, res) => {
           order: true,
           mediaSettings: true,
           isPublished: true,
+          isFeatured: true,
           createdAt: true,
         },
       }),
@@ -806,13 +810,14 @@ export const homepageFeed = asyncHandler(async (req, res) => {
   const sortedVirtualDesigns = sortByOrderThenDate(virtualDesigns || []).slice(0, 12)
   const sortedTestimonials = sortByOrderThenDate(testimonials || []).slice(0, 10)
 
-  // Featured items for hero/featured sections
-  const featuredPortfolio = sortedPortfolio.slice(0, 3)
+  // Featured items for hero/featured sections - use isFeatured flag for portfolio
+  const featuredPortfolio = sortedPortfolio.filter(item => item.isFeatured).slice(0, 3)
   const featuredVirtualDesigns = sortedVirtualDesigns.slice(0, 3)
 
   // Structured debug log — exactly which section had data.
   console.log('[HOMEPAGE DEBUG]', {
     portfolioCount: sortedPortfolio.length,
+    featuredPortfolioCount: featuredPortfolio.length,
     virtualDesignCount: sortedVirtualDesigns.length,
     testimonialCount: sortedTestimonials.length,
     aboutFound: about ? true : false,
