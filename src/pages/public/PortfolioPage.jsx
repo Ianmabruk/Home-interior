@@ -119,7 +119,6 @@ export const PortfolioPage = () => {
             {paginated.map((item, index) => (
               <motion.figure
                 key={item._id}
-                onClick={() => setSelected(item)}
                 variants={itemVariants}
                 initial="hidden"
                 whileInView="show"
