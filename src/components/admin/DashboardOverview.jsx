@@ -5,7 +5,6 @@ import {
   Images,
   ShoppingBag,
   MessageSquare,
-  Newspaper,
   Settings,
   Search,
   Bell,
@@ -13,7 +12,6 @@ import {
   CheckCircle2,
   X,
   Shield,
-  Users,
   FileText,
   UploadCloud,
   Plus,
@@ -137,19 +135,16 @@ const QuickActionCard = ({ label, icon: Icon, color, onClick }) => (
 export const DashboardOverview = ({ overview, onNavigate }) => {
   const [recentUploads, setRecentUploads] = useState([])
   const [recentOrders, setRecentOrders] = useState([])
-  const [newsletterCount, setNewsletterCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
       api.get('/content/portfolio', { params: { sort: '-createdAt', limit: 6 } }),
       api.get('/orders').catch(() => ({ data: [] })),
-      api.get('/admin/newsletter').catch(() => ({ data: [] })),
     ])
-      .then(([portfolioRes, ordersRes, newsletterRes]) => {
+      .then(([portfolioRes, ordersRes]) => {
         setRecentUploads(Array.isArray(portfolioRes.data) ? portfolioRes.data : portfolioRes.data?.items || [])
         setRecentOrders(Array.isArray(ordersRes.data) ? ordersRes.data : ordersRes.data?.items || [])
-        setNewsletterCount(newsletterRes.data?.items?.length || newsletterRes.data?.length || 0)
       })
       .catch(() => {})
       .finally(() => setIsLoading(false))
@@ -192,13 +187,6 @@ export const DashboardOverview = ({ overview, onNavigate }) => {
           icon={FileText}
           delay={0.2}
           color="gold"
-        />
-        <StatCard
-          title="Newsletter Subscribers"
-          value={newsletterCount}
-          icon={Users}
-          delay={0.3}
-          color="forest"
         />
       </div>
 

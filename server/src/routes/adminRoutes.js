@@ -5,7 +5,6 @@ import { dashboardOverview, sendAdminTestEmail, listUsers, listAllOrders, update
 import { listMessages } from '../controllers/messageController.js'
 import { testimonialController } from '../controllers/testimonialController.js'
 import { consultationController } from '../controllers/consultationController.js'
-import { newsletterController } from '../controllers/newsletterController.js'
 
 const router = Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
@@ -19,11 +18,6 @@ router.get('/orders', auth, authorize('admin'), listAllOrders)
 router.patch('/orders/:id/status', auth, authorize('admin'), updateOrderStatus)
 router.get('/settings', auth, authorize('admin'), getSettings)
 router.put('/settings', auth, authorize('admin'), updateSettings)
-
-// Newsletter
-router.get('/newsletter', auth, authorize('admin'), newsletterController.listNewsletterAdmin)
-router.delete('/newsletter/:id', auth, authorize('admin'), newsletterController.deleteNewsletter)
-router.post('/newsletter/send', auth, authorize('admin'), newsletterController.sendNewsletter)
 
 // Consultations
 router.get('/consultations', auth, authorize('admin'), consultationController.listConsultations)

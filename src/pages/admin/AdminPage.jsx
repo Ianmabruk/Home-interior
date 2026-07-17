@@ -14,7 +14,6 @@ import {
   Brush,
   Info,
   MessageSquare,
-  Newspaper,
   Star,
   UploadCloud,
 } from 'lucide-react'
@@ -27,7 +26,6 @@ import { ShopDashboard } from '../../components/admin/ShopDashboard'
 import { VirtualInteriorDashboard } from '../../components/admin/VirtualInteriorDashboard'
 import { AboutDashboard } from '../../components/admin/AboutDashboard'
 import { ConsultationDashboard } from '../../components/admin/ConsultationDashboard'
-import { NewsletterDashboard } from '../../components/admin/NewsletterDashboard'
 import { TestimonialDashboard } from '../../components/admin/TestimonialDashboard'
 
 const tabs = [
@@ -38,7 +36,6 @@ const tabs = [
   { id: 'about', label: 'About', icon: Info },
   { id: 'testimonials', label: 'Testimonials', icon: Star },
   { id: 'consultations', label: 'Consultations', icon: MessageSquare },
-  { id: 'newsletter', label: 'Newsletter', icon: Newspaper },
   { id: 'settings', label: 'Settings', icon: Settings2 },
 ]
 
@@ -384,7 +381,6 @@ const { user, logout, updateProfile } = useAuth()
               {activeTab === 'about' && <AboutDashboard />}
               {activeTab === 'testimonials' && <TestimonialDashboard />}
               {activeTab === 'consultations' && <ConsultationDashboard />}
-              {activeTab === 'newsletter' && <NewsletterDashboard />}
               {activeTab === 'settings' && (
                 <div className="space-y-6 max-w-2xl">
                   <motion.form

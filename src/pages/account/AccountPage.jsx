@@ -539,7 +539,6 @@ export const AccountPage = () => {
                   {[
                     { id: 'email-orders', label: 'Order Updates', desc: 'Receive email notifications about your orders' },
                     { id: 'email-promo', label: 'Promotions', desc: 'Receive special offers and promotions' },
-                    { id: 'email-newsletter', label: 'Newsletter', desc: 'Receive design inspiration and updates' },
                   ].map((item) => (
                     <label key={item.id} className="flex items-center justify-between py-3">
                       <div>

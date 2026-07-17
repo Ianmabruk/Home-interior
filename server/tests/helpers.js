@@ -87,6 +87,15 @@ export const createMockPrisma = () => ({
   analytics: {
     findMany: jest.fn(),
   },
+  testimonial: {
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    findUnique: jest.fn(),
+    count: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
   $transaction: jest.fn(),
 })
 

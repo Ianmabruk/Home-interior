@@ -7,7 +7,6 @@ import {
   Brush,
   Info,
   MessageSquare,
-  Newspaper,
   Settings as SettingsIcon,
   LogOut,
   Star,
@@ -21,7 +20,6 @@ const tabs = [
   { id: 'about', label: 'About', icon: Info },
   { id: 'testimonials', label: 'Testimonials', icon: Star },
   { id: 'consultations', label: 'Consultations', icon: MessageSquare },
-  { id: 'newsletter', label: 'Newsletter', icon: Newspaper },
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ]
 

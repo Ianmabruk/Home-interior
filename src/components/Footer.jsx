@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Instagram, Facebook, Mail, ArrowRight, Star, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Instagram, Facebook, ArrowRight, Star, ChevronLeft, ChevronRight } from 'lucide-react'
 import { FaTiktok, FaPinterest } from 'react-icons/fa'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '../services/api'
@@ -8,9 +8,6 @@ import { useAuth } from '../context/AuthContext'
 
 export const Footer = () => {
   const { user } = useAuth()
-  const [email, setEmail] = useState('')
-  const [subscribeStatus, setSubscribeStatus] = useState('')
-  const [subscribing, setSubscribing] = useState(false)
   const [testimonials, setTestimonials] = useState([])
   const [currentTestimonial, setCurrentTestimonial] = useState(0)
 
@@ -37,28 +34,6 @@ export const Footer = () => {
       return () => clearInterval(interval)
     }
   }, [testimonials.length])
-
-  const handleSubscribe = async (e) => {
-    e.preventDefault()
-    if (!email.trim() || !email.includes('@')) {
-      setSubscribeStatus('error')
-      return
-    }
-    setSubscribing(true)
-    setSubscribeStatus('')
-    try {
-      await api.post('/newsletter/subscribe', { email })
-      setSubscribeStatus('success')
-      setEmail('')
-    } catch {
-      setSubscribeStatus('error')
-    } finally {
-      setSubscribing(false)
-      if (subscribeStatus === 'success') {
-        setTimeout(() => setSubscribeStatus(''), 5000)
-      }
-    }
-  }
 
   const socialLinks = [
     { icon: FaTiktok, href: 'https://www.tiktok.com/@hokinteriors', label: 'TikTok', ariaLabel: 'Follow us on TikTok' },
@@ -281,66 +256,7 @@ export const Footer = () => {
             </nav>
           </motion.div>
 
-          {/* Section 3: Newsletter Subscription */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="space-y-4"
-          >
-            <h3 className="font-display text-xl font-normal text-white">Stay Inspired</h3>
-            <p className="text-sm text-white/50 leading-relaxed">
-              Subscribe for interior design inspiration, project updates, and exclusive offers.
-            </p>
-            <form onSubmit={handleSubscribe} className="space-y-3" noValidate>
-              <div className="relative">
-                <Mail size={18} strokeWidth={1.5} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="w-full rounded-full border border-white/20 bg-white/5 pl-10 pr-12 py-3.5 text-sm text-white placeholder:text-white/40 outline-none focus:border-orange-accent focus:ring-2 focus:ring-orange-accent/20 transition-all"
-                  disabled={subscribing}
-                  required
-                  aria-label="Email address for newsletter subscription"
-                />
-                <button
-                  type="submit"
-                  disabled={subscribing || !email.trim()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Subscribe to newsletter"
-                >
-                  <ArrowRight size={16} strokeWidth={2} className="transition-transform duration-300" />
-                </button>
-              </div>
-              <AnimatePresence>
-                {subscribeStatus === 'success' && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="text-xs text-green-400 text-center"
-                  >
-                    Subscribed successfully!
-                  </motion.p>
-                )}
-                {subscribeStatus === 'error' && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="text-xs text-red-400 text-center"
-                  >
-                    Something went wrong. Please try again.
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </form>
-          </motion.div>
-
-          {/* Section 4: Social Media */}
+          {/* Section 3: Social Media */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
