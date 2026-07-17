@@ -11,7 +11,6 @@ if (isProd && !process.env.JWT_REFRESH_SECRET) missing.push('JWT_REFRESH_SECRET'
 if (isProd && !process.env.CLOUDINARY_CLOUD_NAME) missing.push('CLOUDINARY_CLOUD_NAME')
 if (isProd && !process.env.CLOUDINARY_API_KEY) missing.push('CLOUDINARY_API_KEY')
 if (isProd && !process.env.CLOUDINARY_API_SECRET) missing.push('CLOUDINARY_API_SECRET')
-if (isProd && !process.env.SENDGRID_API_KEY) missing.push('SENDGRID_API_KEY')
 
 if (missing.length) {
   console.error('❌ Missing required environment variables:', missing.join(', '))
@@ -35,6 +34,7 @@ export const env = {
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || '',
   sendGridApiKey: process.env.SENDGRID_API_KEY || '',
   emailFrom: process.env.EMAIL_FROM || 'no-reply@hokinterior.com',
+  emailEnabled: process.env.EMAIL_ENABLED === 'true',
   seedAdminEmail: process.env.SEED_ADMIN_EMAIL || 'admin@hokinterior.com',
   seedAdminPassword: process.env.SEED_ADMIN_PASSWORD || 'Admin123!',
 }

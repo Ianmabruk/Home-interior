@@ -6,6 +6,11 @@ if (env.sendGridApiKey) {
 }
 
 export const sendEmail = async ({ to, subject, html }) => {
+  if (!env.emailEnabled) {
+    console.log(`[EMAIL DISABLED] ${subject} to ${to}`)
+    return { sent: false, reason: 'Email sending disabled (EMAIL_ENABLED=false)' }
+  }
+
   if (!env.sendGridApiKey) {
     return { sent: false, reason: 'SENDGRID_API_KEY is not configured' }
   }

@@ -13,7 +13,7 @@ const start = async () => {
   console.log(`  DATABASE_URL : ${env.databaseUrl ? 'configured' : '❌ NOT SET'}`)
   console.log(`  CLIENT_URL  : ${env.clientUrl}`)
   console.log(`  Cloudinary  : ${env.cloudinaryCloudName || '❌ NOT SET'}`)
-  console.log(`  SendGrid    : ${env.sendGridApiKey ? 'configured' : '❌ NOT SET'}`)
+  console.log(`  SendGrid    : ${env.sendGridApiKey ? 'configured' : '❌ NOT SET'} (${env.emailEnabled ? 'enabled' : 'disabled'})`)
   console.log(`  Admin email : ${env.seedAdminEmail}`)
   console.log('══════════════════════════════════════════')
   console.log('')
