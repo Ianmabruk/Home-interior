@@ -10,10 +10,7 @@ import {
   Newspaper,
   Settings as SettingsIcon,
   LogOut,
-  Sparkles,
   Star,
-  Menu,
-  X,
 } from 'lucide-react'
 
 const tabs = [
@@ -28,7 +25,7 @@ const tabs = [
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ]
 
-export const Sidebar = ({ activeTab, onTabChange, sidebarOpen, mobileOpen, onCloseMobile, isCollapsed, setIsCollapsed, user, onLogout }) => {
+export const Sidebar = ({ activeTab, onTabChange, mobileOpen, onCloseMobile, isCollapsed, user, onLogout }) => {
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
@@ -37,6 +34,8 @@ export const Sidebar = ({ activeTab, onTabChange, sidebarOpen, mobileOpen, onClo
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  const sidebarOpen = !isCollapsed
 
   return (
     <>
@@ -61,59 +60,10 @@ export const Sidebar = ({ activeTab, onTabChange, sidebarOpen, mobileOpen, onClo
           width: isMobile ? (mobileOpen ? 300 : 0) : (isCollapsed ? 88 : 300),
         }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className={`fixed inset-y-0 left-0 z-40 flex flex-col bg-[#1B1714] text-white border-r border-white/10 shadow-2xl overflow-hidden ${
+        className={`fixed inset-y-0 left-0 z-40 flex flex-col bg-[#1B1714] text-white border-r border-white/10 shadow-2xl overflow-hidden backdrop-blur-xl bg-opacity-90 ${
           isMobile ? 'transform transition-transform duration-300' : ''
         } ${mobileOpen && isMobile ? 'translate-x-0' : isMobile ? '-translate-x-full' : ''}`}
       >
-        {/* Logo Section */}
-        <div className="flex items-center gap-3 h-20 px-5 border-b border-white/10 flex-shrink-0">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent)] flex items-center justify-center flex-shrink-0 shadow-lg shadow-[var(--accent)]/20"
-          >
-            <Sparkles size={20} className="text-white" />
-          </motion.div>
-          <AnimatePresence mode="wait">
-            {sidebarOpen && !isCollapsed && (
-              <motion.div
-                initial={{ opacity: 0, x: -10, width: 0 }}
-                animate={{ opacity: 1, x: 0, width: 'auto' }}
-                exit={{ opacity: 0, x: -10, width: 0 }}
-                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                className="overflow-hidden whitespace-nowrap"
-              >
-                <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-medium">Admin Panel</p>
-                <p className="text-base font-semibold font-display text-white">HOK Studio</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Collapse Toggle Button (Desktop only) */}
-        {!isMobile && (
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="mx-3 mt-2 mb-4 p-2 rounded-xl hover:bg-white/5 transition-colors text-white/70 hover:text-white"
-            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className={`transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
-            >
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </motion.button>
-        )}
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">

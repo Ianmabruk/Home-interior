@@ -9,12 +9,7 @@ import {
   Package,
   Image,
   ArrowUpDown,
-  Copy,
-  GripVertical,
   CheckCircle,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
   AlertCircle,
 } from 'lucide-react'
 import { api } from '../../services/api'
@@ -43,8 +38,10 @@ export const VirtualInteriorDashboard = () => {
   const [items, setItems] = useState([])
   const [form, setForm] = useState(INITIAL_FORM)
   const [editingId, setEditingId] = useState(null)
-  const [mediaFiles, setMediaFiles] = useState([])
-  const [mediaPreviews, setMediaPreviews] = useState([])
+  const [mainMediaFiles, setMainMediaFiles] = useState([])
+  const [mainMediaPreviews, setMainMediaPreviews] = useState([])
+  const [mainVideoFiles, setMainVideoFiles] = useState([])
+  const [mainVideoPreviews, setMainVideoPreviews] = useState([])
   const [journeyBeforeImages, setJourneyBeforeImages] = useState([])
   const [journeyBeforePreviews, setJourneyBeforePreviews] = useState([])
   const [journeyAfterImages, setJourneyAfterImages] = useState([])
@@ -61,6 +58,7 @@ export const VirtualInteriorDashboard = () => {
   const [uploadProgress, setUploadProgress] = useState({})
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef(null)
+  const videoRef = useRef(null)
   const journeyBeforeImageRef = useRef(null)
   const journeyBeforeVideoRef = useRef(null)
   const journeyAfterImageRef = useRef(null)
@@ -142,8 +140,10 @@ export const VirtualInteriorDashboard = () => {
   const resetForm = () => {
     setEditingId(null)
     setForm(INITIAL_FORM)
-    setMediaFiles([])
-    setMediaPreviews([])
+    setMainMediaFiles([])
+    setMainMediaPreviews([])
+    setMainVideoFiles([])
+    setMainVideoPreviews([])
     setJourneyBeforeImages([])
     setJourneyBeforePreviews([])
     setJourneyAfterImages([])
@@ -193,24 +193,19 @@ export const VirtualInteriorDashboard = () => {
     }
   }
 
-  const submit = async (e) => {
+const submit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setUploading(true)
     setUploadProgress({})
     try {
-      const allFiles = [
-        ...mediaFiles,
-        ...journeyBeforeImages,
-        ...journeyAfterImages,
-        ...journeyBeforeVideos,
-        ...journeyAfterVideos
-      ].filter(f => f)
+      const imageFiles = mainMediaFiles
+      const videoFiles = mainVideoFiles
 
-      if (allFiles.length > 0) {
+      if (imageFiles.length > 0 || videoFiles.length > 0) {
         await new Promise((resolve, reject) => {
           uploadFiles({
-            files: allFiles,
+            files: imageFiles,
             endpoint: '/api/content/virtual-design',
             fieldName: 'images',
             additionalFields: {
@@ -237,9 +232,43 @@ export const VirtualInteriorDashboard = () => {
             },
             onAllComplete: ({ successful, failed }) => {
               if (failed.length > 0) {
-                reject(new Error(`${failed.length} file(s) failed to upload`))
+                reject(new Error(`${failed.length} image(s) failed to upload`))
               } else {
-                resolve()
+                // Now upload videos
+                uploadFiles({
+                  files: videoFiles,
+                  endpoint: '/api/content/virtual-design',
+                  fieldName: 'videos',
+                  additionalFields: {
+                    title: form.title,
+                    description: form.description,
+                    category: form.category,
+                    tags: form.tags,
+                    coverImageIndex: String(form.coverImageIndex || 0),
+                    status: form.status,
+                    beforeTitle: form.beforeTitle,
+                    afterTitle: form.afterTitle,
+                    ...(editingId ? { id: editingId } : {})
+                  },
+                  maxConcurrent: 3,
+                  maxRetries: 3,
+                  onFileProgress: (file, progress) => {
+                    setUploadProgress(prev => ({
+                      ...prev,
+                      [file.file.name]: progress
+                    }))
+                  },
+                  onFileError: (file, error) => {
+                    console.error('Upload error for', file.file.name, error)
+                  },
+                  onAllComplete: ({ successful, failed }) => {
+                    if (failed.length > 0) {
+                      reject(new Error(`${failed.length} video(s) failed to upload`))
+                    } else {
+                      resolve()
+                    }
+                  }
+                })
               }
             }
           })
@@ -259,7 +288,7 @@ export const VirtualInteriorDashboard = () => {
     }
   }
 
-  const deleteItem = async () => {
+const deleteItem = async () => {
     if (!deleteId) return
     try {
       await api.delete(`/content/virtual-design/${deleteId}`)
@@ -548,6 +577,24 @@ export const VirtualInteriorDashboard = () => {
                 previews: mediaPreviews,
                 onClick: () => fileRef.current?.click(),
                 fileRef,
+                isDragOver: isDragOver,
+              })}
+            </div>
+
+            {/* Main Media Upload - Multiple Videos */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 flex items-center gap-2">
+                <Video size={14} strokeWidth={1.5} />
+                Project Videos (Drag to reorder)
+              </label>
+              <input ref={videoRef} type="file" accept="video/*" multiple onChange={(e) => handleFiles(e.target.files, setVideoFiles, setVideoPreviews)} className="hidden" />
+              {renderMediaUpload({
+                label: 'Project Videos',
+                accept: 'video/*',
+                files: videoFiles,
+                previews: videoPreviews,
+                onClick: () => videoRef.current?.click(),
+                fileRef: videoRef,
                 isDragOver: isDragOver,
               })}
             </div>

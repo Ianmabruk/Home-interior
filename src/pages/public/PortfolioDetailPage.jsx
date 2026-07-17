@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useParams, Link } from 'react-router-dom'
 import { X, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -24,6 +24,13 @@ export const PortfolioDetailPage = () => {
   const [galleryIndex, setGalleryIndex] = useState(0)
   const [imageFullscreen, setImageFullscreen] = useState(null)
 
+  // Zoom state
+  const [zoomScale, setZoomScale] = useState(1)
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 })
+  const isDragging = useRef(false)
+  const dragStart = useRef({ x: 0, y: 0 })
+  const imageRef = useRef(null)
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -44,9 +51,124 @@ export const PortfolioDetailPage = () => {
     return () => { document.body.style.overflow = '' }
   }, [project])
 
-  useEffect(() => { setGalleryIndex(0) }, [project])
+  useEffect(() => {
+    setTimeout(() => {
+      setGalleryIndex(0)
+    }, 0)
+  }, [project])
 
   const projectImages = project ? getProjectImages(project) : []
+
+  const closeModal = useCallback(() => {
+    setImageFullscreen(null)
+    setGalleryIndex(0)
+    setZoomScale(1)
+    setZoomPosition({ x: 0, y: 0 })
+  }, [])
+
+  // Reset zoom when image changes
+  useEffect(() => {
+    setTimeout(() => {
+      setZoomScale(1)
+      setZoomPosition({ x: 0, y: 0 })
+      isDragging.current = false
+    }, 0)
+  }, [galleryIndex])
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!imageFullscreen) return
+
+      switch (e.key) {
+        case 'Escape':
+          e.preventDefault()
+          closeModal()
+          break
+        case 'ArrowLeft':
+          e.preventDefault()
+          setGalleryIndex((prev) => (prev === 0 ? projectImages.length - 1 : prev - 1))
+          break
+        case 'ArrowRight':
+          e.preventDefault()
+          setGalleryIndex((prev) => (prev === projectImages.length - 1 ? 0 : prev + 1))
+          break
+      }
+    }
+
+    if (imageFullscreen) {
+      window.addEventListener('keydown', handleKeyDown)
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [imageFullscreen, projectImages.length, closeModal])
+
+  // Touch/swipe navigation
+  const touchStartX = useRef(null)
+  const touchStartY = useRef(null)
+
+  const handleTouchStart = (e) => {
+    if (!imageFullscreen) return
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+
+  const handleTouchEnd = (e) => {
+    if (!imageFullscreen || touchStartX.current === null) return
+
+    const touchEndX = e.changedTouches[0].clientX
+    const touchEndY = e.changedTouches[0].clientY
+    const diffX = touchStartX.current - touchEndX
+    const diffY = touchStartY.current - touchEndY
+
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+      if (diffX > 0) {
+        setGalleryIndex((prev) => (prev === projectImages.length - 1 ? 0 : prev + 1))
+      } else {
+        setGalleryIndex((prev) => (prev === 0 ? projectImages.length - 1 : prev - 1))
+      }
+    }
+
+    touchStartX.current = null
+    touchStartY.current = null
+  }
+
+  // Zoom handlers
+  const handleWheel = (e) => {
+    if (!imageFullscreen) return
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault()
+      setZoomScale((prev) => {
+        const newScale = Math.min(Math.max(prev - e.deltaY * 0.001, 1), 4)
+        return newScale
+      })
+    }
+  }
+
+  const handleMouseDown = (e) => {
+    if (zoomScale <= 1) return
+    isDragging.current = true
+    dragStart.current = { x: e.clientX - zoomPosition.x, y: e.clientY - zoomPosition.y }
+    if (imageRef.current) imageRef.current.style.cursor = 'grabbing'
+  }
+
+  const handleMouseMove = (e) => {
+    if (!isDragging.current || zoomScale <= 1) return
+    setZoomPosition({
+      x: e.clientX - dragStart.current.x,
+      y: e.clientY - dragStart.current.y,
+    })
+  }
+
+  const handleMouseUp = () => {
+    isDragging.current = false
+    if (imageRef.current) imageRef.current.style.cursor = 'grab'
+  }
+
+  const handleDoubleClick = () => {
+    setZoomScale((prev) => (prev > 1 ? 1 : 2))
+  }
 
   if (loading) {
     return (
@@ -78,11 +200,6 @@ export const PortfolioDetailPage = () => {
         </section>
       </main>
     )
-  }
-
-  const closeModal = () => {
-    setImageFullscreen(null)
-    setGalleryIndex(0)
   }
 
   return (
@@ -294,11 +411,24 @@ export const PortfolioDetailPage = () => {
                 </>
               )}
 
-              <div className="relative h-full w-full flex items-center justify-center p-4">
+              <div className="relative h-full w-full flex items-center justify-center p-4" onWheel={handleWheel}>
                 <img
+                  ref={imageRef}
                   src={getOptimizedUrl(projectImages[galleryIndex] || imageFullscreen.imageUrl, { width: 1920 })}
                   alt={imageFullscreen.title}
-                  className="max-h-[80vh] max-w-full object-contain"
+                  className="max-h-[80vh] max-w-full object-contain cursor-grab"
+                  style={{
+                    transform: `translate(${zoomPosition.x}px, ${zoomPosition.y}px) scale(${zoomScale})`,
+                    transformOrigin: 'center center',
+                    transition: zoomScale > 1 ? 'none' : 'transform 0.1s ease-out',
+                  }}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  onDoubleClick={handleDoubleClick}
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
                 />
               </div>
 

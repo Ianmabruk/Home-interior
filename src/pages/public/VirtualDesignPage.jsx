@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Maximize2, Play, Video, Image, Search, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { X, Maximize2, Play, Video, Image, Search, ArrowUpDown, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../../services/api'
 import { getOptimizedUrl, getOptimizedVideoUrl, getVideoPosterUrl } from '../../utils/cloudinaryHelpers'
@@ -73,6 +73,19 @@ export const VirtualDesignPage = () => {
 
   const categories = Array.from(new Set(items.map((i) => i.category).filter(Boolean)))
 
+  const parallaxRef = useRef(null)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (parallaxRef.current) {
+        const scrolled = window.scrollY
+        parallaxRef.current.style.transform = `translateY(${scrolled * 0.3}px) scale(1.1)`
+      }
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
 const filtered = items.filter((item) => {
     if (viewMode === 'images' && !item.imageUrl && !item.images?.length && !item.journey?.before?.images?.length && !item.journey?.after?.images?.length) return false
     if (viewMode === 'videos' && !item.videoUrl && !item.journey?.before?.videos?.length && !item.journey?.after?.videos?.length) return false
@@ -96,11 +109,6 @@ const filtered = items.filter((item) => {
 
   const handleVideoFullscreen = (item) => {
     if (item.videoUrl) setFullscreen(item)
-  }
-
-  const handleJourneyImageFullscreen = (imageUrl, title, category) => {
-    setImageFullscreen({ imageUrl, title, category })
-    setGalleryIndex(0)
   }
 
   const handleJourneyVideoFullscreen = (videoUrl, title, category) => {
@@ -163,41 +171,135 @@ const filtered = items.filter((item) => {
 
   return (
     <main className="min-h-screen bg-[var(--bg)]">
-      {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)] via-[var(--primary)]/80 to-[var(--primary)]/60" />
-        {items.length > 0 && items[0]?.imageUrl && (
-          <img
-            src={getOptimizedUrl(items[0].imageUrl, { width: 1920, crop: 'limit' })}
-            alt="Virtual design showcase"
-            className="absolute inset-0 h-full w-full object-cover opacity-20"
-            loading="eager"
-          />
-        )}
+      {/* Hero Section - Luxury Virtual Design */}
+      <section className="relative h-[60vh] min-h-[500px] overflow-hidden">
+        {/* Parallax Background */}
+        <div className="absolute inset-0">
+          {items.length > 0 && items[0]?.imageUrl && (
+            <motion.img
+              ref={parallaxRef}
+              src={getOptimizedUrl(items[0].imageUrl, { width: 1920, crop: 'limit' })}
+              alt="Virtual design showcase"
+              className="absolute inset-0 h-full w-full object-cover"
+              loading="eager"
+              style={{ transform: 'translateY(0px) scale(1.1)' }}
+            />
+          )}
+          {/* Luxury Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)] via-[var(--primary)]/90 to-[var(--primary)]/70" />
+          {/* Subtle Pattern Overlay */}
+          <div className="absolute inset-0 opacity-5 pattern-overlay" />
+        </div>
+
+        {/* Floating Decorative Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <motion.div
+              key={i}
+              className="absolute rounded-full"
+              style={{
+                left: `${10 + i * 15}%`,
+                top: `${20 + i * 10}%`,
+                width: `${20 + i * 10}px`,
+                height: `${20 + i * 10}px`,
+                background: `radial-gradient(circle, rgba(232,154,67,0.15) 0%, rgba(232,154,67,0) 70%)`,
+              }}
+              animate={{
+                y: [0, -30, 0],
+                x: [0, 15, 0],
+                opacity: [0.1, 0.3, 0.1],
+              }}
+              transition={{
+                duration: 8 + i * 2,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                delay: i * 1.5,
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Content */}
         <div className="relative z-10 flex h-full items-center justify-center px-6">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="text-center max-w-4xl"
+            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
+            className="text-center max-w-5xl"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]/80 mb-4">Virtual Interior Design</p>
-            <h1 className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl">
+            {/* Category Badge */}
+            <motion.span
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.4, type: 'spring', stiffness: 200 }}
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-[var(--accent)] text-[10px] font-semibold uppercase tracking-widest mb-6"
+            >
+              <span className="relative flex h-2 w-2">
+                <motion.div
+                  animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="absolute inset-0 rounded-full bg-[var(--accent)]"
+                />
+                <div className="relative h-full w-full rounded-full bg-[var(--accent)]" />
+              </span>
+              Virtual Interior Design
+            </motion.span>
+
+            {/* Main Title */}
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl tracking-tight mb-6"
+              style={{ textShadow: '0 4px 30px rgba(0,0,0,0.3)' }}
+            >
               Visual Portfolio
-            </h1>
-            <p className="mt-6 text-base md:text-lg text-white/60 leading-relaxed max-w-2xl mx-auto">
+            </motion.h1>
+
+            {/* Subtitle */}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              className="mt-6 text-base md:text-lg text-white/70 leading-relaxed max-w-2xl mx-auto"
+            >
               A curated collection of our virtual design projects — immersive 3D renderings, 
               walkthrough videos, and before/after transformations.
-            </p>
+            </motion.p>
+
+            {/* CTA Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
+              className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
+            >
+              <Link
+                to="/virtual-interior-design"
+                className="group btn-luxury-primary px-8 py-4 text-[11px] rounded-xl"
+              >
+                Explore Projects
+                <ChevronRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
+              <Link
+                to="/consultation"
+                className="group btn-luxury-secondary px-8 py-4 text-[11px] rounded-xl"
+              >
+                Start Your Project
+                <Sparkles size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
+              </Link>
+            </motion.div>
           </motion.div>
         </div>
+
+        {/* Scroll Indicator */}
         <motion.div
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/50"
+          animate={{ y: [0, 12, 0] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 text-white/50"
         >
-          <span className="text-[10px] uppercase tracking-widest font-medium">Scroll</span>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+          <span className="text-[10px] uppercase tracking-widest font-medium">Discover</span>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 5v14M19 12l-7 7-7-7" />
           </svg>
         </motion.div>
@@ -298,7 +400,7 @@ const filtered = items.filter((item) => {
                   onClick={() => { setQuery(''); setCategoryFilter(''); setViewMode('all') }}
                   className="inline-flex items-center gap-1.5 ml-4 text-2xs font-semibold uppercase tracking-widest text-[var(--accent)] hover:text-[var(--primary)] transition-colors"
                 >
-                  <XIcon size={10} strokeWidth={2} /> Clear filters
+                  <X size={10} strokeWidth={2} /> Clear filters
                 </button>
               )}
             </p>
@@ -312,16 +414,16 @@ const filtered = items.filter((item) => {
             variants={containerVariants}
             className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           >
-            {filtered.map((item, i) => (
+{filtered.map((item, i) => (
               <motion.article
                 key={item._id}
                 variants={itemVariants}
                 custom={i}
                 className="group"
               >
-                <div className="relative overflow-hidden rounded-3xl bg-white border border-[var(--border)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
-{/* Media */}
-                    <div className="relative aspect-[4/3] overflow-hidden">
+                <div className="relative overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
+                  {/* Media */}
+                  <div className="relative aspect-[4/3] overflow-hidden">
                       {/* Regular Project - Multiple Images */}
                       {item.images && item.images.length > 0 && !item.videoUrl && !item.journey && (
                         <>
@@ -553,7 +655,7 @@ const filtered = items.filter((item) => {
                     onClick={() => { setQuery(''); setCategoryFilter(''); setViewMode('all') }}
                     className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 text-2xs font-semibold uppercase tracking-widest border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] rounded-full transition"
                   >
-                    <XIcon size={12} strokeWidth={1.5} /> Clear Filters
+                    <X size={12} strokeWidth={1.5} /> Clear Filters
                   </button>
                 )}
               </motion.div>

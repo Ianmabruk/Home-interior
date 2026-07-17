@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarCheck } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -8,12 +8,6 @@ import { getOptimizedUrl } from '../utils/cloudinaryHelpers'
 const SLIDE_DURATION = 8000
 const FADE_DURATION = 2.5
 
-// Simple seeded random for consistent particle generation
-const seededRandom = (seed) => {
-  let x = Math.sin(seed) * 10000
-  return x - Math.floor(x)
-}
-
 export const Hero = ({ onBookConsultation }) => {
   const [images, setImages] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -21,15 +15,6 @@ export const Hero = ({ onBookConsultation }) => {
   const [isPaused, setIsPaused] = useState(false)
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const intervalRef = useRef(null)
-
-  const particles = useMemo(() => Array.from({ length: 15 }, (_, i) => ({
-    id: i,
-    x: seededRandom(i * 1000) * 100,
-    y: seededRandom(i * 2000) * 100,
-    size: seededRandom(i * 3000) * 3 + 1,
-    delay: seededRandom(i * 4000) * 15,
-    duration: 10 + seededRandom(i * 5000) * 20
-  })), [])
 
   useEffect(() => {
     const load = async () => {
@@ -138,8 +123,6 @@ export const Hero = ({ onBookConsultation }) => {
                   transform: `translate3d(${mousePosition.x * 15}px, ${mousePosition.y * 15}px, 0) scale(1.02)`
                 }}
               />
-              {/* Luxury Gradient Overlay - Left to Right Fade */}
-              <div className="absolute inset-0 hero-overlay-luxury" />
             </motion.div>
           </AnimatePresence>
         </div>
@@ -155,61 +138,8 @@ export const Hero = ({ onBookConsultation }) => {
             loading="eager"
             decoding="async"
           />
-          <div className="absolute inset-0 hero-overlay-luxury" />
         </div>
       )}
-
-      {/* Floating Particles / Light Reflections */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-        {particles.map((particle) => (
-          <motion.div
-            key={particle.id}
-            className="particle"
-            style={{
-              left: `${particle.x}%`,
-              top: `${particle.y}%`,
-              width: `${particle.size}px`,
-              height: `${particle.size}px`,
-              animationDelay: `${particle.delay}s`,
-              animationDuration: `${particle.duration}s`
-            }}
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: [0.2, 0.5, 0.2], scale: [0.5, 1, 0.5] }}
-            transition={{
-              duration: particle.duration,
-              delay: particle.delay,
-              repeat: Infinity,
-              ease: 'easeInOut'
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Luxury Statement Text - Far Left of Fading Overlay (Desktop/Tablet Only) */}
-      <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 px-6 md:px-12 lg:px-20 pointer-events-none">
-        <motion.div
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 1.2, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="max-w-xs"
-        >
-          <p className="font-display text-orange-accent text-5xl md:text-6xl lg:text-7xl font-medium leading-none tracking-tight select-none" style={{ textShadow: '0 4px 30px rgba(232,154,67,0.3)' }}>
-            D
-          </p>
-          <p className="font-display text-lg md:text-xl lg:text-2xl font-normal leading-snug text-white/90 tracking-tight -mt-2" style={{ textShadow: '0 2px 20px rgba(0,0,0,0.3)' }}>
-            esigning
-          </p>
-          <p className="font-display text-lg md:text-xl lg:text-2xl font-normal leading-snug text-white/90 tracking-tight -mt-2" style={{ textShadow: '0 2px 20px rgba(0,0,0,0.3)' }}>
-            Luxurious
-          </p>
-          <p className="font-display text-lg md:text-xl lg:text-2xl font-normal leading-snug text-white/90 tracking-tight -mt-2" style={{ textShadow: '0 2px 20px rgba(0,0,0,0.3)' }}>
-            Functional
-          </p>
-          <p className="font-display text-lg md:text-xl lg:text-2xl font-normal leading-snug text-white/90 tracking-tight -mt-2" style={{ textShadow: '0 2px 20px rgba(0,0,0,0.3)' }}>
-            Spaces
-          </p>
-        </motion.div>
-      </div>
 
       {/* Buttons Only - Lower Position */}
       <div className="relative z-10 flex h-full items-end justify-center px-6 md:px-12 lg:px-20 pb-20 md:pb-28">

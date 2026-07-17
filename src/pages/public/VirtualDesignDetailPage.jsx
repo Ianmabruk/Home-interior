@@ -1,40 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useParams, Link } from 'react-router-dom'
 import { X, ArrowLeft, ChevronLeft, ChevronRight, Maximize2, Play, Image as ImageIcon, Video, ArrowUpDown } from 'lucide-react'
 import { api } from '../../services/api'
 import { getOptimizedUrl, getOptimizedVideoUrl, getVideoPosterUrl } from '../../utils/cloudinaryHelpers'
 import LazyVideo from '../../components/common/LazyVideo'
-
-const getProjectImages = (project) => {
-  const images = []
-  if (project.imageUrl) images.push(project.imageUrl)
-  if (project.images && Array.isArray(project.images)) {
-    project.images.forEach(img => {
-      const url = typeof img === 'string' ? img : img.url
-      if (url && !images.includes(url)) images.push(url)
-    })
-  }
-  if (project.journey?.after?.images?.length) {
-    project.journey.after.images.forEach(url => { if (!images.includes(url)) images.push(url) })
-  }
-  if (project.journey?.before?.images?.length) {
-    project.journey.before.images.forEach(url => { if (!images.includes(url)) images.push(url) })
-  }
-  return images
-}
-
-const getProjectVideos = (project) => {
-  const videos = []
-  if (project.videoUrl) videos.push(project.videoUrl)
-  if (project.journey?.after?.videos?.length) {
-    project.journey.after.videos.forEach(url => { if (!videos.includes(url)) videos.push(url) })
-  }
-  if (project.journey?.before?.videos?.length) {
-    project.journey.before.videos.forEach(url => { if (!videos.includes(url)) videos.push(url) })
-  }
-  return videos
-}
 
 export const VirtualDesignDetailPage = () => {
   const { id } = useParams()
@@ -44,6 +14,13 @@ export const VirtualDesignDetailPage = () => {
   const [imageFullscreen, setImageFullscreen] = useState(null)
   const [videoFullscreen, setVideoFullscreen] = useState(null)
   const [viewMode, setViewMode] = useState('images')
+
+  // Zoom state
+  const [zoomScale, setZoomScale] = useState(1)
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 })
+  const isDragging = useRef(false)
+  const dragStart = useRef({ x: 0, y: 0 })
+  const imageRef = useRef(null)
 
   useEffect(() => {
     const load = async () => {
@@ -59,17 +36,116 @@ export const VirtualDesignDetailPage = () => {
     load()
   }, [id])
 
+  const closeImageModal = useCallback(() => {
+    setImageFullscreen(null)
+    setGalleryIndex(0)
+    setZoomScale(1)
+    setZoomPosition({ x: 0, y: 0 })
+  }, [])
+
+  const handleDoubleClick = () => {
+    setZoomScale((prev) => (prev > 1 ? 1 : 2))
+  }
+
+  // Reset zoom when image changes
   useEffect(() => {
-    if (project) document.body.style.overflow = 'hidden'
-    else document.body.style.overflow = ''
-    return () => { document.body.style.overflow = '' }
-  }, [project])
+    setTimeout(() => {
+      setZoomScale(1)
+      setZoomPosition({ x: 0, y: 0 })
+      isDragging.current = false
+    }, 0)
+  }, [galleryIndex])
 
-  useEffect(() => { setGalleryIndex(0) }, [project])
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!imageFullscreen) return
 
-  const projectImages = project ? getProjectImages(project) : []
-  const projectVideos = project ? getProjectVideos(project) : []
-  const allMedia = viewMode === 'videos' ? projectVideos : projectImages
+      switch (e.key) {
+        case 'Escape':
+          e.preventDefault()
+          closeImageModal()
+          break
+        case 'ArrowLeft':
+          e.preventDefault()
+          setGalleryIndex((prev) => (prev === 0 ? allMedia.length - 1 : prev - 1))
+          break
+        case 'ArrowRight':
+          e.preventDefault()
+          setGalleryIndex((prev) => (prev === allMedia.length - 1 ? 0 : prev + 1))
+          break
+      }
+    }
+
+    if (imageFullscreen) {
+      window.addEventListener('keydown', handleKeyDown)
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [imageFullscreen, allMedia.length, closeImageModal])
+
+  // Touch/swipe navigation
+  const touchStartX = useRef(null)
+  const touchStartY = useRef(null)
+
+  const handleTouchStart = (e) => {
+    if (!imageFullscreen) return
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+
+  const handleTouchEnd = (e) => {
+    if (!imageFullscreen || touchStartX.current === null) return
+
+    const touchEndX = e.changedTouches[0].clientX
+    const touchEndY = e.changedTouches[0].clientY
+    const diffX = touchStartX.current - touchEndX
+    const diffY = touchStartY.current - touchEndY
+
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+      if (diffX > 0) {
+        setGalleryIndex((prev) => (prev === allMedia.length - 1 ? 0 : prev + 1))
+      } else {
+        setGalleryIndex((prev) => (prev === 0 ? allMedia.length - 1 : prev - 1))
+      }
+    }
+
+    touchStartX.current = null
+    touchStartY.current = null
+  }
+
+  // Zoom handlers
+  const handleWheel = (e) => {
+    if (!imageFullscreen) return
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault()
+      setZoomScale((prev) => {
+        const newScale = Math.min(Math.max(prev - e.deltaY * 0.001, 1), 4)
+        return newScale
+      })
+    }
+  }
+
+  const handleMouseDown = (e) => {
+    if (zoomScale <= 1) return
+    isDragging.current = true
+    dragStart.current = { x: e.clientX - zoomPosition.x, y: e.clientY - zoomPosition.y }
+    if (imageRef.current) imageRef.current.style.cursor = 'grabbing'
+  }
+
+  const handleMouseMove = (e) => {
+    if (!isDragging.current || zoomScale <= 1) return
+    setZoomPosition({
+      x: e.clientX - dragStart.current.x,
+      y: e.clientY - dragStart.current.y,
+    })
+  }
+
+  const handleMouseUp = () => {
+    isDragging.current = false
+    if (imageRef.current) imageRef.current.style.cursor = 'grab'
+  }
 
   if (loading) {
     return (
@@ -117,8 +193,42 @@ export const VirtualDesignDetailPage = () => {
     )
   }
 
-  const closeImageModal = () => { setImageFullscreen(null); setGalleryIndex(0) }
   const closeVideoModal = () => { setVideoFullscreen(null) }
+
+  // Helper functions to extract images and videos from project
+  const getProjectImages = (proj) => {
+    const images = []
+    if (proj.imageUrl) images.push(proj.imageUrl)
+    if (proj.images && Array.isArray(proj.images)) {
+      proj.images.forEach(img => {
+        const url = typeof img === 'string' ? img : img.url
+        if (url && !images.includes(url)) images.push(url)
+      })
+    }
+    if (proj.journey?.after?.images?.length) {
+      proj.journey.after.images.forEach(url => { if (!images.includes(url)) images.push(url) })
+    }
+    if (proj.journey?.before?.images?.length) {
+      proj.journey.before.images.forEach(url => { if (!images.includes(url)) images.push(url) })
+    }
+    return images
+  }
+
+  const getProjectVideos = (proj) => {
+    const videos = []
+    if (proj.videoUrl) videos.push(proj.videoUrl)
+    if (proj.journey?.after?.videos?.length) {
+      proj.journey.after.videos.forEach(url => { if (!videos.includes(url)) videos.push(url) })
+    }
+    if (proj.journey?.before?.videos?.length) {
+      proj.journey.before.videos.forEach(url => { if (!videos.includes(url)) videos.push(url) })
+    }
+    return videos
+  }
+
+  const projectImages = project ? getProjectImages(project) : []
+  const projectVideos = project ? getProjectVideos(project) : []
+  const allMedia = viewMode === 'videos' ? projectVideos : projectImages
 
   return (
     <main className="min-h-screen bg-[var(--bg)]">
@@ -574,11 +684,24 @@ export const VirtualDesignDetailPage = () => {
                 </>
               )}
 
-              <div className="relative h-full w-full flex items-center justify-center p-4">
+              <div className="relative h-full w-full flex items-center justify-center p-4" onWheel={handleWheel}>
                 <img
+                  ref={imageRef}
                   src={getOptimizedUrl(allMedia[galleryIndex] || imageFullscreen.imageUrl, { width: 1920 })}
                   alt={imageFullscreen.title}
-                  className="max-h-[80vh] max-w-full object-contain"
+                  className="max-h-[80vh] max-w-full object-contain cursor-grab"
+                  style={{
+                    transform: `translate(${zoomPosition.x}px, ${zoomPosition.y}px) scale(${zoomScale})`,
+                    transformOrigin: 'center center',
+                    transition: zoomScale > 1 ? 'none' : 'transform 0.1s ease-out',
+                  }}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  onDoubleClick={handleDoubleClick}
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
                 />
               </div>
 

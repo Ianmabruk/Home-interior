@@ -45,8 +45,6 @@ import {
 } from 'lucide-react'
 import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
-import { Sidebar } from '../admin/Sidebar'
-import { emitAdminDataChanged } from '../../utils/adminEvents'
 
 const AnimatedCounter = ({ value, delay = 0, prefix = '', suffix = '' }) => {
   const count = useMotionValue(0)

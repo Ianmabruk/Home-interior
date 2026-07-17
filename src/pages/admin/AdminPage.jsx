@@ -6,8 +6,6 @@ import {
   Mail,
   CheckCircle2,
   X,
-  Shield,
-  User,
   Settings2,
   Menu,
   LayoutDashboard,
@@ -17,10 +15,7 @@ import {
   Info,
   MessageSquare,
   Newspaper,
-  Sparkles,
-  LogOut,
   Star,
-  Camera,
   UploadCloud,
 } from 'lucide-react'
 import { api } from '../../services/api'
@@ -48,11 +43,11 @@ const tabs = [
 ]
 
 export const AdminPage = () => {
-  const { user, logout, updateProfile } = useAuth()
+const { user, logout, updateProfile } = useAuth()
   const [activeTab, setActiveTab] = useState('dashboard')
-  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [mobileSidebar, setMobileSidebar] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [overview, setOverview] = useState(null)
   const [messages, setMessages] = useState([])
@@ -108,16 +103,25 @@ export const AdminPage = () => {
     return () => window.removeEventListener('admin:data-changed', handler)
   }, [fetchAll])
 
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   // Load user profile on mount
   useEffect(() => {
     if (user) {
-      setProfileForm({
-        fullName: user.fullName || '',
-        email: user.email || '',
-      })
-      if (user.profileImage) {
-        setProfilePreview(user.profileImage)
-      }
+      setTimeout(() => {
+        setProfileForm({
+          fullName: user.fullName || '',
+          email: user.email || '',
+        })
+        if (user.profileImage) {
+          setProfilePreview(user.profileImage)
+        }
+      }, 0)
     }
   }, [user])
 
@@ -187,12 +191,14 @@ export const AdminPage = () => {
 
   const currentTab = tabs.find((t) => t.id === activeTab)
 
+  // Calculate sidebar width for responsive layout
+  const sidebarWidth = isMobile ? (mobileSidebar ? 300 : 0) : (isCollapsed ? 88 : 300)
+
   return (
     <div className="min-h-screen bg-[var(--bg)]">
-<Sidebar
+      <Sidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        sidebarOpen={sidebarOpen}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
         mobileOpen={mobileSidebar}
@@ -201,8 +207,8 @@ export const AdminPage = () => {
         onLogout={logout}
       />
 
-      <div className="flex flex-1 flex-col">
-        <header className="sticky top-4 z-30 mx-4 lg:mx-0">
+      <div className="flex flex-1 flex-col lg:ml-0">
+        <header className="sticky top-4 z-30 mx-4 lg:mx-0 lg:ml-[300px] lg:transition-all lg:duration-300 lg:ease-[0.22,1,0.36,1] lg:w-[calc(100%-300px)]" style={{ marginLeft: isMobile ? 0 : sidebarWidth, width: isMobile ? '100%' : `calc(100% - ${sidebarWidth}px)` }}>
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -325,7 +331,7 @@ export const AdminPage = () => {
           </motion.div>
         </header>
 
-        <main className="flex-1 p-4 md:p-8 pb-24 md:pb-8">
+        <main className="flex-1 p-4 md:p-8 pb-24 md:pb-8" style={{ marginLeft: isMobile ? 0 : sidebarWidth, width: isMobile ? '100%' : `calc(100% - ${sidebarWidth}px)` }}>
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}

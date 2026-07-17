@@ -115,7 +115,7 @@ const PORTFOLIO_FIELDS = new Set([
   'title', 'description', 'category', 'imageUrl', 'imagePublicId', 'beforeAfterImages', 'gallery', 'order', 'isPublished', 'mediaSettings',
 ])
 const VIRTUAL_DESIGN_FIELDS = new Set([
-  'title', 'description', 'videoUrl', 'videoPublicId', 'thumbnailUrl', 'imageUrl', 'imagePublicId', 'images',
+  'title', 'description', 'videoUrl', 'videoPublicId', 'videos', 'thumbnailUrl', 'imageUrl', 'imagePublicId', 'images',
   'services', 'beforeAfterImages', 'category', 'tags', 'ctaPrimary', 'ctaSecondary', 'isPublished', 'mediaSettings',
   'coverImageIndex', 'status',
 ])
@@ -527,7 +527,18 @@ export const virtualDesignController = {
       }
     }
 
-    // Handle single video upload
+    // Handle multiple video uploads
+    const videoFiles = (Array.isArray(req.files) ? req.files : []).filter((f) => f.fieldname === 'videos')
+    if (videoFiles.length > 0) {
+      const uploads = await handleMultipleUploads(videoFiles, 'hok/virtual-design')
+      payload.videos = uploads.map((u) => ({ url: u.url, publicId: u.publicId, kind: u.kind }))
+      if (!payload.videoUrl && uploads[0]) {
+        payload.videoUrl = uploads[0].url
+        payload.videoPublicId = uploads[0].publicId
+      }
+    }
+
+    // Handle single video upload (backwards compat)
     const videoFile = findFileByFieldname(req, 'video')
     if (videoFile) {
       const upload = await uploadVideo(videoFile.buffer, 'hok/virtual-design', videoFile.mimetype)
@@ -604,6 +615,20 @@ export const virtualDesignController = {
       }
     }
 
+    // Handle multiple video uploads
+    const videoFiles = (Array.isArray(req.files) ? req.files : []).filter((f) => f.fieldname === 'videos')
+    if (videoFiles.length > 0) {
+      const uploads = await handleMultipleUploads(videoFiles, 'hok/virtual-design')
+      const newVideos = uploads.map((u) => ({ url: u.url, publicId: u.publicId, kind: u.kind }))
+      // Merge with existing videos
+      const existingVideos = Array.isArray(existing.videos) ? existing.videos : []
+      payload.videos = [...existingVideos, ...newVideos]
+      if (!payload.videoUrl && uploads[0]) {
+        payload.videoUrl = uploads[0].url
+        payload.videoPublicId = uploads[0].publicId
+      }
+    }
+
     // Handle single video upload
     const videoFile = findFileByFieldname(req, 'video')
     if (videoFile) {
@@ -661,6 +686,11 @@ export const virtualDesignController = {
       if (existing.images && Array.isArray(existing.images)) {
         existing.images.forEach((img) => {
           if (img.publicId) mediaDeletes.push(deleteMedia(img.publicId, img.kind === 'video' ? 'video' : 'image'))
+        })
+      }
+      if (existing.videos && Array.isArray(existing.videos)) {
+        existing.videos.forEach((vid) => {
+          if (vid.publicId) mediaDeletes.push(deleteMedia(vid.publicId, vid.kind === 'video' ? 'video' : 'image'))
         })
       }
       await Promise.all(mediaDeletes)

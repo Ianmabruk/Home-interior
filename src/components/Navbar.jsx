@@ -17,6 +17,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { useShop } from '../context/ShopContext'
+import hokLogo from '../assets/hok png logo.png'
 
 const NAV_ITEMS = [
   { to: '/shop', label: 'Shop' },
@@ -89,21 +90,15 @@ export const Navbar = () => {
             className="flex-shrink-0 leading-tight group -ml-4 md:-ml-8"
             aria-label="HOK INTERIOR DESIGNS - Home"
           >
-            <div className="flex flex-col items-start">
-              <motion.p
-                whileHover={{ scale: 1.02, x: 2 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                className="font-display text-[44px] md:text-[52px] font-medium tracking-[0.25em] leading-tight text-[#2A241F] transition-colors duration-300 group-hover:text-[#E89A43]"
-              >
-                HOK
-              </motion.p>
-              <motion.p
-                whileHover={{ x: 4 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                className="font-sans text-[10px] md:text-[11px] font-medium uppercase tracking-[0.35em] leading-none text-[#E89A43] -mt-1"
-              >
-                INTERIOR DESIGNS
-              </motion.p>
+            <div className="flex items-center">
+              <img
+                src={hokLogo}
+                alt="HOK Interior Designs"
+                className="h-[42px] sm:h-[50px] md:h-[50px] lg:h-[60px] w-auto object-contain transition-all duration-300 group-hover:scale-102"
+                loading="eager"
+                width={240}
+                height={60}
+              />
             </div>
           </Link>
 
