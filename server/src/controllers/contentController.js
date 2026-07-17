@@ -8,23 +8,6 @@ import { withId, withIdArray, parseMaybeJson, parseMediaSettings, DEFAULT_MEDIA_
 import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
 import { sendEmail, buildConsultationEmailTemplate } from '../config/sendgrid.js'
 
-const PROJECT_SELECT = {
-  id: true,
-  title: true,
-  description: true,
-  category: true,
-  media: true,
-  beforeAfterImages: true,
-  videoUrl: true,
-  videoPublicId: true,
-  coverImageUrl: true,
-  order: true,
-  mediaSettings: true,
-  isPublished: true,
-  createdAt: true,
-  updatedAt: true,
-}
-
 const parseServices = (value) => {
   const parsed = parseMaybeJson(value, null)
   if (Array.isArray(parsed)) return parsed
@@ -98,17 +81,6 @@ const rethrowAsHttpError = (err, label) => {
   throw err
 }
 
-// Allowed Project fields for the admin write path. `tags` and `services` are
-// intentionally NOT included — they are not part of the Project model/schema,
-// so referencing them would cause a PrismaClientValidationError (and historically
-// a P2022 on production where the columns never existed). Project records rely on
-// title/description/category/media/videoUrl/coverImageUrl/order/mediaSettings.
-const PROJECT_FIELDS = new Set([
-  'description', 'category', 'media', 'beforeAfterImages',
-  'videoUrl', 'videoPublicId', 'coverImageUrl', 'order', 'isPublished',
-  'mediaSettings',
-])
-
 // Projection returned to the public + admin clients. Deliberately excludes
 // tags/services (not part of the Project model) to avoid P2022.
 const PORTFOLIO_FIELDS = new Set([
@@ -127,111 +99,215 @@ const stripUnknown = (obj, allowed) => {
   return out
 }
 
-export const projectsController = {
-  // Public list — defensive explicit select (never queries tags/services, which
-  // are not part of the Project model). Never crashes the homepage: returns an
+export const portfolioController = {
+  // Public list — defensive explicit select. Never crashes the homepage: returns an
   // empty list on any failure.
   list: asyncHandler(async (req, res) => {
     try {
-      const items = await prisma.project.findMany({
+      const items = await prisma.portfolio.findMany({
         where: { isPublished: true },
         orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
-        select: PROJECT_SELECT,
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          category: true,
+          imageUrl: true,
+          imagePublicId: true,
+          beforeAfterImages: true,
+          gallery: true,
+          order: true,
+          isPublished: true,
+          mediaSettings: true,
+        },
       })
       res.json(sendSuccess(withIdArray(sortByOrderThenDate(items))))
     } catch (error) {
-      console.error('[PROJECTS][LIST] db query failed:', error?.message)
+      console.error('[PORTFOLIO][LIST] db query failed:', error?.message)
       res.json(sendSuccess([]))
     }
   }),
 
+  get: asyncHandler(async (req, res) => {
+    try {
+      const item = await prisma.portfolio.findUnique({ where: { id: req.params.id } })
+      if (!item) {
+        return res.status(404).json({ success: false, message: 'Portfolio not found' })
+      }
+      res.json(sendSuccess(withId(item)))
+    } catch (error) {
+      console.error('[PORTFOLIO][GET] error:', error?.message)
+      res.status(500).json({ success: false, message: 'Failed to fetch portfolio item' })
+    }
+  }),
+
   create: asyncHandler(async (req, res) => {
-    const upload = await handleFileUpload(req, 'hok/projects')
+    try {
+      console.log('[PORTFOLIO][CREATE] request fields:', Object.keys(req.body))
+      const payload = stripUnknown({ ...req.body }, PORTFOLIO_FIELDS)
 
-    if (!upload) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' })
+      if (payload.order !== undefined) payload.order = orderValue(payload.order)
+      payload.isPublished = toBoolean(req.body.isPublished, true)
+
+      const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
+      if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
+
+      const mediaFile = findFileByFieldname(req, 'media')
+      if (mediaFile) {
+        const upload = await uploadImage(mediaFile.buffer, 'hok/portfolio', mediaFile.mimetype)
+        payload.imageUrl = upload.secure_url
+        payload.imagePublicId = upload.public_id
+      }
+
+      const beforeFile = findFileByFieldname(req, 'beforeImage')
+      if (beforeFile) {
+        const beforeUpload = await uploadImage(beforeFile.buffer, 'hok/portfolio', beforeFile.mimetype)
+        payload.beforeAfterImages = [{ url: beforeUpload.secure_url, publicId: beforeUpload.public_id, label: 'Before' }]
+      }
+
+      const galleryFiles = (Array.isArray(req.files) ? req.files : []).filter((f) => f.fieldname === 'gallery')
+      if (galleryFiles.length > 0) {
+        const galleryUploads = await handleMultipleUploads(galleryFiles, 'hok/portfolio')
+        payload.gallery = galleryUploads.map((u) => ({ url: u.url, publicId: u.publicId }))
+      }
+
+      const item = await prismaSafeWrite(
+        (data) => prisma.portfolio.create({ data }),
+        payload,
+        'PORTFOLIO][CREATE',
+      )
+      console.log('[PORTFOLIO][CREATE] success id=', item.id, 'title=', item.title, 'published=', item.isPublished)
+      res.status(201).json(sendSuccess(withId(item)))
+    } catch (error) {
+      console.error("FULL ERROR:", error)
+      console.error("MESSAGE:", error.message)
+      console.error("STACK:", error.stack)
+      console.error("PRISMA CODE:", error.code)
+      console.error("BODY:", req.body)
+      console.error("PARAMS:", req.params)
+      console.error("QUERY:", req.query)
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
+      }
+      res.status(500).json({
+        success: false,
+        route: req.originalUrl || req.path,
+        error: error.message,
+        rawMessage: error.message,
+        code: error.code,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      })
     }
-
-    const mediaSettings = parseMediaSettings(req.body.mediaSettings) || {
-      position: 'center',
-      zoom: 100,
-      fit: 'cover',
-    }
-
-    const project = await prisma.project.create({
-      data: {
-        videoUrl: upload.url,
-        videoPublicId: upload.publicId,
-        media: [{ type: upload.kind, url: upload.url, publicId: upload.publicId }],
-        mediaSettings,
-        order: Number(req.body.order || 0),
-        isPublished: true,
-      },
-      select: PROJECT_SELECT,
-    })
-
-    res.status(201).json(sendSuccess(withId(project)))
   }),
 
   update: asyncHandler(async (req, res) => {
-    const existing = await prisma.project.findUnique({ where: { id: req.params.id }, select: PROJECT_SELECT })
-    if (!existing) {
-      return res.status(404).json({ message: 'Project not found' })
-    }
-
-    const payload = stripUnknown({ ...req.body }, PROJECT_FIELDS)
-
-    if (payload.order !== undefined) payload.order = orderValue(payload.order)
-
-    const parsedBeforeAfter = parseMaybeJson(req.body.beforeAfterImages, null)
-    if (parsedBeforeAfter) payload.beforeAfterImages = parsedBeforeAfter
-
-    const parsedMedia = Array.isArray(req.body.media) ? req.body.media : parseMaybeJson(req.body.media, null)
-    if (parsedMedia) payload.media = parsedMedia
-
-    const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
-    if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
-
-    const mediaFile = findFileByFieldname(req, 'media')
-    if (mediaFile) {
-      const mediaList = Array.isArray(existing.media) ? existing.media : []
-      const mediaDeletes = mediaList.map((m) => m.publicId ? deleteMedia(m.publicId, m.type === 'video' ? 'video' : 'image') : Promise.resolve())
-      if (existing.videoPublicId) {
-        mediaDeletes.push(deleteMedia(existing.videoPublicId, 'video'))
+    try {
+      const existing = await prisma.portfolio.findUnique({ where: { id: req.params.id } })
+      if (!existing) {
+        return res.status(404).json({ success: false, message: 'Portfolio not found' })
       }
-      await Promise.all(mediaDeletes)
 
-      const upload = await uploadImage(mediaFile.buffer, 'hok/projects', mediaFile.mimetype)
-      const mediaItem = { type: upload.resource_type || 'image', url: upload.secure_url, publicId: upload.public_id }
-      payload.media = [mediaItem]
-      if (upload.resource_type === 'video') {
-        payload.videoUrl = upload.secure_url
-        payload.videoPublicId = upload.public_id
-      } else {
-        payload.coverImageUrl = upload.secure_url
+      const payload = stripUnknown({ ...req.body }, PORTFOLIO_FIELDS)
+
+      if (payload.order !== undefined) payload.order = orderValue(payload.order)
+      payload.isPublished = toBoolean(req.body.isPublished, existing.isPublished)
+
+      const parsedMediaSettings = parseMediaSettings(req.body.mediaSettings)
+      if (parsedMediaSettings) payload.mediaSettings = parsedMediaSettings
+
+      const mediaFile = findFileByFieldname(req, 'media')
+      if (mediaFile) {
+        if (existing.imagePublicId) {
+          await deleteMedia(existing.imagePublicId, 'image')
+        }
+        const upload = await uploadImage(mediaFile.buffer, 'hok/portfolio', mediaFile.mimetype)
+        payload.imageUrl = upload.secure_url
+        payload.imagePublicId = upload.public_id
       }
-    }
 
-    const item = await prismaSafeWrite(
-      (data) => prisma.project.update({ where: { id: req.params.id }, data }),
-      payload,
-      'PROJECT][UPDATE',
+      const beforeFile = findFileByFieldname(req, 'beforeImage')
+      if (beforeFile) {
+        if (existing.beforeAfterImages && Array.isArray(existing.beforeAfterImages)) {
+          for (const img of existing.beforeAfterImages) {
+            if (img.publicId) await deleteMedia(img.publicId, 'image')
+          }
+        }
+        const beforeUpload = await uploadImage(beforeFile.buffer, 'hok/portfolio', beforeFile.mimetype)
+        payload.beforeAfterImages = [{ url: beforeUpload.secure_url, publicId: beforeUpload.public_id, label: 'Before' }]
+      }
+
+      const galleryFiles = (Array.isArray(req.files) ? req.files : []).filter((f) => f.fieldname === 'gallery')
+      if (galleryFiles.length > 0) {
+        if (existing.gallery && Array.isArray(existing.gallery)) {
+          for (const img of existing.gallery) {
+            if (img.publicId) await deleteMedia(img.publicId, 'image')
+          }
+        }
+        const galleryUploads = await handleMultipleUploads(galleryFiles, 'hok/portfolio')
+        payload.gallery = galleryUploads.map((u) => ({ url: u.url, publicId: u.publicId }))
+      }
+
+      const item = await prismaSafeWrite(
+        (data) => prisma.portfolio.update({ where: { id: req.params.id }, data }),
+        payload,
+        'PORTFOLIO][UPDATE',
+      )
+      res.json(sendSuccess(withId(item)))
+    } catch (error) {
+      console.error("FULL ERROR:", error)
+      console.error("MESSAGE:", error.message)
+      console.error("STACK:", error.stack)
+      console.error("PRISMA CODE:", error.code)
+      console.error("BODY:", req.body)
+      console.error("PARAMS:", req.params)
+      console.error("QUERY:", req.query)
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
+      }
+      res.status(500).json({
+        success: false,
+        route: req.originalUrl || req.path,
+        error: error.message,
+        rawMessage: error.message,
+        code: error.code,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      })
+    }
+  }),
+
+  reorder: asyncHandler(async (req, res) => {
+    const { order } = req.body
+    if (!Array.isArray(order)) {
+      return res.status(400).json({ success: false, message: 'Order must be an array of {id, order}' })
+    }
+    const updates = order.map((item, index) =>
+      prisma.portfolio.update({ where: { id: item.id }, data: { order: item.order ?? index } })
     )
-    res.json(sendSuccess(withId(item)))
+    await Promise.all(updates)
+    res.json(sendSuccess({ message: 'Portfolio reordered' }))
   }),
 
   remove: asyncHandler(async (req, res) => {
-    const existing = await prisma.project.findUnique({ where: { id: req.params.id }, select: PROJECT_SELECT })
+    const existing = await prisma.portfolio.findUnique({ where: { id: req.params.id } })
     if (existing) {
-      const mediaList = Array.isArray(existing.media) ? existing.media : []
-      const mediaDeletes = mediaList.map((m) => m.publicId ? deleteMedia(m.publicId, m.type === 'video' ? 'video' : 'image') : Promise.resolve())
-      if (existing.videoPublicId) {
-        mediaDeletes.push(deleteMedia(existing.videoPublicId, 'video'))
+      const mediaDeletes = []
+      if (existing.imagePublicId) {
+        mediaDeletes.push(deleteMedia(existing.imagePublicId, 'image'))
+      }
+      if (existing.beforeAfterImages && Array.isArray(existing.beforeAfterImages)) {
+        existing.beforeAfterImages.forEach((img) => {
+          if (img.publicId) mediaDeletes.push(deleteMedia(img.publicId, 'image'))
+        })
+      }
+      if (existing.gallery && Array.isArray(existing.gallery)) {
+        existing.gallery.forEach((img) => {
+          if (img.publicId) mediaDeletes.push(deleteMedia(img.publicId, 'image'))
+        })
       }
       await Promise.all(mediaDeletes)
     }
-    await prisma.project.delete({ where: { id: req.params.id } })
-    res.json(sendSuccess({ message: 'Project deleted' }))
+    await prisma.portfolio.delete({ where: { id: req.params.id } })
+    res.json(sendSuccess({ message: 'Portfolio deleted' }))
   }),
 }
 
@@ -840,32 +916,10 @@ export const homepageFeed = asyncHandler(async (req, res) => {
   // Each section is queried independently inside its own try/catch so a
   // missing/empty record (or a single failing query) can NEVER 500 the whole
   // homepage. Every branch falls back to a safe empty value and is logged.
-  let projects = []
   let portfolio = []
-  let about = null
   let virtualDesigns = []
-
-  try {
-    projects = await prisma.project.findMany({
-      where: { isPublished: true },
-      orderBy: { order: 'asc' },
-      take: 8,
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        category: true,
-        media: true,
-        coverImageUrl: true,
-        videoUrl: true,
-        order: true,
-        mediaSettings: true,
-      },
-    })
-  } catch (err) {
-    console.error('[HOMEPAGE DEBUG] projects query failed:', err?.message)
-    projects = []
-  }
+  let about = null
+  let testimonials = []
 
   try {
     portfolio = await prisma.portfolio.findMany({
@@ -890,6 +944,30 @@ export const homepageFeed = asyncHandler(async (req, res) => {
   }
 
   try {
+    virtualDesigns = await prisma.virtualDesign.findMany({
+      where: { isPublished: true },
+      orderBy: { createdAt: 'desc' },
+      take: 12,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        category: true,
+        imageUrl: true,
+        images: true,
+        videoUrl: true,
+        videos: true,
+        thumbnailUrl: true,
+        order: true,
+        createdAt: true,
+      },
+    })
+  } catch (err) {
+    console.error('[HOMEPAGE DEBUG] virtualDesigns query failed:', err?.message)
+    virtualDesigns = []
+  }
+
+  try {
     about = await prisma.about.findFirst({
       orderBy: { createdAt: 'desc' },
       select: {
@@ -907,59 +985,48 @@ export const homepageFeed = asyncHandler(async (req, res) => {
     about = null
   }
 
-  // Fetch virtual designs as fallback for hero video
   try {
-    virtualDesigns = await prisma.virtualDesign.findMany({
+    testimonials = await prisma.testimonial.findMany({
       where: { isPublished: true },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
+      orderBy: { order: 'asc' },
+      take: 10,
       select: {
         id: true,
-        title: true,
-        videoUrl: true,
-        videos: true,
-        imageUrl: true,
-        images: true,
+        name: true,
+        role: true,
+        content: true,
+        avatarUrl: true,
         order: true,
       },
     })
   } catch (err) {
-    console.error('[HOMEPAGE DEBUG] virtualDesigns query failed:', err?.message)
-    virtualDesigns = []
+    console.error('[HOMEPAGE DEBUG] testimonials query failed:', err?.message)
+    testimonials = []
   }
 
-  const sortedProjects = sortByOrderThenDate(projects || []).slice(0, 6)
   const sortedPortfolio = sortByOrderThenDate(portfolio || []).slice(0, 12)
-  const featuredProjects = sortedProjects.slice(0, 3)
+  const sortedVirtualDesigns = sortByOrderThenDate(virtualDesigns || []).slice(0, 12)
+  const sortedTestimonials = sortByOrderThenDate(testimonials || []).slice(0, 10)
 
-  // Pick the newest published project that actually has a video URL, so the
-  // hero never renders empty when the first-ordered project is an image-only
-  // entry. Falls back to the first project, then to virtual designs, then to null.
-  const heroProject =
-    sortedProjects.find((p) => p?.videoUrl) || sortedProjects[0] || null
-
-  // If no project has video, try virtual designs
-  let heroVideo = heroProject?.videoUrl ? { url: heroProject.videoUrl } : null
-  if (!heroVideo && virtualDesigns.length > 0) {
-    const vd = virtualDesigns.find(v => v.videoUrl) || virtualDesigns[0]
-    if (vd?.videoUrl) heroVideo = { url: vd.videoUrl }
-  }
+  // Featured items for hero/featured sections
+  const featuredPortfolio = sortedPortfolio.slice(0, 3)
+  const featuredVirtualDesigns = sortedVirtualDesigns.slice(0, 3)
 
   // Structured debug log — exactly which section had data.
   console.log('[HOMEPAGE DEBUG]', {
-    heroVideo: heroVideo ? 'found' : 'null',
-    featuredProject: heroProject ? 'found' : (virtualDesigns.length > 0 ? 'found (virtual design)' : 'missing'),
-    projectCount: sortedProjects.length,
     portfolioCount: sortedPortfolio.length,
+    virtualDesignCount: sortedVirtualDesigns.length,
+    testimonialCount: sortedTestimonials.length,
     about: about ? 'found' : 'null',
   })
 
   res.json(sendSuccess({
-    heroVideo,
-    projects: withIdArray(sortedProjects),
-    featuredProjects: withIdArray(featuredProjects),
     portfolio: withIdArray(sortedPortfolio),
+    virtualInteriorDesign: withIdArray(sortedVirtualDesigns),
     about: withId(about),
+    testimonials: withIdArray(sortedTestimonials),
+    featuredPortfolio: withIdArray(featuredPortfolio),
+    featuredVirtualDesigns: withIdArray(featuredVirtualDesigns),
   }))
 })
 

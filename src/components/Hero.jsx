@@ -44,14 +44,14 @@ export const Hero = ({ onBookConsultation }) => {
             })
         }
 
-        if (data.projects && Array.isArray(data.projects)) {
-          data.projects
-            .filter(item => item.coverImageUrl || item.media?.[0]?.url)
+        if (data.virtualDesigns && Array.isArray(data.virtualDesigns)) {
+          data.virtualDesigns
+            .filter(item => item.imageUrl || item.images?.[0]?.url)
             .slice(0, 4)
             .forEach(item => {
               carouselImages.push({
-                url: item.coverImageUrl || item.media?.[0]?.url,
-                alt: item.title || 'Luxury interior design project'
+                url: item.imageUrl || item.images?.[0]?.url,
+                alt: item.title || 'Virtual interior design project'
               })
             })
         }

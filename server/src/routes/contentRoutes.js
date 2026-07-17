@@ -6,7 +6,6 @@ import {
   getAbout,
   homepageFeed,
   portfolioController,
-  projectsController,
   upsertAbout,
   virtualDesignController,
   getAnalytics,
@@ -69,11 +68,6 @@ const validateConsultationBody = validateBody(consultationSchema)
 
 router.get('/homepage', homepageFeed)
 router.get('/analytics', auth, getAnalytics)
-
-router.get('/projects', projectsController.list)
-router.post('/projects', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, projectsController.create)
-router.patch('/projects/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, projectsController.update)
-router.delete('/projects/:id', auth, authorize('admin'), writeLimiter, auditLog, projectsController.remove)
 
 router.get('/portfolio', portfolioController.list)
 router.get('/portfolio/:id', portfolioController.get)
