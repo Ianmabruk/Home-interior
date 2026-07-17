@@ -1,48 +1,18 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import {
-  LayoutDashboard,
   Images,
   ShoppingBag,
   MessageSquare,
-  Settings,
-  Search,
-  Bell,
-  Mail,
-  CheckCircle2,
-  X,
-  Shield,
-  FileText,
-  UploadCloud,
   Plus,
+  FileText,
+  Activity,
   TrendingUp,
   TrendingDown,
-  DollarSign,
-  Calendar,
-  BarChart3,
-  LineChart,
-  PieChart,
-  RefreshCw,
-  Download,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-  Menu,
-  Sparkles,
-  LogOut,
-  ArrowUpRight,
-  ArrowDownRight,
-  Minus,
-  Eye,
-  Edit,
-  Trash2,
-  Clock,
-  DollarSign as DollarSignIcon,
-  Activity,
-  Images as ImagesIcon,
+  UploadCloud,
+  Newspaper,
 } from 'lucide-react'
 import { api } from '../../services/api'
-import { useAuth } from '../../context/AuthContext'
 
 const AnimatedCounter = ({ value, delay = 0, prefix = '', suffix = '' }) => {
   const count = useMotionValue(0)

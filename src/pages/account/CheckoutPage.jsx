@@ -10,7 +10,7 @@ import { api } from '../../services/api'
 export const CheckoutPage = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { cart, cartTotal, clearCart } = useShop()
+  const { cart, clearCart } = useShop()
   const { formatPrice } = useCurrency()
   const [buyNowItem, setBuyNowItem] = useState(null)
   const buyNowHandledRef = useRef(false)

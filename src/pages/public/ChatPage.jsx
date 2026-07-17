@@ -1,12 +1,7 @@
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../../services/api'
 import { Send, MessageCircle, Sparkles, Clock, Mail } from 'lucide-react'
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
-  show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.5, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] } }),
-}
 
 export const ChatPage = () => {
   const [messages, setMessages] = useState([])

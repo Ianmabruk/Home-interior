@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -35,16 +35,27 @@ export const TestimonialDashboard = () => {
     photoPreview: null,
   })
 
-  const load = useCallback(async () => {
+  const load = async () => {
     try {
       const res = await api.get('/admin/testimonials')
       setTestimonials(res.data || [])
     } catch {
       setTestimonials([])
     }
-  }, [])
+  }
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    // Data fetching on mount - intentional setState in effect
+    const fetchData = async () => {
+      try {
+        const res = await api.get('/admin/testimonials')
+        setTestimonials(res.data || [])
+      } catch {
+        setTestimonials([])
+      }
+    }
+    fetchData()
+  }, [])
 
   const resetForm = () => {
     setForm({
@@ -119,16 +130,6 @@ export const TestimonialDashboard = () => {
     try {
       await api.delete(`/admin/testimonials/${deleteId}`)
       setDeleteId(null)
-      load()
-      emitAdminDataChanged({ type: 'testimonials-changed' })
-    } catch {
-      // handle error
-    }
-  }
-
-  const handleReorder = async (newOrder) => {
-    try {
-      await api.patch('/admin/testimonials/reorder', { order: newOrder })
       load()
       emitAdminDataChanged({ type: 'testimonials-changed' })
     } catch {

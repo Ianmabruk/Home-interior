@@ -1,14 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ShoppingBag, X, Plus, Minus, ArrowRight, Truck, Shield, Sparkles } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
 import { useShop } from '../../context/ShopContext'
 import { useCurrency } from '../../context/CurrencyContext'
 
 export const CartPage = () => {
   const navigate = useNavigate()
   const { cart, removeFromCart, setCartQuantity, cartTotal } = useShop()
-  const { isAuthenticated } = useAuth()
   const { formatPrice } = useCurrency()
 
   return (

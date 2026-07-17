@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
@@ -9,28 +9,12 @@ import {
   RotateCcw,
   CheckCircle,
   Clock,
-  AlertCircle,
   User,
-  Mail,
   Lock,
-  Shield,
-  CreditCard,
-  Home,
   Sparkles,
-  ArrowRight,
-  Loader2,
-  Check,
   X,
-  Eye,
-  Edit,
-  Menu,
   X as XIcon,
-  LogIn,
-  UserPlus,
-  LayoutDashboard,
   Heart,
-  Bookmark,
-  Calendar,
   Settings,
   LogOut,
 } from 'lucide-react'
@@ -161,7 +145,7 @@ const OrderCard = ({ order }) => {
   )
 }
 
-const ChangePasswordModal = ({ isOpen, onClose, onSubmit }) => {
+const ChangePasswordModal = ({ onClose, onSubmit }) => {
   const [form, setForm] = useState({ current: '', new: '', confirm: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -312,31 +296,35 @@ export const AccountPage = () => {
   const [loading, setLoading] = useState(true)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       const res = await api.get('/orders/my-orders')
       setOrders(res.data || [])
     } catch {
       setOrders([])
     }
-  }
+  }, [])
 
-  const fetchSaved = async () => {
+  const fetchSaved = useCallback(async () => {
     try {
       const res = await api.get('/users/saved')
       setSavedItems(res.data || [])
     } catch {
       setSavedItems([])
     }
-  }
+  }, [])
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchOrders()
-      fetchSaved()
+    // Data fetching on mount/auth change - intentional setState in effect
+    const fetchData = async () => {
+      if (isAuthenticated) {
+        await fetchOrders()
+        await fetchSaved()
+      }
+      setLoading(false)
     }
-    setLoading(false)
-  }, [isAuthenticated])
+    fetchData()
+  }, [isAuthenticated, fetchOrders, fetchSaved])
 
   const handleChangePassword = async (current, newPass) => {
     await api.post('/users/change-password', { currentPassword: current, newPassword: newPass })

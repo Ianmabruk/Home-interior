@@ -171,7 +171,7 @@ describe('PRODUCTS upload pipeline', () => {
       .field('name', 'Velvet Sofa')
       .field('description', 'A very comfortable velvet sofa for living rooms.')
       .field('price', '999.99')
-      .field('category', 'Living Room')
+      .field('category', 'Frames')
       .field('stock', '10')
       .field('sku', 'SOFA-001')
       .attach('images', PNG_1x1, 'sofa.png')
@@ -195,7 +195,7 @@ describe('PRODUCTS upload pipeline', () => {
       .field('name', 'Draft Lamp')
       .field('description', 'A lamp kept as an unpublished draft for now.')
       .field('price', '50')
-      .field('category', 'Lighting')
+      .field('category', 'Mirrors')
       .field('stock', '3')
       .field('sku', 'LAMP-DRAFT')
       .field('isPublished', 'false')
@@ -220,7 +220,7 @@ describe('PRODUCTS upload pipeline', () => {
       .field('name', 'Auto Sofa')
       .field('description', 'A published-by-default sofa for the shop page.')
       .field('price', '120')
-      .field('category', 'Living Room')
+      .field('category', 'Frames')
       .field('stock', '5')
       .field('sku', 'SOFA-AUTO')
       .attach('images', PNG_1x1, 'auto.png')
@@ -247,7 +247,7 @@ describe('PRODUCTS upload pipeline', () => {
       .field('name', 'X') // too short
       .field('description', 'short') // too short
       .field('price', '-5') // negative
-      .field('category', 'Living Room')
+      .field('category', 'Frames')
       .field('stock', '10')
       .field('sku', 'SKU1')
       .attach('images', PNG_1x1, 'x.png')

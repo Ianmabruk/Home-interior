@@ -16,14 +16,11 @@ import {
   Tag,
   Box,
   Sparkles,
-  Layers,
-  Brush,
 } from 'lucide-react'
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
 
 const CATEGORIES = ['Mirrors', 'Frames', 'Throw Pillows']
-const STYLE_VARIANTS = ['Modern', 'Classic', 'Luxury', 'Minimalist', 'Contemporary']
 
 const INITIAL_FORM = {
   name: '',

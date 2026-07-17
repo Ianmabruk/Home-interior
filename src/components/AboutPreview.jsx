@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { api } from '../services/api'
 import { getOptimizedUrl } from '../utils/cloudinaryHelpers'
-import { ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 export const AboutPreview = () => {

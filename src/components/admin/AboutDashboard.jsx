@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { X, Plus, Trash2, Image as ImageIcon, Link2, Eye, Edit } from 'lucide-react'
+import { X, Plus, Trash2, Image as ImageIcon } from 'lucide-react'
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
@@ -19,21 +19,16 @@ const INITIAL_FORM = {
 
 export const AboutDashboard = () => {
   const [form, setForm] = useState(INITIAL_FORM)
-  const [aboutData, setAboutData] = useState(null)
   const [images, setImages] = useState([])
   const [loading, setLoading] = useState(true)
   const [isDragOver, setIsDragOver] = useState(false)
-  const [galleryRef, setGalleryRef] = useState(null)
-  const [uploading, setUploading] = useState(false)
-  const [aboutImageUrl, setAboutImageUrl] = useState('')
   const [aboutImagePreview, setAboutImagePreview] = useState(null)
   const [aboutImageFile, setAboutImageFile] = useState(null)
   const aboutImageRef = useRef(null)
 
-  const loadAbout = async () => {
+  const loadAbout = useCallback(async () => {
     try {
       const res = await api.get('/content/about')
-      setAboutData(res.data || {})
       setForm({
         story: res.data?.story || '',
         mission: res.data?.mission || '',
@@ -46,16 +41,13 @@ export const AboutDashboard = () => {
         socialLinks: JSON.stringify(res.data?.socials || {}, null, 2),
       })
       setImages(res.data?.galleryImages || [])
-      setAboutImageUrl(res.data?.aboutImageUrl || '')
-      if (res.data?.aboutImageUrl) setAboutImagePreview(res.data.aboutImageUrl)
+      setAboutImagePreview(res.data?.aboutImageUrl || null)
     } catch {
       setForm(INITIAL_FORM)
     } finally {
       setLoading(false)
     }
-  }
-
-  useEffect(() => { loadAbout() }, [])
+  }, [])
 
   const handleAboutImage = (e) => {
     const f = e.target.files?.[0] || null
@@ -102,7 +94,6 @@ export const AboutDashboard = () => {
 
   const handleGalleryFiles = async (files) => {
     if (!files.length) return
-    setUploading(true)
     try {
       for (const file of files) {
         if (!file.type.startsWith('image/')) continue
@@ -115,8 +106,6 @@ export const AboutDashboard = () => {
       }
     } catch {
       // handle error
-    } finally {
-      setUploading(false)
     }
   }
 
@@ -347,7 +336,6 @@ export const AboutDashboard = () => {
             </div>
 
             <motion.div
-              ref={setGalleryRef}
               onDrop={handleGalleryDrop}
               onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
               onDragLeave={() => setIsDragOver(false)}

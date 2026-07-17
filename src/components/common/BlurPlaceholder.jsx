@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 
 // Blur placeholder component that shows a low-quality blurred version of the image
@@ -8,19 +8,15 @@ export function BlurPlaceholder({
   alt = '', 
   className = '', 
   style,
-  width = 400 
+  width // eslint-disable-line no-unused-vars
 }) {
   const [loaded, setLoaded] = useState(false)
-  const [blurSrc, setBlurSrc] = useState('')
 
-  useEffect(() => {
-    // Generate a tiny blurred version URL for the placeholder
-    if (src) {
-      const blurUrl = src.includes('cloudinary.com') 
-        ? src.replace('/image/upload/', '/image/upload/w_20,f_auto,q_10/')
-        : src
-      setBlurSrc(blurUrl)
-    }
+  const blurSrc = useMemo(() => {
+    if (!src) return ''
+    return src.includes('cloudinary.com') 
+      ? src.replace('/image/upload/', '/image/upload/w_20,f_auto,q_10/')
+      : src
   }, [src])
 
   return (

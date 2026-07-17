@@ -5,8 +5,6 @@ export function useGalleryNavigation({
   onClose,
   onPrev,
   onNext,
-  totalItems,
-  currentIndex,
 }) {
   const touchStartX = useRef(null)
   const touchStartY = useRef(null)

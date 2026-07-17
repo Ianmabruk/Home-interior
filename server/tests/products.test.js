@@ -130,7 +130,7 @@ describe('Product Management', () => {
           name: 'New Product',
           description: 'A great product for testing',
           price: 100,
-          category: 'Living Room',
+          category: 'Mirrors',
           stock: 10,
           sku: 'TEST-001',
           images: [],

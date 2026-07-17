@@ -1,4 +1,4 @@
-import { Square, PictureInPicture, Armchair, Sparkles, SlidersHorizontal, X, ChevronDown, Menu, Search, Filter } from 'lucide-react'
+import { Square, PictureInPicture, Armchair, Sparkles, SlidersHorizontal, X, ChevronDown, Filter } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { ProductCard } from '../../components/shop/ProductCard'

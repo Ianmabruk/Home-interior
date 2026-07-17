@@ -1,6 +1,5 @@
 const MAX_RETRIES = 3
 const RETRY_DELAY = 1000
-const CHUNK_SIZE = 5 * 1024 * 1024
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -167,7 +166,7 @@ export function validateFiles(files, options = {}) {
     return { valid, errors }
   }
 
-  files.forEach((file, index) => {
+  files.forEach((file) => {
     if (file.size > maxSize) {
       errors.push(`${file.name}: File size exceeds ${Math.round(maxSize / 1024 / 1024)}MB limit`)
       return

@@ -9,11 +9,6 @@ import PositionedImage from '../../components/common/PositionedImage'
 
 const PAGE_SIZE = 12
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.7, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] } }),
-}
-
 const containerVariants = {
   hidden: {},
   show: { transition: { staggerChildren: 0.08 } },

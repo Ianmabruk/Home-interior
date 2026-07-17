@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   ShoppingBag,
@@ -67,11 +67,6 @@ export const Navbar = () => {
 
   const cartItems = cart || []
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0)
-
-  const handleRemoveFromCart = (item) => {
-    // The removeFromCart function is available from useShop context
-    // We'll need to import it
-  }
 
   return (
     <header

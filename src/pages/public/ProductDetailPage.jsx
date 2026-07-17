@@ -4,7 +4,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useShop } from '../../context/ShopContext'
 import { useCurrency } from '../../context/CurrencyContext'
 import { api } from '../../services/api'
-import { Star, Heart, ShoppingBag, Truck, Shield, ArrowLeft, ChevronRight, Check, Package, Ruler, Palette, Sparkles, AlertCircle, RefreshCw, CreditCard } from 'lucide-react'
+import { Heart, ShoppingBag, Truck, Shield, ArrowLeft, ChevronRight, Check, Package, Ruler, Palette, Sparkles, AlertCircle, RefreshCw, CreditCard } from 'lucide-react'
 import PositionedImage from '../../components/common/PositionedImage'
 
 const fadeUp = {
@@ -81,6 +81,7 @@ export const ProductDetailPage = () => {
   }, [id])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProduct()
   }, [fetchProduct])
 

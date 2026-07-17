@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Image, Save, MoreVertical, Star } from 'lucide-react'
+import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Star } from 'lucide-react'
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
 
@@ -77,7 +77,7 @@ export const PortfolioDashboard = () => {
       order: item.order || 0,
       isFeatured: item.isFeatured || false,
     })
-    setMediaFiles(item.gallery ? item.gallery.map(img => null) : [])
+    setMediaFiles(item.gallery ? item.gallery.map(() => null) : [])
     setMediaPreviews(item.gallery ? item.gallery.map(img => img.url || img) : [])
     setShowForm(true)
   }
@@ -103,7 +103,7 @@ export const PortfolioDashboard = () => {
       payload.append('order', String(form.order || 0))
       payload.append('isFeatured', String(form.isFeatured))
       
-      mediaFiles.forEach((file, index) => {
+      mediaFiles.forEach((file) => {
         if (file) payload.append('gallery', file)
       })
       // Also send existing image URLs for editing

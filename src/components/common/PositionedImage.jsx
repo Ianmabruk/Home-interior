@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from 'react'
+import { memo, useState } from 'react'
 import { normalizeMediaSettings, positionToObjectPosition } from '../../utils/mediaSettings'
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 

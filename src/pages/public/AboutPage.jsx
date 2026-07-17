@@ -1,7 +1,7 @@
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Award, Leaf, Users, Target, Sparkles, PenTool, Layers, Clock, Shield, Heart, MapPin, Sparkles as SparklesIcon } from 'lucide-react'
+import { ArrowRight, Award, Leaf, Users, Target, PenTool, Layers, Clock, Shield, Heart, MapPin, SparklesIcon } from 'lucide-react'
 import { api } from '../../services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import PositionedImage from '../../components/common/PositionedImage'
