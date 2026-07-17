@@ -60,7 +60,7 @@ export const ShopDashboard = () => {
 
   useMemo(() => {
     api
-      .get('/admin/all', { params: { sort: '-createdAt', limit: 500 } })
+      .get('/products/admin/all', { params: { sort: '-createdAt', limit: 500 } })
       .then((res) => setAllProducts(res.data?.items || []))
       .catch(() => setAllProducts([]))
   }, [])
@@ -133,7 +133,7 @@ export const ShopDashboard = () => {
       setForm(INITIAL_FORM)
       setImageFiles([])
       setImagePreviews([])
-      const res = await api.get('/admin/all', { params: { sort: '-createdAt', limit: 500 } })
+      const res = await api.get('/products/admin/all', { params: { sort: '-createdAt', limit: 500 } })
       setAllProducts(res.data?.items || [])
       emitAdminDataChanged({ type: 'products-changed' })
     } catch {
@@ -168,7 +168,7 @@ export const ShopDashboard = () => {
     try {
       await api.delete(`/products/${deleteId}`)
       setDeleteId(null)
-      const res = await api.get('/admin/all', { params: { sort: '-createdAt', limit: 500 } })
+      const res = await api.get('/products/admin/all', { params: { sort: '-createdAt', limit: 500 } })
       setAllProducts(res.data?.items || [])
       emitAdminDataChanged({ type: 'products-changed' })
     } catch {
