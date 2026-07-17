@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useParams, Link } from 'react-router-dom'
-import { X, ArrowLeft, ChevronLeft, ChevronRight, Maximize2, Play, Image as ImageIcon, Video, ArrowUpDown } from 'lucide-react'
+import { X, Maximize2, Play, CalendarCheck, ArrowRight } from 'lucide-react'
 import { api } from '../../services/api'
 import { getOptimizedUrl, getOptimizedVideoUrl, getVideoPosterUrl } from '../../utils/cloudinaryHelpers'
 import LazyVideo from '../../components/common/LazyVideo'
@@ -13,7 +13,6 @@ export const VirtualDesignDetailPage = () => {
   const [galleryIndex, setGalleryIndex] = useState(0)
   const [imageFullscreen, setImageFullscreen] = useState(null)
   const [videoFullscreen, setVideoFullscreen] = useState(null)
-  const [viewMode, setViewMode] = useState('images')
 
   // Zoom state
   const [zoomScale, setZoomScale] = useState(1)
@@ -27,7 +26,8 @@ export const VirtualDesignDetailPage = () => {
       try {
         const res = await api.get(`/content/virtual-design/${id}`)
         setProject(res.data)
-      } catch {
+      } catch (err) {
+        console.warn('[VIRTUAL DETAIL] Failed to load:', err?.message)
         setProject(null)
       } finally {
         setLoading(false)
@@ -36,6 +36,18 @@ export const VirtualDesignDetailPage = () => {
     load()
   }, [id])
 
+  useEffect(() => {
+    if (project) document.body.style.overflow = 'hidden'
+    else document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
+  }, [project])
+
+  useEffect(() => {
+    setTimeout(() => {
+      setGalleryIndex(0)
+    }, 0)
+  }, [project])
+
   const closeImageModal = useCallback(() => {
     setImageFullscreen(null)
     setGalleryIndex(0)
@@ -43,9 +55,7 @@ export const VirtualDesignDetailPage = () => {
     setZoomPosition({ x: 0, y: 0 })
   }, [])
 
-  const handleDoubleClick = () => {
-    setZoomScale((prev) => (prev > 1 ? 1 : 2))
-  }
+  const closeVideoModal = () => { setVideoFullscreen(null) }
 
   // Reset zoom when image changes
   useEffect(() => {
@@ -68,11 +78,11 @@ export const VirtualDesignDetailPage = () => {
           break
         case 'ArrowLeft':
           e.preventDefault()
-          setGalleryIndex((prev) => (prev === 0 ? allMedia.length - 1 : prev - 1))
+          setGalleryIndex((prev) => (prev === 0 ? 0 : prev - 1))
           break
         case 'ArrowRight':
           e.preventDefault()
-          setGalleryIndex((prev) => (prev === allMedia.length - 1 ? 0 : prev + 1))
+          setGalleryIndex((prev) => (prev === 0 ? 0 : prev + 1))
           break
       }
     }
@@ -83,7 +93,7 @@ export const VirtualDesignDetailPage = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [imageFullscreen, allMedia.length, closeImageModal])
+  }, [imageFullscreen, closeImageModal])
 
   // Touch/swipe navigation
   const touchStartX = useRef(null)
@@ -105,9 +115,9 @@ export const VirtualDesignDetailPage = () => {
 
     if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
       if (diffX > 0) {
-        setGalleryIndex((prev) => (prev === allMedia.length - 1 ? 0 : prev + 1))
+        setGalleryIndex((prev) => (prev === 0 ? 0 : prev - 1))
       } else {
-        setGalleryIndex((prev) => (prev === 0 ? allMedia.length - 1 : prev - 1))
+        setGalleryIndex((prev) => (prev === 0 ? 0 : prev + 1))
       }
     }
 
@@ -147,6 +157,10 @@ export const VirtualDesignDetailPage = () => {
     if (imageRef.current) imageRef.current.style.cursor = 'grab'
   }
 
+  const handleDoubleClick = () => {
+    setZoomScale((prev) => (prev > 1 ? 1 : 2))
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-[var(--bg)]">
@@ -181,7 +195,7 @@ export const VirtualDesignDetailPage = () => {
               className="text-center"
             >
               <Link to="/virtual-interior-design" className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors mb-4">
-                <ArrowLeft size={16} strokeWidth={1.5} />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                 <span className="text-[11px] font-semibold uppercase tracking-widest">Back to Portfolio</span>
               </Link>
               <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]/80 mb-4">Virtual Interior Design</p>
@@ -193,53 +207,18 @@ export const VirtualDesignDetailPage = () => {
     )
   }
 
-  const closeVideoModal = () => { setVideoFullscreen(null) }
-
-  // Helper functions to extract images and videos from project
-  const getProjectImages = (proj) => {
-    const images = []
-    if (proj.imageUrl) images.push(proj.imageUrl)
-    if (proj.images && Array.isArray(proj.images)) {
-      proj.images.forEach(img => {
-        const url = typeof img === 'string' ? img : img.url
-        if (url && !images.includes(url)) images.push(url)
-      })
-    }
-    if (proj.journey?.after?.images?.length) {
-      proj.journey.after.images.forEach(url => { if (!images.includes(url)) images.push(url) })
-    }
-    if (proj.journey?.before?.images?.length) {
-      proj.journey.before.images.forEach(url => { if (!images.includes(url)) images.push(url) })
-    }
-    return images
-  }
-
-  const getProjectVideos = (proj) => {
-    const videos = []
-    if (proj.videoUrl) videos.push(proj.videoUrl)
-    if (proj.journey?.after?.videos?.length) {
-      proj.journey.after.videos.forEach(url => { if (!videos.includes(url)) videos.push(url) })
-    }
-    if (proj.journey?.before?.videos?.length) {
-      proj.journey.before.videos.forEach(url => { if (!videos.includes(url)) videos.push(url) })
-    }
-    return videos
-  }
-
-  const projectImages = project ? getProjectImages(project) : []
-  const projectVideos = project ? getProjectVideos(project) : []
-  const allMedia = viewMode === 'videos' ? projectVideos : projectImages
-
   return (
     <main className="min-h-screen bg-[var(--bg)]">
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
-        <img
-          src={getOptimizedUrl(project.imageUrl || projectImages[0], { width: 1920, crop: 'limit' })}
-          alt={project.title}
-          className="absolute inset-0 h-full w-full object-cover opacity-20"
-          loading="eager"
-        />
+        {project.mediaUrl && project.mediaType === 'image' && (
+          <img
+            src={getOptimizedUrl(project.mediaUrl, { width: 1920, crop: 'limit' })}
+            alt={project.title}
+            className="absolute inset-0 h-full w-full object-cover opacity-20"
+            loading="eager"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/85 via-[var(--primary)]/50 to-[var(--primary)]/30" />
         <div className="relative z-10 flex h-full items-center justify-center px-6">
           <motion.div
@@ -252,19 +231,9 @@ export const VirtualDesignDetailPage = () => {
               to="/virtual-interior-design"
               className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors mb-4"
             >
-              <ArrowLeft size={16} strokeWidth={1.5} />
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
               <span className="text-[11px] font-semibold uppercase tracking-widest">Back to Portfolio</span>
             </Link>
-            {project.category && (
-              <motion.p
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4"
-              >
-                {project.category}
-              </motion.p>
-            )}
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -287,55 +256,9 @@ export const VirtualDesignDetailPage = () => {
         </div>
       </section>
 
-      {/* Gallery Section */}
+      {/* Media Section */}
       <section className="section-pad bg-[var(--bg)] pt-12">
         <div className="container-wide px-6 md:px-12 lg:px-20">
-          {/* View Mode Tabs */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mb-12 flex flex-wrap items-center justify-center gap-3"
-          >
-            {[
-              { value: 'images', label: 'Images', icon: ImageIcon },
-              { value: 'videos', label: 'Videos', icon: Video },
-              { value: 'journey', label: 'Project Journey', icon: ArrowUpDown },
-            ].map((tab) => {
-              const Icon = tab.icon
-              return (
-                <motion.button
-                  key={tab.value}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => { setViewMode(tab.value); setGalleryIndex(0) }}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium uppercase tracking-wide transition-all duration-300 ${
-                    viewMode === tab.value
-                      ? 'bg-[var(--primary)] text-white shadow-lg'
-                      : 'bg-white text-[var(--primary)]/70 hover:bg-[var(--secondary)]/50 hover:text-[var(--accent)] border border-[var(--border)]'
-                  }`}
-                  aria-pressed={viewMode === tab.value}
-                >
-                  <Icon size={16} strokeWidth={1.5} />
-                  {tab.label}
-                </motion.button>
-              )
-            })}
-          </motion.div>
-
-          {/* Results Count */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="mb-8 text-center"
-          >
-            <p className="text-sm text-[var(--primary)]/50">
-              {allMedia.length} {allMedia.length === 1 ? 'item' : 'items'} found
-            </p>
-          </motion.div>
-
-          {/* Gallery Grid */}
           <motion.div
             initial="hidden"
             whileInView="show"
@@ -343,237 +266,55 @@ export const VirtualDesignDetailPage = () => {
             variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
             className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           >
-            {allMedia.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="col-span-full py-24 text-center"
+            {project.mediaUrl && (
+              <motion.article
+                key="main-media"
+                variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } } }}
+                className="group"
               >
-                <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-[var(--secondary)]/30 to-[var(--accent)]/10 flex items-center justify-center mb-4 text-[var(--primary)]/30">
-                  {viewMode === 'images' ? <ImageIcon size={32} /> : <Video size={32} />}
-                </div>
-                <p className="font-display text-3xl text-[var(--primary)]/30">
-                  No {viewMode === 'images' ? 'images' : 'videos'} found
-                </p>
-              </motion.div>
-            ) : (
-              allMedia.map((mediaUrl, idx) => (
-                <motion.article
-                  key={`${viewMode}-${idx}`}
-                  variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } } }}
-                  custom={idx}
-                  className="group"
-                >
-                  <div className="relative overflow-hidden rounded-3xl bg-white border border-[var(--border)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      {viewMode === 'images' ? (
-                        <>
-                          <img
-                            src={getOptimizedUrl(mediaUrl, { width: 640 })}
-                            alt={`${project.title} - Image ${idx + 1}`}
-                            className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                            loading="lazy"
-                            decoding="async"
-                          />
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setImageFullscreen({ imageUrl: mediaUrl, title: project.title, category: project.category }); setGalleryIndex(idx) }}
-                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                            aria-label="View fullscreen"
-                          >
-                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                              <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
-                            </div>
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <LazyVideo
-                            src={getOptimizedVideoUrl(mediaUrl, { width: 640 })}
-                            poster={getVideoPosterUrl(mediaUrl, { width: 640 })}
-                            className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setVideoFullscreen({ videoUrl: mediaUrl, title: project.title, category: project.category }) }}
-                            className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110"
-                            aria-label="Play video"
-                          >
-                            <Play size={20} strokeWidth={1.5} className="ml-1" />
-                          </button>
-                        </>
-                      )}
-                    </div>
+                <div className="relative overflow-hidden rounded-3xl bg-white border border-[var(--border)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    {project.mediaType === 'image' ? (
+                      <>
+                        <img
+                          src={getOptimizedUrl(project.mediaUrl, { width: 640 })}
+                          alt={project.title}
+                          className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setImageFullscreen({ ...project, imageUrl: project.mediaUrl }); setGalleryIndex(0) }}
+                          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                          aria-label="View fullscreen"
+                        >
+                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
+                            <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
+                          </div>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <LazyVideo
+                          src={getOptimizedVideoUrl(project.mediaUrl, { width: 640 })}
+                          poster={getVideoPosterUrl(project.mediaUrl, { width: 640 })}
+                          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setVideoFullscreen({ videoUrl: project.mediaUrl, title: project.title, category: project.mediaType }) }}
+                          className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110"
+                          aria-label="Play video"
+                        >
+                          <Play size={20} strokeWidth={1.5} className="ml-1" />
+                        </button>
+                      </>
+                    )}
                   </div>
-                </motion.article>
-              ))
+                </div>
+              </motion.article>
             )}
           </motion.div>
-
-          {/* Project Journey View */}
-          {viewMode === 'journey' && project.journey && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="space-y-12"
-            >
-              {(project.journey.before?.images?.length || project.journey.before?.videos?.length) && (
-                <div>
-                  <h3 className="font-display text-2xl text-[var(--primary)] mb-6 flex items-center gap-2">
-                    <ImageIcon size={24} className="text-[var(--accent)]" />
-                    Before - {project.beforeTitle || 'Before'}
-                  </h3>
-                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {project.journey.before.images?.map((img, idx) => (
-                      <motion.div
-                        key={`before-img-${idx}`}
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.08 }}
-                        className="group"
-                      >
-                        <div className="relative overflow-hidden rounded-3xl bg-white border border-[var(--border)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
-                          <div className="relative aspect-[4/3] overflow-hidden">
-                            <img
-                              src={getOptimizedUrl(img, { width: 640 })}
-                              alt={`${project.title} - Before ${idx + 1}`}
-                              className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                              loading="lazy"
-                              decoding="async"
-                            />
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setImageFullscreen({ imageUrl: img, title: `${project.title} - Before`, category: project.category }); setGalleryIndex(idx) }}
-                              className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                              aria-label="View fullscreen"
-                            >
-                              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                                <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
-                              </div>
-                            </button>
-                          </div>
-                          <div className="absolute left-3 top-3">
-                            <span className="flex h-6 items-center gap-1.5 px-2.5 text-2xs font-semibold uppercase tracking-widest bg-white/90 text-[var(--primary)] rounded-full shadow-md backdrop-blur-sm">
-                              <ImageIcon size={10} strokeWidth={1.5} /> Before
-                            </span>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                    {project.journey.before.videos?.map((vid, idx) => (
-                      <motion.div
-                        key={`before-vid-${idx}`}
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.08 }}
-                        className="group"
-                      >
-                        <div className="relative overflow-hidden rounded-3xl bg-white border border-[var(--border)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
-                          <div className="relative aspect-[4/3] overflow-hidden">
-                            <LazyVideo
-                              src={getOptimizedVideoUrl(vid, { width: 640 })}
-                              poster={getVideoPosterUrl(vid, { width: 640 })}
-                              className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setVideoFullscreen({ videoUrl: vid, title: `${project.title} - Before`, category: project.category }) }}
-                              className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110"
-                              aria-label="Play video"
-                            >
-                              <Play size={20} strokeWidth={1.5} className="ml-1" />
-                            </button>
-                          </div>
-                          <div className="absolute left-3 top-3">
-                            <span className="flex h-6 items-center gap-1.5 px-2.5 text-2xs font-semibold uppercase tracking-widest bg-[var(--accent)] text-white rounded-full shadow-md">
-                              <Video size={10} strokeWidth={1.5} /> Before
-                            </span>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {(project.journey.after?.images?.length || project.journey.after?.videos?.length) && (
-                <div>
-                  <h3 className="font-display text-2xl text-[var(--primary)] mb-6 flex items-center gap-2">
-                    <ImageIcon size={24} className="text-[var(--accent)]" />
-                    After - {project.afterTitle || 'After'}
-                  </h3>
-                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {project.journey.after.images?.map((img, idx) => (
-                      <motion.div
-                        key={`after-img-${idx}`}
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.08 }}
-                        className="group"
-                      >
-                        <div className="relative overflow-hidden rounded-3xl bg-white border border-[var(--border)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
-                          <div className="relative aspect-[4/3] overflow-hidden">
-                            <img
-                              src={getOptimizedUrl(img, { width: 640 })}
-                              alt={`${project.title} - After ${idx + 1}`}
-                              className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                              loading="lazy"
-                              decoding="async"
-                            />
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setImageFullscreen({ imageUrl: img, title: `${project.title} - After`, category: project.category }); setGalleryIndex(idx) }}
-                              className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                              aria-label="View fullscreen"
-                            >
-                              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                                <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
-                              </div>
-                            </button>
-                          </div>
-                          <div className="absolute left-3 top-3">
-                            <span className="flex h-6 items-center gap-1.5 px-2.5 text-2xs font-semibold uppercase tracking-widest bg-[var(--accent)] text-white rounded-full shadow-md">
-                              <ImageIcon size={10} strokeWidth={1.5} /> After
-                            </span>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                    {project.journey.after.videos?.map((vid, idx) => (
-                      <motion.div
-                        key={`after-vid-${idx}`}
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.08 }}
-                        className="group"
-                      >
-                        <div className="relative overflow-hidden rounded-3xl bg-white border border-[var(--border)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
-                          <div className="relative aspect-[4/3] overflow-hidden">
-                            <LazyVideo
-                              src={getOptimizedVideoUrl(vid, { width: 640 })}
-                              poster={getVideoPosterUrl(vid, { width: 640 })}
-                              className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setVideoFullscreen({ videoUrl: vid, title: `${project.title} - After`, category: project.category }) }}
-                              className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110"
-                              aria-label="Play video"
-                            >
-                              <Play size={20} strokeWidth={1.5} className="ml-1" />
-                            </button>
-                          </div>
-                          <div className="absolute left-3 top-3">
-                            <span className="flex h-6 items-center gap-1.5 px-2.5 text-2xs font-semibold uppercase tracking-widest bg-[var(--accent)] text-white rounded-full shadow-md">
-                              <Video size={10} strokeWidth={1.5} /> After
-                            </span>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
 
           {/* Project Details */}
           <motion.div
@@ -588,48 +329,34 @@ export const VirtualDesignDetailPage = () => {
                 <p className="text-base leading-relaxed text-[var(--primary)]/70">{project.description}</p>
               </div>
             )}
-            {project.services && project.services.length > 0 && (
-              <div className="mb-12">
-                <h2 className="font-display text-3xl md:text-4xl font-normal text-[var(--primary)] mb-4">Services Included</h2>
-                <div className="flex flex-wrap justify-center gap-3">
-                  {project.services.map((service, idx) => (
-                    <span key={idx} className="text-sm px-4 py-2 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] font-medium">
-                      {service.title || service}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="grid gap-4 md:grid-cols-3">
-              {project.location && (
-                <div className="flex items-center justify-center gap-3 text-sm text-[var(--primary)]/60">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent)]">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                  <span>{project.location}</span>
-                </div>
-              )}
-              {project.year && (
-                <div className="flex items-center justify-center gap-3 text-sm text-[var(--primary)]/60">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent)]">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                  <span>Completed: {project.year}</span>
-                </div>
-              )}
-              {project.client && (
-                <div className="flex items-center justify-center gap-3 text-sm text-[var(--primary)]/60">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent)]">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                  <span>Client: {project.client}</span>
-                </div>
-              )}
+
+            {/* Media Type Badge */}
+            <div className="mb-12">
+              <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
+                project.mediaType === 'video'
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'bg-green-100 text-green-800'
+              }`}>
+                {project.mediaType === 'video' ? 'Video' : 'Image'}
+              </span>
+            </div>
+
+            {/* Conversion CTA */}
+            <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('open-consultation'))}
+                className="group btn-luxury-primary px-8 py-4 text-[11px] rounded-xl"
+              >
+                Book Consultation
+                <CalendarCheck size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
+              </button>
+              <Link
+                to="/contact"
+                className="group btn-luxury-secondary px-8 py-4 text-[11px] rounded-xl"
+              >
+                Contact Us
+                <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
             </div>
           </motion.div>
         </div>
@@ -665,29 +392,10 @@ export const VirtualDesignDetailPage = () => {
                 <X size={20} strokeWidth={2} />
               </button>
 
-              {allMedia.length > 1 && (
-                <>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setGalleryIndex(prev => prev === 0 ? allMedia.length - 1 : prev - 1) }}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full bg-white/90 backdrop-blur text-[var(--primary)] hover:bg-white shadow-lg transition-all duration-300 hover:shadow-xl"
-                    aria-label="Previous image"
-                  >
-                    <ChevronLeft size={24} strokeWidth={2} />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setGalleryIndex(prev => prev === allMedia.length - 1 ? 0 : prev + 1) }}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full bg-white/90 backdrop-blur text-[var(--primary)] hover:bg-white shadow-lg transition-all duration-300 hover:shadow-xl"
-                    aria-label="Next image"
-                  >
-                    <ChevronRight size={24} strokeWidth={2} />
-                  </button>
-                </>
-              )}
-
               <div className="relative h-full w-full flex items-center justify-center p-4" onWheel={handleWheel}>
                 <img
                   ref={imageRef}
-                  src={getOptimizedUrl(allMedia[galleryIndex] || imageFullscreen.imageUrl, { width: 1920 })}
+                  src={getOptimizedUrl(imageFullscreen.mediaUrl, { width: 1920 })}
                   alt={imageFullscreen.title}
                   className="max-h-[80vh] max-w-full object-contain cursor-grab"
                   style={{
@@ -705,34 +413,8 @@ export const VirtualDesignDetailPage = () => {
                 />
               </div>
 
-              {allMedia.length > 1 && (
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                  {allMedia.map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={(e) => { e.stopPropagation(); setGalleryIndex(idx) }}
-                      className={`w-5 h-5 rounded-full border-2 transition-all duration-300 ${
-                        idx === galleryIndex
-                          ? 'border-white bg-white'
-                          : 'border-white/50 hover:border-white/80'
-                      }`}
-                      aria-label={`View image ${idx + 1}`}
-                      aria-current={idx === galleryIndex ? 'true' : 'false'}
-                    />
-                  ))}
-                </div>
-              )}
-
               <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 bg-gradient-to-t from-[var(--primary)]/90 to-transparent text-white">
-                {imageFullscreen.category && (
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-2">{imageFullscreen.category}</p>
-                )}
                 <h2 id="image-fullscreen-title" className="font-display text-3xl md:text-4xl font-normal leading-tight">{imageFullscreen.title}</h2>
-                {allMedia.length > 1 && (
-                  <p className="mt-2 text-sm text-white/70">
-                    Image {galleryIndex + 1} of {allMedia.length}
-                  </p>
-                )}
               </div>
             </motion.div>
           </>

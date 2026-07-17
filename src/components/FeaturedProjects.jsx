@@ -23,9 +23,10 @@ export const FeaturedProjects = () => {
     const load = async () => {
       try {
         const res = await api.get('/content/portfolio')
-        const sorted = [...(res.data || [])].sort((a, b) => (a.order || 0) - (b.order || 0))
+        const sorted = [...(res.data || [])].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
         setProjects(sorted.slice(0, 8))
-      } catch {
+      } catch (err) {
+        console.warn('[FEATURED] Failed to load projects:', err?.message)
         setProjects([])
       } finally {
         setLoading(false)
@@ -39,7 +40,7 @@ export const FeaturedProjects = () => {
       <motion.section
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-warm-ivory px-6 md:px-12 lg:px-20 py-20 md:py-32"
+        className="bg-[var(--secondary)]/30 px-6 md:px-12 lg:px-20 py-20 md:py-32"
       >
         <div className="container-wide">
           <motion.div
@@ -47,8 +48,8 @@ export const FeaturedProjects = () => {
             animate={{ opacity: 1, y: 0 }}
             className="mb-16 md:mb-24 text-center"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-orange-accent mb-4">Portfolio</p>
-            <h2 className="font-display text-4xl font-normal leading-tight text-luxury-text md:text-5xl lg:text-6xl">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Portfolio</p>
+            <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
               Featured Projects
             </h2>
           </motion.div>
@@ -56,10 +57,10 @@ export const FeaturedProjects = () => {
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="group relative bg-white border border-linen overflow-hidden rounded-3xl"
+                className="group relative bg-white border border-[var(--border)]/40 overflow-hidden rounded-3xl"
               >
                 <div className="aspect-[3/4] skeleton" />
-                <div className="p-5 border-t border-linen">
+                <div className="p-5 border-t border-[var(--border)]/40">
                   <div className="skeleton h-3 w-20 mb-3" />
                   <div className="skeleton h-8 w-full" />
                 </div>
@@ -76,7 +77,7 @@ export const FeaturedProjects = () => {
       <motion.section
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-warm-ivory px-6 md:px-12 lg:px-20 py-20 md:py-32"
+        className="bg-[var(--secondary)]/30 px-6 md:px-12 lg:px-20 py-20 md:py-32"
       >
         <div className="container-wide">
           <motion.div
@@ -84,13 +85,13 @@ export const FeaturedProjects = () => {
             animate={{ opacity: 1, y: 0 }}
             className="mb-16 text-center"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-orange-accent mb-4">Portfolio</p>
-            <h2 className="font-display text-4xl font-normal leading-tight text-luxury-text md:text-5xl lg:text-6xl">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Portfolio</p>
+            <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
               Featured Projects
             </h2>
           </motion.div>
           <div className="flex min-h-[40vh] items-center justify-center">
-            <p className="font-display text-xl text-luxury-text/30">No projects yet</p>
+            <p className="font-display text-xl text-[var(--primary)]/30">No projects yet</p>
           </div>
         </div>
       </motion.section>
@@ -103,7 +104,7 @@ export const FeaturedProjects = () => {
       whileInView="show"
       viewport={{ once: true }}
       variants={containerVariants}
-      className="bg-warm-ivory px-6 md:px-12 lg:px-20 py-20 md:py-32"
+      className="bg-[var(--secondary)]/30 px-6 md:px-12 lg:px-20 py-20 md:py-32"
     >
       <div className="container-wide">
         <motion.div
@@ -113,8 +114,8 @@ export const FeaturedProjects = () => {
           transition={{ duration: 0.7 }}
           className="mb-16 md:mb-24 text-center"
         >
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-orange-accent mb-4">Portfolio</p>
-          <h2 className="font-display text-4xl font-normal leading-tight text-luxury-text md:text-5xl lg:text-6xl">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Portfolio</p>
+          <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
             Featured Projects
           </h2>
         </motion.div>
@@ -128,11 +129,11 @@ export const FeaturedProjects = () => {
         >
           {projects.map((item) => (
             <motion.article
-              key={item._id}
+              key={item.id}
               variants={itemVariants}
-              className="group relative bg-white border border-linen rounded-3xl overflow-hidden shadow-soft transition-all duration-700 hover:-translate-y-2 hover:shadow-lift"
+              className="group relative bg-white border border-[var(--border)]/40 rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] transition-all duration-700 hover:-translate-y-2 hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)]"
             >
-              <Link to={`/portfolio/${item._id}`} className="block" aria-label={`View ${item.title} project`}>
+              <Link to={`/portfolio/${item.id}`} className="block" aria-label={`View ${item.title} project`}>
                 <div className="relative aspect-[3/4] overflow-hidden">
                   <img
                     src={getOptimizedUrl(item.imageUrl, { width: 800, crop: 'limit' })}
@@ -145,25 +146,15 @@ export const FeaturedProjects = () => {
               </Link>
 
               {/* Information Card Below Image */}
-              <div className="p-5 md:p-6 border-t border-linen bg-white">
+              <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
                 <div className="flex items-center justify-between gap-4">
-                  {item.category && (
-                    <motion.p
-                      initial={{ opacity: 0, y: 10 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className="text-[10px] font-semibold uppercase tracking-widest text-orange-accent whitespace-nowrap flex-shrink-0"
-                    >
-                      {item.category}
-                    </motion.p>
-                  )}
                   <motion.button
                     initial={{ opacity: 0, x: 20 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={(e) => { e.preventDefault(); window.location.href = `/portfolio/${item._id}` }}
+                    onClick={(e) => { e.preventDefault(); window.location.href = `/portfolio/${item.id}` }}
                     className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0"
                   >
                     View Project
@@ -185,7 +176,7 @@ export const FeaturedProjects = () => {
         >
           <Link
             to="/portfolio"
-            className="group inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-luxury-text transition-colors duration-300 hover:text-orange-accent"
+            className="group inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)] transition-colors duration-300 hover:text-[var(--accent)]"
           >
             View All Projects
             <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />

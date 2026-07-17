@@ -4,14 +4,11 @@ import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Star } from 'lucide-re
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
 
-const INITIAL_FORM = { 
-  title: '', 
-  category: '', 
-  description: '', 
-  location: '',
-  completionDate: '',
-  order: 0,
-  isFeatured: false
+const INITIAL_FORM = {
+  title: '',
+  description: '',
+  featured: false,
+  displayOrder: 0
 }
 
 export const PortfolioDashboard = () => {
@@ -40,7 +37,7 @@ export const PortfolioDashboard = () => {
 
   const handleFiles = (files) => {
     const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
-    const newFiles = [...mediaFiles, ...validFiles].slice(0, 10)
+    const newFiles = [...mediaFiles, ...validFiles].slice(0, 1)
     setMediaFiles(newFiles)
     validFiles.forEach(f => setMediaPreviews(prev => [...prev, URL.createObjectURL(f)]))
   }
@@ -67,18 +64,15 @@ export const PortfolioDashboard = () => {
   }
 
   const startEdit = (item) => {
-    setEditingId(item._id || item.id)
+    setEditingId(item.id)
     setForm({
       title: item.title,
-      category: item.category,
       description: item.description || '',
-      location: item.location || '',
-      completionDate: item.completionDate || '',
-      order: item.order || 0,
-      isFeatured: item.isFeatured || false,
+      featured: item.featured || false,
+      displayOrder: item.displayOrder || 0,
     })
-    setMediaFiles(item.gallery ? item.gallery.map(() => null) : [])
-    setMediaPreviews(item.gallery ? item.gallery.map(img => img.url || img) : [])
+    setMediaFiles(item.imageUrl ? [{ url: item.imageUrl }] : [])
+    setMediaPreviews(item.imageUrl ? [item.imageUrl] : [])
     setShowForm(true)
   }
 
@@ -96,23 +90,12 @@ export const PortfolioDashboard = () => {
     try {
       const payload = new FormData()
       payload.append('title', form.title)
-      payload.append('category', form.category)
       if (form.description) payload.append('description', form.description)
-      if (form.location) payload.append('location', form.location)
-      if (form.completionDate) payload.append('completionDate', form.completionDate)
-      payload.append('order', String(form.order || 0))
-      payload.append('isFeatured', String(form.isFeatured))
-      
-      mediaFiles.forEach((file) => {
-        if (file) payload.append('gallery', file)
-      })
-      // Also send existing image URLs for editing
-      if (editingId) {
-        mediaPreviews.forEach((preview, index) => {
-          if (preview && !mediaFiles[index]) {
-            payload.append('existingGallery', preview)
-          }
-        })
+      payload.append('featured', String(form.featured))
+      payload.append('displayOrder', String(form.displayOrder || 0))
+
+      if (mediaFiles[0] && mediaFiles[0] instanceof File) {
+        payload.append('media', mediaFiles[0])
       }
 
       if (editingId) {
@@ -124,8 +107,8 @@ export const PortfolioDashboard = () => {
       const res = await api.get('/content/portfolio')
       setPortfolio(Array.isArray(res.data) ? res.data : res.data?.items || [])
       emitAdminDataChanged({ type: 'portfolio-changed' })
-    } catch {
-      // handle error
+    } catch (err) {
+      console.error('Submit error:', err)
     } finally {
       setLoading(false)
     }
@@ -139,8 +122,8 @@ export const PortfolioDashboard = () => {
       const res = await api.get('/content/portfolio')
       setPortfolio(Array.isArray(res.data) ? res.data : res.data?.items || [])
       emitAdminDataChanged({ type: 'portfolio-changed' })
-    } catch {
-      // handle error
+    } catch (err) {
+      console.error('Delete error:', err)
     }
   }
 
@@ -210,17 +193,6 @@ export const PortfolioDashboard = () => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Category</label>
-              <input
-                value={form.category}
-                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                placeholder="e.g., Commercial Boutique, Luxury Residential"
-                required
-              />
-            </div>
-
-            <div className="space-y-1">
               <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Description</label>
               <textarea
                 value={form.description}
@@ -233,50 +205,30 @@ export const PortfolioDashboard = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Location</label>
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Display Order</label>
                 <input
-                  value={form.location}
-                  onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+                  value={form.displayOrder}
+                  onChange={(e) => setForm((f) => ({ ...f, displayOrder: Number(e.target.value) || 0 }))}
+                  type="number"
                   className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                  placeholder="City, Country"
+                  placeholder="0"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Completion Date</label>
-                <input
-                  value={form.completionDate}
-                  onChange={(e) => setForm((f) => ({ ...f, completionDate: e.target.value }))}
-                  type="date"
-                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                />
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Featured in Hero</label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.featured}
+                    onChange={(e) => setForm((f) => ({ ...f, featured: e.target.checked }))}
+                    className="w-5 h-5 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-2"
+                  />
+                  <span className="text-sm text-[var(--primary)]">Show this project in the homepage hero carousel</span>
+                </label>
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Display Order</label>
-              <input
-                value={form.order}
-                onChange={(e) => setForm((f) => ({ ...f, order: Number(e.target.value) || 0 }))}
-                type="number"
-                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                placeholder="0"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Featured in Hero</label>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.isFeatured}
-                  onChange={(e) => setForm((f) => ({ ...f, isFeatured: e.target.checked }))}
-                  className="w-5 h-5 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-2"
-                />
-                <span className="text-sm text-[var(--primary)]">Show this project in the homepage hero carousel</span>
-              </label>
-            </div>
-
-            <input ref={fileRef} type="file" accept="image/*" multiple onChange={(e) => handleFiles(e.target.files)} className="hidden" />
+            <input ref={fileRef} type="file" accept="image/*" onChange={(e) => handleFiles(e.target.files)} className="hidden" />
             <motion.div
               whileHover={{ scale: 1.01 }}
               onDrop={handleDrop}
@@ -290,7 +242,7 @@ export const PortfolioDashboard = () => {
               {mediaPreviews.length > 0 ? (
                 <div className="p-4 space-y-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-[var(--primary)]">Project Images ({mediaPreviews.length}/10)</p>
+                    <p className="text-sm font-medium text-[var(--primary)]">Project Image (1 max)</p>
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
@@ -298,36 +250,24 @@ export const PortfolioDashboard = () => {
                       onClick={() => fileRef.current?.click()}
                       className="text-xs text-[var(--accent)] hover:text-[var(--primary)] font-medium"
                     >
-                      Add More
+                      Replace
                     </motion.button>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {mediaPreviews.map((preview, index) => (
-                      <motion.div
-                        key={index}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="relative rounded-xl overflow-hidden group"
-                      >
-                        <img
-                          src={preview}
-                          alt={`Preview ${index + 1}`}
-                          className="h-40 w-full object-cover"
-                        />
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); removeMedia(index) }}
-                          className="absolute top-2 right-2 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-2 rounded-full hover:bg-[var(--primary)] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X size={14} />
-                        </motion.button>
-                        <div className="absolute bottom-2 left-2 text-[10px] font-medium text-white bg-black/50 px-1.5 py-0.5 rounded">
-                          {index + 1}
-                        </div>
-                      </motion.div>
-                    ))}
+                  <div className="relative rounded-xl overflow-hidden group">
+                    <img
+                      src={mediaPreviews[0]}
+                      alt="Preview"
+                      className="h-40 w-full object-cover"
+                    />
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); removeMedia(0) }}
+                      className="absolute top-2 right-2 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-2 rounded-full hover:bg-[var(--primary)] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={14} />
+                    </motion.button>
                   </div>
                 </div>
               ) : (
@@ -340,8 +280,8 @@ export const PortfolioDashboard = () => {
                     <UploadCloud size={28} />
                   </motion.div>
                   <div>
-                    <p className="text-sm font-medium text-[var(--primary)]">Drop images here or click to browse</p>
-                    <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG up to 10MB each (max 10 images)</p>
+                    <p className="text-sm font-medium text-[var(--primary)]">Drop image here or click to browse</p>
+                    <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG up to 10MB</p>
                   </div>
                 </div>
               )}
@@ -363,7 +303,7 @@ export const PortfolioDashboard = () => {
                 className="flex-1 rounded-full bg-[var(--primary)] text-white py-3 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--primary)]/90 hover:shadow-lg"
                 disabled={loading}
               >
-                {loading ? 'Saving…' : editingId ? 'Update Project' : 'Upload Project'}
+                {loading ? 'Saving...' : editingId ? 'Update Project' : 'Upload Project'}
               </motion.button>
             </div>
           </motion.form>
@@ -377,49 +317,49 @@ export const PortfolioDashboard = () => {
         transition={{ duration: 0.5 }}
         className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
-{portfolio.map((item, i) => (
-            <motion.article
-              layout
-              key={item._id || item.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="group bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500"
-            >
-              <div className="relative aspect-[3/4] overflow-hidden">
-                {item.imageUrl ? (
-                  <img
-                    src={item.imageUrl}
-                    alt={item.title}
-                    className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
-                    <Images size={40} />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/85 via-[var(--primary)]/40 to-transparent opacity-100" />
-                
-                {/* Featured Badge - Top Left */}
-                {item.isFeatured && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="absolute top-3 left-3 z-10"
-                  >
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-white text-[10px] font-semibold uppercase tracking-widest rounded-full shadow-lg">
-                      <Star size={10} strokeWidth={2} />
-                      Featured
-                    </span>
-                  </motion.div>
-                )}
-                
-                {/* View Project Button - Bottom Center */}
+        {portfolio.map((item, i) => (
+          <motion.article
+            layout
+            key={item.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="group bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500"
+          >
+            <div className="relative aspect-[3/4] overflow-hidden">
+              {item.imageUrl ? (
+                <img
+                  src={item.imageUrl}
+                  alt={item.title}
+                  className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
+                  <Images size={40} />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/85 via-[var(--primary)]/40 to-transparent opacity-100" />
+
+              {/* Featured Badge - Top Left */}
+              {item.featured && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="absolute top-3 left-3 z-10"
+                >
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-white text-[10px] font-semibold uppercase tracking-widest rounded-full shadow-lg">
+                    <Star size={10} strokeWidth={2} />
+                    Featured
+                  </span>
+                </motion.div>
+              )}
+
+              {/* View Project Button - Bottom Center */}
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => window.location.href = `/portfolio/${item._id}`}
+                onClick={() => window.location.href = `/portfolio/${item.id}`}
                 className="absolute bottom-6 left-1/2 -translate-x-1/2 btn-luxury-primary group flex items-center gap-2 text-[10px] px-5 py-2.5 rounded-full opacity-0 translate-y-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0"
               >
                 View Project
@@ -440,7 +380,7 @@ export const PortfolioDashboard = () => {
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => setDeleteId(item._id || item.id)}
+                  onClick={() => setDeleteId(item.id)}
                   className="p-2 bg-[var(--error)]/90 backdrop-blur-sm rounded-xl text-white hover:bg-[var(--error)] shadow-lg"
                   aria-label="Delete project"
                 >
@@ -451,17 +391,6 @@ export const PortfolioDashboard = () => {
 
             {/* Info Card at Bottom */}
             <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
-              {item.category && (
-                <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.2 }}
-                  className="text-[10px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-2"
-                >
-                  {item.category}
-                </motion.p>
-              )}
               <motion.h3
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -471,21 +400,10 @@ export const PortfolioDashboard = () => {
               >
                 {item.title}
               </motion.h3>
-              {item.location && (
-                <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.15 }}
-                  className="text-sm text-[var(--primary)]/50 mt-2"
-                >
-                  {item.location}
-                </motion.p>
-              )}
             </div>
           </motion.article>
         ))}
-        
+
         {portfolio.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}

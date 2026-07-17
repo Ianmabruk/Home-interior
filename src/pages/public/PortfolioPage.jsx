@@ -23,12 +23,14 @@ export const PortfolioPage = () => {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
-  const [heroImage] = useState('https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1920&q=80')
 
   const loadPortfolio = () => {
     api.get('/content/portfolio')
       .then((res) => setItems(res.data || []))
-      .catch(() => setItems([]))
+      .catch((err) => {
+        console.warn('[PORTFOLIO] Failed to load:', err?.message)
+        setItems([])
+      })
       .finally(() => setLoading(false))
   }
 
@@ -52,12 +54,16 @@ export const PortfolioPage = () => {
       {/* Portfolio Hero Banner */}
       <section className="relative h-[60vh] min-h-[400px] overflow-hidden">
         <div className="absolute inset-0">
-          <img
-            src={getOptimizedUrl(heroImage, { width: 1920, crop: 'limit' })}
-            alt="Portfolio showcase"
-            className="h-full w-full object-cover"
-            loading="eager"
-          />
+          {items.length > 0 && items[0]?.imageUrl ? (
+            <img
+              src={getOptimizedUrl(items[0].imageUrl, { width: 1920, crop: 'limit' })}
+              alt="Portfolio showcase"
+              className="h-full w-full object-cover"
+              loading="eager"
+            />
+          ) : (
+            <div className="h-full w-full bg-gradient-to-br from-[var(--primary)] via-[var(--primary)]/80 to-[var(--primary)]/60" />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/85 via-[var(--primary)]/50 to-[var(--primary)]/30" />
         </div>
         <div className="relative z-10 flex h-full items-center justify-center">
@@ -143,7 +149,7 @@ export const PortfolioPage = () => {
           >
             {paginated.map((item, index) => (
               <motion.figure
-                key={item._id}
+                key={item.id}
                 variants={itemVariants}
                 initial="hidden"
                 whileInView="show"
@@ -164,18 +170,21 @@ export const PortfolioPage = () => {
                     />
                   </div>
 
+                  {/* Featured Badge - Top Left */}
+                  {item.featured && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="absolute top-3 left-3 z-10"
+                    >
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-white text-[10px] font-semibold uppercase tracking-widest rounded-full shadow-lg">
+                        Featured
+                      </span>
+                    </motion.div>
+                  )}
+
                   {/* Luxury Information Card at Bottom */}
                   <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
-                    {item.category && (
-                      <motion.p
-                        initial={{ opacity: 0, y: 10 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="text-[10px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-2"
-                      >
-                        {item.category}
-                      </motion.p>
-                    )}
                     <motion.h3
                       initial={{ opacity: 0, y: 10 }}
                       whileInView={{ opacity: 1, y: 0 }}
@@ -201,7 +210,7 @@ export const PortfolioPage = () => {
                       className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest"
                     >
                       <Link
-                        to={`/portfolio/${item._id}`}
+                        to={`/portfolio/${item.id}`}
                         className="btn-luxury-primary group px-5 py-2.5 text-[10px] rounded-full"
                       >
                         VIEW PROJECT

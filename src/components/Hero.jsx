@@ -24,9 +24,8 @@ export const Hero = ({ onBookConsultation }) => {
 
         const carouselImages = []
 
-        // Use featuredPortfolio first for hero, fallback to regular portfolio
-        const heroItems = data.featuredPortfolio && data.featuredPortfolio.length > 0 
-          ? data.featuredPortfolio 
+        const heroItems = data.featuredPortfolio && data.featuredPortfolio.length > 0
+          ? data.featuredPortfolio
           : (data.portfolio || [])
 
         heroItems
@@ -42,8 +41,8 @@ export const Hero = ({ onBookConsultation }) => {
         if (carouselImages.length > 0) {
           setImages(carouselImages)
         }
-      } catch {
-        // Silently fail - fallback image will be used
+      } catch (err) {
+        console.warn('[HERO] Failed to load images:', err?.message)
       } finally {
         setLoading(false)
       }
@@ -78,7 +77,7 @@ export const Hero = ({ onBookConsultation }) => {
 
   return (
     <section
-      className="relative w-full h-screen min-h-[700px] overflow-hidden bg-luxury-text"
+      className="relative w-full h-screen min-h-[700px] overflow-hidden bg-[var(--primary)]"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       role="region"
@@ -99,11 +98,12 @@ export const Hero = ({ onBookConsultation }) => {
               <motion.img
                 src={getOptimizedUrl(activeImage, { width: 1920, crop: 'limit' })}
                 alt={currentImage?.alt || 'Luxury interior design'}
-                className="h-full w-full object-cover ken-burns"
+                className="h-full w-full object-cover"
                 loading="eager"
                 decoding="async"
                 style={{
-                  transform: `translate3d(${mousePosition.x * 15}px, ${mousePosition.y * 15}px, 0) scale(1.02)`
+                  transform: `translate3d(${mousePosition.x * 30}px, ${mousePosition.y * 30}px, 0) scale(1.15)`,
+                  transition: 'transform 0.3s ease-out'
                 }}
               />
             </motion.div>
@@ -114,17 +114,50 @@ export const Hero = ({ onBookConsultation }) => {
       {/* Fallback */}
       {(loading || images.length === 0) && (
         <div className="absolute inset-0">
-          <motion.img
+          <img
             src={getOptimizedUrl(fallbackImage, { width: 1920, crop: 'limit' })}
             alt="Luxury interior design"
-            className="h-full w-full object-cover ken-burns"
+            className="h-full w-full object-cover"
             loading="eager"
             decoding="async"
+            style={{ transform: 'scale(1.15)' }}
           />
         </div>
       )}
 
-      {/* Buttons Only - Lower Position */}
+      {/* Cinematic Overlay Layers */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)] via-[var(--primary)]/95 to-[var(--primary)]/80" />
+      <div className="absolute inset-0 opacity-[0.03] pattern-overlay" />
+
+      {/* Floating Decorative Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <motion.div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              left: `${10 + i * 15}%`,
+              top: `${20 + i * 10}%`,
+              width: `${20 + i * 10}px`,
+              height: `${20 + i * 10}px`,
+              background: `radial-gradient(circle, rgba(232,154,67,0.15) 0%, rgba(232,154,67,0) 70%)`,
+            }}
+            animate={{
+              y: [0, -30, 0],
+              x: [0, 15, 0],
+              opacity: [0.1, 0.3, 0.1],
+            }}
+            transition={{
+              duration: 8 + i * 2,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              delay: i * 1.5,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Content - Buttons Only, Lower Position */}
       <div className="relative z-10 flex h-full items-end justify-center px-6 md:px-12 lg:px-20 pb-20 md:pb-28">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
@@ -160,13 +193,13 @@ export const Hero = ({ onBookConsultation }) => {
               onClick={() => setCurrentIndex(idx)}
               onMouseEnter={() => setIsPaused(true)}
               onMouseLeave={() => setIsPaused(false)}
-              className={`relative h-1.5 rounded-full transition-all duration-700 ${idx === currentIndex ? 'w-10 bg-orange-accent' : 'w-2 bg-white/40 hover:bg-white/60'}`}
+              className={`relative h-1.5 rounded-full transition-all duration-700 ${idx === currentIndex ? 'w-10 bg-[var(--accent)]' : 'w-2 bg-white/40 hover:bg-white/60'}`}
               aria-label={`Go to slide ${idx + 1}`}
             >
               {idx === currentIndex && (
                 <motion.div
                   layoutId="activeDot"
-                  className="absolute inset-0 rounded-full bg-orange-accent"
+                  className="absolute inset-0 rounded-full bg-[var(--accent)]"
                   transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                 />
               )}
@@ -174,6 +207,18 @@ export const Hero = ({ onBookConsultation }) => {
           ))}
         </div>
       )}
+
+      {/* Scroll Indicator */}
+      <motion.div
+        animate={{ y: [0, 12, 0] }}
+        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 text-white/50"
+      >
+        <span className="text-[10px] uppercase tracking-widest font-medium">Discover</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 5v14M19 12l-7 7-7-7" />
+        </svg>
+      </motion.div>
     </section>
   )
 }

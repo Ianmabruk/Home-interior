@@ -5,14 +5,14 @@ import { z } from 'zod'
 import {
   getAbout,
   homepageFeed,
-  portfolioController,
   upsertAbout,
-  virtualDesignController,
   getAnalytics,
   testUpload,
   deleteMediaController,
   uploadMediaController,
 } from '../controllers/contentController.js'
+import { portfolioController } from '../controllers/portfolioController.js'
+import { virtualDesignController } from '../controllers/virtualDesignController.js'
 import { testimonialController } from '../controllers/testimonialController.js'
 import { consultationController } from '../controllers/consultationController.js'
 import { auth, authorize } from '../middleware/auth.js'
@@ -20,13 +20,9 @@ import { sanitizeInput, validateFileUpload, validateBody } from '../middleware/v
 import { auditLog } from '../middleware/auditLog.js'
 
 const router = Router()
-// Buffer uploads in memory (multer) but cap each file at 50MB so a single
-// request cannot exhaust server RAM. The service layer enforces the stricter
-// 10MB image / 50MB video business limits.
+
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } })
 
-// Dedicated limiter for mutating + upload routes so an attacker cannot flood
-// the API with large in-memory uploads (Cloudinary quota / RAM exhaustion).
 const writeLimiter = rateLimit({
   windowMs: 1000 * 60,
   limit: 20,
@@ -36,7 +32,6 @@ const writeLimiter = rateLimit({
   message: { success: false, message: 'Too many write requests, please slow down.' },
 })
 
-// Light limiter for public subscribe to prevent collection abuse.
 const subscribeLimiter = rateLimit({
   windowMs: 1000 * 60,
   limit: 5,
@@ -49,11 +44,18 @@ const subscribeLimiter = rateLimit({
 const validateUpload = validateFileUpload('media', { maxBytes: 50 * 1024 * 1024 })
 
 const portfolioSchema = z.object({
-  title: z.string().min(1, 'title is required'),
-  category: z.string().min(1, 'category is required'),
+  title: z.string().optional(),
+  description: z.string().optional(),
 }).passthrough()
 
 const validatePortfolioBody = validateBody(portfolioSchema)
+
+const virtualDesignSchema = z.object({
+  title: z.string().min(1, 'title is required'),
+  description: z.string().optional(),
+}).passthrough()
+
+const validateVirtualDesignBody = validateBody(virtualDesignSchema)
 
 const consultationSchema = z.object({
   name: z.string().min(2),
@@ -72,23 +74,21 @@ router.get('/analytics', auth, getAnalytics)
 router.get('/portfolio', portfolioController.list)
 router.get('/portfolio/:id', portfolioController.get)
 router.patch('/portfolio/reorder', auth, authorize('admin'), writeLimiter, auditLog, sanitizeInput, portfolioController.reorder)
-router.post('/portfolio', auth, authorize('admin'), writeLimiter, auditLog, upload.any(), validateUpload, sanitizeInput, validatePortfolioBody, portfolioController.create)
-router.patch('/portfolio/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.any(), validateUpload, sanitizeInput, validatePortfolioBody, portfolioController.update)
+router.post('/portfolio', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, validatePortfolioBody, portfolioController.create)
+router.patch('/portfolio/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, validatePortfolioBody, portfolioController.update)
 router.delete('/portfolio/:id', auth, authorize('admin'), writeLimiter, auditLog, portfolioController.remove)
 
 router.get('/about', getAbout)
 router.put('/about', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, upsertAbout)
 
-// Consultations
 router.post('/consultations', validateConsultationBody, consultationController.createConsultation)
 
-// Testimonials — public carousel feed (active only).
 router.get('/testimonials', testimonialController.listPublic)
 
 router.get('/virtual-design', virtualDesignController.list)
 router.get('/virtual-design/:id', virtualDesignController.get)
-router.post('/virtual-design', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, virtualDesignController.create)
-router.patch('/virtual-design/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, virtualDesignController.update)
+router.post('/virtual-design', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, validateVirtualDesignBody, virtualDesignController.create)
+router.patch('/virtual-design/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, validateVirtualDesignBody, virtualDesignController.update)
 router.delete('/virtual-design/:id', auth, authorize('admin'), writeLimiter, auditLog, virtualDesignController.remove)
 
 router.post('/test-upload', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, testUpload)

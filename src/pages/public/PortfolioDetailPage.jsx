@@ -1,19 +1,13 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useParams, Link } from 'react-router-dom'
-import { X, ArrowLeft, ChevronLeft, ChevronRight, CalendarCheck, ArrowRight } from 'lucide-react'
+import { useParams } from 'react-router-dom'
+import { X, ChevronLeft, ChevronRight, CalendarCheck } from 'lucide-react'
 import { api } from '../../services/api'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
 const getProjectImages = (project) => {
   const images = []
   if (project.imageUrl) images.push(project.imageUrl)
-  if (project.gallery && Array.isArray(project.gallery)) {
-    project.gallery.forEach(img => {
-      const url = typeof img === 'string' ? img : img.url
-      if (url && !images.includes(url)) images.push(url)
-    })
-  }
   return images
 }
 
@@ -36,7 +30,8 @@ export const PortfolioDetailPage = () => {
       try {
         const res = await api.get(`/content/portfolio/${id}`)
         setProject(res.data)
-      } catch {
+      } catch (err) {
+        console.warn('[PORTFOLIO DETAIL] Failed to load:', err?.message)
         setProject(null)
       } finally {
         setLoading(false)
@@ -220,23 +215,7 @@ export const PortfolioDetailPage = () => {
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="text-center max-w-4xl"
           >
-            <Link
-              to="/portfolio"
-              className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors mb-4"
-            >
-              <ArrowLeft size={16} strokeWidth={1.5} />
-              <span className="text-[11px] font-semibold uppercase tracking-widest">Back to Portfolio</span>
-            </Link>
-            {project.category && (
-              <motion.p
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4"
-              >
-                {project.category}
-              </motion.p>
-            )}
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Portfolio</p>
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -327,39 +306,6 @@ export const PortfolioDetailPage = () => {
                 <p className="text-base leading-relaxed text-[var(--primary)]/70">{project.description}</p>
               </div>
             )}
-            
-            {/* Project Meta */}
-            <div className="grid gap-4 md:grid-cols-3 mb-12">
-              {project.location && (
-                <div className="flex items-center justify-center gap-3 text-sm text-[var(--primary)]/60">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent)]">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                  <span>{project.location}</span>
-                </div>
-              )}
-              {project.completionDate && (
-                <div className="flex items-center justify-center gap-3 text-sm text-[var(--primary)]/60">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent)]">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                  <span>Completed: {project.completionDate}</span>
-                </div>
-              )}
-              {project.designStyle && (
-                <div className="flex items-center justify-center gap-3 text-sm text-[var(--primary)]/60">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent)]">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                  </svg>
-                  <span>Style: {project.designStyle}</span>
-                </div>
-              )}
-            </div>
 
             {/* Conversion CTA */}
             <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -370,13 +316,6 @@ export const PortfolioDetailPage = () => {
                 Book Consultation
                 <CalendarCheck size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
               </button>
-              <Link
-                to="/contact"
-                className="group btn-luxury-secondary px-8 py-4 text-[11px] rounded-xl"
-              >
-                Contact Us
-                <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-              </Link>
             </div>
           </motion.div>
         </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Maximize2, Play, Video, Image, Search, ArrowUpDown, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
+import { X, Maximize2, Play, Video, Image, Search, ChevronRight, Sparkles } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../../services/api'
 import { getOptimizedUrl, getOptimizedVideoUrl, getVideoPosterUrl } from '../../utils/cloudinaryHelpers'
@@ -16,27 +16,13 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
 }
 
-const getProjectImages = (project) => {
-  const images = []
-  if (project.imageUrl) images.push(project.imageUrl)
-  if (project.images && Array.isArray(project.images)) {
-    project.images.forEach(img => {
-      const url = typeof img === 'string' ? img : img.url
-      if (url && !images.includes(url)) images.push(url)
-    })
-  }
-  return images
-}
-
 export const VirtualDesignPage = () => {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('')
   const [viewMode, setViewMode] = useState('all')
   const [fullscreen, setFullscreen] = useState(null)
   const [imageFullscreen, setImageFullscreen] = useState(null)
-  const [galleryIndex, setGalleryIndex] = useState(0)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -45,7 +31,8 @@ export const VirtualDesignPage = () => {
         const res = await api.get('/content/virtual-design')
         const data = Array.isArray(res.data) ? res.data : res.data?.items || []
         setItems(data)
-      } catch {
+      } catch (err) {
+        console.warn('[VIRTUAL] Failed to load projects:', err?.message)
         setItems([])
       } finally {
         setLoading(false)
@@ -61,7 +48,8 @@ export const VirtualDesignPage = () => {
           const res = await api.get('/content/virtual-design')
           const data = Array.isArray(res.data) ? res.data : res.data?.items || []
           setItems(data)
-        } catch {
+        } catch (err) {
+          console.warn('[VIRTUAL] Failed to reload projects:', err?.message)
           setItems([])
         }
       }
@@ -70,8 +58,6 @@ export const VirtualDesignPage = () => {
     window.addEventListener('virtual-changed', handler)
     return () => window.removeEventListener('virtual-changed', handler)
   }, [])
-
-  const categories = Array.from(new Set(items.map((i) => i.category).filter(Boolean)))
 
   const parallaxRef = useRef(null)
 
@@ -86,37 +72,30 @@ export const VirtualDesignPage = () => {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-const filtered = items.filter((item) => {
-    if (viewMode === 'images' && !item.imageUrl && !item.images?.length && !item.journey?.before?.images?.length && !item.journey?.after?.images?.length) return false
-    if (viewMode === 'videos' && !item.videoUrl && !item.journey?.before?.videos?.length && !item.journey?.after?.videos?.length) return false
-    if (viewMode === 'journey' && !item.journey) return false
-    if (categoryFilter && item.category !== categoryFilter) return false
+  const filtered = items.filter((item) => {
+    if (viewMode === 'images' && item.mediaType !== 'image') return false
+    if (viewMode === 'videos' && item.mediaType !== 'video') return false
     if (query) {
       const q = query.toLowerCase()
       return item.title?.toLowerCase().includes(q) || 
-             item.category?.toLowerCase().includes(q) ||
+             item.mediaType?.toLowerCase().includes(q) ||
              item.description?.toLowerCase().includes(q)
     }
     return true
   })
 
   const handleImageFullscreen = (item) => {
-    if (item.imageUrl) {
+    if (item.mediaUrl && item.mediaType === 'image') {
       setImageFullscreen(item)
-      setGalleryIndex(0)
     }
   }
 
   const handleVideoFullscreen = (item) => {
-    if (item.videoUrl) setFullscreen(item)
-  }
-
-  const handleJourneyVideoFullscreen = (videoUrl, title, category) => {
-    setFullscreen({ videoUrl, title, category })
+    if (item.mediaUrl && item.mediaType === 'video') setFullscreen(item)
   }
 
   const openProjectDetail = (item) => {
-    navigate(`/virtual-interior-design/project/${item._id}`)
+    navigate(`/virtual-interior-design/project/${item.id}`)
   }
 
   if (loading) {
@@ -132,9 +111,7 @@ const filtered = items.filter((item) => {
               className="text-center"
             >
               <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]/80 mb-4">Virtual Interior Design</p>
-              <h1 className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl">
-                Visual Portfolio
-              </h1>
+              <h1 className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl">Visual Portfolio</h1>
             </motion.div>
           </div>
         </section>
@@ -175,10 +152,10 @@ const filtered = items.filter((item) => {
       <section className="relative h-[60vh] min-h-[500px] overflow-hidden">
         {/* Parallax Background */}
         <div className="absolute inset-0">
-          {items.length > 0 && items[0]?.imageUrl && (
+          {items.length > 0 && items[0]?.mediaUrl && items[0].mediaType === 'image' && (
             <motion.img
               ref={parallaxRef}
-              src={getOptimizedUrl(items[0].imageUrl, { width: 1920, crop: 'limit' })}
+              src={getOptimizedUrl(items[0].mediaUrl, { width: 1920, crop: 'limit' })}
               alt="Virtual design showcase"
               className="absolute inset-0 h-full w-full object-cover"
               loading="eager"
@@ -319,13 +296,12 @@ const filtered = items.filter((item) => {
               { value: 'all', label: 'All', icon: Image },
               { value: 'images', label: 'Images', icon: Image },
               { value: 'videos', label: 'Videos', icon: Video },
-              { value: 'journey', label: 'Project Journey', icon: ArrowUpDown },
             ].map((tab) => (
               <motion.button
                 key={tab.value}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => { setViewMode(tab.value); setCategoryFilter('') }}
+                onClick={() => { setViewMode(tab.value) }}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium uppercase tracking-wide transition-all duration-300 ${
                   viewMode === tab.value
                     ? 'bg-[var(--primary)] text-white shadow-lg'
@@ -339,7 +315,7 @@ const filtered = items.filter((item) => {
             ))}
           </motion.div>
 
-          {/* Search & Filter */}
+          {/* Search */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -356,33 +332,6 @@ const filtered = items.filter((item) => {
                   className="w-full rounded-full border border-[var(--border)] bg-[var(--bg)] pl-10 pr-4 py-2.5 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
                 />
               </div>
-              {categories.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-2">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setCategoryFilter('')}
-                    className={`px-4 py-1.5 text-2xs font-semibold uppercase tracking-widest rounded-full transition ${
-                      !categoryFilter ? 'bg-[var(--primary)] text-white shadow-md' : 'bg-white text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30 border border-[var(--border)]'
-                    }`}
-                  >
-                    All
-                  </motion.button>
-                  {categories.map((cat) => (
-                    <motion.button
-                      key={cat}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setCategoryFilter(cat === categoryFilter ? '' : cat)}
-                      className={`px-4 py-1.5 text-2xs font-semibold uppercase tracking-widest rounded-full transition ${
-                        categoryFilter === cat ? 'bg-[var(--primary)] text-white shadow-md' : 'bg-white text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30 border border-[var(--border)]'
-                      }`}
-                    >
-                      {cat}
-                    </motion.button>
-                  ))}
-                </div>
-              )}
             </div>
           </motion.div>
 
@@ -395,14 +344,6 @@ const filtered = items.filter((item) => {
           >
             <p className="text-sm text-[var(--primary)]/50">
               {filtered.length} {filtered.length === 1 ? 'project' : 'projects'} found
-              {(query || categoryFilter || viewMode !== 'all') && (
-                <button
-                  onClick={() => { setQuery(''); setCategoryFilter(''); setViewMode('all') }}
-                  className="inline-flex items-center gap-1.5 ml-4 text-2xs font-semibold uppercase tracking-widest text-[var(--accent)] hover:text-[var(--primary)] transition-colors"
-                >
-                  <X size={10} strokeWidth={2} /> Clear filters
-                </button>
-              )}
             </p>
           </motion.div>
 
@@ -414,9 +355,9 @@ const filtered = items.filter((item) => {
             variants={containerVariants}
             className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           >
-{filtered.map((item, i) => (
+            {filtered.map((item, i) => (
               <motion.article
-                key={item._id}
+                key={item.id}
                 variants={itemVariants}
                 custom={i}
                 className="group"
@@ -424,155 +365,35 @@ const filtered = items.filter((item) => {
                 <div className="relative overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
                   {/* Media */}
                   <div className="relative aspect-[4/3] overflow-hidden">
-                      {/* Regular Project - Multiple Images */}
-                      {item.images && item.images.length > 0 && !item.videoUrl && !item.journey && (
-                        <>
-                          <img
-                            src={getOptimizedUrl(item.images[0].url, { width: 640 })}
-                            alt={item.title}
-                            className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                            loading="lazy"
-                            decoding="async"
-                          />
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleImageFullscreen({ ...item, imageUrl: item.images[0].url }) }}
-                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                            aria-label="View fullscreen"
-                          >
-                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                              <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
-                            </div>
-                          </button>
-                        </>
-                      )}
-                      
-                      {/* Regular Project - Single Image (legacy) */}
-                      {item.imageUrl && !item.images?.length && !item.videoUrl && !item.journey && (
-                        <>
-                          <img
-                            src={getOptimizedUrl(item.imageUrl, { width: 640 })}
-                            alt={item.title}
-                            className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                            loading="lazy"
-                            decoding="async"
-                          />
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleImageFullscreen(item) }}
-                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                            aria-label="View fullscreen"
-                          >
-                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                              <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
-                            </div>
-                          </button>
-                        </>
-                      )}
-
-                      {/* Project Journey */}
-                    {item.journey && (
-                      <>
-                        {/* Show before images first */}
-                        {(item.journey.before?.images?.length || item.journey.before?.videos?.length) && (
-                          <>
-                            {item.journey.before.images?.map((img, idx) => (
-                              <img
-                                key={`before-img-${idx}`}
-                                src={getOptimizedUrl(img, { width: 640 })}
-                                alt={`${item.title} - Before ${idx + 1}`}
-                                className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                                loading="lazy"
-                                decoding="async"
-                              />
-                            ))}
-                            {item.journey.before.videos?.map((vid, idx) => (
-                              <LazyVideo
-                                key={`before-vid-${idx}`}
-                                src={getOptimizedVideoUrl(vid, { width: 640 })}
-                                poster={getVideoPosterUrl(vid, { width: 640 })}
-                                className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                              />
-                            ))}
-                            <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleJourneyVideoFullscreen(item.journey.before.videos[0], `${item.title} - Before`, item.category) }}
-                              className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110"
-                              aria-label="Play video"
-                            >
-                              <Play size={20} strokeWidth={1.5} className="ml-1" />
-                            </button>
-                          </>
-                        )}
-                        
-                        {/* Show after images */}
-                        {(item.journey.after?.images?.length || item.journey.after?.videos?.length) && (
-                          <>
-                            {item.journey.after.images?.map((img, idx) => (
-                              <img
-                                key={`after-img-${idx}`}
-                                src={getOptimizedUrl(img, { width: 640 })}
-                                alt={`${item.title} - After ${idx + 1}`}
-                                className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                                loading="lazy"
-                                decoding="async"
-                              />
-                            ))}
-                            {item.journey.after.videos?.map((vid, idx) => (
-                              <LazyVideo
-                                key={`after-vid-${idx}`}
-                                src={getOptimizedVideoUrl(vid, { width: 640 })}
-                                poster={getVideoPosterUrl(vid, { width: 640 })}
-                                className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                              />
-                            ))}
-                            <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleJourneyVideoFullscreen(item.journey.after.videos[0], `${item.title} - After`, item.category) }}
-                              className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110"
-                              aria-label="Play video"
-                            >
-                              <Play size={20} strokeWidth={1.5} className="ml-1" />
-                            </button>
-                          </>
-                        )}
-                        
-                        {/* Type badge */}
-                        <div className="absolute left-3 top-3 flex gap-2">
-                          {(item.journey.before?.images?.length || item.journey.before?.videos?.length) && (
-                            <span className="flex h-6 items-center gap-1.5 px-2.5 text-2xs font-semibold uppercase tracking-widest bg-white/90 text-[var(--primary)] rounded-full shadow-md backdrop-blur-sm">
-                              <Image size={10} strokeWidth={1.5} /> Before
-                            </span>
-                          )}
-                          {(item.journey.after?.images?.length || item.journey.after?.videos?.length) && (
-                            <span className="flex h-6 items-center gap-1.5 px-2.5 text-2xs font-semibold uppercase tracking-widest bg-[var(--accent)] text-white rounded-full shadow-md">
-                              <Image size={10} strokeWidth={1.5} /> After
-                            </span>
-                          )}
-                        </div>
-                      </>
-                    )}
-
-                    {/* Overlay for fullscreen image (regular projects) */}
-                    {(item.imageUrl || item.images?.length) && !item.videoUrl && !item.journey && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleImageFullscreen(item) }}
-                        className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                        aria-label="View fullscreen"
-                      >
-                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                          <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
-                        </div>
-                      </button>
-                    )}
-
-                    {/* Play button for items with both image and video (regular projects) */}
-                    {(item.imageUrl || item.images?.length) && item.videoUrl && !item.journey && (
+                    {/* Image */}
+                    {item.mediaType === 'image' && item.mediaUrl && (
                       <>
                         <img
-                          src={getOptimizedUrl(item.imageUrl, { width: 640 })}
+                          src={getOptimizedUrl(item.mediaUrl, { width: 640 })}
                           alt={item.title}
                           className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
                           loading="lazy"
                           decoding="async"
+                        />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleImageFullscreen(item) }}
+                          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                          aria-label="View fullscreen"
+                        >
+                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
+                            <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
+                          </div>
+                        </button>
+                      </>
+                    )}
+
+                    {/* Video */}
+                    {item.mediaType === 'video' && item.mediaUrl && (
+                      <>
+                        <LazyVideo
+                          src={getOptimizedVideoUrl(item.mediaUrl, { width: 640 })}
+                          poster={getVideoPosterUrl(item.mediaUrl, { width: 640 })}
+                          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                         <button
@@ -584,23 +405,12 @@ const filtered = items.filter((item) => {
                         </button>
                       </>
                     )}
-
                   </div>
 
                   {/* Info Card */}
                   <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        {item.category && (
-                          <motion.p
-                            initial={{ opacity: 0, y: 10 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
-                            className="text-[10px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-2"
-                          >
-                            {item.category}
-                          </motion.p>
-                        )}
                         <motion.h3
                           initial={{ opacity: 0, y: 10 }}
                           whileInView={{ opacity: 1, y: 0 }}
@@ -637,7 +447,7 @@ const filtered = items.filter((item) => {
                 </div>
               </motion.article>
             ))}
-            
+
             {filtered.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -645,19 +455,11 @@ const filtered = items.filter((item) => {
                 className="col-span-full py-24 text-center"
               >
                 <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-[var(--secondary)]/30 to-[var(--accent)]/10 flex items-center justify-center mb-4 text-[var(--primary)]/30">
-                  {viewMode === 'images' ? <Image size={32} /> : viewMode === 'videos' ? <Video size={32} /> : viewMode === 'journey' ? <ArrowUpDown size={32} /> : <Image size={32} />}
+                  {viewMode === 'images' ? <Image size={32} /> : viewMode === 'videos' ? <Video size={32} /> : <Image size={32} />}
                 </div>
                 <p className="font-display text-3xl text-[var(--primary)]/30">
                   {items.length === 0 ? 'No projects yet.' : 'No results found.'}
                 </p>
-                {(query || categoryFilter || viewMode !== 'all') && (
-                  <button
-                    onClick={() => { setQuery(''); setCategoryFilter(''); setViewMode('all') }}
-                    className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 text-2xs font-semibold uppercase tracking-widest border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] rounded-full transition"
-                  >
-                    <X size={12} strokeWidth={1.5} /> Clear Filters
-                  </button>
-                )}
               </motion.div>
             )}
           </motion.div>
@@ -673,7 +475,7 @@ const filtered = items.filter((item) => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8 bg-[var(--primary)]/98 backdrop-blur-sm"
-              onClick={() => { setImageFullscreen(null); setGalleryIndex(0) }}
+              onClick={() => { setImageFullscreen(null) }}
               aria-hidden="true"
             />
             <motion.div
@@ -687,95 +489,30 @@ const filtered = items.filter((item) => {
               aria-labelledby="image-fullscreen-title"
             >
               <button
-                onClick={() => { setImageFullscreen(null); setGalleryIndex(0) }}
+onClick={() => { setImageFullscreen(null) }}
                 className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/90 backdrop-blur text-[var(--primary)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-all duration-300"
                 aria-label="Close"
               >
                 <X size={20} strokeWidth={2} />
               </button>
-              
-              {/* Get all images for this project */}
-              {(() => {
-                const project = items.find(i => i._id === imageFullscreen._id || i.title === imageFullscreen.title)
-                const projectImages = project ? getProjectImages(project) : [imageFullscreen.imageUrl]
-                return projectImages.length > 1 ? (
-                  <>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setGalleryIndex(prev => prev === 0 ? projectImages.length - 1 : prev - 1) }}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full bg-white/90 backdrop-blur text-[var(--primary)] hover:bg-white shadow-lg transition-all duration-300 hover:shadow-xl"
-                      aria-label="Previous image"
-                    >
-                      <ChevronLeft size={24} strokeWidth={2} />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setGalleryIndex(prev => prev === projectImages.length - 1 ? 0 : prev + 1) }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full bg-white/90 backdrop-blur text-[var(--primary)] hover:bg-white shadow-lg transition-all duration-300 hover:shadow-xl"
-                      aria-label="Next image"
-                    >
-                      <ChevronRight size={24} strokeWidth={2} />
-                    </button>
-                  </>
-                ) : null
-              })()}
-              
+
               <div className="relative h-full w-full flex items-center justify-center p-4">
-                {(() => {
-                  const project = items.find(i => i._id === imageFullscreen._id || i.title === imageFullscreen.title)
-                  const projectImages = project ? getProjectImages(project) : [imageFullscreen.imageUrl]
-                  return (
-                    <img
-                      src={getOptimizedUrl(projectImages[galleryIndex] || imageFullscreen.imageUrl, { width: 1920 })}
-                      alt={imageFullscreen.title}
-                      className="max-h-[80vh] max-w-full object-contain"
-                    />
-                  )
-                })()}
+                <img
+                  src={getOptimizedUrl(imageFullscreen.mediaUrl, { width: 1920 })}
+                  alt={imageFullscreen.title}
+                  className="max-h-[80vh] max-w-full object-contain"
+                />
               </div>
-              
-              {/* Thumbnail Navigation */}
-              {(() => {
-                const project = items.find(i => i._id === imageFullscreen._id || i.title === imageFullscreen.title)
-                const projectImages = project ? getProjectImages(project) : [imageFullscreen.imageUrl]
-                return projectImages.length > 1 ? (
-                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                    {projectImages.map((img, idx) => (
-                      <button
-                        key={idx}
-                        onClick={(e) => { e.stopPropagation(); setGalleryIndex(idx) }}
-                        className={`w-5 h-5 rounded-full border-2 transition-all duration-300 ${
-                          idx === galleryIndex
-                            ? 'border-white bg-white'
-                            : 'border-white/50 hover:border-white/80'
-                        }`}
-                        aria-label={`View image ${idx + 1}`}
-                        aria-current={idx === galleryIndex ? 'true' : 'false'}
-                      />
-                    ))}
-                  </div>
-                ) : null
-              })()}
-              
+
               <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 bg-gradient-to-t from-[var(--primary)]/90 to-transparent text-white">
-                {imageFullscreen.category && (
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-2">{imageFullscreen.category}</p>
-                )}
                 <h2 id="image-fullscreen-title" className="font-display text-3xl md:text-4xl font-normal leading-tight">{imageFullscreen.title}</h2>
-{(() => {
-                    const project = items.find(i => i._id === imageFullscreen._id || i.title === imageFullscreen.title)
-                    const projectImages = project ? getProjectImages(project) : [imageFullscreen.imageUrl]
-                    return projectImages.length > 1 && (
-                      <p className="mt-2 text-sm text-white/70">
-                        Image {galleryIndex + 1} of {projectImages.length}
-                      </p>
-                    )
-                  })()}
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-        {/* Video Fullscreen Modal */}
+      {/* Video Fullscreen Modal */}
       <AnimatePresence>
         {fullscreen && (
           <>
@@ -805,8 +542,8 @@ const filtered = items.filter((item) => {
               </button>
               <div className="relative h-[70vh] w-full">
                 <video
-                  src={getOptimizedVideoUrl(fullscreen.videoUrl, { width: 1280 })}
-                  poster={getVideoPosterUrl(fullscreen.videoUrl, { width: 1280 })}
+                  src={getOptimizedVideoUrl(fullscreen.mediaUrl, { width: 1280 })}
+                  poster={getVideoPosterUrl(fullscreen.mediaUrl, { width: 1280 })}
                   controls
                   autoPlay
                   loop

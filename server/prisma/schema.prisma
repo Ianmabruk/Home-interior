@@ -88,50 +88,20 @@ model Product {
   @@map("products")
 }
 
-model Project {
-  id                String   @id @default(uuid()) @map("_id")
-  title             String?
-  description       String?
-  category          String?
-  media             Json?
-  beforeAfterImages Json?    @map("before_after_images")
-  videoUrl          String?  @map("video_url")
-  videoPublicId     String?  @map("video_public_id")
-  coverImageUrl     String?  @map("cover_image_url")
-  order             Int?     @default(0)
-  mediaSettings     Json?    @map("media_settings")
-  isPublished       Boolean? @default(true) @map("is_published")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-
-  @@index([isPublished])
-  @@index([category])
-  @@index([order])
-  @@index([createdAt])
-  @@map("projects")
-}
-
 model Portfolio {
-  id              String   @id @default(uuid()) @map("_id")
-  title           String
-  description     String?
-  category        String
-  imageUrl        String?  @map("image_url")
-  imagePublicId   String?  @map("image_public_id")
-  beforeAfterImages Json? @map("before_after_images")
-  gallery         Json?
-  order           Int?     @default(0)
-  mediaSettings   Json?    @map("media_settings")
-  isPublished     Boolean? @default(true) @map("is_published")
-  isFeatured      Boolean? @default(false) @map("is_featured")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(uuid()) @map("_id")
+  title         String?
+  description   String?
+  imageUrl      String   @map("image_url")
+  cloudinaryId  String?  @map("cloudinary_id")
+  featured      Boolean  @default(false)
+  displayOrder  Int      @default(0) @map("display_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  @@index([isPublished])
-  @@index([category])
-  @@index([order])
+  @@index([featured])
+  @@index([displayOrder])
   @@index([createdAt])
-  @@index([isFeatured])
   @@map("portfolios")
 }
 
@@ -154,32 +124,17 @@ model About {
 }
 
 model VirtualDesign {
-  id                String   @id @default(uuid()) @map("_id")
-  title             String
-  description       String
-  videoUrl          String?  @map("video_url")
-  videoPublicId     String?  @map("video_public_id")
-  videos            Json?    @map("videos")
-  thumbnailUrl      String?  @map("thumbnail_url")
-  imageUrl          String?  @map("image_url")
-  imagePublicId     String?  @map("image_public_id")
-  images            Json?    @map("images")
-  coverImageIndex   Int?     @default(0) @map("cover_image_index")
-  services          Json
-  beforeAfterImages Json?    @map("before_after_images")
-  category          String?
-  tags              Json
-  ctaPrimary        String?  @default("Start Your Project") @map("cta_primary")
-  ctaSecondary      String?  @default("Learn More") @map("cta_secondary")
-  mediaSettings     Json?    @map("media_settings")
-  status            String?  @default("draft") @map("status")
-  isPublished       Boolean? @default(true) @map("is_published")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid()) @map("_id")
+  title       String
+  description String?
+  mediaType   String
+  mediaUrl    String   @map("media_url")
+  cloudinaryId String? @map("cloudinary_id")
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  @@index([isPublished])
-  @@index([category])
-  @@index([status])
+  @@index([featured])
   @@index([createdAt])
   @@map("virtual_designs")
 }
@@ -237,21 +192,19 @@ model Message {
   @@map("messages")
 }
 
-// Client testimonials shown in the website footer carousel and managed from
-// the admin dashboard. Photos are uploaded to Cloudinary.
 model Testimonial {
-  id          String   @id @default(uuid()) @map("_id")
-  clientName  String   @map("client_name")
-  position    String?
-  company     String?
-  testimonial String
-  photoUrl    String?  @map("photo_url")
+  id           String   @id @default(uuid()) @map("_id")
+  clientName   String   @map("client_name")
+  position     String?
+  company      String?
+  testimonial  String
+  photoUrl     String?  @map("photo_url")
   photoPublicId String? @map("photo_public_id")
-  rating      Int      @default(5)
-  displayOrder Int     @default(0) @map("display_order")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  rating       Int      @default(5)
+  displayOrder Int      @default(0) @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("testimonials")
 }
