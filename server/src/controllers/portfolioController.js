@@ -24,6 +24,8 @@ const stripUnknown = (obj, allowed) => {
 }
 
 const findFileByFieldname = (req, fieldname) => {
+  // upload.single() puts file in req.file, upload.array() puts in req.files
+  if (req.file && req.file.fieldname === fieldname) return req.file
   const files = Array.isArray(req.files) ? req.files : []
   return files.find((f) => f.fieldname === fieldname) || null
 }

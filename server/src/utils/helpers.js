@@ -73,3 +73,26 @@ export const parseBody = (schema, body) => {
   }
   return result.data
 }
+
+export const sortByOrderThenDate = (items) => items.sort((a, b) => {
+  const orderDiff = (a.displayOrder || a.order || 0) - (b.displayOrder || b.order || 0)
+  if (orderDiff !== 0) return orderDiff
+  return new Date(b.createdAt) - new Date(a.createdAt)
+})
+
+export const orderValue = (value) => {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+
+export const toNumberIfFinite = (value) => {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
+export const toBoolean = (value, fallback) => {
+  if (typeof value === 'boolean') return value
+  if (value === 'true' || value === true) return true
+  if (value === 'false' || value === false) return false
+  return fallback
+}

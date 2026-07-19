@@ -45,6 +45,11 @@ process.env.CLOUDINARY_API_KEY = 'test-key'
 process.env.CLOUDINARY_API_SECRET = 'test-secret'
 process.env.CLIENT_URL = 'http://localhost:5173'
 
+const PNG_1x1 = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64',
+)
+
 const generateToken = (user) => {
   return jwt.sign(
     { userId: user.id, email: user.email, role: user.role },
@@ -90,30 +95,27 @@ describe('Content Management', () => {
     const admin = { id: 'admin-1', email: 'admin@test.com', role: 'admin', isActive: true }
     const token = generateToken(admin)
 
-    it('should create portfolio as admin (full payload)', async () => {
+    it('should create portfolio as admin with image upload', async () => {
       mockPrisma.portfolio.create.mockResolvedValue({
         id: 'port-1',
         title: 'New Portfolio',
         description: 'Desc',
-        category: 'Residential',
         imageUrl: 'https://test.cloudinary.com/image.jpg',
-        imagePublicId: 'test-public-id',
-        order: 1,
-        isPublished: true,
-        mediaSettings: { position: 'center' },
+        cloudinaryId: 'test-public-id',
+        displayOrder: 1,
+        featured: false,
+        galleryImages: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
 
       const response = await request(app)
         .post('/api/content/portfolio')
         .set('Authorization', `Bearer ${token}`)
-        .send({
-          title: 'New Portfolio',
-          description: 'Desc',
-          category: 'Residential',
-          order: 1,
-          isPublished: true,
-          mediaSettings: { position: 'center' },
-        })
+        .field('title', 'New Portfolio')
+        .field('description', 'Desc')
+        .field('displayOrder', '1')
+        .attach('media', PNG_1x1, 'room.png')
 
       expect(response.status).toBe(201)
       expect(response.body.success).toBe(true)
@@ -125,20 +127,21 @@ describe('Content Management', () => {
         id: 'port-2',
         title: 'Recovered Portfolio',
         description: 'Desc',
-        category: 'Residential',
         imageUrl: 'https://test.cloudinary.com/image.jpg',
-        isPublished: true,
+        cloudinaryId: 'test-image-id',
+        displayOrder: 0,
+        featured: false,
+        galleryImages: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
 
       const response = await request(app)
         .post('/api/content/portfolio')
         .set('Authorization', `Bearer ${token}`)
-        .send({
-          title: 'Recovered Portfolio',
-          description: 'Desc',
-          category: 'Residential',
-          isPublished: true,
-        })
+        .field('title', 'Recovered Portfolio')
+        .field('description', 'Desc')
+        .attach('media', PNG_1x1, 'room.png')
 
       expect(response.status).toBe(201)
       expect(response.body.success).toBe(true)
@@ -170,11 +173,10 @@ describe('Content Management', () => {
       const response = await request(app)
         .put('/api/content/about')
         .set('Authorization', `Bearer ${token}`)
-        .send({
-          story: 'Our story',
-          mission: 'Mission',
-          vision: 'Vision',
-        })
+        .field('story', 'Our story')
+        .field('mission', 'Mission')
+        .field('vision', 'Vision')
+        .attach('media', PNG_1x1, 'about.png')
 
       expect(response.status).toBe(201)
       expect(response.body.success).toBe(true)

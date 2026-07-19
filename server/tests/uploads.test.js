@@ -114,7 +114,7 @@ describe('PORTFOLIO upload pipeline', () => {
     // URL + publicId persisted to the DB.
     const saved = mockPrisma.portfolio.create.mock.calls[0][0].data
     expect(saved.imageUrl).toContain('res.cloudinary.com')
-    expect(saved.imagePublicId).toBe('hok/test/test-image')
+    expect(saved.cloudinaryId).toBe('hok/test/test-image')
     // API returns the saved record with a public URL and _id alias.
     expect(res.body.data.imageUrl).toContain('res.cloudinary.com')
     expect(res.body.data._id).toBe('port-1')

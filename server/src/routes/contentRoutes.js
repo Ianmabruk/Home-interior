@@ -67,6 +67,17 @@ const serviceSchema = z.object({
 
 const validateServiceBody = validateBody(serviceSchema)
 
+const consultationSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+  phone: z.string().optional(),
+  message: z.string().min(10),
+  preferredDate: z.string().optional(),
+  preferredTime: z.string().optional(),
+})
+
+const validateConsultationBody = validateBody(consultationSchema)
+
 router.get('/homepage', homepageFeed)
 router.get('/analytics', auth, getAnalytics)
 
