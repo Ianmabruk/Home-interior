@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Star,
   UploadCloud,
+  Layers,
 } from 'lucide-react'
 import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
@@ -27,12 +28,14 @@ import { VirtualInteriorDashboard } from '../../components/admin/VirtualInterior
 import { AboutDashboard } from '../../components/admin/AboutDashboard'
 import { ConsultationDashboard } from '../../components/admin/ConsultationDashboard'
 import { TestimonialDashboard } from '../../components/admin/TestimonialDashboard'
+import { ServicesDashboard } from '../../components/admin/ServicesDashboard'
 
 const tabs = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'portfolio', label: 'Portfolio', icon: Images },
   { id: 'shop', label: 'Shop', icon: ShoppingBag },
-  { id: 'virtual', label: 'Virtual Interior Design', icon: Brush },
+  { id: 'services', label: 'Services', icon: Layers },
+  { id: 'virtual', label: 'Virtual Designs', icon: Brush },
   { id: 'about', label: 'About', icon: Info },
   { id: 'testimonials', label: 'Testimonials', icon: Star },
   { id: 'consultations', label: 'Consultations', icon: MessageSquare },
@@ -377,6 +380,7 @@ const { user, logout, updateProfile } = useAuth()
               )}
               {activeTab === 'portfolio' && <PortfolioDashboard />}
               {activeTab === 'shop' && <ShopDashboard />}
+              {activeTab === 'services' && <ServicesDashboard />}
               {activeTab === 'virtual' && <VirtualInteriorDashboard />}
               {activeTab === 'about' && <AboutDashboard />}
               {activeTab === 'testimonials' && <TestimonialDashboard />}

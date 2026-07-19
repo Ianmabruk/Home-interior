@@ -167,7 +167,7 @@ export const Hero = ({ onBookConsultation }) => {
         >
           <Link
             to="/portfolio"
-            className="btn-luxury-primary group w-full sm:w-auto"
+            className="btn-luxury-primary group hidden sm:w-auto"
           >
             View Portfolio
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-300 group-hover:translate-x-1">

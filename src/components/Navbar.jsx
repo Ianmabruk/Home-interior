@@ -20,10 +20,16 @@ import { useShop } from '../context/ShopContext'
 import hokLogo from '../assets/hok png logo.png'
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Home' },
-  { to: '/shop', label: 'Shop' },
-  { to: '/virtual-interior-design', label: 'Virtual Interior Design' },
   { to: '/portfolio', label: 'Portfolio' },
+  { to: '/services', label: 'Services' },
+  { to: '/virtual-design', label: 'Virtual Designs' },
+  { to: '/about', label: 'About' },
+]
+
+const MOBILE_NAV_ITEMS = [
+  { to: '/portfolio', label: 'Portfolio' },
+  { to: '/services', label: 'Services' },
+  { to: '/virtual-design', label: 'Website Designs' },
   { to: '/about', label: 'About' },
 ]
 
@@ -131,8 +137,17 @@ export const Navbar = () => {
               {/* Vertical Divider */}
               <div className="w-px h-8 md:h-10 bg-[#E6D8C9]/40 mx-2 md:mx-4 hidden lg:block" aria-hidden="true" />
 
-              {/* RIGHT SECTION - Account Icon + Cart */}
+              {/* RIGHT SECTION - Shop Icon + Account Icon + Cart */}
               <div className="flex items-center gap-3">
+                {/* Shop Icon - Direct link to shop page */}
+                <Link
+                  to="/shop"
+                  className="relative p-2 rounded-full text-[#2A241F]/70 transition-colors hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
+                  aria-label="Shop"
+                >
+                  <ShoppingBag size={20} md={22} strokeWidth={1.5} aria-hidden="true" />
+                </Link>
+
                 {/* Cart Icon */}
                 <div className="relative" ref={cartRef}>
                   <motion.button
@@ -300,19 +315,18 @@ export const Navbar = () => {
                   </AnimatePresence>
                 </div>
 
-                {/* User Account Dropdown */}
+{/* User Account Dropdown */}
                 <div className="relative" role="menu" aria-label="User menu" ref={userMenuRef}>
                   <motion.button
                     onClick={() => setUserMenuOpen((p) => !p)}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex items-center gap-2 rounded-full px-4 py-2.5 md:px-5 md:py-3 text-[10px] md:text-[11px] font-medium uppercase tracking-[0.15em] text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
+                    className="p-2.5 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
                     aria-expanded={userMenuOpen}
                     aria-haspopup="true"
                     aria-label="User menu"
                   >
-                    <User size={16} md={18} strokeWidth={1.5} aria-hidden="true" className="transition-colors duration-300" />
-                    <span className="hidden sm:inline">Account</span>
+                    <User size={18} md={20} strokeWidth={1.5} aria-hidden="true" className="transition-colors duration-300" />
                     <motion.svg
                       width="12"
                       height="12"
@@ -361,24 +375,6 @@ export const Navbar = () => {
                                 <LayoutDashboard size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
                                 My Account
                               </Link>
-                              <Link
-                                to="/account"
-                                onClick={() => setUserMenuOpen(false)}
-                                className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors border-t border-[#E6D8C9]/40"
-                                role="menuitem"
-                              >
-                                <Package size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                                My Orders
-                              </Link>
-                              <Link
-                                to="/wishlist"
-                                onClick={() => setUserMenuOpen(false)}
-                                className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors border-t border-[#E6D8C9]/40"
-                                role="menuitem"
-                              >
-                                <Heart size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                                Wishlist
-                              </Link>
                               <hr className="my-2 border-[#E6D8C9]/40" />
                               <button
                                 onClick={handleLogout}
@@ -391,6 +387,16 @@ export const Navbar = () => {
                             </>
                           ) : (
                             <>
+                              <Link
+                                to="/login"
+                                onClick={() => setUserMenuOpen(false)}
+                                className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
+                                role="menuitem"
+                              >
+                                <LayoutDashboard size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
+                                My Account
+                              </Link>
+                              <hr className="my-2 border-[#E6D8C9]/40" />
                               <Link
                                 to="/register"
                                 onClick={() => setUserMenuOpen(false)}
@@ -407,7 +413,7 @@ export const Navbar = () => {
                                 role="menuitem"
                               >
                                 <LogIn size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                                Login
+                                Log In
                               </Link>
                             </>
                           )}
@@ -421,15 +427,37 @@ export const Navbar = () => {
           </nav>
 
           {/* Mobile Menu Button - Right */}
-          <motion.button
-            className="md:hidden p-2 rounded-full text-[#2A241F] transition-colors hover:bg-[#E6D8C9]/50"
-            onClick={() => setMobileOpen((p) => !p)}
-            aria-label="Toggle menu"
-            aria-expanded={mobileOpen}
-            whileTap={{ scale: 0.9 }}
-          >
-            {mobileOpen ? <X size={24} strokeWidth={1.5} /> : <Menu size={24} strokeWidth={1.5} />}
-          </motion.button>
+          <div className="md:hidden flex items-center gap-2">
+            {/* Shop Icon - Mobile */}
+            <Link
+              to="/shop"
+              className="p-2 rounded-full text-[#2A241F] transition-colors hover:bg-[#E6D8C9]/50 hover:text-[#E89A43]"
+              aria-label="Shop"
+            >
+              <ShoppingBag size={22} strokeWidth={1.5} />
+              {totalItems > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-[#E89A43] text-white text-[9px] font-semibold flex items-center justify-center px-1"
+                  aria-label={`${totalItems} items in cart`}
+                >
+                  {totalItems > 99 ? '99+' : totalItems}
+                </motion.span>
+              )}
+            </Link>
+            {/* Mobile Menu Button */}
+            <motion.button
+              className="p-2 rounded-full text-[#2A241F] transition-colors hover:bg-[#E6D8C9]/50"
+              onClick={() => setMobileOpen((p) => !p)}
+              aria-label="Toggle menu"
+              aria-expanded={mobileOpen}
+              whileTap={{ scale: 0.9 }}
+            >
+              {mobileOpen ? <X size={24} strokeWidth={1.5} /> : <Menu size={24} strokeWidth={1.5} />}
+            </motion.button>
+          </div>
         </div>
       </div>
 
@@ -479,7 +507,7 @@ export const Navbar = () => {
 
                 {/* Nav Links */}
                 <nav className="space-y-4" role="navigation" aria-label="Mobile navigation">
-                  {NAV_ITEMS.map((item) => {
+                  {MOBILE_NAV_ITEMS.map((item) => {
                     const isActive = location.pathname === item.to
                     return (
                       <Link
@@ -500,78 +528,14 @@ export const Navbar = () => {
                 {/* Divider */}
                 <div className="h-px bg-[#E6D8C9]/40" aria-hidden="true" />
 
-                {/* Cart Summary */}
-                <Link
-                  to="/cart"
-                  onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 hover:text-[#E89A43] transition-colors"
+                {/* Book Consultation */}
+                <button
+                  onClick={() => { setMobileOpen(false); setTimeout(() => window.dispatchEvent(new CustomEvent('open-consultation')), 100) }}
+                  className="btn-luxury-secondary w-full justify-center group"
                 >
-                  <ShoppingBag size={20} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                  <span>Cart</span>
-                  {totalItems > 0 && (
-                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-[#E89A43] text-white text-[10px] font-semibold">
-                      {totalItems > 99 ? '99+' : totalItems}
-                    </span>
-                  )}
-                </Link>
-
-                {/* User Actions */}
-                <div className="space-y-2 pt-2 border-t border-[#E6D8C9]/40">
-                  {isAuthenticated && user ? (
-                    <>
-                      <Link
-                        to="/account"
-                        onClick={() => setMobileOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 hover:text-[#E89A43] transition-colors"
-                      >
-                        <LayoutDashboard size={20} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                        My Account
-                      </Link>
-                      <Link
-                        to="/account"
-                        onClick={() => setMobileOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 hover:text-[#E89A43] transition-colors"
-                      >
-                        <Package size={20} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                        My Orders
-                      </Link>
-                      <Link
-                        to="/wishlist"
-                        onClick={() => setMobileOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 hover:text-[#E89A43] transition-colors"
-                      >
-                        <Heart size={20} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                        Wishlist
-                      </Link>
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-[#C62828] hover:bg-[#C62828]/5 transition-colors"
-                      >
-                        <LogOut size={20} strokeWidth={1.5} className="text-[#C62828]" aria-hidden="true" />
-                        Logout
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <Link
-                        to="/login"
-                        onClick={() => setMobileOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 hover:text-[#E89A43] transition-colors"
-                      >
-                        <LogIn size={20} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                        Login
-                      </Link>
-                      <Link
-                        to="/register"
-                        onClick={() => setMobileOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 hover:text-[#E89A43] transition-colors"
-                      >
-                        <UserPlus size={20} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                        Sign Up
-                      </Link>
-                    </>
-                  )}
-                </div>
+                  Book Consultation
+                  <CalendarCheck size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
+                </button>
               </div>
             </motion.div>
           </>

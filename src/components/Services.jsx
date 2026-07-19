@@ -14,7 +14,7 @@ const SERVICES = [
   },
   {
     icon: MonitorSmartphone,
-    title: 'Virtual Interior Design',
+    title: 'Website Designs',
     description: 'Transform your space from anywhere',
   },
   {

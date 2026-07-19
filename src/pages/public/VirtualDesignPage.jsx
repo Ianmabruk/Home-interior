@@ -95,7 +95,7 @@ export const VirtualDesignPage = () => {
   }
 
   const openProjectDetail = (item) => {
-    navigate(`/virtual-interior-design/project/${item.id}`)
+    navigate(`/virtual-design/project/${item.id}`)
   }
 
   if (loading) {
@@ -110,7 +110,7 @@ export const VirtualDesignPage = () => {
               transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
               className="text-center"
             >
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]/80 mb-4">Virtual Interior Design</p>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]/80 mb-4">Virtual Designs</p>
               <h1 className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl">Visual Portfolio</h1>
             </motion.div>
           </div>
@@ -219,7 +219,7 @@ export const VirtualDesignPage = () => {
                 />
                 <div className="relative h-full w-full rounded-full bg-[var(--accent)]" />
               </span>
-              Virtual Interior Design
+              Virtual Designs
             </motion.span>
 
             {/* Main Title */}

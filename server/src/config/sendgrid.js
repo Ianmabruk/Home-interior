@@ -5,6 +5,33 @@ if (env.sendGridApiKey) {
   sgMail.setApiKey(env.sendGridApiKey)
 }
 
+const MAX_RETRIES = 3
+const RETRY_DELAY_MS = 1000
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const sendWithRetry = async (mailOptions, attempt = 1) => {
+  try {
+    await sgMail.send(mailOptions)
+    return { sent: true }
+  } catch (err) {
+    const status = err?.code || err?.response?.statusCode
+
+    // Don't retry on auth errors (401) or validation errors (400)
+    if (status === 401 || status === 400) {
+      throw err
+    }
+
+    if (attempt < MAX_RETRIES) {
+      console.warn(`[SENDGRID] Attempt ${attempt} failed, retrying in ${RETRY_DELAY_MS}ms...`, err?.message)
+      await sleep(RETRY_DELAY_MS * attempt)
+      return sendWithRetry(mailOptions, attempt + 1)
+    }
+
+    throw err
+  }
+}
+
 export const sendEmail = async ({ to, subject, html }) => {
   if (!env.emailEnabled) {
     console.log(`[EMAIL DISABLED] ${subject} to ${to}`)
@@ -16,7 +43,7 @@ export const sendEmail = async ({ to, subject, html }) => {
   }
 
   try {
-    await sgMail.send({
+    await sendWithRetry({
       to,
       from: env.emailFrom,
       subject,
@@ -24,19 +51,66 @@ export const sendEmail = async ({ to, subject, html }) => {
     })
     return { sent: true }
   } catch (err) {
-    // Never let a SendGrid failure break the calling flow (login, register,
-    // forgot-password, admin test email). A 401 here means the API key is
-    // invalid/unauthorized — log it clearly but return a structured result so
-    // the endpoint can still succeed and the client gets a clean response.
     const status = err?.code || err?.response?.statusCode
     const reason =
       status === 401
         ? 'SendGrid Unauthorized (401) — check SENDGRID_API_KEY'
+        : status === 400
+        ? 'SendGrid Bad Request (400) — check email content'
         : (err?.message || 'SendGrid send failed')
-    console.error('[SENDGRID] email not sent:', reason)
+    console.error('[SENDGRID] email not sent:', { reason, status, to, subject })
     return { sent: false, reason, status }
   }
 }
+
+// Simple in-memory email queue for background processing
+const emailQueue = []
+let isProcessingQueue = false
+
+export const queueEmail = (emailOptions) => {
+  emailQueue.push({
+    ...emailOptions,
+    timestamp: new Date().toISOString(),
+    attempts: 0,
+  })
+  processEmailQueue()
+}
+
+const processEmailQueue = async () => {
+  if (isProcessingQueue || emailQueue.length === 0) return
+
+  isProcessingQueue = true
+
+  while (emailQueue.length > 0) {
+    const email = emailQueue.shift()
+    email.attempts++
+
+    try {
+      await sendWithRetry({
+        to: email.to,
+        from: env.emailFrom,
+        subject: email.subject,
+        html: email.html,
+      })
+      console.log('[SENDGRID] Queued email sent successfully:', email.subject)
+    } catch (err) {
+      if (email.attempts < MAX_RETRIES) {
+        // Re-queue for retry
+        emailQueue.unshift(email)
+        console.warn(`[SENDGRID] Queued email failed, will retry (attempt ${email.attempts}/${MAX_RETRIES}):`, err?.message)
+      } else {
+        console.error('[SENDGRID] Queued email failed permanently after max retries:', email)
+      }
+    }
+  }
+
+  isProcessingQueue = false
+}
+
+export const getEmailQueueStatus = () => ({
+  pending: emailQueue.length,
+  processing: isProcessingQueue,
+})
 
 export const buildAdminTestEmailTemplate = ({ adminEmail, timestamp }) => {
   return `

@@ -8,7 +8,11 @@ import { withId, withIdArray, sortByOrderThenDate, orderValue, toBoolean } from 
 import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
 
 const PORTFOLIO_FIELDS = new Set([
-  'title', 'description', 'imageUrl', 'cloudinaryId', 'featured', 'displayOrder'
+  'title', 'description', 'imageUrl', 'galleryImages', 'cloudinaryId', 'featured', 'displayOrder'
+])
+
+const GALLERY_FIELDS = new Set([
+  'imageUrl'
 ])
 
 const stripUnknown = (obj, allowed) => {
@@ -77,6 +81,19 @@ export const portfolioController = {
       if (payload.displayOrder !== undefined) payload.displayOrder = orderValue(payload.displayOrder)
       payload.featured = toBoolean(req.body.featured, false)
 
+      // Handle gallery images
+      const galleryFiles = Array.isArray(req.files) ? req.files.filter(f => f.fieldname === 'gallery') : []
+      const galleryUrls = []
+      
+      for (const file of galleryFiles) {
+        const upload = await uploadImage(file.buffer, 'hok/portfolio/gallery', file.mimetype)
+        galleryUrls.push(upload.secure_url)
+      }
+      
+      if (galleryUrls.length > 0) {
+        payload.galleryImages = galleryUrls
+      }
+
       const mediaFile = findFileByFieldname(req, 'media')
       if (mediaFile) {
         const upload = await uploadImage(mediaFile.buffer, 'hok/portfolio', mediaFile.mimetype)
@@ -126,6 +143,21 @@ export const portfolioController = {
 
       if (payload.displayOrder !== undefined) payload.displayOrder = orderValue(payload.displayOrder)
       payload.featured = toBoolean(req.body.featured, existing.featured)
+
+      // Handle gallery images
+      const galleryFiles = Array.isArray(req.files) ? req.files.filter(f => f.fieldname === 'gallery') : []
+      const galleryUrls = []
+      
+      for (const file of galleryFiles) {
+        const upload = await uploadImage(file.buffer, 'hok/portfolio/gallery', file.mimetype)
+        galleryUrls.push(upload.secure_url)
+      }
+      
+      if (galleryUrls.length > 0) {
+        // Append new gallery images to existing ones
+        const existingGallery = existing.galleryImages || []
+        payload.galleryImages = [...existingGallery, ...galleryUrls]
+      }
 
       const mediaFile = findFileByFieldname(req, 'media')
       if (mediaFile) {
@@ -182,8 +214,97 @@ export const portfolioController = {
       if (existing.cloudinaryId) {
         await deleteMedia(existing.cloudinaryId, 'image')
       }
+      // Delete gallery images
+      if (existing.galleryImages && existing.galleryImages.length > 0) {
+        for (const imageUrl of existing.galleryImages) {
+          try {
+            // Extract public ID from URL and delete
+            const publicId = imageUrl.split('/').pop()?.split('.')[0]
+            if (publicId) {
+              await deleteMedia(publicId, 'image')
+            }
+          } catch (e) {
+            console.error('[PORTFOLIO][DELETE] gallery image delete failed:', e?.message)
+          }
+        }
+      }
     }
     await prisma.portfolio.delete({ where: { id: req.params.id } })
     res.json(sendSuccess({ message: 'Portfolio item deleted' }))
+  }),
+
+  addGalleryImages: asyncHandler(async (req, res) => {
+    try {
+      const existing = await prisma.portfolio.findUnique({ where: { id: req.params.id } })
+      if (!existing) {
+        return res.status(404).json({ success: false, message: 'Portfolio item not found' })
+      }
+
+      const galleryFiles = Array.isArray(req.files) ? req.files : []
+      const galleryUrls = []
+      
+      for (const file of galleryFiles) {
+        const upload = await uploadImage(file.buffer, 'hok/portfolio/gallery', file.mimetype)
+        galleryUrls.push(upload.secure_url)
+      }
+      
+      if (galleryUrls.length === 0) {
+        return res.status(400).json({ success: false, message: 'No gallery images provided' })
+      }
+
+      const existingGallery = existing.galleryImages || []
+      const updatedGallery = [...existingGallery, ...galleryUrls]
+
+      const item = await prismaSafeWrite(
+        (data) => prisma.portfolio.update({ where: { id: req.params.id }, data }),
+        { galleryImages: updatedGallery },
+        'PORTFOLIO-ADD-GALLERY'
+      )
+      res.json(sendSuccess(withId(item)))
+    } catch (error) {
+      console.error('[PORTFOLIO][ADD-GALLERY] error:', error?.message)
+      res.status(500).json({ success: false, message: 'Failed to add gallery images' })
+    }
+  }),
+
+  removeGalleryImage: asyncHandler(async (req, res) => {
+    try {
+      const { imageUrl } = req.body
+      if (!imageUrl) {
+        return res.status(400).json({ success: false, message: 'imageUrl is required' })
+      }
+
+      const existing = await prisma.portfolio.findUnique({ where: { id: req.params.id } })
+      if (!existing) {
+        return res.status(404).json({ success: false, message: 'Portfolio item not found' })
+      }
+
+      const existingGallery = existing.galleryImages || []
+      const updatedGallery = existingGallery.filter(url => url !== imageUrl)
+
+      if (updatedGallery.length === existingGallery.length) {
+        return res.status(404).json({ success: false, message: 'Image not found in gallery' })
+      }
+
+      // Try to delete from Cloudinary
+      try {
+        const publicId = imageUrl.split('/').pop()?.split('.')[0]
+        if (publicId) {
+          await deleteMedia(publicId, 'image')
+        }
+      } catch (e) {
+        console.error('[PORTFOLIO][REMOVE-GALLERY] Cloudinary delete failed:', e?.message)
+      }
+
+      const item = await prismaSafeWrite(
+        (data) => prisma.portfolio.update({ where: { id: req.params.id }, data }),
+        { galleryImages: updatedGallery },
+        'PORTFOLIO-REMOVE-GALLERY'
+      )
+      res.json(sendSuccess(withId(item)))
+    } catch (error) {
+      console.error('[PORTFOLIO][REMOVE-GALLERY] error:', error?.message)
+      res.status(500).json({ success: false, message: 'Failed to remove gallery image' })
+    }
   }),
 }

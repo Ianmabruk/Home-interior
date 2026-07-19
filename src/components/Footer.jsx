@@ -42,9 +42,10 @@ export const Footer = () => {
     { icon: FaPinterest, href: 'https://www.pinterest.com/hokinterior', label: 'Pinterest', ariaLabel: 'Follow us on Pinterest' },
   ]
 
-  const quickLinks = [
-    { to: '/shop', label: 'Shop' },
-    { to: '/virtual-interior-design', label: 'Virtual Interior Design' },
+const quickLinks = [
+    { to: '/portfolio', label: 'Portfolio' },
+    { to: '/services', label: 'Services' },
+    { to: '/virtual-design', label: 'Website Designs' },
     { to: '/about', label: 'About Us' },
     { to: '/account', label: 'My Account', auth: true },
     { to: '/register', label: 'Register', guest: true },

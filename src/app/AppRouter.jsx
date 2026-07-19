@@ -47,6 +47,7 @@ const HomePage = lazy(() => import('../pages/public/HomePage').then((m) => ({ de
 const ProductDetailPage = lazy(() => import('../pages/public/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage })))
 const PortfolioPage = lazy(() => import('../pages/public/PortfolioPage').then((m) => ({ default: m.PortfolioPage })))
 const ShopPage = lazy(() => import('../pages/public/ShopPage').then((m) => ({ default: m.ShopPage })))
+const ServicesPage = lazy(() => import('../pages/public/ServicesPage').then((m) => ({ default: m.ServicesPage })))
 const VirtualDesignPage = lazy(() => import('../pages/public/VirtualDesignPage').then((m) => ({ default: m.VirtualDesignPage })))
 const NotFoundPage = lazy(() => import('../pages/public/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 
@@ -67,9 +68,10 @@ export const AppRouter = () => {
         <Route path="/portfolio" element={<ErrorBoundaryRoute element={<PortfolioPage />} />} />
         <Route path="/portfolio/:id" element={<ErrorBoundaryRoute element={<PortfolioDetailPage />} />} />
         <Route path="/about" element={<ErrorBoundaryRoute element={<AboutPage />} />} />
+        <Route path="/services" element={<ErrorBoundaryRoute element={<ServicesPage />} />} />
         <Route path="/virtual-design" element={<ErrorBoundaryRoute element={<VirtualDesignPage />} />} />
         <Route path="/virtual-interior-design" element={<ErrorBoundaryRoute element={<VirtualDesignPage />} />} />
-        <Route path="/virtual-interior-design/project/:id" element={<ErrorBoundaryRoute element={<VirtualDesignDetailPage />} />} />
+        <Route path="/virtual-design/project/:id" element={<ErrorBoundaryRoute element={<VirtualDesignDetailPage />} />} />
         <Route path="/chat" element={<ErrorBoundaryRoute element={<ChatPage />} />} />
 
         <Route element={<ProtectedRoute />}>

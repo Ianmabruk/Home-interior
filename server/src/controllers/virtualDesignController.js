@@ -8,7 +8,7 @@ import { withId, withIdArray, sortByOrderThenDate, orderValue, toBoolean } from 
 import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
 
 const VIRTUAL_DESIGN_FIELDS = new Set([
-  'title', 'description', 'mediaType', 'mediaUrl', 'cloudinaryId', 'featured'
+  'title', 'description', 'mediaType', 'mediaUrl', 'galleryMedia', 'cloudinaryId', 'featured'
 ])
 
 const stripUnknown = (obj, allowed) => {
@@ -89,6 +89,22 @@ export const virtualDesignController = {
         payload.mediaType = isVideo ? 'video' : 'image'
       }
 
+      // Handle gallery media
+      const galleryFiles = Array.isArray(req.files) ? req.files.filter(f => f.fieldname === 'gallery') : []
+      const galleryUrls = []
+      
+      for (const file of galleryFiles) {
+        const isVideoFile = file.mimetype.startsWith('video/')
+        const upload = isVideoFile
+          ? await uploadVideo(file.buffer, 'hok/virtual-design/gallery', file.mimetype)
+          : await uploadImage(file.buffer, 'hok/virtual-design/gallery', file.mimetype)
+        galleryUrls.push({ url: upload.secure_url, type: isVideoFile ? 'video' : 'image' })
+      }
+      
+      if (galleryUrls.length > 0) {
+        payload.galleryMedia = galleryUrls
+      }
+
       if (!payload.mediaUrl) {
         return res.status(400).json({ success: false, message: 'Media (image or video) is required' })
       }
@@ -150,6 +166,23 @@ export const virtualDesignController = {
         payload.mediaType = isVideo ? 'video' : 'image'
       }
 
+      // Handle gallery media
+      const galleryFiles = Array.isArray(req.files) ? req.files.filter(f => f.fieldname === 'gallery') : []
+      const galleryUrls = []
+      
+      for (const file of galleryFiles) {
+        const isVideoFile = file.mimetype.startsWith('video/')
+        const upload = isVideoFile
+          ? await uploadVideo(file.buffer, 'hok/virtual-design/gallery', file.mimetype)
+          : await uploadImage(file.buffer, 'hok/virtual-design/gallery', file.mimetype)
+        galleryUrls.push({ url: upload.secure_url, type: isVideoFile ? 'video' : 'image' })
+      }
+      
+      if (galleryUrls.length > 0) {
+        const existingGallery = existing.galleryMedia || []
+        payload.galleryMedia = [...existingGallery, ...galleryUrls]
+      }
+
       const item = await prismaSafeWrite(
         (data) => prisma.virtualDesign.update({ where: { id: req.params.id }, data }),
         payload,
@@ -183,8 +216,101 @@ export const virtualDesignController = {
       if (existing.cloudinaryId) {
         await deleteMedia(existing.cloudinaryId, existing.mediaType === 'video' ? 'video' : 'image')
       }
+      // Delete gallery media
+      if (existing.galleryMedia && existing.galleryMedia.length > 0) {
+        for (const media of existing.galleryMedia) {
+          try {
+            const publicId = media.url.split('/').pop()?.split('.')[0]
+            if (publicId) {
+              await deleteMedia(publicId, media.type === 'video' ? 'video' : 'image')
+            }
+          } catch (e) {
+            console.error('[VIRTUAL-DESIGN][DELETE] gallery media delete failed:', e?.message)
+          }
+        }
+      }
     }
     await prisma.virtualDesign.delete({ where: { id: req.params.id } })
     res.json(sendSuccess({ message: 'Virtual Design item deleted' }))
+  }),
+
+  addGalleryMedia: asyncHandler(async (req, res) => {
+    try {
+      const existing = await prisma.virtualDesign.findUnique({ where: { id: req.params.id } })
+      if (!existing) {
+        return res.status(404).json({ success: false, message: 'Virtual Design item not found' })
+      }
+
+      const galleryFiles = Array.isArray(req.files) ? req.files : []
+      const galleryUrls = []
+      
+      for (const file of galleryFiles) {
+        const isVideoFile = file.mimetype.startsWith('video/')
+        const upload = isVideoFile
+          ? await uploadVideo(file.buffer, 'hok/virtual-design/gallery', file.mimetype)
+          : await uploadImage(file.buffer, 'hok/virtual-design/gallery', file.mimetype)
+        galleryUrls.push({ url: upload.secure_url, type: isVideoFile ? 'video' : 'image' })
+      }
+      
+      if (galleryUrls.length === 0) {
+        return res.status(400).json({ success: false, message: 'No gallery media provided' })
+      }
+
+      const existingGallery = existing.galleryMedia || []
+      const updatedGallery = [...existingGallery, ...galleryUrls]
+
+      const item = await prismaSafeWrite(
+        (data) => prisma.virtualDesign.update({ where: { id: req.params.id }, data }),
+        { galleryMedia: updatedGallery },
+        'VIRTUAL-DESIGN-ADD-GALLERY'
+      )
+      res.json(sendSuccess(withId(item)))
+    } catch (error) {
+      console.error('[VIRTUAL-DESIGN][ADD-GALLERY] error:', error?.message)
+      res.status(500).json({ success: false, message: 'Failed to add gallery media' })
+    }
+  }),
+
+  removeGalleryMedia: asyncHandler(async (req, res) => {
+    try {
+      const { mediaUrl } = req.body
+      if (!mediaUrl) {
+        return res.status(400).json({ success: false, message: 'mediaUrl is required' })
+      }
+
+      const existing = await prisma.virtualDesign.findUnique({ where: { id: req.params.id } })
+      if (!existing) {
+        return res.status(404).json({ success: false, message: 'Virtual Design item not found' })
+      }
+
+      const existingGallery = existing.galleryMedia || []
+      const updatedGallery = existingGallery.filter(media => media.url !== mediaUrl)
+
+      if (updatedGallery.length === existingGallery.length) {
+        return res.status(404).json({ success: false, message: 'Media not found in gallery' })
+      }
+
+      // Try to delete from Cloudinary
+      try {
+        const publicId = mediaUrl.split('/').pop()?.split('.')[0]
+        if (publicId) {
+          // Find the media type from the gallery
+          const media = existingGallery.find(m => m.url === mediaUrl)
+          await deleteMedia(publicId, media?.type === 'video' ? 'video' : 'image')
+        }
+      } catch (e) {
+        console.error('[VIRTUAL-DESIGN][REMOVE-GALLERY] Cloudinary delete failed:', e?.message)
+      }
+
+      const item = await prismaSafeWrite(
+        (data) => prisma.virtualDesign.update({ where: { id: req.params.id }, data }),
+        { galleryMedia: updatedGallery },
+        'VIRTUAL-DESIGN-REMOVE-GALLERY'
+      )
+      res.json(sendSuccess(withId(item)))
+    } catch (error) {
+      console.error('[VIRTUAL-DESIGN][REMOVE-GALLERY] error:', error?.message)
+      res.status(500).json({ success: false, message: 'Failed to remove gallery media' })
+    }
   }),
 }

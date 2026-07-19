@@ -15,6 +15,7 @@ import { portfolioController } from '../controllers/portfolioController.js'
 import { virtualDesignController } from '../controllers/virtualDesignController.js'
 import { testimonialController } from '../controllers/testimonialController.js'
 import { consultationController } from '../controllers/consultationController.js'
+import { serviceController } from '../controllers/serviceController.js'
 import { auth, authorize } from '../middleware/auth.js'
 import { sanitizeInput, validateFileUpload, validateBody } from '../middleware/validate.js'
 import { auditLog } from '../middleware/auditLog.js'
@@ -42,13 +43,7 @@ const subscribeLimiter = rateLimit({
 })
 
 const validateUpload = validateFileUpload('media', { maxBytes: 50 * 1024 * 1024 })
-
-const portfolioSchema = z.object({
-  title: z.string().optional(),
-  description: z.string().optional(),
-}).passthrough()
-
-const validatePortfolioBody = validateBody(portfolioSchema)
+const validateGalleryUpload = validateFileUpload('gallery', { maxBytes: 50 * 1024 * 1024 })
 
 const virtualDesignSchema = z.object({
   title: z.string().min(1, 'title is required'),
@@ -57,16 +52,20 @@ const virtualDesignSchema = z.object({
 
 const validateVirtualDesignBody = validateBody(virtualDesignSchema)
 
-const consultationSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  phone: z.string().optional(),
-  message: z.string().min(10),
-  preferredDate: z.string().optional(),
-  preferredTime: z.string().optional(),
-})
+const portfolioSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+}).passthrough()
 
-const validateConsultationBody = validateBody(consultationSchema)
+const validatePortfolioBody = validateBody(portfolioSchema)
+
+const serviceSchema = z.object({
+  title: z.string().min(1, 'title is required'),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+}).passthrough()
+
+const validateServiceBody = validateBody(serviceSchema)
 
 router.get('/homepage', homepageFeed)
 router.get('/analytics', auth, getAnalytics)
@@ -77,6 +76,16 @@ router.patch('/portfolio/reorder', auth, authorize('admin'), writeLimiter, audit
 router.post('/portfolio', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, validatePortfolioBody, portfolioController.create)
 router.patch('/portfolio/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, validatePortfolioBody, portfolioController.update)
 router.delete('/portfolio/:id', auth, authorize('admin'), writeLimiter, auditLog, portfolioController.remove)
+
+router.post('/portfolio/:id/gallery', auth, authorize('admin'), writeLimiter, auditLog, upload.array('gallery', 10), validateGalleryUpload, sanitizeInput, portfolioController.addGalleryImages)
+router.delete('/portfolio/:id/gallery', auth, authorize('admin'), writeLimiter, auditLog, sanitizeInput, portfolioController.removeGalleryImage)
+
+router.get('/services', serviceController.list)
+router.get('/services/:id', serviceController.get)
+router.patch('/services/reorder', auth, authorize('admin'), writeLimiter, auditLog, sanitizeInput, serviceController.reorder)
+router.post('/services', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, validateServiceBody, serviceController.create)
+router.patch('/services/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, validateServiceBody, serviceController.update)
+router.delete('/services/:id', auth, authorize('admin'), writeLimiter, auditLog, serviceController.remove)
 
 router.get('/about', getAbout)
 router.put('/about', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, upsertAbout)
@@ -90,6 +99,12 @@ router.get('/virtual-design/:id', virtualDesignController.get)
 router.post('/virtual-design', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, validateVirtualDesignBody, virtualDesignController.create)
 router.patch('/virtual-design/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, validateVirtualDesignBody, virtualDesignController.update)
 router.delete('/virtual-design/:id', auth, authorize('admin'), writeLimiter, auditLog, virtualDesignController.remove)
+
+router.post('/virtual-design/:id/gallery', auth, authorize('admin'), writeLimiter, auditLog, upload.array('gallery', 10), validateGalleryUpload, sanitizeInput, virtualDesignController.addGalleryMedia)
+router.delete('/virtual-design/:id/gallery', auth, authorize('admin'), writeLimiter, auditLog, sanitizeInput, virtualDesignController.removeGalleryMedia)
+
+router.post('/virtual-design/:id/gallery', auth, authorize('admin'), writeLimiter, auditLog, upload.array('gallery', 10), validateGalleryUpload, sanitizeInput, virtualDesignController.addGalleryMedia)
+router.delete('/virtual-design/:id/gallery', auth, authorize('admin'), writeLimiter, auditLog, sanitizeInput, virtualDesignController.removeGalleryMedia)
 
 router.post('/test-upload', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, testUpload)
 router.post('/media/upload', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, uploadMediaController)

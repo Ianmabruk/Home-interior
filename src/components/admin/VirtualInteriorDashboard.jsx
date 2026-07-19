@@ -8,6 +8,8 @@ import {
   Plus,
   Image,
   Star,
+  UploadCloud,
+  Images,
 } from 'lucide-react'
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
@@ -24,14 +26,18 @@ export const VirtualInteriorDashboard = () => {
   const [items, setItems] = useState([])
   const [form, setForm] = useState(INITIAL_FORM)
   const [editingId, setEditingId] = useState(null)
-  const [mediaFiles, setMediaFiles] = useState([])
-  const [mediaPreviews, setMediaPreviews] = useState([])
+  const [mainMediaFiles, setMainMediaFiles] = useState([])
+  const [mainMediaPreviews, setMainMediaPreviews] = useState([])
+  const [galleryFiles, setGalleryFiles] = useState([])
+  const [galleryPreviews, setGalleryPreviews] = useState([])
   const [loading, setLoading] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
-  const [isDragOver, setIsDragOver] = useState(false)
+  const [isDragOverMain, setIsDragOverMain] = useState(false)
+  const [isDragOverGallery, setIsDragOverGallery] = useState(false)
   const [showForm, setShowForm] = useState(false)
-  const fileRef = useRef(null)
+  const mainFileRef = useRef(null)
   const videoRef = useRef(null)
+  const galleryFileRef = useRef(null)
 
   useEffect(() => {
     const load = async () => {
@@ -52,9 +58,24 @@ export const VirtualInteriorDashboard = () => {
     validFiles.forEach(f => previewSetter(prev => [...prev, URL.createObjectURL(f)]))
   }
 
+  const handleGalleryFiles = (files) => {
+    const validFiles = Array.from(files).filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'))
+    const newFiles = [...galleryFiles, ...validFiles].slice(0, 10)
+    setGalleryFiles(newFiles)
+    validFiles.forEach(f => setGalleryPreviews(prev => [...prev, URL.createObjectURL(f)]))
+  }
+
   const removeMedia = (index, filesSetter, previewsSetter) => {
     filesSetter(prev => prev.filter((_, i) => i !== index))
     previewsSetter(prev => {
+      URL.revokeObjectURL(prev[index])
+      return prev.filter((_, i) => i !== index)
+    })
+  }
+
+  const removeGalleryMedia = (index) => {
+    setGalleryFiles(prev => prev.filter((_, i) => i !== index))
+    setGalleryPreviews(prev => {
       URL.revokeObjectURL(prev[index])
       return prev.filter((_, i) => i !== index)
     })
@@ -68,32 +89,51 @@ export const VirtualInteriorDashboard = () => {
       mediaType: item.mediaType || 'image',
       featured: item.featured || false,
     })
-    setMediaFiles(item.mediaUrl ? [{ url: item.mediaUrl, type: item.mediaType }] : [])
-    setMediaPreviews(item.mediaUrl ? [item.mediaUrl] : [])
+    setMainMediaFiles(item.mediaUrl ? [{ url: item.mediaUrl, type: item.mediaType }] : [])
+    setMainMediaPreviews(item.mediaUrl ? [item.mediaUrl] : [])
+    setGalleryFiles(item.galleryMedia ? [{ url: item.galleryMedia[0]?.url, type: item.galleryMedia[0]?.type }] : [])
+    setGalleryPreviews(item.galleryMedia ? item.galleryMedia.map(m => m.url) : [])
     setShowForm(true)
   }
 
   const resetForm = () => {
     setEditingId(null)
     setForm(INITIAL_FORM)
-    setMediaFiles([])
-    setMediaPreviews([])
+    setMainMediaFiles([])
+    setMainMediaPreviews([])
+    setGalleryFiles([])
+    setGalleryPreviews([])
     setShowForm(false)
   }
 
   const handleDragOver = (e) => {
     e.preventDefault()
-    setIsDragOver(true)
+    setIsDragOverMain(true)
   }
 
   const handleDragLeave = () => {
-    setIsDragOver(false)
+    setIsDragOverMain(false)
+  }
+
+  const handleGalleryDragOver = (e) => {
+    e.preventDefault()
+    setIsDragOverGallery(true)
+  }
+
+  const handleGalleryDragLeave = () => {
+    setIsDragOverGallery(false)
   }
 
   const handleDrop = (e, setter, previewSetter) => {
     e.preventDefault()
-    setIsDragOver(false)
+    setIsDragOverMain(false)
     handleFiles(e.dataTransfer.files, setter, previewSetter)
+  }
+
+  const handleGalleryDrop = (e) => {
+    e.preventDefault()
+    setIsDragOverGallery(false)
+    handleGalleryFiles(e.dataTransfer.files)
   }
 
   const submit = async (e) => {
@@ -106,9 +146,17 @@ export const VirtualInteriorDashboard = () => {
       payload.append('mediaType', form.mediaType)
       payload.append('featured', String(form.featured))
 
-      const file = mediaFiles[0]
+      const file = mainMediaFiles[0]
       if (file && file instanceof File) {
         payload.append('media', file)
+      }
+
+      if (galleryFiles.length > 0) {
+        galleryFiles.forEach((file) => {
+          if (file instanceof File) {
+            payload.append('gallery', file)
+          }
+        })
       }
 
       if (editingId) {
@@ -141,7 +189,7 @@ export const VirtualInteriorDashboard = () => {
   }
 
   const handleImageClick = useCallback(() => {
-    fileRef.current?.click()
+    mainFileRef.current?.click()
   }, [])
 
   const handleVideoClick = useCallback(() => {
@@ -227,13 +275,13 @@ export const VirtualInteriorDashboard = () => {
         className="flex flex-col gap-4"
       >
         <div>
-          <h2 className="font-display text-3xl text-[var(--primary)]">Virtual Interior Design</h2>
+          <h2 className="font-display text-3xl text-[var(--primary)]">Virtual Designs</h2>
           <p className="text-sm text-[var(--primary)]/50 mt-1">Manage virtual design projects - images and videos</p>
         </div>
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => { setEditingId(null); setForm(INITIAL_FORM); setMediaFiles([]); setMediaPreviews([]); setShowForm(true) }}
+          onClick={() => { setEditingId(null); setForm(INITIAL_FORM); setMainMediaFiles([]); setMainMediaPreviews([]); setGalleryFiles([]); setGalleryPreviews([]); setShowForm(true) }}
           className="btn-luxury-primary flex items-center gap-2"
         >
           <Plus size={18} strokeWidth={2} />
@@ -320,41 +368,93 @@ export const VirtualInteriorDashboard = () => {
               </div>
             </div>
 
-            {/* Media Upload */}
+            {/* Main Media Upload */}
             <div className="space-y-2">
               <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 flex items-center gap-2">
                 <Image size={14} strokeWidth={1.5} />
-                Project Image
+                Main Media (Image or Video)
               </label>
-              <input ref={fileRef} type="file" accept="image/*" onChange={(e) => handleFiles(e.target.files, setMediaFiles, setMediaPreviews)} className="hidden" />
-              {/* eslint-disable-next-line react-hooks/refs -- false positive: handleImageClick only accesses ref in event handler */}
+              <input ref={mainFileRef} type="file" accept="image/*,video/*" onChange={(e) => handleFiles(e.target.files, setMainMediaFiles, setMainMediaPreviews)} className="hidden" />
+              <input ref={videoRef} type="file" accept="video/*" onChange={(e) => handleFiles(e.target.files, setMainMediaFiles, setMainMediaPreviews)} className="hidden" />
               {renderMediaUpload({
-                label: 'Project Image',
-                accept: 'image/*',
-                previews: mediaPreviews,
+                label: 'Main Media',
+                accept: 'image/*,video/*',
+                previews: mainMediaPreviews,
                 onFileClick: handleImageClick,
-                isDragOver,
-                setFiles: setMediaFiles,
-                setPreviews: setMediaPreviews,
+                isDragOver: isDragOverMain,
+                setFiles: setMainMediaFiles,
+                setPreviews: setMainMediaPreviews,
               })}
             </div>
 
+            {/* Gallery Media Upload */}
             <div className="space-y-2">
               <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 flex items-center gap-2">
-                <Video size={14} strokeWidth={1.5} />
-                Project Video
+                <Images size={14} strokeWidth={1.5} />
+                Gallery Media (up to 10)
               </label>
-              <input ref={videoRef} type="file" accept="video/*" onChange={(e) => handleFiles(e.target.files, setMediaFiles, setMediaPreviews)} className="hidden" />
-              {/* eslint-disable-next-line react-hooks/refs -- false positive: handleVideoClick only accesses ref in event handler */}
-              {renderMediaUpload({
-                label: 'Project Video',
-                accept: 'video/*',
-                previews: mediaPreviews,
-                onFileClick: handleVideoClick,
-                isDragOver,
-                setFiles: setMediaFiles,
-                setPreviews: setMediaPreviews,
-              })}
+              <input ref={galleryFileRef} type="file" accept="image/*,video/*" multiple onChange={(e) => handleGalleryFiles(e.target.files)} className="hidden" />
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                onDrop={handleGalleryDrop}
+                onDragOver={handleGalleryDragOver}
+                onDragLeave={handleGalleryDragLeave}
+                onClick={() => galleryFileRef.current?.click()}
+                className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 ${
+                  isDragOverGallery ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--border)] bg-[var(--bg)]/30'
+                }`}
+              >
+                {galleryPreviews.length > 0 ? (
+                  <div className="p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-[var(--primary)]">Gallery Media ({galleryPreviews.length}/10)</p>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        type="button"
+                        onClick={() => galleryFileRef.current?.click()}
+                        className="text-xs text-[var(--accent)] hover:text-[var(--primary)] font-medium"
+                      >
+                        Add More
+                      </motion.button>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {galleryPreviews.map((src, i) => (
+                        <div key={i} className="relative rounded-xl overflow-hidden group">
+                          {galleryFiles[i]?.type?.startsWith('video/') ? (
+                            <video src={src} className="h-28 w-full object-cover" autoPlay muted loop controls />
+                          ) : (
+                            <img src={src} alt="Gallery preview" className="h-28 w-full object-cover" />
+                          )}
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); removeGalleryMedia(i) }}
+                            className="absolute top-1 right-1 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-1.5 rounded-full hover:bg-[var(--primary)] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={12} />
+                          </motion.button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-3 py-8">
+                    <motion.div
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--accent)]/10 to-[var(--secondary)]/10 flex items-center justify-center text-[var(--accent)]"
+                    >
+                      <UploadCloud size={28} />
+                    </motion.div>
+                    <div>
+                      <p className="text-sm font-medium text-[var(--primary)]">Drop images/videos here or click to browse</p>
+                      <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG, WebP up to 10MB | MP4, MOV, WebM up to 50MB (max 10)</p>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
             </div>
 
             <div className="flex gap-3 pt-2">
@@ -436,6 +536,15 @@ export const VirtualInteriorDashboard = () => {
                   item.mediaType === 'video' ? 'bg-blue-500/90 text-white' : 'bg-green-500/90 text-white'
                 }`}>
                   {item.mediaType}
+                </div>
+              )}
+              {/* Gallery count badge */}
+              {item.galleryMedia && item.galleryMedia.length > 0 && (
+                <div className="absolute top-3 right-3 z-10">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--primary)]/90 backdrop-blur-sm text-white text-[10px] font-semibold uppercase tracking-widest rounded-full shadow-lg">
+                    <Images size={10} strokeWidth={2} />
+                    {item.galleryMedia.length} media
+                  </span>
                 </div>
               )}
             </div>
