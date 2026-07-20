@@ -34,7 +34,6 @@ const seedAdmin = async () => {
     console.log(`Admin password: ${adminPassword}`)
 
     await prisma.$disconnect()
-    process.exit(0)
   } catch (error) {
     console.error('Admin seed failed', error)
     await prisma.$disconnect()
