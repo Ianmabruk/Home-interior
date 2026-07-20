@@ -12,21 +12,9 @@ jest.unstable_mockModule('../src/config/db.js', () => ({
   checkDatabaseHealth: jest.fn().mockResolvedValue({ database: 'connected', prisma: 'connected' }),
 }))
 
-jest.unstable_mockModule('../src/config/sendgrid.js', () => ({
-  sendEmail: jest.fn().mockResolvedValue(true),
-  buildAdminTestEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildWelcomeEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildLoginEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildNewProductEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildQuoteEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildReceiptEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildConsultationEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-}))
-
 process.env.JWT_ACCESS_SECRET = 'test-access-secret-key'
 process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-key'
 process.env.NODE_ENV = 'test'
-process.env.SENDGRID_API_KEY = 'test-sendgrid'
 process.env.CLIENT_URL = 'http://localhost:5173'
 
 const generateToken = (user) => {

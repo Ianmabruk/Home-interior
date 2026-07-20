@@ -14,13 +14,10 @@
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.js",
     "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.js --watch",
     "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.js --coverage",
-    "test:ci": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.js --ci --reporters=default --reporters=jest-junit",
-    "test:email": "node src/scripts/testSendGrid.js",
-    "test:emails": "node src/scripts/testSendGrid.js"
+    "test:ci": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.js --ci --reporters=default --reporters=jest-junit"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
-    "@sendgrid/mail": "^8.1.5",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
     "compression": "^1.7.4",

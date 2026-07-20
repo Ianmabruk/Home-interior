@@ -6,7 +6,6 @@ import { sendSuccess } from '../utils/sendSuccess.js'
 import { env } from '../config/env.js'
 import { withId, withIdArray, parseMaybeJson, parseMediaSettings, DEFAULT_MEDIA_SETTINGS } from '../utils/helpers.js'
 import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
-import { sendEmail, buildConsultationEmailTemplate } from '../config/sendgrid.js'
 import { executeWithRetry } from '../config/db.js'
 
 const parseServices = (value) => {
@@ -161,7 +160,7 @@ export const upsertAbout = async (req, res) => {
         mission: payload.mission ?? '',
         vision: payload.vision ?? '',
         location: payload.location ?? '',
-        contactEmail: payload.contactEmail ?? env.emailFrom ?? '',
+        contactEmail: payload.contactEmail ?? '',
         socials: payload.socials ?? {},
         ...payload,
       }

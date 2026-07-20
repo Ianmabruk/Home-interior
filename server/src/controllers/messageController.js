@@ -2,7 +2,6 @@ import { z } from 'zod'
 import { prisma } from '../config/db.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
-import { sendEmail, buildQuoteEmailTemplate } from '../config/sendgrid.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
 import { withId, withIdArray, parseBody } from '../utils/helpers.js'
 import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
@@ -55,17 +54,7 @@ export const createQuote = asyncHandler(async (req, res) => {
   try {
     const admin = await prisma.user.findFirst({ where: { role: 'admin' } })
     if (admin) {
-      await sendEmail({
-        to: admin.email,
-        subject: `New Quote Request: ${payload.projectType}`,
-        html: buildQuoteEmailTemplate({
-          fullName: payload.fullName,
-          email: payload.email,
-          projectType: payload.projectType,
-          budget: payload.budget,
-          message: payload.message,
-        }),
-      })
+      console.log(`[EMAIL DISABLED] Quote notification to ${admin.email} for ${payload.projectType}`)
     }
   } catch (err) {
     console.error('Quote notification email failed:', err)
@@ -101,16 +90,7 @@ export const replyToMessage = asyncHandler(async (req, res) => {
 
   try {
     if (message.email) {
-      await sendEmail({
-        to: message.email,
-        subject: `Re: ${message.subject}`,
-        html: `<div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; color: #333;">
-          <p>Hello ${message.name},</p>
-          <p>${reply.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <p style="color: #888; font-size: 12px;">This is a reply from HOK Interior Designs support team.</p>
-        </div>`,
-      })
+      console.log(`[EMAIL DISABLED] Reply to ${message.email} for message ${messageId}`)
     }
   } catch (err) {
     console.error('Reply email failed:', err)

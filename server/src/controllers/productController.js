@@ -2,7 +2,6 @@ import { z } from 'zod'
 import { prisma } from '../config/db.js'
 import { ApiError } from '../utils/ApiError.js'
 import { uploadImage, uploadVideo, deleteMedia } from '../services/uploadService.js'
-import { sendEmail, buildNewProductEmailTemplate } from '../config/sendgrid.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
 import { withId, withIdArray, parseMaybeJson, parseListField, parseMediaSettings, parseBody } from '../utils/helpers.js'
 import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
@@ -232,23 +231,7 @@ export const createProduct = async (req, res) => {
       'PRODUCT][CREATE',
     )
 
-    try {
-      const admin = await prisma.user.findFirst({ where: { role: 'admin' } })
-      if (admin) {
-        await sendEmail({
-          to: admin.email,
-          subject: 'New Product Added - HOK Interior',
-          html: buildNewProductEmailTemplate({
-            productName: product.name,
-            productPrice: product.discountPrice || product.price,
-            productImageUrl: product.images?.[0]?.url,
-          }),
-        })
-      }
-    } catch (err) {
-      console.error('New product notification email failed:', err)
-    }
-
+    console.log(`[EMAIL DISABLED] New product notification for ${product.name}`)
     res.status(201).json(sendSuccess(withId(product)))
   } catch (error) {
     console.error("FULL ERROR:", error)

@@ -4,7 +4,6 @@ import { z } from 'zod'
 import { prisma } from '../config/db.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
-import { sendEmail, buildWelcomeEmailTemplate, buildLoginEmailTemplate } from '../config/sendgrid.js'
 import { signAccessToken, signRefreshToken, verifyRefreshToken, setRefreshCookie, clearRefreshCookie, REFRESH_COOKIE_NAME } from '../utils/tokens.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
 import { parseBody } from '../utils/helpers.js'
@@ -60,16 +59,7 @@ export const register = asyncHandler(async (req, res) => {
     'AUTH][REGISTER',
   )
 
-  try {
-    await sendEmail({
-      to: body.email,
-      subject: 'Welcome to HOK Interior Designs',
-      html: buildWelcomeEmailTemplate({ fullName: body.fullName, email: body.email }),
-    })
-  } catch (err) {
-    console.error('[AUTH][register] welcome email failed:', err)
-  }
-
+  console.log(`[EMAIL DISABLED] Welcome email for ${body.email}`)
   setRefreshCookie(res, tokens.refreshToken)
   console.info(`[AUTH][register] success: userId=${user.id} email=${user.email}`)
 
@@ -108,16 +98,7 @@ export const login = asyncHandler(async (req, res) => {
     'AUTH][LOGIN',
   )
 
-  try {
-    await sendEmail({
-      to: user.email,
-      subject: 'HOK Interior - New Login Detected',
-      html: buildLoginEmailTemplate({ fullName: user.fullName, email: user.email, timestamp: new Date().toISOString() }),
-    })
-  } catch (err) {
-    console.error('[AUTH][login] notification email failed:', err)
-  }
-
+  console.log(`[EMAIL DISABLED] Login alert for ${user.email}`)
   setRefreshCookie(res, tokens.refreshToken)
   console.info(`[AUTH][login] success: userId=${user.id} email=${user.email} role=${user.role}`)
 
@@ -204,12 +185,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     'AUTH][FORGOT',
   )
 
-  const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password/${token}`
-  await sendEmail({
-    to: email,
-    subject: 'Reset your HOK Interior password',
-    html: `<p>Click <a href="${resetUrl}">here</a> to reset your password. This link expires in 30 minutes.</p>`,
-  })
+  console.log(`[EMAIL DISABLED] Password reset email for ${email}`)
 
   res.json(sendSuccess({ message: 'If that account exists, a reset link has been sent.' }))
 })

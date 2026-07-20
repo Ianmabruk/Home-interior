@@ -2,7 +2,6 @@ import { z } from 'zod'
 import { prisma } from '../config/db.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
-import { sendEmail, buildReceiptEmailTemplate } from '../config/sendgrid.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
 import { parseBody } from '../utils/helpers.js'
 
@@ -102,21 +101,7 @@ export const createOrder = asyncHandler(async (req, res) => {
     return created
   })
 
-  try {
-    const orderUser = await prisma.user.findUnique({ where: { id: req.user.userId } })
-    await sendEmail({
-      to: orderUser?.email || req.user.email,
-      subject: `HOK Interior - Order Confirmation #${order.id.slice(-8)}`,
-      html: buildReceiptEmailTemplate({
-        orderId: order.id.slice(-8),
-        items,
-        total,
-        customerName: orderUser?.fullName || req.user.email,
-      }),
-    })
-  } catch (err) {
-    console.error('Receipt email failed:', err)
-  }
+  console.log(`[EMAIL DISABLED] Order confirmation for order ${order.id.slice(-8)} to ${orderUser?.email || req.user.email}`)
 
   res.status(201).json(sendSuccess(withId(order)))
 })

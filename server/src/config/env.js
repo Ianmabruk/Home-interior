@@ -32,9 +32,6 @@ export const env = {
   cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
   cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || '',
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || '',
-  sendGridApiKey: process.env.SENDGRID_API_KEY || '',
-  emailFrom: process.env.EMAIL_FROM || 'no-reply@hokinterior.com',
-  emailEnabled: process.env.EMAIL_ENABLED === 'true',
   seedAdminEmail: process.env.SEED_ADMIN_EMAIL || 'admin@hokinterior.com',
   seedAdminPassword: process.env.SEED_ADMIN_PASSWORD || 'Admin123!',
 }

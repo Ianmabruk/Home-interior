@@ -12,11 +12,10 @@ services:
     name: home-interior-backend
     runtime: node
     rootDir: server
-    # Optimized build: install deps, generate Prisma client, apply migrations.
-    # Using --omit=dev to reduce install size and speed up builds.
-    buildCommand: npm install --omit=dev && npx prisma generate && npx prisma migrate deploy
-    # Start directly with Node. Do NOT run prisma generate/migrate on startup.
-    startCommand: node src/index.js
+    # Install all deps so prisma CLI is available, then generate client + migrate.
+    buildCommand: cd server && npm install && npx prisma generate && npx prisma migrate deploy
+    # Start the backend from server/ so npm finds server/package.json.
+    startCommand: cd server && npm start
     envVars:
       - key: NODE_ENV
         value: production
@@ -40,7 +39,5 @@ services:
         value: REPLACE_WITH_YOUR_CLOUDINARY_API_KEY
       - key: CLOUDINARY_API_SECRET
         value: REPLACE_WITH_YOUR_CLOUDINARY_API_SECRET
-      - key: SENDGRID_API_KEY
-        value: REPLACE_WITH_YOUR_SENDGRID_API_KEY
       - key: EMAIL_FROM
         value: info@hokinterior.com

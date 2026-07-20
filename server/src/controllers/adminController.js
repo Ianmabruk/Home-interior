@@ -1,7 +1,6 @@
 import { prisma } from '../config/db.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
-import { sendEmail, buildAdminTestEmailTemplate } from '../config/sendgrid.js'
 import { env } from '../config/env.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
 import { invalidateMaintenanceCache } from '../utils/maintenance.js'
@@ -280,20 +279,12 @@ export const updateSettings = async (req, res) => {
 }
 
 export const sendAdminTestEmail = asyncHandler(async (req, res) => {
-  const to = req.body?.to || req.user?.email || env.seedAdminEmail
-  const subject = 'HOK Admin Dashboard Test Email'
-  const html = buildAdminTestEmailTemplate({
-    adminEmail: req.user?.email || env.seedAdminEmail,
-    timestamp: new Date().toISOString(),
-  })
-
-  const result = await sendEmail({ to, subject, html })
-
+  console.log(`[EMAIL DISABLED] Test email to ${req.body?.to || req.user?.email || env.seedAdminEmail}`)
   res.json(sendSuccess({
-    message: result.sent ? 'Test email sent' : 'Test email not sent',
-    configured: Boolean(env.sendGridApiKey),
-    sent: result.sent,
-    reason: result.reason || null,
-    to,
+    message: 'Test email not sent',
+    configured: false,
+    sent: false,
+    reason: 'Email sending disabled',
+    to: req.body?.to || req.user?.email || env.seedAdminEmail,
   }))
 })

@@ -5,7 +5,6 @@ import { ApiError } from '../utils/ApiError.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
 import { withId, withIdArray, parseBody } from '../utils/helpers.js'
 import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
-import { sendEmail, buildConsultationEmailTemplate } from '../config/sendgrid.js'
 import { env } from '../config/env.js'
 
 const consultationSchema = z.object({
@@ -25,24 +24,10 @@ export const createConsultation = asyncHandler(async (req, res) => {
     'CONSULTATION][CREATE',
   )
 
-  const adminTo = env.emailFrom || env.seedAdminEmail
+  const adminTo = env.seedAdminEmail
   if (adminTo) {
-    const adminHtml = buildConsultationEmailTemplate({
-      name: payload.name,
-      email: payload.email,
-      phone: payload.phone,
-      message: payload.message,
-      preferredDate: payload.preferredDate,
-      preferredTime: payload.preferredTime,
-    })
-    sendEmail({ to: adminTo, subject: `New Consultation: ${payload.name}`, html: adminHtml }).catch((err) => {
-      console.error('[CONSULTATION] admin email failed:', err?.message || err)
-    })
-
-    const customerHtml = buildWelcomeEmailTemplate({ fullName: payload.name, email: payload.email })
-    sendEmail({ to: payload.email, subject: 'Consultation Request Received', html: customerHtml }).catch((err) => {
-      console.error('[CONSULTATION] customer email failed:', err?.message || err)
-    })
+    console.log(`[EMAIL DISABLED] Consultation admin notification to ${adminTo} for ${payload.name}`)
+    console.log(`[EMAIL DISABLED] Consultation customer notification to ${payload.email}`)
   }
 
   res.status(201).json(sendSuccess(withId(created)))

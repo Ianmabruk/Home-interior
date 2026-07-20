@@ -20,29 +20,6 @@ jest.unstable_mockModule('../src/config/cloudinary.js', () => ({
   default: {},
 }))
 
-jest.unstable_mockModule('../src/config/sendgrid.js', () => ({
-  sendEmail: jest.fn().mockResolvedValue(true),
-  buildAdminTestEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildWelcomeEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildLoginEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildNewProductEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildQuoteEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildReceiptEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildConsultationEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-}))
-
-// Mock Cloudinary image upload (this is the path the Admin Product Dashboard
-// exercises when a product image is selected and uploaded).
-const mockUploadImage = jest.fn().mockResolvedValue({
-  secure_url: 'https://test.cloudinary.com/product-image.jpg',
-  public_id: 'product-image-id',
-})
-const mockUploadVideo = jest.fn().mockResolvedValue({
-  secure_url: 'https://test.cloudinary.com/product-video.mp4',
-  public_id: 'product-video-id',
-})
-const mockDeleteMedia = jest.fn().mockResolvedValue({ result: 'ok' })
-
 jest.unstable_mockModule('../src/services/uploadService.js', () => ({
   uploadImage: mockUploadImage,
   uploadVideo: mockUploadVideo,
@@ -55,7 +32,6 @@ process.env.NODE_ENV = 'test'
 process.env.CLOUDINARY_CLOUD_NAME = 'test-cloud'
 process.env.CLOUDINARY_API_KEY = 'test-key'
 process.env.CLOUDINARY_API_SECRET = 'test-secret'
-process.env.SENDGRID_API_KEY = 'test-sendgrid'
 process.env.SEED_ADMIN_EMAIL = 'admin@test.com'
 process.env.SEED_ADMIN_PASSWORD = 'admin123'
 process.env.CLIENT_URL = 'http://localhost:5173'

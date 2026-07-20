@@ -21,24 +21,12 @@ jest.unstable_mockModule('../src/config/cloudinary.js', () => ({
   default: {},
 }))
 
-jest.unstable_mockModule('../src/config/sendgrid.js', () => ({
-  sendEmail: jest.fn().mockResolvedValue(true),
-  buildAdminTestEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildWelcomeEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildLoginEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildNewProductEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildQuoteEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildReceiptEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-  buildConsultationEmailTemplate: jest.fn().mockReturnValue('<html></html>'),
-}))
-
 process.env.JWT_ACCESS_SECRET = 'test-access-secret-key'
 process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-key'
 process.env.NODE_ENV = 'test'
 process.env.CLOUDINARY_CLOUD_NAME = 'test-cloud'
 process.env.CLOUDINARY_API_KEY = 'test-key'
 process.env.CLOUDINARY_API_SECRET = 'test-secret'
-process.env.SENDGRID_API_KEY = 'test-sendgrid'
 process.env.SEED_ADMIN_EMAIL = 'admin@test.com'
 process.env.SEED_ADMIN_PASSWORD = 'admin123'
 process.env.CLIENT_URL = 'http://localhost:5173'
