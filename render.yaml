@@ -20,8 +20,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DATABASE_CONNECTION_URL
+        value: postgresql://postgres.amcaogrlsrwxbvuglyle:gQ58tSEI8LPSk6LV@aws-1-eu-west-2.pooler.supabase.com:6543/postgres?sslmode=require&connect_timeout=15&pgbouncer=true
       - key: DATABASE_URL
-        value: postgresql://postgres.amcaogrlsrwxbvuglyle:YOUR_PASSWORD@aws-1-eu-west-2.pooler.supabase.com:6543/postgres?sslmode=require&connect_timeout=15&pgbouncer=true
+        value: postgresql://postgres.amcaogrlsrwxbvuglyle:gQ58tSEI8LPSk6LV@aws-1-eu-west-2.pooler.supabase.com:6543/postgres?sslmode=require&connect_timeout=15&pgbouncer=true
       - key: JWT_ACCESS_SECRET
         value: REPLACE_WITH_SECURE_RANDOM_STRING_MIN_32_CHARS
       - key: JWT_REFRESH_SECRET

@@ -218,7 +218,7 @@ export const checkDatabaseHealth = async () => {
 export const connectDB = async () => {
   if (!env.databaseUrl) {
     throw new Error(
-      'DATABASE_URL is not set. Add it to server/.env before starting the server.',
+      'DATABASE_CONNECTION_URL or DATABASE_URL is not set. Add it to server/.env before starting the server.',
     )
   }
 
