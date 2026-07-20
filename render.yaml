@@ -37,3 +37,5 @@ services:
         value: REPLACE_WITH_YOUR_CLOUDINARY_API_KEY
       - key: CLOUDINARY_API_SECRET
         value: REPLACE_WITH_YOUR_CLOUDINARY_API_SECRET
+      - key: SKIP_DB_VERIFY
+        value: "false"
