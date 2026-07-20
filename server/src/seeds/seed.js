@@ -19,47 +19,64 @@ dotenv.config()
 
 const seed = async () => {
   try {
-    await prisma.analytics.deleteMany()
-    await prisma.portfolio.deleteMany()
-    await prisma.project.deleteMany()
-    await prisma.product.deleteMany()
-    await prisma.virtualDesign.deleteMany()
-    await prisma.service.deleteMany()
-    await prisma.testimonial.deleteMany()
-    await prisma.about.deleteMany()
-    await prisma.settings.deleteMany()
-    await prisma.newsletterSubscription.deleteMany()
-
-    for (const item of productsSeed) {
-      await prisma.product.create({ data: item })
+    const analyticsCount = await prisma.analytics.count()
+    if (analyticsCount === 0) {
+      for (const row of analyticsSeed) {
+        await prisma.analytics.create({ data: row })
+      }
     }
 
-    for (const item of projectsSeed) {
-      await prisma.project.create({ data: item })
+    const portfolioCount = await prisma.portfolio.count()
+    if (portfolioCount === 0) {
+      for (const item of portfolioSeed) {
+        await prisma.portfolio.create({ data: item })
+      }
     }
 
-    for (const item of portfolioSeed) {
-      await prisma.portfolio.create({ data: item })
+    const projectCount = await prisma.project.count()
+    if (projectCount === 0) {
+      for (const item of projectsSeed) {
+        await prisma.project.create({ data: item })
+      }
     }
 
-    for (const item of servicesSeed) {
-      await prisma.service.create({ data: item })
+    const productCount = await prisma.product.count()
+    if (productCount === 0) {
+      for (const item of productsSeed) {
+        await prisma.product.create({ data: item })
+      }
     }
 
-    for (const item of virtualDesignSeed) {
-      await prisma.virtualDesign.create({ data: item })
+    const virtualDesignCount = await prisma.virtualDesign.count()
+    if (virtualDesignCount === 0) {
+      for (const item of virtualDesignSeed) {
+        await prisma.virtualDesign.create({ data: item })
+      }
     }
 
-    for (const row of analyticsSeed) {
-      await prisma.analytics.create({ data: row })
+    const serviceCount = await prisma.service.count()
+    if (serviceCount === 0) {
+      for (const item of servicesSeed) {
+        await prisma.service.create({ data: item })
+      }
     }
 
-    for (const item of testimonialsSeed) {
-      await prisma.testimonial.create({ data: item })
+    const testimonialCount = await prisma.testimonial.count()
+    if (testimonialCount === 0) {
+      for (const item of testimonialsSeed) {
+        await prisma.testimonial.create({ data: item })
+      }
     }
 
-    await prisma.about.create({ data: aboutSeed })
-    await prisma.settings.create({ data: settingsSeed })
+    const aboutCount = await prisma.about.count()
+    if (aboutCount === 0) {
+      await prisma.about.create({ data: aboutSeed })
+    }
+
+    const settingsCount = await prisma.settings.count()
+    if (settingsCount === 0) {
+      await prisma.settings.create({ data: settingsSeed })
+    }
 
     const adminEmail = env.seedAdminEmail.toLowerCase()
     const adminPassword = env.seedAdminPassword
