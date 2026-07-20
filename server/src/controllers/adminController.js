@@ -11,14 +11,12 @@ const withIdArray = (items) => items.map((item) => withId(item))
 const sortOrdersByDate = (orders) => orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
 export const dashboardOverview = asyncHandler(async (req, res) => {
-  const [products, userCount, ordersRaw, analyticsRaw, portfolioCount, users] = await Promise.all([
-    prisma.product.findMany(),
-    prisma.user.count(),
-    prisma.order.findMany(),
-    prisma.analytics.findMany({ orderBy: { date: 'asc' } }),
-    prisma.portfolio.count(),
-    prisma.user.findMany({ select: { id: true, fullName: true, email: true } }),
-  ])
+  const products = await prisma.product.findMany()
+  const userCount = await prisma.user.count()
+  const ordersRaw = await prisma.order.findMany()
+  const analyticsRaw = await prisma.analytics.findMany({ orderBy: { date: 'asc' } })
+  const portfolioCount = await prisma.portfolio.count()
+  const users = await prisma.user.findMany({ select: { id: true, fullName: true, email: true } })
 
   const userById = new Map(users.map((u) => [u.id, u]))
 

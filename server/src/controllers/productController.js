@@ -67,15 +67,13 @@ export const listProducts = async (req, res) => {
     const safeLimit = Math.min(Number(limit), 200)
     const safePage = Number(page)
 
-    const [items, total] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        orderBy: { [sortField]: sortOrder },
-        skip: (safePage - 1) * safeLimit,
-        take: safeLimit,
-      }),
-      prisma.product.count({ where }),
-    ])
+    const items = await prisma.product.findMany({
+      where,
+      orderBy: { [sortField]: sortOrder },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
+    })
+    const total = await prisma.product.count({ where })
 
     res.json(sendSuccess({ items: withIdArray(items), total, page: safePage, pages: Math.ceil(total / safeLimit) }))
   } catch (error) {
@@ -124,15 +122,13 @@ export const listAllProducts = async (req, res) => {
     const safeLimit = Math.min(Number(limit), 200)
     const safePage = Number(page)
 
-    const [items, total] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        orderBy: { [sortField]: sortOrder },
-        skip: (safePage - 1) * safeLimit,
-        take: safeLimit,
-      }),
-      prisma.product.count({ where }),
-    ])
+    const items = await prisma.product.findMany({
+      where,
+      orderBy: { [sortField]: sortOrder },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
+    })
+    const total = await prisma.product.count({ where })
 
     res.json(sendSuccess({ items: withIdArray(items), total, page: safePage, pages: Math.ceil(total / safeLimit) }))
   } catch (error) {

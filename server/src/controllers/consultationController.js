@@ -52,15 +52,13 @@ export const listConsultations = asyncHandler(async (req, res) => {
       : {}),
   }
 
-  const [items, total] = await Promise.all([
-    prisma.consultation.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.consultation.count({ where }),
-  ])
+  const items = await prisma.consultation.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+  })
+  const total = await prisma.consultation.count({ where })
 
   res.json(
     sendSuccess({
@@ -94,9 +92,13 @@ export const updateConsultationStatus = asyncHandler(async (req, res) => {
 })
 
 export const deleteConsultation = asyncHandler(async (req, res) => {
-  await prisma.consultation.delete({ where: { id: req.params.id } })
-  res.json(sendSuccess({ message: 'Consultation deleted' }))
-})
+    const existing = await prisma.consultation.findUnique({ where: { id: req.params.id } })
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Consultation not found' })
+    }
+    await prisma.consultation.delete({ where: { id: req.params.id } })
+    res.json(sendSuccess({ message: 'Consultation deleted' }))
+  })
 
 export const exportConsultationsCsv = asyncHandler(async (req, res) => {
   const items = await prisma.consultation.findMany({

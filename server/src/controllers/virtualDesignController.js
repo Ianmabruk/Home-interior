@@ -233,7 +233,14 @@ export const virtualDesignController = {
       }
     }
 
-    await prisma.virtualDesign.delete({ where: { id: req.params.id } })
+    try {
+      await prisma.virtualDesign.delete({ where: { id: req.params.id } })
+    } catch (error) {
+      if (error.code === 'P2025') {
+        return res.status(404).json({ success: false, message: 'Virtual Design item not found' })
+      }
+      throw error
+    }
     res.json(sendSuccess({ message: 'Virtual Design item deleted' }))
   }),
 
