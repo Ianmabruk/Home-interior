@@ -108,12 +108,18 @@ export const getCart = asyncHandler(async (req, res) => {
     where: { id: req.user.userId },
   })
 
-  const cart = user?.cart || []
+  const cart = Array.isArray(user?.cart) ? user.cart : []
   if (!cart.length) {
     return res.json(sendSuccess({ items: [], total: 0 }))
   }
 
-  const productIds = cart.map((entry) => entry.product)
+  const productIds = cart
+    .map((entry) => entry?.product)
+    .filter((id) => typeof id === 'string' && id.length > 0)
+  if (!productIds.length) {
+    return res.json(sendSuccess({ items: [], total: 0 }))
+  }
+
   const products = await prisma.product.findMany({
     where: { id: { in: productIds } },
   })
@@ -121,6 +127,7 @@ export const getCart = asyncHandler(async (req, res) => {
   const byId = new Map(products.map((item) => [item.id, item]))
   const items = cart
     .map((entry) => {
+      if (!entry?.product) return null
       const product = byId.get(entry.product)
       if (!product) return null
       const base = {
@@ -128,7 +135,7 @@ export const getCart = asyncHandler(async (req, res) => {
         name: product.name,
         image: product.images?.[0]?.url || product.images,
         price: product.discountPrice || product.price,
-        quantity: entry.quantity,
+        quantity: entry.quantity || 1,
       }
       if (entry.variant) {
         return { ...base, selectedVariant: entry.variant }

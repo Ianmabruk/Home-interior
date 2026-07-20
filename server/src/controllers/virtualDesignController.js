@@ -212,24 +212,27 @@ export const virtualDesignController = {
 
   remove: asyncHandler(async (req, res) => {
     const existing = await prisma.virtualDesign.findUnique({ where: { id: req.params.id } })
-    if (existing) {
-      if (existing.cloudinaryId) {
-        await deleteMedia(existing.cloudinaryId, existing.mediaType === 'video' ? 'video' : 'image')
-      }
-      // Delete gallery media
-      if (existing.galleryMedia && existing.galleryMedia.length > 0) {
-        for (const media of existing.galleryMedia) {
-          try {
-            const publicId = media.url.split('/').pop()?.split('.')[0]
-            if (publicId) {
-              await deleteMedia(publicId, media.type === 'video' ? 'video' : 'image')
-            }
-          } catch (e) {
-            console.error('[VIRTUAL-DESIGN][DELETE] gallery media delete failed:', e?.message)
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Virtual Design item not found' })
+    }
+
+    if (existing.cloudinaryId) {
+      await deleteMedia(existing.cloudinaryId, existing.mediaType === 'video' ? 'video' : 'image')
+    }
+    // Delete gallery media
+    if (existing.galleryMedia && existing.galleryMedia.length > 0) {
+      for (const media of existing.galleryMedia) {
+        try {
+          const publicId = media.url.split('/').pop()?.split('.')[0]
+          if (publicId) {
+            await deleteMedia(publicId, media.type === 'video' ? 'video' : 'image')
           }
+        } catch (e) {
+          console.error('[VIRTUAL-DESIGN][DELETE] gallery media delete failed:', e?.message)
         }
       }
     }
+
     await prisma.virtualDesign.delete({ where: { id: req.params.id } })
     res.json(sendSuccess({ message: 'Virtual Design item deleted' }))
   }),

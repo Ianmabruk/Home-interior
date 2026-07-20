@@ -39,7 +39,10 @@ export const dashboardOverview = asyncHandler(async (req, res) => {
 
   const fulfilledOrders = orders.filter((order) => order.status !== 'cancelled')
   const soldUnits = fulfilledOrders.reduce(
-    (sum, order) => sum + order.items.reduce((orderSum, item) => orderSum + item.quantity, 0),
+    (sum, order) => {
+      const items = Array.isArray(order.items) ? order.items : []
+      return sum + items.reduce((orderSum, item) => orderSum + (item?.quantity || 0), 0)
+    },
     0,
   )
 
@@ -53,11 +56,12 @@ export const dashboardOverview = asyncHandler(async (req, res) => {
 
   const soldByProduct = new Map()
   for (const order of fulfilledOrders) {
-    for (const item of order.items) {
+    const items = Array.isArray(order.items) ? order.items : []
+    for (const item of items) {
       const key = item.product?.toString() || item.name
       const current = soldByProduct.get(key) || { productId: key, name: item.name, units: 0, revenue: 0 }
-      current.units += item.quantity
-      current.revenue += item.price
+      current.units += item.quantity || 0
+      current.revenue += item.price || 0
       soldByProduct.set(key, current)
     }
   }

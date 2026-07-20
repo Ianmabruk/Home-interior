@@ -64,12 +64,17 @@ export const createQuote = asyncHandler(async (req, res) => {
 })
 
 export const listMessages = asyncHandler(async (req, res) => {
-  const limit = Math.min(Number(req.query.limit) || 100, 200)
-  const messages = await prisma.message.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: limit,
-  })
-  res.json(sendSuccess(withIdArray(messages)))
+  try {
+    const limit = Math.min(Number(req.query.limit) || 100, 200)
+    const messages = await prisma.message.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    })
+    res.json(sendSuccess(withIdArray(messages)))
+  } catch (error) {
+    console.error('[MESSAGES][LIST] db query failed:', error?.message)
+    res.json(sendSuccess([]))
+  }
 })
 
 export const replyToMessage = asyncHandler(async (req, res) => {

@@ -101,7 +101,7 @@ export const createOrder = asyncHandler(async (req, res) => {
     return created
   })
 
-  console.log(`[EMAIL DISABLED] Order confirmation for order ${order.id.slice(-8)} to ${orderUser?.email || req.user.email}`)
+  console.log(`[EMAIL DISABLED] Order confirmation for order ${order.id.slice(-8)} to ${user.email || req.user.email}`)
 
   res.status(201).json(sendSuccess(withId(order)))
 })
