@@ -37,5 +37,3 @@ services:
         value: REPLACE_WITH_YOUR_CLOUDINARY_API_KEY
       - key: CLOUDINARY_API_SECRET
         value: REPLACE_WITH_YOUR_CLOUDINARY_API_SECRET
-      - key: EMAIL_FROM
-        value: info@hokinterior.com
