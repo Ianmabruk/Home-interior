@@ -38,6 +38,7 @@ export const AuthProvider = ({ children }) => {
     const response = await api.post('/auth/login', { email, password })
     localStorage.setItem('hok_access_token', response.data.accessToken)
     setUser(response.data.user)
+    setLoading(false)
     console.info('[auth] login success:', response.data.user?.email)
     return response
   }
@@ -47,6 +48,7 @@ export const AuthProvider = ({ children }) => {
     const response = await api.post('/auth/register', { fullName, email, password })
     localStorage.setItem('hok_access_token', response.data.accessToken)
     setUser(response.data.user)
+    setLoading(false)
     console.info('[auth] register success:', response.data.user?.email)
     return response
   }
