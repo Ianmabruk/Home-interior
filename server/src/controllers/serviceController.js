@@ -205,7 +205,7 @@ export const serviceController = {
     const updates = order.map((item, index) =>
       prisma.service.update({ where: { id: item.id }, data: { displayOrder: item.displayOrder ?? index } })
     )
-    await Promise.all(updates)
+    await prisma.$transaction(updates)
     res.json(sendSuccess({ message: 'Services reordered' }))
   }),
 

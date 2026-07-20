@@ -206,7 +206,7 @@ export const portfolioController = {
     const updates = order.map((item, index) =>
       prisma.portfolio.update({ where: { id: item.id }, data: { displayOrder: item.displayOrder ?? index } })
     )
-    await Promise.all(updates)
+    await prisma.$transaction(updates)
     res.json(sendSuccess({ message: 'Portfolio reordered' }))
   }),
 

@@ -125,10 +125,8 @@ export const orders = asyncHandler(async (req, res) => {
 })
 
 export const products = asyncHandler(async (req, res) => {
-  const [products, orders] = await Promise.all([
-    prisma.product.findMany({ select: { id: true, name: true, price: true, discountPrice: true, stock: true, images: true, colorVariants: true, sku: true } }),
-    prisma.order.findMany({ select: { items: true } }),
-  ])
+  const products = await prisma.product.findMany({ select: { id: true, name: true, price: true, discountPrice: true, stock: true, images: true, colorVariants: true, sku: true } })
+  const orders = await prisma.order.findMany({ select: { items: true } })
 
   const soldByProduct = new Map()
   for (const order of orders) {
