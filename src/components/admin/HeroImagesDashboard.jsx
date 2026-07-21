@@ -104,7 +104,7 @@ export const HeroImagesDashboard = () => {
   const deleteItem = async () => {
     if (!deleteId) return
     try {
-      await api.delete(`/content/homepage/hero/${deleteId}`)
+      await api.delete('/content/homepage/hero-images', { data: { heroImages: [deleteId] } })
       setDeleteId(null)
       const res = await api.get('/content/homepage')
       const data = res.data || {}

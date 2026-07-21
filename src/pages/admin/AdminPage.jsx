@@ -143,12 +143,7 @@ const { user, logout, updateProfile } = useAuth()
     e.preventDefault()
     setSavingProfile(true)
     try {
-      const payload = new FormData()
-      payload.append('fullName', profileForm.fullName)
-      payload.append('email', profileForm.email)
-      if (profileImage) payload.append('profileImage', profileImage)
-      
-      await api.put('/admin/profile', payload)
+      await api.patch('/users/me', { fullName: profileForm.fullName })
       if (updateProfile) {
         await updateProfile({ fullName: profileForm.fullName, email: profileForm.email, profileImage: profilePreview })
       }

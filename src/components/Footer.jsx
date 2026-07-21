@@ -1,54 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Instagram, Facebook, ArrowRight, Star, ChevronLeft, ChevronRight, Mail } from 'lucide-react'
+import { Instagram, Facebook, ArrowRight } from 'lucide-react'
 import { FaTiktok, FaPinterest } from 'react-icons/fa'
-import { motion, AnimatePresence } from 'framer-motion'
-import { api } from '../services/api'
+import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 
 export const Footer = () => {
   const { user } = useAuth()
-  const [testimonials, setTestimonials] = useState([])
-  const [currentTestimonial, setCurrentTestimonial] = useState(0)
-  const [newsletterEmail, setNewsletterEmail] = useState('')
-  const [newsletterStatus, setNewsletterStatus] = useState('')
-
-  const handleNewsletterSubmit = async (e) => {
-    e.preventDefault()
-    if (!newsletterEmail) return
-    try {
-      await api.post('/content/newsletter', { email: newsletterEmail })
-      setNewsletterStatus('subscribed')
-      setNewsletterEmail('')
-    } catch {
-      setNewsletterStatus('error')
-    }
-    setTimeout(() => setNewsletterStatus(''), 3000)
-  }
-
-  useEffect(() => {
-    const loadTestimonials = async () => {
-      try {
-        const res = await api.get('/content/testimonials')
-        const data = res.data || []
-        if (data.length > 0) {
-          setTestimonials(data.filter(t => t.isActive))
-        }
-      } catch {
-        setTestimonials([])
-      }
-    }
-    loadTestimonials()
-  }, [])
-
-  useEffect(() => {
-    if (testimonials.length > 1) {
-      const interval = setInterval(() => {
-        setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)
-      }, 6000)
-      return () => clearInterval(interval)
-    }
-  }, [testimonials.length])
 
   const socialLinks = [
     { icon: FaTiktok, href: 'https://www.tiktok.com/@hokinteriors', label: 'TikTok', ariaLabel: 'Follow us on TikTok' },
@@ -57,7 +15,7 @@ export const Footer = () => {
     { icon: FaPinterest, href: 'https://www.pinterest.com/hokinterior', label: 'Pinterest', ariaLabel: 'Follow us on Pinterest' },
   ]
 
-const quickLinks = [
+  const quickLinks = [
     { to: '/portfolio', label: 'Portfolio' },
     { to: '/services', label: 'Services' },
     { to: '/virtual-design', label: 'Virtual Designs' },
@@ -75,150 +33,14 @@ const quickLinks = [
 
   return (
     <footer className="relative bg-footer-bg text-footer-text" role="contentinfo">
-      {/* Testimonials Carousel Section */}
-      {testimonials.length > 0 && (
-        <motion.section
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="relative bg-footer-bg py-16 md:py-24 overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_center,rgba(232,154,67,0.08),transparent_60%)]" aria-hidden="true" />
-          <div className="relative z-10 container-wide px-6 md:px-12 lg:px-20">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-100px' }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              className="text-center mb-12 md:mb-16"
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-orange-accent mb-4">Testimonials</p>
-              <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-normal leading-tight text-white">
-                What Our Clients Say
-              </h2>
-            </motion.div>
-
-            <div className="relative max-w-4xl mx-auto">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentTestimonial}
-                  initial={{ opacity: 0, x: 30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -30 }}
-                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                  className="text-center"
-                >
-                  <div className="flex items-center justify-center gap-1 mb-6">
-                    {Array.from({ length: 5 }, (_, i) => (
-                      <motion.span
-                        key={i}
-                        animate={{ scale: i < (testimonials[currentTestimonial]?.rating || 5) ? 1 : 0.8 }}
-                        transition={{ delay: i * 0.05 }}
-                      >
-                        <Star size={20} fill="currentColor" className="text-orange-accent" />
-                      </motion.span>
-                    ))}
-                  </div>
-                  <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.1 }}
-                    className="font-display text-xl md:text-2xl lg:text-3xl font-normal leading-relaxed text-white/90 max-w-3xl mx-auto mb-8"
-                    style={{ fontStyle: 'italic' }}
-                  >
-                    &ldquo;{testimonials[currentTestimonial]?.testimonial}&rdquo;
-                  </motion.p>
-                  <div className="flex items-center justify-center gap-4">
-                    {testimonials[currentTestimonial]?.photoUrl && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                        className="w-14 h-14 rounded-full overflow-hidden border-2 border-orange-accent/50 flex-shrink-0"
-                      >
-                        <img
-                          src={testimonials[currentTestimonial].photoUrl}
-                          alt={testimonials[currentTestimonial].clientName}
-                          className="w-full h-full object-cover"
-                        />
-                      </motion.div>
-                    )}
-                    <div className="text-left">
-                      <motion.p
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.3 }}
-                        className="font-medium text-white"
-                      >
-                        {testimonials[currentTestimonial]?.clientName}
-                      </motion.p>
-                      {testimonials[currentTestimonial]?.position && (
-                        <motion.p
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.5, delay: 0.35 }}
-                          className="text-sm text-white/60"
-                        >
-                          {testimonials[currentTestimonial].position}
-                          {testimonials[currentTestimonial]?.company && `, ${testimonials[currentTestimonial].company}`}
-                        </motion.p>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-
-              {testimonials.length > 1 && (
-                <div className="flex items-center justify-center gap-3 mt-8">
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setCurrentTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length)}
-                    className="p-2 rounded-full bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 hover:text-white transition-all duration-300"
-                    aria-label="Previous testimonial"
-                  >
-                    <ChevronLeft size={20} strokeWidth={1.5} />
-                  </motion.button>
-                  <div className="flex gap-2">
-                    {testimonials.map((_, idx) => (
-                      <motion.button
-                        key={idx}
-                        whileHover={{ scale: 1.3 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => setCurrentTestimonial(idx)}
-                        className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                          idx === currentTestimonial ? 'bg-orange-accent w-6' : 'bg-white/30 hover:bg-white/50'
-                        }`}
-                        aria-label={`Go to testimonial ${idx + 1}`}
-                      />
-                    ))}
-                  </div>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)}
-                    className="p-2 rounded-full bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 hover:text-white transition-all duration-300"
-                    aria-label="Next testimonial"
-                  >
-                    <ChevronRight size={20} strokeWidth={1.5} />
-                  </motion.button>
-                </div>
-              )}
-            </div>
-          </div>
-        </motion.section>
-      )}
-
-      {/* Main Footer Content */}
       <div className="relative z-10 container-wide px-6 md:px-12 lg:px-20 py-16 md:py-24 lg:py-32">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-100px' }}
+          transition={{ duration: 0.7 }}
           className="grid gap-12 md:gap-16 lg:grid-cols-2 xl:grid-cols-4"
         >
-          {/* Section 1: Company Information */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -246,7 +68,6 @@ const quickLinks = [
             </div>
           </motion.div>
 
-          {/* Section 2: Quick Links */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -272,7 +93,6 @@ const quickLinks = [
             </nav>
           </motion.div>
 
-          {/* Section 3: Social Media */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -304,47 +124,8 @@ const quickLinks = [
               ))}
             </div>
           </motion.div>
-
-          {/* Section 4: Newsletter */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.4 }}
-            className="space-y-4"
-          >
-            <h3 className="font-display text-xl font-normal text-white">Newsletter</h3>
-            <p className="text-sm text-white/50">Subscribe for design inspiration and updates</p>
-            <form onSubmit={handleNewsletterSubmit} className="space-y-3">
-              <div className="relative">
-                <input
-                  type="email"
-                  value={newsletterEmail}
-                  onChange={(e) => setNewsletterEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  required
-                  className="w-full px-4 py-3 pl-11 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:border-orange-accent focus:bg-white/15 transition-all duration-300"
-                />
-                <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
-              </div>
-              <button
-                type="submit"
-                className="w-full btn-luxury-primary justify-center"
-              >
-                Subscribe
-                <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-              </button>
-              {newsletterStatus === 'subscribed' && (
-                <p className="text-xs text-green-400">Thank you for subscribing!</p>
-              )}
-              {newsletterStatus === 'error' && (
-                <p className="text-xs text-red-400">Something went wrong. Please try again.</p>
-              )}
-            </form>
-          </motion.div>
         </motion.div>
 
-        {/* Copyright */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}

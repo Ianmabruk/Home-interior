@@ -19,9 +19,7 @@ const INITIAL_FORM = {
 
 export const AboutDashboard = () => {
   const [form, setForm] = useState(INITIAL_FORM)
-  const [images, setImages] = useState([])
   const [loading, setLoading] = useState(true)
-  const [isDragOver, setIsDragOver] = useState(false)
   const [aboutImagePreview, setAboutImagePreview] = useState(null)
   const [aboutImageFile, setAboutImageFile] = useState(null)
   const aboutImageRef = useRef(null)
@@ -40,7 +38,6 @@ export const AboutDashboard = () => {
         statistics: res.data?.statistics || '',
         socialLinks: JSON.stringify(res.data?.socials || {}, null, 2),
       })
-      setImages(res.data?.galleryImages || [])
       setAboutImagePreview(res.data?.aboutImageUrl || null)
     } catch {
       setForm(INITIAL_FORM)
@@ -70,58 +67,21 @@ export const AboutDashboard = () => {
     setLoading(true)
     try {
       const payload = new FormData()
-      Object.entries(form).forEach(([key, value]) => {
-        if (key === 'socialLinks') {
-          try {
-            payload.append(key, JSON.stringify(JSON.parse(value || '{}')))
-          } catch {
-            payload.append(key, '{}')
-          }
-        } else {
-          payload.append(key, value)
-        }
-      })
-      if (aboutImageFile) payload.append('aboutImage', aboutImageFile)
-      await api.post('/content/about', payload)
+      payload.append('story', form.story || '')
+      payload.append('companyDescription', form.companyDescription || '')
+      payload.append('mission', form.mission || '')
+      payload.append('vision', form.vision || '')
+      payload.append('location', form.location || '')
+      payload.append('contactEmail', form.contactEmail || '')
+      payload.append('socials', form.socialLinks || '{}')
+      if (aboutImageFile) payload.append('media', aboutImageFile)
+      await api.put('/content/about', payload)
       await loadAbout()
       emitAdminDataChanged({ type: 'about-changed' })
     } catch {
       // handle error
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleGalleryFiles = async (files) => {
-    if (!files.length) return
-    try {
-      for (const file of files) {
-        if (!file.type.startsWith('image/')) continue
-        const payload = new FormData()
-        payload.append('galleryImage', file)
-        const res = await api.post('/content/about/gallery', payload)
-        if (res.data?.galleryImages) {
-          setImages(res.data.galleryImages)
-        }
-      }
-    } catch {
-      // handle error
-    }
-  }
-
-  const handleGalleryDrop = (e) => {
-    e.preventDefault()
-    setIsDragOver(false)
-    const files = Array.from(e.dataTransfer.files)
-    handleGalleryFiles(files)
-  }
-
-  const removeGalleryImage = async (url) => {
-    try {
-      const res = await api.delete('/content/about/gallery', { data: { imageUrl: url } })
-      if (res.data?.galleryImages) setImages(res.data.galleryImages)
-    } catch {
-      // handle error
     }
   }
 
@@ -317,69 +277,40 @@ export const AboutDashboard = () => {
           className="space-y-6"
         >
           <motion.div className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)]">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <ImageIcon size={20} className="text-[var(--accent)]" />
-                <h3 className="font-display text-2xl text-[var(--primary)]">Gallery Images</h3>
-              </div>
-              <label className="flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-white/50 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.15em] text-[var(--primary)]/70 hover:text-[var(--accent)] hover:border-[var(--accent)] hover:bg-white transition-all duration-200 cursor-pointer">
-                <Plus size={14} />
-                Add
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => handleGalleryFiles(Array.from(e.target.files || []))}
-                  className="hidden"
-                />
-              </label>
+            <div className="flex items-center gap-2 mb-6">
+              <ImageIcon size={20} className="text-[var(--accent)]" />
+              <h3 className="font-display text-2xl text-[var(--primary)]">About Image</h3>
             </div>
-
-            <motion.div
-              onDrop={handleGalleryDrop}
-              onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
-              onDragLeave={() => setIsDragOver(false)}
-              className={`grid grid-cols-2 gap-2.5 rounded-2xl p-2 transition-all duration-300 ${
-                isDragOver ? 'bg-[var(--accent)]/5 border-2 border-dashed border-[var(--accent)]' : ''
-              }`}
-            >
-              {images.map((url, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: i * 0.03 }}
-                  className="relative group rounded-xl overflow-hidden"
+            <p className="text-xs text-[var(--primary)]/50 mb-4">Upload a hero image for the about page</p>
+            {aboutImagePreview && (
+              <div className="relative rounded-xl overflow-hidden mb-4">
+                <img
+                  src={aboutImagePreview}
+                  alt="About hero preview"
+                  className="h-48 w-full object-cover"
+                />
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  type="button"
+                  onClick={removeAboutImage}
+                  className="absolute top-3 right-3 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-2 rounded-full hover:bg-[var(--primary)] shadow-lg"
                 >
-                  <img
-                    src={getOptimizedUrl(url, { width: 300 })}
-                    alt=""
-                    className="h-28 w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-[var(--primary)]/0 group-hover:bg-[var(--primary)]/50 transition-all duration-300" />
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    type="button"
-                    onClick={() => removeGalleryImage(url)}
-                    className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                  >
-                    <div className="p-2 bg-[var(--error)] rounded-full text-white shadow-lg">
-                      <Trash2 size={16} />
-                    </div>
-                  </motion.button>
-                </motion.div>
-              ))}
-              {images.length === 0 && (
-                <div className="col-span-full text-center py-12">
-                  <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-[var(--secondary)]/30 to-[var(--accent)]/10 flex items-center justify-center mb-3 text-[var(--primary)]/30">
-                    <ImageIcon size={24} />
-                  </div>
-                  <p className="text-sm text-[var(--primary)]/50">No gallery images</p>
-                  <p className="text-[10px] text-[var(--primary)]/30 mt-1">Drop images here or click Add</p>
-                </div>
-              )}
-            </motion.div>
+                  <X size={14} />
+                </motion.button>
+              </div>
+            )}
+            <label className="flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-white/50 px-4 py-3 text-[10px] font-medium uppercase tracking-[0.15em] text-[var(--primary)]/70 hover:text-[var(--accent)] hover:border-[var(--accent)] hover:bg-white transition-all duration-200 cursor-pointer">
+              <Plus size={14} />
+              {aboutImagePreview ? 'Replace Image' : 'Upload Image'}
+              <input
+                ref={aboutImageRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAboutImage}
+                className="hidden"
+              />
+            </label>
           </motion.div>
         </motion.div>
       </div>

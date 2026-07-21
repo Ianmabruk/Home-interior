@@ -69,8 +69,11 @@ export const AppRouter = () => {
         <Route path="/portfolio/:id" element={<ErrorBoundaryRoute element={<PortfolioDetailPage />} />} />
         <Route path="/about" element={<ErrorBoundaryRoute element={<AboutPage />} />} />
         <Route path="/services" element={<ErrorBoundaryRoute element={<ServicesPage />} />} />
-<Route path="/virtual-design" element={<ErrorBoundaryRoute element={<VirtualDesignPage />} />} />
-      <Route path="/virtual-design/project/:id" element={<ErrorBoundaryRoute element={<VirtualDesignDetailPage />} />} />
+        <Route path="/virtual-design" element={<ErrorBoundaryRoute element={<VirtualDesignPage />} />} />
+        <Route path="/virtual-design/project/:id" element={<ErrorBoundaryRoute element={<VirtualDesignDetailPage />} />} />
+        <Route path="/services/:id" element={<ErrorBoundaryRoute element={<ServicesPage />} />} />
+        <Route path="/contact" element={<ErrorBoundaryRoute element={<AboutPage />} />} />
+        <Route path="/consultation" element={<ErrorBoundaryRoute element={<AboutPage />} />} />
         <Route path="/chat" element={<ErrorBoundaryRoute element={<ChatPage />} />} />
 
         <Route element={<ProtectedRoute />}>

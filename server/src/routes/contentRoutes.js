@@ -86,8 +86,8 @@ router.get('/analytics', auth, getAnalytics)
 router.get('/portfolio', portfolioController.list)
 router.get('/portfolio/:id', portfolioController.get)
 router.patch('/portfolio/reorder', auth, authorize('admin'), writeLimiter, auditLog, sanitizeInput, portfolioController.reorder)
-router.post('/portfolio', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, validatePortfolioBody, portfolioController.create)
-router.patch('/portfolio/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, validatePortfolioBody, portfolioController.update)
+router.post('/portfolio', auth, authorize('admin'), writeLimiter, auditLog, upload.fields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), validateUpload, validateGalleryUpload, sanitizeInput, validatePortfolioBody, portfolioController.create)
+router.patch('/portfolio/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.fields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), validateUpload, validateGalleryUpload, sanitizeInput, validatePortfolioBody, portfolioController.update)
 router.delete('/portfolio/:id', auth, authorize('admin'), writeLimiter, auditLog, portfolioController.remove)
 
 router.post('/portfolio/:id/gallery', auth, authorize('admin'), writeLimiter, auditLog, upload.array('gallery', 10), validateGalleryUpload, sanitizeInput, portfolioController.addGalleryImages)
@@ -106,7 +106,6 @@ router.put('/about', auth, authorize('admin'), writeLimiter, auditLog, upload.si
 router.put('/homepage', auth, authorize('admin'), writeLimiter, auditLog, upload.array('heroImages', 10), validateGalleryUpload, sanitizeInput, upsertHomepageContent)
 
 router.delete('/homepage/hero-images', auth, authorize('admin'), writeLimiter, auditLog, sanitizeInput, deleteHeroImagesController)
-router.delete('/homepage/hero-images', auth, authorize('admin'), writeLimiter, auditLog, sanitizeInput, deleteHeroImagesController)
 
 router.post('/consultations', validateConsultationBody, consultationController.createConsultation)
 
@@ -117,9 +116,6 @@ router.get('/virtual-design/:id', virtualDesignController.get)
 router.post('/virtual-design', auth, authorize('admin'), writeLimiter, auditLog, upload.fields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), validateUpload, validateGalleryUpload, sanitizeInput, validateVirtualDesignBody, virtualDesignController.create)
 router.patch('/virtual-design/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.fields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), validateUpload, validateGalleryUpload, sanitizeInput, validateVirtualDesignBody, virtualDesignController.update)
 router.delete('/virtual-design/:id', auth, authorize('admin'), writeLimiter, auditLog, virtualDesignController.remove)
-
-router.post('/virtual-design/:id/gallery', auth, authorize('admin'), writeLimiter, auditLog, upload.array('gallery', 10), validateGalleryUpload, sanitizeInput, virtualDesignController.addGalleryMedia)
-router.delete('/virtual-design/:id/gallery', auth, authorize('admin'), writeLimiter, auditLog, sanitizeInput, virtualDesignController.removeGalleryMedia)
 
 router.post('/virtual-design/:id/gallery', auth, authorize('admin'), writeLimiter, auditLog, upload.array('gallery', 10), validateGalleryUpload, sanitizeInput, virtualDesignController.addGalleryMedia)
 router.delete('/virtual-design/:id/gallery', auth, authorize('admin'), writeLimiter, auditLog, sanitizeInput, virtualDesignController.removeGalleryMedia)

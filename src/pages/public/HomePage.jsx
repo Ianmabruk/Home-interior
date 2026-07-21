@@ -347,6 +347,154 @@ useEffect(() => {
         </div>
       </motion.section>
 
+      {/* Virtual Designs Section */}
+      <motion.section
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        className="bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 md:px-12 lg:px-20 py-20 md:py-32"
+      >
+        <div className="container-wide">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.7 }}
+            className="mb-16 md:mb-24 text-center"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Virtual Designs</p>
+            <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+              Virtual Designs
+            </h2>
+            <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
+              Immersive 3D renderings and virtual walkthroughs to visualize your space before it's built.
+            </p>
+          </motion.div>
+
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-50px' }}
+            className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          >
+            {virtualDesigns.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7 }}
+                className="col-span-full flex min-h-[40vh] items-center justify-center"
+              >
+                <p className="font-display text-xl text-[var(--primary)]/30">No virtual designs yet</p>
+              </motion.div>
+            ) : (
+              virtualDesigns.slice(0, 1).map((item, index) => (
+                <motion.article
+                  key={item.id}
+                  variants={itemVariants}
+                  custom={index}
+                  className="group"
+                >
+                  <Link to={`/virtual-design/project/${item.id}`} className="block">
+                    <div className="relative overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
+                      <div className="relative aspect-[4/3] overflow-hidden">
+                        {item.mediaType === 'image' && item.mediaUrl && (
+                          <>
+                            <img
+                              src={getOptimizedUrl(item.mediaUrl, { width: 640 })}
+                              alt={item.title}
+                              className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
+                              loading="lazy"
+                              decoding="async"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
+                                <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
+                              </div>
+                            </div>
+                          </>
+                        )}
+                        {item.mediaType === 'video' && item.mediaUrl && (
+                          <>
+                            <video
+                              src={item.mediaUrl}
+                              poster={getOptimizedUrl(item.mediaUrl, { width: 640 })}
+                              className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                              autoPlay
+                              muted
+                              loop
+                              playsInline
+                              preload="metadata"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <div className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110">
+                              <Play size={20} strokeWidth={1.5} className="ml-1" />
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <motion.h3
+                              initial={{ opacity: 0, y: 10 }}
+                              whileInView={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.1 }}
+                              className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors"
+                            >
+                              {item.title}
+                            </motion.h3>
+                            {item.description && (
+                              <motion.p
+                                initial={{ opacity: 0, y: 10 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.15 }}
+                                className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-2"
+                              >
+                                {item.description}
+                              </motion.p>
+                            )}
+                          </div>
+                          <motion.button
+                            initial={{ opacity: 0, x: 20 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.3 }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={(e) => { e.stopPropagation(); window.location.href = `/virtual-design/project/${item.id}` }}
+                            className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0"
+                          >
+                            View Project
+                            <Maximize2 size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+                          </motion.button>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                </motion.article>
+              ))
+            )}
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3, duration: 0.7 }}
+            className="mt-16 text-center"
+          >
+            <Link
+              to="/virtual-design"
+              className="group inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)] transition-colors duration-300 hover:text-[var(--accent)]"
+            >
+              View All Virtual Designs
+              <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+            </Link>
+          </motion.div>
+        </div>
+      </motion.section>
+
       {/* Shop Section */}
       <motion.section
         initial={{ opacity: 0 }}
@@ -437,6 +585,7 @@ useEffect(() => {
                         transition={{ delay: 0.3 }}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.98 }}
+                        onClick={(e) => { e.preventDefault(); window.location.href = `/shop/${item.id}` }}
                         className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0"
                       >
                         View Product
@@ -468,160 +617,7 @@ useEffect(() => {
         </div>
       </motion.section>
 
-      {/* Virtual Designs Section */}
-      <motion.section
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        className="bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 md:px-12 lg:px-20 py-20 md:py-32"
-      >
-        <div className="container-wide">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.7 }}
-            className="mb-16 md:mb-24 text-center"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Virtual Designs</p>
-            <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
-              Virtual Designs
-            </h2>
-            <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
-              Immersive 3D renderings and virtual walkthroughs to visualize your space before it's built.
-            </p>
-          </motion.div>
-
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-50px' }}
-            className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          >
-            {virtualDesigns.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7 }}
-                className="col-span-full flex min-h-[40vh] items-center justify-center"
-              >
-                <p className="font-display text-xl text-[var(--primary)]/30">No virtual designs yet</p>
-              </motion.div>
-            ) : (
-              virtualDesigns.slice(0, 1).map((item, index) => (
-                <motion.article
-                  key={item.id}
-                  variants={itemVariants}
-                  custom={index}
-                  className="group"
-                >
-                  <div className="relative overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      {item.mediaType === 'image' && item.mediaUrl && (
-                        <>
-                          <img
-                            src={getOptimizedUrl(item.mediaUrl, { width: 640 })}
-                            alt={item.title}
-                            className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                            loading="lazy"
-                            decoding="async"
-                          />
-                          <button
-                            onClick={(e) => { e.stopPropagation(); window.location.href = `/virtual-design/project/${item.id}` }}
-                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                            aria-label="View project"
-                          >
-                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                              <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
-                            </div>
-                          </button>
-                        </>
-                      )}
-                      {item.mediaType === 'video' && item.mediaUrl && (
-                        <>
-                          <video
-                            src={item.mediaUrl}
-                            poster={getOptimizedUrl(item.mediaUrl, { width: 640 })}
-                            className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
-                            preload="metadata"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                          <button
-                            onClick={(e) => { e.stopPropagation(); window.location.href = `/virtual-design/project/${item.id}` }}
-                            className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110"
-                            aria-label="View project"
-                          >
-                            <Play size={20} strokeWidth={1.5} className="ml-1" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <motion.h3
-                            initial={{ opacity: 0, y: 10 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.1 }}
-                            className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors"
-                          >
-                            {item.title}
-                          </motion.h3>
-                          {item.description && (
-                            <motion.p
-                              initial={{ opacity: 0, y: 10 }}
-                              whileInView={{ opacity: 1, y: 0 }}
-                              transition={{ delay: 0.15 }}
-                              className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-2"
-                            >
-                              {item.description}
-                            </motion.p>
-                          )}
-                        </div>
-                        <motion.button
-                          initial={{ opacity: 0, x: 20 }}
-                          whileInView={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.3 }}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={(e) => { e.stopPropagation(); window.location.href = `/virtual-design/project/${item.id}` }}
-                          className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0"
-                        >
-                          View Project
-                          <Maximize2 size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-                        </motion.button>
-                      </div>
-                    </div>
-                  </div>
-                </motion.article>
-              ))
-            )}
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3, duration: 0.7 }}
-            className="mt-16 text-center"
-          >
-            <Link
-              to="/virtual-design"
-              className="group inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)] transition-colors duration-300 hover:text-[var(--accent)]"
-            >
-              View All Virtual Designs
-              <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
-          </motion.div>
-        </div>
-      </motion.section>
-
+      {/* About Section */}
       <AboutPreview />
       <ConsultationModal isOpen={showModal} onClose={() => setShowModal(false)} />
     </main>

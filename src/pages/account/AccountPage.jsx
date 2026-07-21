@@ -307,7 +307,7 @@ export const AccountPage = () => {
 
   const fetchSaved = useCallback(async () => {
     try {
-      const res = await api.get('/users/saved')
+      const res = await api.get('/users/wishlist')
       setSavedItems(res.data || [])
     } catch {
       setSavedItems([])
@@ -327,7 +327,7 @@ export const AccountPage = () => {
   }, [isAuthenticated, fetchOrders, fetchSaved])
 
   const handleChangePassword = async (current, newPass) => {
-    await api.post('/users/change-password', { currentPassword: current, newPassword: newPass })
+    await api.post('/auth/change-password', { currentPassword: current, newPassword: newPass })
   }
 
   const handleLogout = async () => {

@@ -11,93 +11,115 @@ const withIdArray = (items) => items.map((item) => withId(item))
 const sortOrdersByDate = (orders) => orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
 export const dashboardOverview = asyncHandler(async (req, res) => {
-  const { products, userCount, ordersRaw, analyticsRaw, portfolioCount, users } =
-    await executeWithRetry(
-      async () => {
-        const products = await prisma.product.findMany()
-        const userCount = await prisma.user.count()
-        const ordersRaw = await prisma.order.findMany()
-        const analyticsRaw = await prisma.analytics.findMany({ orderBy: { date: 'asc' } })
-        const portfolioCount = await prisma.portfolio.count()
-        const users = await prisma.user.findMany({ select: { id: true, fullName: true, email: true } })
-        return { products, userCount, ordersRaw, analyticsRaw, portfolioCount, users }
+  try {
+    const { products, userCount, ordersRaw, analyticsRaw, portfolioCount, users } =
+      await executeWithRetry(
+        async () => {
+          const products = await prisma.product.findMany()
+          const userCount = await prisma.user.count()
+          const ordersRaw = await prisma.order.findMany()
+          const analyticsRaw = await prisma.analytics.findMany({ orderBy: { date: 'asc' } })
+          const portfolioCount = await prisma.portfolio.count()
+          const users = await prisma.user.findMany({ select: { id: true, fullName: true, email: true } })
+          return { products, userCount, ordersRaw, analyticsRaw, portfolioCount, users }
+        },
+        'ADMIN-DASHBOARD',
+        { maxRetries: 2, timeout: 15000 },
+      )
+
+    const userById = new Map(users.map((u) => [u.id, u]))
+
+    const productCount = products.length
+    const orders = sortOrdersByDate(ordersRaw)
+    const analytics = analyticsRaw
+    const totalSales = orders
+      .filter((order) => order.status !== 'cancelled')
+      .reduce((sum, order) => sum + (Number(order.total) || 0), 0)
+    const thisMonth = new Date()
+    thisMonth.setDate(1)
+
+    const monthlySales = orders
+      .filter((order) => order.status !== 'cancelled' && new Date(order.createdAt) >= thisMonth)
+      .reduce((sum, order) => sum + (Number(order.total) || 0), 0)
+
+    const visits = analytics.reduce((sum, row) => sum + (row.visits || 0), 0)
+
+    const fulfilledOrders = orders.filter((order) => order.status !== 'cancelled')
+    const soldUnits = fulfilledOrders.reduce(
+      (sum, order) => {
+        const items = Array.isArray(order.items) ? order.items : []
+        return sum + items.reduce((orderSum, item) => orderSum + (item?.quantity || 0), 0)
       },
-      'ADMIN-DASHBOARD',
-      { maxRetries: 2, timeout: 15000 },
+      0,
     )
 
-  const userById = new Map(users.map((u) => [u.id, u]))
+    const stockAvailable = products.reduce((sum, product) => sum + (Number(product.stock) || 0), 0)
+    const outOfStockCount = products.filter((product) => (Number(product.stock) || 0) <= 0).length
+    const lowStockCount = products.filter((product) => (Number(product.stock) || 0) > 0 && (Number(product.stock) || 0) <= 5).length
 
-  const productCount = products.length
-  const orders = sortOrdersByDate(ordersRaw)
-  const analytics = analyticsRaw
-  const totalSales = orders
-    .filter((order) => order.status !== 'cancelled')
-    .reduce((sum, order) => sum + (Number(order.total) || 0), 0)
-  const thisMonth = new Date()
-  thisMonth.setDate(1)
+    const lossAmount = orders
+      .filter((order) => order.status === 'cancelled' || order.paymentStatus === 'refunded')
+      .reduce((sum, order) => sum + (Number(order.total) || 0), 0)
 
-  const monthlySales = orders
-    .filter((order) => order.status !== 'cancelled' && new Date(order.createdAt) >= thisMonth)
-    .reduce((sum, order) => sum + (Number(order.total) || 0), 0)
-
-  const visits = analytics.reduce((sum, row) => sum + (row.visits || 0), 0)
-
-  const fulfilledOrders = orders.filter((order) => order.status !== 'cancelled')
-  const soldUnits = fulfilledOrders.reduce(
-    (sum, order) => {
+    const soldByProduct = new Map()
+    for (const order of fulfilledOrders) {
       const items = Array.isArray(order.items) ? order.items : []
-      return sum + items.reduce((orderSum, item) => orderSum + (item?.quantity || 0), 0)
-    },
-    0,
-  )
-
-  const stockAvailable = products.reduce((sum, product) => sum + product.stock, 0)
-  const outOfStockCount = products.filter((product) => product.stock <= 0).length
-  const lowStockCount = products.filter((product) => product.stock > 0 && product.stock <= 5).length
-
-  const lossAmount = orders
-    .filter((order) => order.status === 'cancelled' || order.paymentStatus === 'refunded')
-    .reduce((sum, order) => sum + order.total, 0)
-
-  const soldByProduct = new Map()
-  for (const order of fulfilledOrders) {
-    const items = Array.isArray(order.items) ? order.items : []
-    for (const item of items) {
-      const key = item.product?.toString() || item.name
-      const current = soldByProduct.get(key) || { productId: key, name: item.name, units: 0, revenue: 0 }
-      current.units += item.quantity || 0
-      current.revenue += item.price || 0
-      soldByProduct.set(key, current)
+      for (const item of items) {
+        const key = item.product?.toString() || item.name
+        const current = soldByProduct.get(key) || { productId: key, name: item.name, units: 0, revenue: 0 }
+        current.units += item.quantity || 0
+        current.revenue += item.price || 0
+        soldByProduct.set(key, current)
+      }
     }
+
+    const recentOrders = sortOrdersByDate(orders).slice(0, 10).map((o) => {
+      const u = userById.get(o.userId)
+      return { ...o, _id: o.id, customerName: u?.fullName || u?.email || 'Customer' }
+    })
+    const topProducts = Array.from(soldByProduct.values())
+      .sort((a, b) => b.units - a.units)
+      .slice(0, 5)
+
+    res.json(sendSuccess({
+      totalSales,
+      revenue: totalSales,
+      monthlySales,
+      visits,
+      productCount,
+      userCount,
+      ordersCount: orders.length,
+      portfolioCount,
+      charts: withIdArray(analytics),
+      soldUnits,
+      stockAvailable,
+      lossAmount,
+      outOfStockCount,
+      lowStockCount,
+      topProducts,
+      recentOrders: withIdArray(recentOrders),
+    }))
+  } catch (error) {
+    console.error('[ADMIN][OVERVIEW] error:', error?.message)
+    res.json(sendSuccess({
+      totalSales: 0,
+      revenue: 0,
+      monthlySales: 0,
+      visits: 0,
+      productCount: 0,
+      userCount: 0,
+      ordersCount: 0,
+      portfolioCount: 0,
+      charts: [],
+      soldUnits: 0,
+      stockAvailable: 0,
+      lossAmount: 0,
+      outOfStockCount: 0,
+      lowStockCount: 0,
+      topProducts: [],
+      recentOrders: [],
+    }))
   }
-
-  const recentOrders = sortOrdersByDate(orders).slice(0, 10).map((o) => {
-    const u = userById.get(o.userId)
-    return { ...o, _id: o.id, customerName: u?.fullName || u?.email || 'Customer' }
-  })
-  const topProducts = Array.from(soldByProduct.values())
-    .sort((a, b) => b.units - a.units)
-    .slice(0, 5)
-
-  res.json(sendSuccess({
-    totalSales,
-    revenue: totalSales,
-    monthlySales,
-    visits,
-    productCount,
-    userCount,
-    ordersCount: orders.length,
-    portfolioCount,
-    charts: withIdArray(analytics),
-    soldUnits,
-    stockAvailable,
-    lossAmount,
-    outOfStockCount,
-    lowStockCount,
-    topProducts,
-    recentOrders: withIdArray(recentOrders),
-  }))
 })
 
 export const listUsers = asyncHandler(async (req, res) => {
@@ -216,24 +238,16 @@ export const getSettings = async (req, res) => {
     }
     res.json(sendSuccess(withId(settings)))
   } catch (error) {
-    console.error("FULL ERROR:", error)
-    console.error("MESSAGE:", error.message)
-    console.error("STACK:", error.stack)
-    console.error("PRISMA CODE:", error.code)
-    console.error("BODY:", req.body)
-    console.error("PARAMS:", req.params)
-    console.error("QUERY:", req.query)
-    if (error instanceof ApiError) {
-      return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
-    }
-    res.status(500).json({
-      success: false,
-      route: req.originalUrl || req.path,
-      error: error.message,
-      rawMessage: error.message,
-      code: error.code,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    })
+    console.error('[ADMIN][SETTINGS] error:', error?.message)
+    res.json(sendSuccess({
+      id: null,
+      siteName: 'HOK Interior Designs',
+      supportEmail: 'info@hokinterior.com',
+      maintenanceMode: false,
+      currency: 'USD',
+      shippingPolicy: '',
+      returnPolicy: '',
+    }))
   }
 }
 

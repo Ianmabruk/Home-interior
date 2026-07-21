@@ -238,7 +238,11 @@ export const virtualDesignController = {
     }
 
     if (existing.cloudinaryId) {
-      await deleteMedia(existing.cloudinaryId, existing.mediaType === 'video' ? 'video' : 'image')
+      try {
+        await deleteMedia(existing.cloudinaryId, existing.mediaType === 'video' ? 'video' : 'image')
+      } catch (e) {
+        console.error('[VIRTUAL-DESIGN][DELETE] main media delete failed:', e?.message)
+      }
     }
     // Delete gallery media
     if (existing.galleryMedia && existing.galleryMedia.length > 0) {
@@ -259,6 +263,12 @@ export const virtualDesignController = {
     } catch (error) {
       if (error.code === 'P2025') {
         return res.status(404).json({ success: false, message: 'Virtual Design item not found' })
+      }
+      if (error.code === 'P2003') {
+        await prisma.virtualDesignMedia.deleteMany({ where: { virtualDesignId: req.params.id } })
+        await prisma.virtualDesign.delete({ where: { id: req.params.id } })
+        res.json(sendSuccess({ message: 'Virtual Design item deleted' }))
+        return
       }
       throw error
     }

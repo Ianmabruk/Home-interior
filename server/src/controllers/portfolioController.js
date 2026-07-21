@@ -24,10 +24,26 @@ const stripUnknown = (obj, allowed) => {
 }
 
 const findFileByFieldname = (req, fieldname) => {
-  // upload.single() puts file in req.file, upload.array() puts in req.files
   if (req.file && req.file.fieldname === fieldname) return req.file
   const files = Array.isArray(req.files) ? req.files : []
-  return files.find((f) => f.fieldname === fieldname) || null
+  const found = files.find((f) => f.fieldname === fieldname)
+  if (found) return found
+  if (req.files && typeof req.files === 'object' && req.files[fieldname]) {
+    const arr = req.files[fieldname]
+    return Array.isArray(arr) ? arr[0] : arr
+  }
+  return null
+}
+
+const findFilesByFieldname = (req, fieldname) => {
+  if (Array.isArray(req.files)) {
+    return req.files.filter((f) => f.fieldname === fieldname)
+  }
+  if (req.files && typeof req.files === 'object' && req.files[fieldname]) {
+    const arr = req.files[fieldname]
+    return Array.isArray(arr) ? arr : [arr]
+  }
+  return []
 }
 
 export const portfolioController = {
@@ -85,7 +101,7 @@ export const portfolioController = {
       payload.featured = toBoolean(req.body.featured, false)
 
       // Handle gallery images
-      const galleryFiles = Array.isArray(req.files) ? req.files.filter(f => f.fieldname === 'gallery') : []
+      const galleryFiles = findFilesByFieldname(req, 'gallery')
       const galleryUrls = []
       
       for (const file of galleryFiles) {
@@ -148,7 +164,7 @@ export const portfolioController = {
       payload.featured = toBoolean(req.body.featured, existing.featured)
 
       // Handle gallery images
-      const galleryFiles = Array.isArray(req.files) ? req.files.filter(f => f.fieldname === 'gallery') : []
+      const galleryFiles = findFilesByFieldname(req, 'gallery')
       const galleryUrls = []
       
       for (const file of galleryFiles) {
@@ -243,7 +259,7 @@ export const portfolioController = {
         return res.status(404).json({ success: false, message: 'Portfolio item not found' })
       }
 
-      const galleryFiles = Array.isArray(req.files) ? req.files : []
+      const galleryFiles = findFilesByFieldname(req, 'gallery')
       const galleryUrls = []
       
       for (const file of galleryFiles) {
