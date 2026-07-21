@@ -407,43 +407,80 @@ export const VirtualDesignPage = () => {
                     )}
                   </div>
 
-                  {/* Info Card */}
-                  <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <motion.h3
-                          initial={{ opacity: 0, y: 10 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.1 }}
-                          className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors"
-                        >
-                          {item.title}
-                        </motion.h3>
-                        {item.description && (
-                          <motion.p
-                            initial={{ opacity: 0, y: 10 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.15 }}
-                            className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-2"
-                          >
-                            {item.description}
-                          </motion.p>
-                        )}
-                      </div>
-                      <motion.button
-                        initial={{ opacity: 0, x: 20 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={(e) => { e.stopPropagation(); openProjectDetail(item) }}
-                        className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0"
-                      >
-                        View Project
-                        <Maximize2 size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-                      </motion.button>
-                    </div>
-                  </div>
+                   {/* Info Card */}
+                   <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
+                     <div className="flex items-start justify-between gap-4">
+                       <div className="flex-1 min-w-0">
+                         <motion.h3
+                           initial={{ opacity: 0, y: 10 }}
+                           whileInView={{ opacity: 1, y: 0 }}
+                           transition={{ delay: 0.1 }}
+                           className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors"
+                         >
+                           {item.title}
+                         </motion.h3>
+                         {item.category && (
+                           <span className="inline-block px-2.5 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-semibold uppercase tracking-wider mb-2">
+                             {item.category}
+                           </span>
+                         )}
+                         {item.description && (
+                           <motion.p
+                             initial={{ opacity: 0, y: 10 }}
+                             whileInView={{ opacity: 1, y: 0 }}
+                             transition={{ delay: 0.15 }}
+                             className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-2"
+                           >
+                             {item.description}
+                           </motion.p>
+                         )}
+                       </div>
+                       <motion.button
+                         initial={{ opacity: 0, x: 20 }}
+                         whileInView={{ opacity: 1, x: 0 }}
+                         transition={{ delay: 0.3 }}
+                         whileHover={{ scale: 1.05 }}
+                         whileTap={{ scale: 0.98 }}
+                         onClick={(e) => { e.stopPropagation(); openProjectDetail(item) }}
+                         className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0"
+                       >
+                         View Project
+                         <Maximize2 size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+                       </motion.button>
+                     </div>
+                     
+                     {/* Gallery Thumbnails */}
+                     {item.galleryMedia && item.galleryMedia.length > 0 && (
+                       <div className="mt-4 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                         {item.galleryMedia.map((media, idx) => (
+                           <button
+                             key={idx}
+                             onClick={(e) => { 
+                               e.stopPropagation(); 
+                               if (media.type === 'video') {
+                                 handleVideoFullscreen({ ...item, mediaUrl: media.url })
+                               } else {
+                                 handleImageFullscreen({ ...item, mediaUrl: media.url })
+                               }
+                             }}
+                             className="relative flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 border-[var(--border)] hover:border-[var(--accent)] transition-colors"
+                           >
+                             <img
+                               src={media.url}
+                               alt={`${item.title} gallery ${idx + 1}`}
+                               className="w-full h-full object-cover"
+                               loading="lazy"
+                             />
+                             {media.type === 'video' && (
+                               <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                 <Play size={14} className="text-white" />
+                               </div>
+                             )}
+                           </button>
+                         ))}
+                       </div>
+                     )}
+                   </div>
                 </div>
               </motion.article>
             ))}

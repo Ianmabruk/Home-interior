@@ -216,6 +216,7 @@ export const virtualDesignSeed = [
   {
     title: 'Modern Minimalist Living',
     description: 'A clean, minimalist virtual design with neutral tones and natural materials.',
+    category: 'Residential',
     mediaType: 'image',
     mediaUrl: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1600&q=80',
     cloudinaryId: 'seed/virtual-design-1',
@@ -225,6 +226,7 @@ export const virtualDesignSeed = [
   {
     title: 'Luxury Bedroom Retreat',
     description: 'An immersive 3D walkthrough of a luxury master bedroom suite.',
+    category: 'Residential',
     mediaType: 'image',
     mediaUrl: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=1600&q=80',
     cloudinaryId: 'seed/virtual-design-2',

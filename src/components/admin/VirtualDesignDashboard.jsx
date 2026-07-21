@@ -18,6 +18,7 @@ import { getOptimizedVideoUrl, getVideoPosterUrl, getOptimizedUrl } from '../../
 const INITIAL_FORM = {
   title: '',
   description: '',
+  category: 'General',
   mediaType: 'image',
   featured: false,
 }
@@ -87,6 +88,7 @@ export const VirtualDesignDashboard = () => {
     setForm({
       title: item.title,
       description: item.description || '',
+      category: item.category || 'General',
       mediaType: item.mediaType || 'image',
       featured: item.featured || false,
     })
@@ -146,6 +148,7 @@ export const VirtualDesignDashboard = () => {
       const payload = new FormData()
       payload.append('title', form.title)
       if (form.description) payload.append('description', form.description)
+      if (form.category) payload.append('category', form.category)
       payload.append('mediaType', form.mediaType)
       payload.append('featured', String(form.featured))
 
@@ -378,6 +381,17 @@ export const VirtualDesignDashboard = () => {
               />
             </div>
 
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Category</label>
+              <input
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                placeholder="e.g. Residential, Commercial"
+                required
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Media Type</label>
@@ -588,6 +602,11 @@ export const VirtualDesignDashboard = () => {
             </div>
             <div className="p-5">
               <h3 className="font-display text-lg text-[var(--primary)]">{item.title}</h3>
+              {item.category && (
+                <span className="inline-block mt-1.5 px-2.5 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-semibold uppercase tracking-wider">
+                  {item.category}
+                </span>
+              )}
               <p className="text-xs text-[var(--primary)]/50 mt-1.5 line-clamp-2 leading-relaxed">
                 {item.description}
               </p>

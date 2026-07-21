@@ -8,7 +8,7 @@ import { withId, withIdArray, sortByOrderThenDate, orderValue, toBoolean } from 
 import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
 
 const VIRTUAL_DESIGN_FIELDS = new Set([
-  'title', 'description', 'mediaType', 'mediaUrl', 'galleryMedia', 'cloudinaryId', 'featured'
+  'title', 'description', 'category', 'mediaType', 'mediaUrl', 'galleryMedia', 'cloudinaryId', 'featured'
 ])
 
 const stripUnknown = (obj, allowed) => {
@@ -34,6 +34,7 @@ export const virtualDesignController = {
             id: true,
             title: true,
             description: true,
+            category: true,
             mediaType: true,
             mediaUrl: true,
             cloudinaryId: true,

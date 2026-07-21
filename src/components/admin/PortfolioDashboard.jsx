@@ -7,6 +7,7 @@ import { emitAdminDataChanged } from '../../utils/adminEvents'
 const INITIAL_FORM = {
   title: '',
   description: '',
+  category: 'General',
   featured: false,
   displayOrder: 0
 }
@@ -98,6 +99,7 @@ export const PortfolioDashboard = () => {
     setForm({
       title: item.title,
       description: item.description || '',
+      category: item.category || 'General',
       featured: item.featured || false,
       displayOrder: item.displayOrder || 0,
     })
@@ -125,6 +127,7 @@ export const PortfolioDashboard = () => {
       const payload = new FormData()
       payload.append('title', form.title)
       if (form.description) payload.append('description', form.description)
+      if (form.category) payload.append('category', form.category)
       payload.append('featured', String(form.featured))
       payload.append('displayOrder', String(form.displayOrder || 0))
 
@@ -242,6 +245,16 @@ export const PortfolioDashboard = () => {
                 className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
                 placeholder="Describe this portfolio piece..."
                 rows={3}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Category</label>
+              <input
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                placeholder="e.g. Residential, Commercial"
               />
             </div>
 

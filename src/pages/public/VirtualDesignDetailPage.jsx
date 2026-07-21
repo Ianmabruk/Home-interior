@@ -175,148 +175,53 @@ export const VirtualDesignDetailPage = () => {
             >
               <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]/80 mb-4">Virtual Designs</p>
               <h1 className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl">Loading...</h1>
-            </motion.div>
-          </div>
-        </section>
-      </main>
-    )
-  }
-
-  if (!project) {
-    return (
-      <main className="min-h-screen bg-[var(--bg)]">
-        <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)] via-[var(--primary)]/80 to-[var(--primary)]/60" />
-          <div className="relative z-10 flex h-full items-center justify-center px-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-              className="text-center"
-            >
-              <Link to="/virtual-design" className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors mb-4">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                <span className="text-[11px] font-semibold uppercase tracking-widest">Back to Portfolio</span>
-              </Link>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]/80 mb-4">Virtual Designs</p>
-              <h1 className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl">Project Not Found</h1>
-            </motion.div>
-          </div>
-        </section>
-      </main>
-    )
-  }
-
-  return (
-    <main className="min-h-screen bg-[var(--bg)]">
-      {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
-        {project.mediaUrl && project.mediaType === 'image' && (
-          <img
-            src={getOptimizedUrl(project.mediaUrl, { width: 1920, crop: 'limit' })}
-            alt={project.title}
-            className="absolute inset-0 h-full w-full object-cover opacity-20"
-            loading="eager"
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/85 via-[var(--primary)]/50 to-[var(--primary)]/30" />
-        <div className="relative z-10 flex h-full items-center justify-center px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="text-center max-w-4xl"
-          >
-            <Link
-              to="/virtual-design"
-              className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors mb-4"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-              <span className="text-[11px] font-semibold uppercase tracking-widest">Back to Portfolio</span>
-            </Link>
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl"
-            >
-              {project.title}
-            </motion.h1>
-            {project.description && (
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="mt-6 text-base md:text-lg text-white/60 leading-relaxed max-w-2xl mx-auto"
-              >
-                {project.description}
-              </motion.p>
-            )}
           </motion.div>
         </div>
       </section>
 
-      {/* Media Section */}
-      <section className="section-pad bg-[var(--bg)] pt-12">
-        <div className="container-wide px-6 md:px-12 lg:px-20">
-          <motion.div
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true }}
-            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
-            className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          >
-            {project.mediaUrl && (
-              <motion.article
-                key="main-media"
-                variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } } }}
-                className="group"
-              >
-                <div className="relative overflow-hidden rounded-3xl bg-white border border-[var(--border)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    {project.mediaType === 'image' ? (
-                      <>
-                        <img
-                          src={getOptimizedUrl(project.mediaUrl, { width: 640 })}
-                          alt={project.title}
-                          className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setImageFullscreen({ ...project, imageUrl: project.mediaUrl }); setGalleryIndex(0) }}
-                          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                          aria-label="View fullscreen"
-                        >
-                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                            <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
-                          </div>
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <LazyVideo
-                          src={getOptimizedVideoUrl(project.mediaUrl, { width: 640 })}
-                          poster={getVideoPosterUrl(project.mediaUrl, { width: 640 })}
-                          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setVideoFullscreen({ videoUrl: project.mediaUrl, title: project.title, category: project.mediaType }) }}
-                          className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110"
-                          aria-label="Play video"
-                        >
-                          <Play size={20} strokeWidth={1.5} className="ml-1" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </motion.article>
-            )}
-          </motion.div>
+      {/* Gallery Section */}
+      {project.galleryMedia && project.galleryMedia.length > 0 && (
+        <section className="section-pad bg-[var(--bg)] pt-8">
+          <div className="container-wide px-6 md:px-12 lg:px-20">
+            <h2 className="font-display text-2xl md:text-3xl text-[var(--primary)] mb-6">Project Gallery</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {project.galleryMedia.map((media, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="relative aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer group"
+                  onClick={() => {
+                    if (media.type === 'video') {
+                      setVideoFullscreen({ videoUrl: media.url, title: `${project.title} - Gallery ${idx + 1}`, category: media.type })
+                    } else {
+                      setImageFullscreen({ ...project, mediaUrl: media.url, title: `${project.title} - Gallery ${idx + 1}` })
+                    }
+                  }}
+                >
+                  <img
+                    src={media.url}
+                    alt={`${project.title} gallery ${idx + 1}`}
+                    className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  {media.type === 'video' && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-[var(--primary)] shadow-lg">
+                        <Play size={20} strokeWidth={1.5} className="ml-0.5" />
+                      </div>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
-          {/* Project Details */}
+      {/* Project Details */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

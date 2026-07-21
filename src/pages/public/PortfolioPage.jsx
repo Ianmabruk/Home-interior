@@ -193,6 +193,11 @@ export const PortfolioPage = () => {
                     >
                       {item.title}
                     </motion.h3>
+                    {item.category && (
+                      <span className="inline-block px-2.5 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-semibold uppercase tracking-wider mb-2">
+                        {item.category}
+                      </span>
+                    )}
                     {item.description && (
                       <motion.p
                         initial={{ opacity: 0, y: 10 }}
