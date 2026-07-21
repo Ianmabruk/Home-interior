@@ -460,7 +460,7 @@ export const AccountPage = () => {
                   {savedItems.map((item) => (
                     <div key={item._id} className="group relative overflow-hidden bg-white border border-[var(--border)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500 rounded-3xl">
                       <img
-                        src={item.imageUrl || 'https://images.unsplash.com/photo-1586023943478-ae8b06f48d80?w=400&h=400&fit=crop'}
+                         src={item.imageUrl || ''}
                         alt={item.name}
                         className="h-56 w-full object-cover transition duration-700 group-hover:scale-105"
                         loading="lazy"

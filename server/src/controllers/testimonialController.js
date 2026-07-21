@@ -5,10 +5,6 @@ import { ApiError } from '../utils/ApiError.js'
 import { mediaService } from '../services/media.service.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
 import { withId, withIdArray } from '../utils/helpers.js'
-import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
-import { executeWithRetry } from '../config/prisma.js'
-
-const withIdArraySafe = (items) => withIdArray(Array.isArray(items) ? items : [])
 
 const sortByOrder = (items) =>
   [...(items || [])].sort((a, b) => {
@@ -17,34 +13,19 @@ const sortByOrder = (items) =>
     return new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
   })
 
-// ── Public: only active testimonials, ordered for the footer carousel ──
 export const listPublic = asyncHandler(async (req, res) => {
-  try {
-    const items = await executeWithRetry(
-      () => prisma.testimonial.findMany({
-        where: { isActive: true },
-        orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
-      }),
-      'TESTIMONIALS-PUBLIC',
-      { maxRetries: 2, timeout: 5000 }
-    )
-    res.json(sendSuccess(withIdArraySafe(items)))
-  } catch (err) {
-    console.error('[TESTIMONIALS][PUBLIC] failed:', err?.message)
-    res.json(sendSuccess([]))
-  }
+  const items = await prisma.testimonial.findMany({
+    where: { isActive: true },
+    orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+  })
+  res.json(sendSuccess(withIdArray(sortByOrder(items))))
 })
 
-// ── Admin: all testimonials (active + inactive) ──
 export const listAdmin = asyncHandler(async (req, res) => {
-  const items = await executeWithRetry(
-    () => prisma.testimonial.findMany({
-      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
-    }),
-    'TESTIMONIALS-ADMIN',
-    { maxRetries: 2, timeout: 5000 }
-  )
-  res.json(sendSuccess(withIdArraySafe(items)))
+  const items = await prisma.testimonial.findMany({
+    orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+  })
+  res.json(sendSuccess(withIdArray(sortByOrder(items))))
 })
 
 const testimonialSchema = z.object({
@@ -70,9 +51,8 @@ export const create = asyncHandler(async (req, res) => {
     photoPublicId = upload.public_id
   }
 
-  const item = await prismaSafeWrite(
-    (writeData) => prisma.testimonial.create({ data: writeData }),
-    {
+  const item = await prisma.testimonial.create({
+    data: {
       clientName: body.clientName,
       position: body.position ?? null,
       company: body.company ?? null,
@@ -83,8 +63,7 @@ export const create = asyncHandler(async (req, res) => {
       photoUrl,
       photoPublicId,
     },
-    'TESTIMONIAL][CREATE',
-  )
+  })
 
   res.status(201).json(sendSuccess(withId(item)))
 })
@@ -106,18 +85,13 @@ export const update = asyncHandler(async (req, res) => {
   if (req.file) {
     const upload = await mediaService.upload({ buffer: req.file.buffer, mimeType: req.file.mimetype, folder: 'hok/testimonials', type: 'image' })
     if (existing.photoPublicId) {
-      try {       await mediaService.delete(existing.photoPublicId, 'image') } catch { /* ignore */ }
+      try { await mediaService.delete(existing.photoPublicId, 'image') } catch { /* ignore */ }
     }
     payload.photoUrl = upload.secure_url
     payload.photoPublicId = upload.public_id
   }
 
-  const item = await prismaSafeWrite(
-    (writeData) => prisma.testimonial.update({ where: { id: req.params.id }, data: writeData }),
-    payload,
-    'TESTIMONIAL][UPDATE',
-  )
-
+  const item = await prisma.testimonial.update({ where: { id: req.params.id }, data: payload })
   res.json(sendSuccess(withId(item)))
 })
 
@@ -125,13 +99,12 @@ export const remove = asyncHandler(async (req, res) => {
   const existing = await prisma.testimonial.findUnique({ where: { id: req.params.id } })
   if (!existing) throw new ApiError(404, 'Testimonial not found')
   if (existing.photoPublicId) {
-    try {       await mediaService.delete(existing.photoPublicId, 'image') } catch { /* ignore */ }
+    try { await mediaService.delete(existing.photoPublicId, 'image') } catch { /* ignore */ }
   }
   await prisma.testimonial.delete({ where: { id: req.params.id } })
   res.json(sendSuccess({ message: 'Testimonial deleted' }))
 })
 
-// Reorder several testimonials by an ordered array of ids.
 export const reorder = asyncHandler(async (req, res) => {
   const incoming = Array.isArray(req.body.order) ? req.body.order : []
   if (!incoming.length) throw new ApiError(400, 'order array is required')
@@ -139,7 +112,7 @@ export const reorder = asyncHandler(async (req, res) => {
     incoming.map((id, index) => prisma.testimonial.update({ where: { id: String(id) }, data: { displayOrder: index } })),
   )
   const items = await prisma.testimonial.findMany({ orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }] })
-  res.json(sendSuccess(withIdArraySafe(items)))
+  res.json(sendSuccess(withIdArray(sortByOrder(items))))
 })
 
 export const testimonialController = {

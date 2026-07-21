@@ -72,9 +72,9 @@ export const ServicesPage = () => {
       {/* Page Header */}
       <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
         <div className="absolute inset-0">
-          <img
-            src={getOptimizedUrl('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=2000&q=80', { width: 2000, crop: 'limit' })}
-            alt="Luxury interior design services"
+           <img
+             src={getOptimizedUrl('', { width: 2000, crop: 'limit' })}
+             alt="Luxury interior design services"
             className="h-full w-full object-cover"
             loading="eager"
             decoding="async"

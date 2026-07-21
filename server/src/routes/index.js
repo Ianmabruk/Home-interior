@@ -8,22 +8,25 @@ import analyticsRoutes from './analyticsRoutes.js'
 import orderRoutes from './orderRoutes.js'
 import productRoutes from './productRoutes.js'
 import userRoutes from './userRoutes.js'
-import rebuildRoutes from './rebuildRoutes.js'
 
 const router = Router()
 
-router.use('/auth', authRoutes)
+const adminLimiter = rateLimit({
+  windowMs: 1000 * 60 * 15,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
+  message: { success: false, message: 'Too many requests, please try again later.' },
+})
+
+router.use('/auth', adminLimiter, authRoutes)
 router.use('/products', productRoutes)
 router.use('/content', contentRoutes)
 router.use('/orders', orderRoutes)
 router.use('/users', userRoutes)
-router.use('/admin', adminRoutes)
+router.use('/admin', adminLimiter, adminRoutes)
 router.use('/analytics', analyticsRoutes)
 router.use('/messages', messageRoutes)
-
-// Canonical, spec-aligned API surface: /api/homepage, /api/portfolio,
-// /api/virtual-designs, /api/services, /api/about, /api/testimonials,
-// /api/consultations. Proxies to the same controllers as /api/content/*.
-router.use('/', rebuildRoutes)
 
 export default router

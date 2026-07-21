@@ -1,11 +1,6 @@
-import { prisma, executeWithRetry } from '../config/prisma.js'
+import { prisma } from '../config/prisma.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
-import { ApiError } from '../utils/ApiError.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
-import { withIdArray } from '../utils/helpers.js'
-
-// Aggregate real data from the live database. No mock/seed analytics table is
-// used — every metric is computed from orders, users, and products.
 
 const startOfMonth = () => {
   const d = new Date()
@@ -26,7 +21,6 @@ const dayKey = (date) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-// Cumulative-running helper for a per-day series.
 const buildSeries = (fromDate, mapFn) => {
   const series = []
   const cursor = new Date(fromDate)
@@ -40,17 +34,12 @@ const buildSeries = (fromDate, mapFn) => {
 }
 
 export const overview = asyncHandler(async (req, res) => {
-  const { products, users, orders, lowStockRows } = await executeWithRetry(
-    async () => {
-      const products = await prisma.product.findMany({ select: { id: true, name: true, price: true, stock: true, isPublished: true } })
-      const users = await prisma.user.findMany({ select: { id: true, role: true, createdAt: true } })
-      const orders = await prisma.order.findMany({ select: { id: true, total: true, status: true, paymentStatus: true, createdAt: true, userId: true, items: true } })
-      const lowStockRows = await prisma.product.count({ where: { stock: { lte: 5 } } })
-      return { products, users, orders, lowStockRows }
-    },
-    'ANALYTICS-OVERVIEW',
-    { maxRetries: 2, timeout: 15000 },
-  )
+  const [products, users, orders, lowStockRows] = await Promise.all([
+    prisma.product.findMany({ select: { id: true, name: true, price: true, stock: true, isPublished: true } }),
+    prisma.user.findMany({ select: { id: true, role: true, createdAt: true } }),
+    prisma.order.findMany({ select: { id: true, total: true, status: true, paymentStatus: true, createdAt: true, userId: true, items: true } }),
+    prisma.product.count({ where: { stock: { lte: 5 } } }),
+  ])
 
   const totalRevenue = orders.reduce((s, o) => s + (Number(o.total) || 0), 0)
   const paidRevenue = orders
@@ -188,7 +177,6 @@ export const revenue = asyncHandler(async (req, res) => {
     }
   })
 
-  // Monthly revenue for the last 12 months.
   const monthly = []
   const now = new Date()
   for (let i = 11; i >= 0; i--) {
@@ -219,14 +207,12 @@ export const customers = asyncHandler(async (req, res) => {
   const customers = users.filter((u) => u.role !== 'admin')
   const from = daysAgo(30)
 
-  // New customers per day (last 30 days).
   const perDay = buildSeries(from, (day) => {
     const key = dayKey(day)
     const count = customers.filter((u) => dayKey(u.createdAt) === key).length
     return { date: key, newCustomers: count }
   })
 
-  // Cumulative customer growth (all-time, daily resolution over the window).
   const growth = buildSeries(from, (day) => {
     const key = dayKey(day)
     const cumulative = customers.filter((u) => dayKey(u.createdAt) <= key).length
@@ -234,12 +220,11 @@ export const customers = asyncHandler(async (req, res) => {
   })
 
   const total = customers.length
-  const activeCount = customers.length // role-based; all are potential customers
   const newThisMonth = customers.filter((u) => new Date(u.createdAt) >= startOfMonth()).length
 
   res.json(sendSuccess({
     totalCustomers: total,
-    activeCustomers: activeCount,
+    activeCustomers: total,
     newThisMonth,
     perDay,
     growth,

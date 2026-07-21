@@ -28,7 +28,7 @@ export const AboutPreview = () => {
     aboutData?.mission ||
     'To transform spaces into timeless environments that reflect the unique personality and lifestyle of each client.'
   const imageUrl =
-    aboutData?.aboutImageUrl || aboutData?.heroImage || 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=1200&h=800&fit=crop'
+    aboutData?.aboutImageUrl || aboutData?.heroImage || ''
 
   return (
     <motion.section

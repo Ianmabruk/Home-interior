@@ -1,16 +1,10 @@
 import { z } from 'zod'
-import { prisma, executeWithRetry } from '../config/prisma.js'
+import { prisma } from '../config/prisma.js'
 import { ApiError } from '../utils/ApiError.js'
 import { mediaService } from '../services/media.service.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
 import { withId, withIdArray, parseMaybeJson, parseListField, parseMediaSettings, parseBody } from '../utils/helpers.js'
-import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
 
-// Multipart/form-data sends every field as a string, so `z.coerce.boolean()`
-// is unsafe here: it turns the string 'false' into `true` (any non-empty
-// string is truthy), which permanently breaks the Published/Featured toggles.
-// This parser maps the real submitted value back to a boolean and stays
-// optional so `?? true` create-time defaults still apply.
 const formBoolean = z.preprocess((value) => {
   if (typeof value === 'boolean') return value
   if (value === 'true' || value === '1' || value === 'on') return true
@@ -20,9 +14,6 @@ const formBoolean = z.preprocess((value) => {
 
 const VALID_CATEGORIES = ['Mirrors', 'Frames', 'Throw Pillows']
 
-// Prisma enum ProductCategory uses code members (ThrowPillows) mapped to the
-// stored DB label "Throw Pillows". Normalize incoming category strings to the
-// Prisma member name before writing.
 const normalizeCategory = (value) => {
   if (value === 'Throw Pillows') return 'ThrowPillows'
   if (VALID_CATEGORIES.includes(value)) return value
@@ -67,43 +58,20 @@ export const listProducts = async (req, res) => {
     const safeLimit = Math.min(Number(limit), 200)
     const safePage = Number(page)
 
-    const items = await executeWithRetry(
-      () =>
-        prisma.product.findMany({
-          where,
-          orderBy: { [sortField]: sortOrder },
-          skip: (safePage - 1) * safeLimit,
-          take: safeLimit,
-        }),
-      'PRODUCT][LIST][FINDMANY',
-      { maxRetries: 2, timeout: 10000 },
-    )
-    const total = await executeWithRetry(
-      () => prisma.product.count({ where }),
-      'PRODUCT][LIST][COUNT',
-      { maxRetries: 2, timeout: 10000 },
-    )
+    const [items, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        orderBy: { [sortField]: sortOrder },
+        skip: (safePage - 1) * safeLimit,
+        take: safeLimit,
+      }),
+      prisma.product.count({ where }),
+    ])
 
     res.json(sendSuccess({ items: withIdArray(items), total, page: safePage, pages: Math.ceil(total / safeLimit) }))
   } catch (error) {
-    console.error("FULL ERROR:", error)
-    console.error("MESSAGE:", error.message)
-    console.error("STACK:", error.stack)
-    console.error("PRISMA CODE:", error.code)
-    console.error("BODY:", req.body)
-    console.error("PARAMS:", req.params)
-    console.error("QUERY:", req.query)
-    if (error instanceof ApiError) {
-      return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
-    }
-    res.status(500).json({
-      success: false,
-      route: req.originalUrl || req.path,
-      error: error.message,
-      rawMessage: error.message,
-      code: error.code,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    })
+    console.error('[PRODUCT][LIST] error:', error?.message)
+    res.status(500).json({ success: false, message: 'Failed to fetch products' })
   }
 }
 
@@ -131,43 +99,20 @@ export const listAllProducts = async (req, res) => {
     const safeLimit = Math.min(Number(limit), 200)
     const safePage = Number(page)
 
-    const items = await executeWithRetry(
-      () =>
-        prisma.product.findMany({
-          where,
-          orderBy: { [sortField]: sortOrder },
-          skip: (safePage - 1) * safeLimit,
-          take: safeLimit,
-        }),
-      'PRODUCT][LISTALL][FINDMANY',
-      { maxRetries: 2, timeout: 10000 },
-    )
-    const total = await executeWithRetry(
-      () => prisma.product.count({ where }),
-      'PRODUCT][LISTALL][COUNT',
-      { maxRetries: 2, timeout: 10000 },
-    )
+    const [items, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        orderBy: { [sortField]: sortOrder },
+        skip: (safePage - 1) * safeLimit,
+        take: safeLimit,
+      }),
+      prisma.product.count({ where }),
+    ])
 
     res.json(sendSuccess({ items: withIdArray(items), total, page: safePage, pages: Math.ceil(total / safeLimit) }))
   } catch (error) {
-    console.error("FULL ERROR:", error)
-    console.error("MESSAGE:", error.message)
-    console.error("STACK:", error.stack)
-    console.error("PRISMA CODE:", error.code)
-    console.error("BODY:", req.body)
-    console.error("PARAMS:", req.params)
-    console.error("QUERY:", req.query)
-    if (error instanceof ApiError) {
-      return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
-    }
-    res.status(500).json({
-      success: false,
-      route: req.originalUrl || req.path,
-      error: error.message,
-      rawMessage: error.message,
-      code: error.code,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    })
+    console.error('[PRODUCT][LISTALL] error:', error?.message)
+    res.status(500).json({ success: false, message: 'Failed to fetch products' })
   }
 }
 
@@ -175,28 +120,12 @@ export const getProduct = async (req, res) => {
   try {
     const item = await prisma.product.findUnique({ where: { id: req.params.id } })
     if (!item) {
-      throw new ApiError(404, 'Product not found')
+      return res.status(404).json({ success: false, message: 'Product not found' })
     }
     res.json(sendSuccess(withId(item)))
   } catch (error) {
-    console.error("FULL ERROR:", error)
-    console.error("MESSAGE:", error.message)
-    console.error("STACK:", error.stack)
-    console.error("PRISMA CODE:", error.code)
-    console.error("BODY:", req.body)
-    console.error("PARAMS:", req.params)
-    console.error("QUERY:", req.query)
-    if (error instanceof ApiError) {
-      return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
-    }
-    res.status(500).json({
-      success: false,
-      route: req.originalUrl || req.path,
-      error: error.message,
-      rawMessage: error.message,
-      code: error.code,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    })
+    console.error('[PRODUCT][GET] error:', error?.message)
+    res.status(500).json({ success: false, message: 'Failed to fetch product' })
   }
 }
 
@@ -206,7 +135,7 @@ export const createProduct = async (req, res) => {
     const files = req.files || []
 
     const uploads = await Promise.all(
-        files.map((file) => mediaService.upload({ buffer: file.buffer, mimeType: file.mimetype, folder: 'hok/products', type: 'image' })),
+      files.map((file) => mediaService.upload({ buffer: file.buffer, mimeType: file.mimetype, folder: 'hok/products', type: 'image' })),
     )
 
     const colorVariantsRaw = Array.isArray(req.body.colorVariants)
@@ -221,19 +150,8 @@ export const createProduct = async (req, res) => {
 
     const tags = parseListField(req.body.tags, [])
 
-    const product = await prismaSafeWrite(
-      (writeData) => prisma.product.create({
-        data: {
-          ...writeData,
-          isPublished: writeData.isPublished ?? true,
-          tags: Array.isArray(writeData.tags) ? writeData.tags : [],
-          images: writeData.images,
-          colorVariants: writeData.colorVariants,
-          styleVariants: writeData.styleVariants,
-          mediaSettings: writeData.mediaSettings,
-        },
-      }),
-      {
+    const product = await prisma.product.create({
+      data: {
         ...data,
         isPublished: data.isPublished ?? true,
         tags: Array.isArray(tags) ? tags : [],
@@ -242,30 +160,15 @@ export const createProduct = async (req, res) => {
         styleVariants,
         mediaSettings: parseMediaSettings(req.body.mediaSettings) || undefined,
       },
-      'PRODUCT][CREATE',
-    )
+    })
 
-    console.log(`[EMAIL DISABLED] New product notification for ${product.name}`)
     res.status(201).json(sendSuccess(withId(product)))
   } catch (error) {
-    console.error("FULL ERROR:", error)
-    console.error("MESSAGE:", error.message)
-    console.error("STACK:", error.stack)
-    console.error("PRISMA CODE:", error.code)
-    console.error("BODY:", req.body)
-    console.error("PARAMS:", req.params)
-    console.error("QUERY:", req.query)
+    console.error('[PRODUCT][CREATE] error:', error?.message)
     if (error instanceof ApiError) {
       return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
     }
-    res.status(500).json({
-      success: false,
-      route: req.originalUrl || req.path,
-      error: error.message,
-      rawMessage: error.message,
-      code: error.code,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    })
+    res.status(500).json({ success: false, message: 'Failed to create product' })
   }
 }
 
@@ -274,7 +177,7 @@ export const updateProduct = async (req, res) => {
     const data = parseBody(productSchema.partial(), req.body)
     const product = await prisma.product.findUnique({ where: { id: req.params.id } })
     if (!product) {
-      throw new ApiError(404, 'Product not found')
+      return res.status(404).json({ success: false, message: 'Product not found' })
     }
 
     const files = req.files || []
@@ -305,31 +208,14 @@ export const updateProduct = async (req, res) => {
       data.styleVariants = styleVariantsRaw
     }
 
-    const updated = await prismaSafeWrite(
-      (writeData) => prisma.product.update({ where: { id: req.params.id }, data: writeData }),
-      data,
-      'PRODUCT][UPDATE',
-    )
+    const updated = await prisma.product.update({ where: { id: req.params.id }, data })
     res.json(sendSuccess(withId(updated)))
   } catch (error) {
-    console.error("FULL ERROR:", error)
-    console.error("MESSAGE:", error.message)
-    console.error("STACK:", error.stack)
-    console.error("PRISMA CODE:", error.code)
-    console.error("BODY:", req.body)
-    console.error("PARAMS:", req.params)
-    console.error("QUERY:", req.query)
+    console.error('[PRODUCT][UPDATE] error:', error?.message)
     if (error instanceof ApiError) {
       return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
     }
-    res.status(500).json({
-      success: false,
-      route: req.originalUrl || req.path,
-      error: error.message,
-      rawMessage: error.message,
-      code: error.code,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    })
+    res.status(500).json({ success: false, message: 'Failed to update product' })
   }
 }
 
@@ -337,7 +223,7 @@ export const deleteProduct = async (req, res) => {
   try {
     const product = await prisma.product.findUnique({ where: { id: req.params.id } })
     if (!product) {
-      throw new ApiError(404, 'Product not found')
+      return res.status(404).json({ success: false, message: 'Product not found' })
     }
 
     const imageDeletes = (product.images || []).map((img) => img.publicId ? mediaService.delete(img.publicId, 'image') : Promise.resolve())
@@ -347,35 +233,22 @@ export const deleteProduct = async (req, res) => {
     await prisma.product.delete({ where: { id: req.params.id } })
     res.json(sendSuccess({ message: 'Product deleted' }))
   } catch (error) {
-    console.error("FULL ERROR:", error)
-    console.error("MESSAGE:", error.message)
-    console.error("STACK:", error.stack)
-    console.error("PRISMA CODE:", error.code)
-    console.error("BODY:", req.body)
-    console.error("PARAMS:", req.params)
-    console.error("QUERY:", req.query)
+    console.error('[PRODUCT][DELETE] error:', error?.message)
     if (error instanceof ApiError) {
       return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
     }
-    res.status(500).json({
-      success: false,
-      route: req.originalUrl || req.path,
-      error: error.message,
-      rawMessage: error.message,
-      code: error.code,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    })
+    res.status(500).json({ success: false, message: 'Failed to delete product' })
   }
 }
 
 export const addColorVariant = async (req, res) => {
   try {
     const product = await prisma.product.findUnique({ where: { id: req.params.id } })
-    if (!product) throw new ApiError(404, 'Product not found')
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' })
 
     const { colorName, colorHex = '', stockQuantity = 0, priceOverride, sku, setAsDefault } = req.body
-    if (!colorName) throw new ApiError(400, 'colorName is required')
-    if (!req.file) throw new ApiError(400, 'Image file is required')
+    if (!colorName) return res.status(400).json({ success: false, message: 'colorName is required' })
+    if (!req.file) return res.status(400).json({ success: false, message: 'Image file is required' })
 
     const upload = await mediaService.upload({ buffer: req.file.buffer, mimeType: req.file.mimetype, folder: 'hok/products/variants', type: 'image' })
 
@@ -394,8 +267,6 @@ export const addColorVariant = async (req, res) => {
       isDefault: Boolean(isDefault),
     }
 
-    // When this new variant is flagged default, clear the flag on the others
-    // so exactly one variant carries isDefault.
     const variants = [...filtered, newVariant].map((v) => ({
       ...v,
       isDefault: v.colorName === newVariant.colorName ? true : false,
@@ -408,38 +279,24 @@ export const addColorVariant = async (req, res) => {
 
     res.json(sendSuccess(withId(updated)))
   } catch (error) {
-    console.error("FULL ERROR:", error)
-    console.error("MESSAGE:", error.message)
-    console.error("STACK:", error.stack)
-    console.error("PRISMA CODE:", error.code)
-    console.error("BODY:", req.body)
-    console.error("PARAMS:", req.params)
-    console.error("QUERY:", req.query)
+    console.error('[PRODUCT][VARIANT_ADD] error:', error?.message)
     if (error instanceof ApiError) {
       return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
     }
-    res.status(500).json({
-      success: false,
-      route: req.originalUrl || req.path,
-      error: error.message,
-      rawMessage: error.message,
-      code: error.code,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    })
+    res.status(500).json({ success: false, message: 'Failed to add color variant' })
   }
 }
 
 export const setDefaultVariant = async (req, res) => {
   try {
     const product = await prisma.product.findUnique({ where: { id: req.params.id } })
-    if (!product) throw new ApiError(404, 'Product not found')
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' })
 
     const colorName = decodeURIComponent(req.params.colorName)
     const currentVariants = Array.isArray(product.colorVariants) ? product.colorVariants : []
     const target = currentVariants.find((v) => v.colorName === colorName)
-    if (!target) throw new ApiError(404, 'Variant not found')
+    if (!target) return res.status(404).json({ success: false, message: 'Variant not found' })
 
-    // Ensure exactly one variant is flagged isDefault.
     const variants = currentVariants.map((v) => ({
       ...v,
       isDefault: v.colorName === colorName,
@@ -452,44 +309,29 @@ export const setDefaultVariant = async (req, res) => {
 
     res.json(sendSuccess(withId(updated)))
   } catch (error) {
-    console.error("FULL ERROR:", error)
-    console.error("MESSAGE:", error.message)
-    console.error("STACK:", error.stack)
-    console.error("PRISMA CODE:", error.code)
-    console.error("BODY:", req.body)
-    console.error("PARAMS:", req.params)
-    console.error("QUERY:", req.query)
+    console.error('[PRODUCT][VARIANT_DEFAULT] error:', error?.message)
     if (error instanceof ApiError) {
       return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
     }
-    res.status(500).json({
-      success: false,
-      route: req.originalUrl || req.path,
-      error: error.message,
-      rawMessage: error.message,
-      code: error.code,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    })
+    res.status(500).json({ success: false, message: 'Failed to set default variant' })
   }
 }
 
 export const removeColorVariant = async (req, res) => {
   try {
     const product = await prisma.product.findUnique({ where: { id: req.params.id } })
-    if (!product) throw new ApiError(404, 'Product not found')
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' })
 
     const { colorName } = req.params
-    if (!colorName) {
-      throw new ApiError(400, 'colorName is required')
-    }
+    if (!colorName) return res.status(400).json({ success: false, message: 'colorName is required' })
 
     const currentVariants = Array.isArray(product.colorVariants) ? product.colorVariants : []
     const variant = currentVariants.find((v) => v.colorName === colorName)
     if (variant?.imagePublicId) {
       try {
         await mediaService.delete(variant.imagePublicId, 'image')
-      } catch (deleteErr) {
-        console.error('[PRODUCT][VARIANT_DELETE] delete old media failed:', deleteErr?.message)
+      } catch {
+        // ignore
       }
     }
 
@@ -502,34 +344,21 @@ export const removeColorVariant = async (req, res) => {
 
     res.json(sendSuccess(withId(updated)))
   } catch (error) {
-    console.error("FULL ERROR:", error)
-    console.error("MESSAGE:", error.message)
-    console.error("STACK:", error.stack)
-    console.error("PRISMA CODE:", error.code)
-    console.error("BODY:", req.body)
-    console.error("PARAMS:", req.params)
-    console.error("QUERY:", req.query)
+    console.error('[PRODUCT][VARIANT_REMOVE] error:', error?.message)
     if (error instanceof ApiError) {
       return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
     }
-    res.status(500).json({
-      success: false,
-      route: req.originalUrl || req.path,
-      error: error.message,
-      rawMessage: error.message,
-      code: error.code,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    })
+    res.status(500).json({ success: false, message: 'Failed to remove color variant' })
   }
 }
 
 export const addStyleVariant = async (req, res) => {
   try {
     const product = await prisma.product.findUnique({ where: { id: req.params.id } })
-    if (!product) throw new ApiError(404, 'Product not found')
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' })
 
     const { styleName, description = '', images = [] } = req.body
-    if (!styleName) throw new ApiError(400, 'styleName is required')
+    if (!styleName) return res.status(400).json({ success: false, message: 'styleName is required' })
 
     const currentVariants = Array.isArray(product.styleVariants) ? product.styleVariants : []
     const filtered = currentVariants.filter((v) => v.styleName !== styleName)
@@ -553,31 +382,21 @@ export const addStyleVariant = async (req, res) => {
 
     res.json(sendSuccess(withId(updated)))
   } catch (error) {
-    console.error("FULL ERROR:", error)
-    console.error("MESSAGE:", error.message)
-    console.error("STACK:", error.stack)
-    console.error("PRISMA CODE:", error.code)
+    console.error('[PRODUCT][STYLE_ADD] error:', error?.message)
     if (error instanceof ApiError) {
       return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
     }
-    res.status(500).json({
-      success: false,
-      route: req.originalUrl || req.path,
-      error: error.message,
-      rawMessage: error.message,
-      code: error.code,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    })
+    res.status(500).json({ success: false, message: 'Failed to add style variant' })
   }
 }
 
 export const removeStyleVariant = async (req, res) => {
   try {
     const product = await prisma.product.findUnique({ where: { id: req.params.id } })
-    if (!product) throw new ApiError(404, 'Product not found')
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' })
 
     const { styleName } = req.params
-    if (!styleName) throw new ApiError(400, 'styleName is required')
+    if (!styleName) return res.status(400).json({ success: false, message: 'styleName is required' })
 
     const currentVariants = Array.isArray(product.styleVariants) ? product.styleVariants : []
     const filtered = currentVariants.filter((v) => v.styleName !== styleName)
@@ -589,33 +408,23 @@ export const removeStyleVariant = async (req, res) => {
 
     res.json(sendSuccess(withId(updated)))
   } catch (error) {
-    console.error("FULL ERROR:", error)
-    console.error("MESSAGE:", error.message)
-    console.error("STACK:", error.stack)
-    console.error("PRISMA CODE:", error.code)
+    console.error('[PRODUCT][STYLE_REMOVE] error:', error?.message)
     if (error instanceof ApiError) {
       return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
     }
-    res.status(500).json({
-      success: false,
-      route: req.originalUrl || req.path,
-      error: error.message,
-      rawMessage: error.message,
-      code: error.code,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    })
+    res.status(500).json({ success: false, message: 'Failed to remove style variant' })
   }
 }
 
 export const setDefaultStyleVariant = async (req, res) => {
   try {
     const product = await prisma.product.findUnique({ where: { id: req.params.id } })
-    if (!product) throw new ApiError(404, 'Product not found')
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' })
 
     const styleName = decodeURIComponent(req.params.styleName)
     const currentVariants = Array.isArray(product.styleVariants) ? product.styleVariants : []
     const target = currentVariants.find((v) => v.styleName === styleName)
-    if (!target) throw new ApiError(404, 'Style variant not found')
+    if (!target) return res.status(404).json({ success: false, message: 'Style variant not found' })
 
     const variants = currentVariants.map((v) => ({
       ...v,
@@ -629,20 +438,10 @@ export const setDefaultStyleVariant = async (req, res) => {
 
     res.json(sendSuccess(withId(updated)))
   } catch (error) {
-    console.error("FULL ERROR:", error)
-    console.error("MESSAGE:", error.message)
-    console.error("STACK:", error.stack)
-    console.error("PRISMA CODE:", error.code)
+    console.error('[PRODUCT][STYLE_DEFAULT] error:', error?.message)
     if (error instanceof ApiError) {
       return res.status(error.statusCode).json({ success: false, message: error.message, details: error.details })
     }
-    res.status(500).json({
-      success: false,
-      route: req.originalUrl || req.path,
-      error: error.message,
-      rawMessage: error.message,
-      code: error.code,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    })
+    res.status(500).json({ success: false, message: 'Failed to set default style variant' })
   }
 }

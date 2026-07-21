@@ -18,6 +18,7 @@ import { virtualDesignController } from '../controllers/virtualDesignController.
 import { testimonialController } from '../controllers/testimonialController.js'
 import { consultationController } from '../controllers/consultationController.js'
 import { serviceController } from '../controllers/serviceController.js'
+import { heroMediaController } from '../controllers/heroMediaController.js'
 import { auth, authorize } from '../middleware/auth.js'
 import { sanitizeInput, validateFileUpload, validateBody } from '../middleware/validate.js'
 import { auditLog } from '../middleware/auditLog.js'
@@ -72,6 +73,13 @@ router.get('/homepage', homepageFeed)
 router.put('/homepage', auth, authorize('admin'), writeLimiter, auditLog, upload.array('heroImages', 10), validateGalleryUpload, sanitizeInput, upsertHomepageContent)
 router.delete('/homepage/hero-images', auth, authorize('admin'), writeLimiter, auditLog, sanitizeInput, deleteHeroImagesController)
 
+// ── Hero Media ─────────────────────────────────────────────────────────
+router.get('/hero-media', heroMediaController.list)
+router.post('/hero-media', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, heroMediaController.create)
+router.patch('/hero-media/:id', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, heroMediaController.update)
+router.delete('/hero-media/:id', auth, authorize('admin'), writeLimiter, auditLog, heroMediaController.remove)
+router.patch('/hero-media/reorder', auth, authorize('admin'), writeLimiter, auditLog, sanitizeInput, heroMediaController.reorder)
+
 router.get('/analytics', auth, getAnalytics)
 
 // ── Portfolio ───────────────────────────────────────────────────────────
@@ -111,7 +119,7 @@ router.get('/testimonials', testimonialController.listPublic)
 // ── Consultations ───────────────────────────────────────────────────────
 router.post('/consultations', validateConsultationBody, consultationController.createConsultation)
 
-// ── Legacy media helpers ────────────────────────────────────────────────
+// ── Media helpers ───────────────────────────────────────────────────────
 router.post('/test-upload', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, testUpload)
 router.post('/media/upload', auth, authorize('admin'), writeLimiter, auditLog, upload.single('media'), validateUpload, sanitizeInput, uploadMediaController)
 router.post('/media/delete', auth, authorize('admin'), writeLimiter, auditLog, sanitizeInput, deleteMediaController)

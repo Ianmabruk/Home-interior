@@ -1,13 +1,12 @@
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { z } from 'zod'
-import { prisma, executeWithRetry } from '../config/prisma.js'
+import { prisma } from '../config/prisma.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
 import { signAccessToken, signRefreshToken, verifyRefreshToken, setRefreshCookie, clearRefreshCookie, REFRESH_COOKIE_NAME } from '../utils/tokens.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
 import { parseBody } from '../utils/helpers.js'
-import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
 
 const withId = (item) => (item == null ? item : { ...item, _id: item.id })
 const withIdArray = (items) => items.map((item) => withId(item))
@@ -35,34 +34,22 @@ export const register = asyncHandler(async (req, res) => {
   const body = parseBody(registerSchema, req.body)
   const exists = await prisma.user.findUnique({ where: { email: body.email } })
   if (exists) {
-    console.warn(`[AUTH][register] rejected: user already exists ${body.email}`)
-    throw new ApiError(409, 'User already exists')
+    return res.status(409).json({ success: false, message: 'User already exists' })
   }
 
   const passwordHash = await bcrypt.hash(body.password, 12)
   const { password: _password, ...userData } = body
-  const user = await prismaSafeWrite(
-    (writeData) => prisma.user.create({
-      data: { ...writeData, passwordHash },
-    }),
-    userData,
-    'AUTH][REGISTER',
-  )
+  const user = await prisma.user.create({
+    data: { ...userData, passwordHash },
+  })
 
   const tokens = makeAuthResponse(user)
-  await prismaSafeWrite(
-    (writeData) => prisma.user.update({
-      where: { id: user.id },
-      data: writeData,
-    }),
-    { refreshToken: tokens.refreshToken },
-    'AUTH][REGISTER',
-  )
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { refreshToken: tokens.refreshToken },
+  })
 
-  console.log(`[EMAIL DISABLED] Welcome email for ${body.email}`)
   setRefreshCookie(res, tokens.refreshToken)
-  console.info(`[AUTH][register] success: userId=${user.id} email=${user.email}`)
-
   res.status(201).json(sendSuccess({
     user: { id: user.id, fullName: user.fullName, email: user.email, role: user.role },
     accessToken: tokens.accessToken,
@@ -71,57 +58,27 @@ export const register = asyncHandler(async (req, res) => {
 
 export const login = asyncHandler(async (req, res) => {
   const body = parseBody(loginSchema, req.body)
-  let user
-  try {
-    user = await executeWithRetry(
-      () => prisma.user.findUnique({ where: { email: body.email } }),
-      'AUTH][LOGIN-FIND',
-      { maxRetries: 2, timeout: 10000 },
-    )
-  } catch (err) {
-    console.error('[AUTH][login] DB error looking up user:', err)
-    return res.status(500).json({ success: false, message: 'Database error during login. Please try again.' })
-  }
+  const user = await prisma.user.findUnique({ where: { email: body.email } })
   if (!user) {
-    console.warn(`[AUTH][login] rejected: invalid credentials for ${body.email}`)
     return res.status(401).json({ success: false, message: 'Invalid credentials' })
   }
 
   if (!user.isActive) {
-    console.warn(`[AUTH][login] rejected: inactive account for ${body.email}`)
     return res.status(403).json({ success: false, message: 'Your account has been suspended. Contact support.' })
   }
 
   const matches = await bcrypt.compare(body.password, user.passwordHash)
   if (!matches) {
-    console.warn(`[AUTH][login] rejected: invalid credentials for ${body.email}`)
     return res.status(401).json({ success: false, message: 'Invalid credentials' })
   }
 
   const tokens = makeAuthResponse(user)
-  try {
-    await executeWithRetry(
-      () =>
-        prismaSafeWrite(
-          (writeData) => prisma.user.update({
-            where: { id: user.id },
-            data: writeData,
-          }),
-          { refreshToken: tokens.refreshToken, lastLoginAt: new Date() },
-          'AUTH][LOGIN',
-        ),
-      'AUTH][LOGIN-UPDATE',
-      { maxRetries: 2, timeout: 10000 },
-    )
-  } catch (err) {
-    console.error('[AUTH][login] DB error updating user:', err)
-    return res.status(500).json({ success: false, message: 'Database error during login. Please try again.' })
-  }
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { refreshToken: tokens.refreshToken, lastLoginAt: new Date() },
+  })
 
-  console.log(`[EMAIL DISABLED] Login alert for ${user.email}`)
   setRefreshCookie(res, tokens.refreshToken)
-  console.info(`[AUTH][login] success: userId=${user.id} email=${user.email} role=${user.role}`)
-
   res.json(sendSuccess({
     user: { id: user.id, fullName: user.fullName, email: user.email, role: user.role },
     accessToken: tokens.accessToken,
@@ -132,91 +89,50 @@ export const refresh = asyncHandler(async (req, res) => {
   const body = req.body || {}
   const refreshToken = body.refreshToken || req.cookies?.[REFRESH_COOKIE_NAME]
   if (!refreshToken) {
-    console.warn('[AUTH][refresh] rejected: no refresh token in cookie or body')
-    return res.status(401).json({
-      success: false,
-      message: 'Refresh token missing',
-    })
+    return res.status(401).json({ success: false, message: 'Refresh token missing' })
   }
 
-  // Verify the JWT signature/expiry. Any failure is a clean 401 (never 500),
-  // so a bad/expired token can't crash the endpoint or trigger a retry loop.
   let decoded
   try {
     decoded = verifyRefreshToken(refreshToken)
-  } catch (err) {
-    console.warn('[AUTH][refresh] rejected: invalid/expired token —', err?.message)
-    throw new ApiError(401, 'Invalid or expired refresh token')
+  } catch {
+    return res.status(401).json({ success: false, message: 'Invalid or expired refresh token' })
   }
 
   if (!decoded?.userId) {
-    console.warn('[AUTH][refresh] rejected: token missing userId claim')
-    throw new ApiError(401, 'Invalid refresh token')
+    return res.status(401).json({ success: false, message: 'Invalid refresh token' })
   }
 
-  // DB failures are caught and downgraded to 401: a 500 here would make the
-  // client treat it as a server fault and retry the refresh, looping.
-  let user
-  try {
-    user = await prisma.user.findUnique({ where: { id: decoded.userId } })
-  } catch (err) {
-    console.error('[AUTH][refresh] DB error looking up user:', err)
-    throw new ApiError(401, 'Invalid refresh token')
-  }
-
+  const user = await prisma.user.findUnique({ where: { id: decoded.userId } })
   if (!user || user.refreshToken !== refreshToken || !user.isActive) {
-    console.warn('[AUTH][refresh] rejected: user not found, token mismatch, or inactive (userId=%s)', decoded.userId)
-    throw new ApiError(401, 'Invalid refresh token')
+    return res.status(401).json({ success: false, message: 'Invalid refresh token' })
   }
 
   const tokens = makeAuthResponse(user)
-  try {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { refreshToken: tokens.refreshToken },
-    })
-  } catch (err) {
-    console.error('[AUTH][refresh] DB error rotating refresh token:', err)
-    throw new ApiError(401, 'Invalid refresh token')
-  }
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { refreshToken: tokens.refreshToken },
+  })
 
   setRefreshCookie(res, tokens.refreshToken)
-  console.info('[AUTH][refresh] success (userId=%s)', user.id)
   res.json(sendSuccess({ accessToken: tokens.accessToken }))
 })
 
 export const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = parseBody(z.object({ email: z.string().email() }), req.body)
-  let user
-  try {
-    user = await prisma.user.findUnique({ where: { email } })
-  } catch (err) {
-    console.error('[AUTH][forgotPassword] DB error:', err)
-    return res.json(sendSuccess({ message: 'If that account exists, a reset link has been sent.' }))
-  }
+  const user = await prisma.user.findUnique({ where: { email } })
   if (!user) {
-    res.json(sendSuccess({ message: 'If that account exists, a reset link has been sent.' }))
-    return
+    return res.json(sendSuccess({ message: 'If that account exists, a reset link has been sent.' }))
   }
 
   const token = crypto.randomBytes(32).toString('hex')
   const passwordResetExpires = new Date(Date.now() + 1000 * 60 * 30)
 
-  try {
-    await prismaSafeWrite(
-      (writeData) => prisma.user.update({
-        where: { id: user.id },
-        data: writeData,
-      }),
-      { passwordResetToken: token, passwordResetExpires },
-      'AUTH][FORGOT',
-    )
-  } catch (err) {
-    console.error('[AUTH][forgotPassword] DB error updating user:', err)
-    return res.json(sendSuccess({ message: 'If that account exists, a reset link has been sent.' }))
-  }
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordResetToken: token, passwordResetExpires },
+  })
 
-  console.log(`[EMAIL DISABLED] Password reset email for ${email}`)
   res.json(sendSuccess({ message: 'If that account exists, a reset link has been sent.' }))
 })
 
@@ -228,42 +144,21 @@ export const resetPassword = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Invalid reset token')
   }
 
-  let user
-  try {
-    user = await prisma.user.findFirst({
-      where: {
-        passwordResetToken: token,
-        passwordResetExpires: { gt: new Date() },
-      },
-    })
-  } catch (err) {
-    console.error('[AUTH][resetPassword] DB error:', err)
-    throw new ApiError(400, 'Reset link is invalid or expired')
-  }
-
+  const user = await prisma.user.findFirst({
+    where: {
+      passwordResetToken: token,
+      passwordResetExpires: { gt: new Date() },
+    },
+  })
   if (!user) {
     throw new ApiError(400, 'Reset link is invalid or expired')
   }
 
   const passwordHash = await bcrypt.hash(password, 12)
-  try {
-    await prismaSafeWrite(
-      (writeData) => prisma.user.update({
-        where: { id: user.id },
-        data: writeData,
-      }),
-      {
-        passwordHash,
-        passwordResetToken: null,
-        passwordResetExpires: null,
-        refreshToken: null,
-      },
-      'AUTH][RESET',
-    )
-  } catch (err) {
-    console.error('[AUTH][resetPassword] DB error updating user:', err)
-    throw new ApiError(500, 'Database error during password reset')
-  }
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash, passwordResetToken: null, passwordResetExpires: null, refreshToken: null },
+  })
 
   clearRefreshCookie(res)
   res.json(sendSuccess({ message: 'Password reset successful' }))
@@ -274,17 +169,12 @@ export const logout = asyncHandler(async (req, res) => {
   if (refreshToken) {
     try {
       const decoded = verifyRefreshToken(refreshToken)
-      await prismaSafeWrite(
-        () => prisma.user.update({
-          where: { id: decoded.userId },
-          data: { refreshToken: null },
-        }),
-        { refreshToken: null },
-        'AUTH][LOGOUT',
-      )
-      console.info(`[AUTH][logout] success: userId=${decoded.userId}`)
+      await prisma.user.update({
+        where: { id: decoded.userId },
+        data: { refreshToken: null },
+      })
     } catch {
-      console.warn('[AUTH][logout] invalid refresh token in cookie')
+      // ignore invalid token
     }
   }
   clearRefreshCookie(res)
@@ -299,13 +189,7 @@ const changePasswordSchema = z.object({
 export const changePassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = parseBody(changePasswordSchema, req.body)
 
-  let user
-  try {
-    user = await prisma.user.findUnique({ where: { id: req.user.userId } })
-  } catch (err) {
-    console.error('[AUTH][changePassword] DB error:', err)
-    throw new ApiError(500, 'Database error during password change')
-  }
+  const user = await prisma.user.findUnique({ where: { id: req.user.userId } })
   if (!user) {
     throw new ApiError(404, 'User not found')
   }
@@ -316,15 +200,10 @@ export const changePassword = asyncHandler(async (req, res) => {
   }
 
   const passwordHash = await bcrypt.hash(newPassword, 12)
-  try {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { passwordHash },
-    })
-  } catch (err) {
-    console.error('[AUTH][changePassword] DB error updating user:', err)
-    throw new ApiError(500, 'Database error during password change')
-  }
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash },
+  })
 
   res.json(sendSuccess({ message: 'Password changed successfully. Please log in again.' }))
 })

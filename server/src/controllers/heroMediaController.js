@@ -3,20 +3,14 @@ import { prisma } from '../config/prisma.js'
 import { ApiError } from '../utils/ApiError.js'
 import { mediaService } from '../services/media.service.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
-import { executeWithRetry } from '../config/prisma.js'
 import { withId, withIdArray } from '../utils/helpers.js'
-import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
 
 export const heroMediaController = {
   list: asyncHandler(async (req, res) => {
-    const items = await executeWithRetry(
-      () => prisma.heroMedia.findMany({
-        orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
-        where: { isActive: true },
-      }),
-      'HERO-MEDIA-LIST',
-      { maxRetries: 2, timeout: 5000 }
-    )
+    const items = await prisma.heroMedia.findMany({
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+      where: { isActive: true },
+    })
     res.json(sendSuccess(withIdArray(items)))
   }),
 
@@ -33,7 +27,7 @@ export const heroMediaController = {
       return res.status(400).json({ success: false, message: 'Image file is required' })
     }
 
-      const upload = await mediaService.upload({ buffer: req.file.buffer, mimeType: req.file.mimetype, folder: 'hok/homepage/hero', type: 'image' })
+    const upload = await mediaService.upload({ buffer: req.file.buffer, mimeType: req.file.mimetype, folder: 'hok/homepage/hero', type: 'image' })
     const payload = {
       imageUrl: upload.secure_url,
       publicId: upload.public_id,
@@ -48,11 +42,7 @@ export const heroMediaController = {
     if (req.body.featured !== undefined) payload.featured = req.body.featured === 'true' || req.body.featured === true
     if (req.body.displayOrder !== undefined) payload.displayOrder = Number(req.body.displayOrder)
 
-    const item = await prismaSafeWrite(
-      (data) => prisma.heroMedia.create({ data }),
-      payload,
-      'HERO-MEDIA-CREATE'
-    )
+    const item = await prisma.heroMedia.create({ data: payload })
     res.status(201).json(sendSuccess(withId(item)))
   }),
 
@@ -73,20 +63,16 @@ export const heroMediaController = {
       if (existing.publicId) {
         try {
           await mediaService.delete(existing.publicId, 'image')
-        } catch (e) {
-          console.error('[HERO-MEDIA][UPDATE] delete old media failed:', e?.message)
+        } catch {
+          // ignore
         }
       }
-    const upload = await mediaService.upload({ buffer: req.file.buffer, mimeType: req.file.mimetype, folder: 'hok/homepage/hero', type: 'image' })
+      const upload = await mediaService.upload({ buffer: req.file.buffer, mimeType: req.file.mimetype, folder: 'hok/homepage/hero', type: 'image' })
       payload.imageUrl = upload.secure_url
       payload.publicId = upload.public_id
     }
 
-    const item = await prismaSafeWrite(
-      (data) => prisma.heroMedia.update({ where: { id: req.params.id }, data }),
-      payload,
-      'HERO-MEDIA-UPDATE'
-    )
+    const item = await prisma.heroMedia.update({ where: { id: req.params.id }, data: payload })
     res.json(sendSuccess(withId(item)))
   }),
 
@@ -97,9 +83,9 @@ export const heroMediaController = {
     }
     if (existing.publicId) {
       try {
-          await mediaService.delete(existing.publicId, 'image')
-      } catch (e) {
-        console.error('[HERO-MEDIA][DELETE] Cloudinary delete failed:', e?.message)
+        await mediaService.delete(existing.publicId, 'image')
+      } catch {
+        // ignore
       }
     }
     await prisma.heroMedia.delete({ where: { id: req.params.id } })

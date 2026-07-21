@@ -14,7 +14,7 @@ export const ProductCard = memo(({ product, onQuickView }) => {
   const primaryImage =
     defaultVariant?.imageUrl ||
     product.images?.[0]?.url ||
-    'https://images.unsplash.com/photo-1586023943478-ae8b06f48d80?auto=format&fit=crop&w=800&q=80'
+    ''
   const salePercent = product.discountPrice
     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
     : null

@@ -116,10 +116,10 @@ export const AboutPage = () => {
   ]
 
   const team = [
-    { name: 'Sarah Mitchell', role: 'Founder & Creative Director', bio: '20+ years in luxury interior design', image: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=400&q=80' },
-    { name: 'James Chen', role: 'Lead Designer', bio: 'Specialist in modern luxury spaces', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80' },
-    { name: 'Elena Rodriguez', role: 'Senior Designer', bio: 'Expert in sustainable materials', image: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&q=80' },
-    { name: 'Michael Thompson', role: 'Project Manager', bio: 'Ensuring flawless execution', image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80' },
+    { name: 'Sarah Mitchell', role: 'Founder & Creative Director', bio: '20+ years in luxury interior design', image: '' },
+    { name: 'James Chen', role: 'Lead Designer', bio: 'Specialist in modern luxury spaces', image: '' },
+    { name: 'Elena Rodriguez', role: 'Senior Designer', bio: 'Expert in sustainable materials', image: '' },
+    { name: 'Michael Thompson', role: 'Project Manager', bio: 'Ensuring flawless execution', image: '' },
   ]
 
   return (

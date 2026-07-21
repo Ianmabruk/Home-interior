@@ -1,10 +1,9 @@
 import { z } from 'zod'
-import { prisma, executeWithRetry } from '../config/prisma.js'
+import { prisma } from '../config/prisma.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
 import { sendSuccess } from '../utils/sendSuccess.js'
 import { parseBody } from '../utils/helpers.js'
-import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
 
 const withId = (item) => (item == null ? item : { ...item, _id: item.id })
 const withIdArray = (items) => items.map((item) => withId(item))
@@ -16,20 +15,9 @@ const updateMeSchema = z.object({
 }).partial()
 
 export const me = asyncHandler(async (req, res) => {
-  let user
-  try {
-    user = await executeWithRetry(
-      () =>
-        prisma.user.findUnique({
-          where: { id: req.user.userId },
-        }),
-      'USER][ME',
-      { maxRetries: 2, timeout: 10000 },
-    )
-  } catch (err) {
-    console.error('[USER][me] DB error:', err)
-    return res.status(500).json({ success: false, message: 'Database error fetching user profile.' })
-  }
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.userId },
+  })
   if (!user) {
     return res.status(404).json({ success: false, message: 'User not found' })
   }
@@ -40,18 +28,14 @@ export const me = asyncHandler(async (req, res) => {
 
 export const updateMe = asyncHandler(async (req, res) => {
   const data = parseBody(updateMeSchema, req.body)
-  const user = await prismaSafeWrite(
-    (writeData) => prisma.user.update({
-      where: { id: req.user.userId },
-      data: writeData,
-    }),
-    {
+  const user = await prisma.user.update({
+    where: { id: req.user.userId },
+    data: {
       fullName: data.fullName,
       phone: data.phone,
       addresses: data.addresses,
     },
-    'USER][UPDATE_ME',
-  )
+  })
 
   const { passwordHash, refreshToken, ...safe } = user
   res.json(sendSuccess(withId(safe)))
@@ -202,14 +186,10 @@ export const addToCart = asyncHandler(async (req, res) => {
     newCart = [...(user?.cart || []), cartEntry]
   }
 
-  const updated = await prismaSafeWrite(
-    () => prisma.user.update({
-      where: { id: req.user.userId },
-      data: { cart: newCart },
-    }),
-    { cart: newCart },
-    'USER][ADD_CART',
-  )
+  const updated = await prisma.user.update({
+    where: { id: req.user.userId },
+    data: { cart: newCart },
+  })
 
   const products = await prisma.product.findMany({
     where: { id: { in: newCart.map((e) => e.product) } },
@@ -282,17 +262,14 @@ export const updateCartItem = asyncHandler(async (req, res) => {
     })
   }
 
-  const updated = await prismaSafeWrite(
-    () => prisma.user.update({
-      where: { id: req.user.userId },
-      data: { cart: newCart },
-    }),
-    { cart: newCart },
-    'USER][ADD_CART',
-  )
+  const updated = await prisma.user.update({
+    where: { id: req.user.userId },
+    data: { cart: newCart },
+  })
 
+  const productIds = newCart.map((e) => e.product)
   const products = await prisma.product.findMany({
-    where: { id: { in: newCart.map((e) => e.product) } },
+    where: { id: { in: productIds } },
   })
 
   const byId = new Map(products.map((item) => [item.id, item]))
@@ -336,14 +313,10 @@ export const removeCartItem = asyncHandler(async (req, res) => {
     newCart = (user?.cart || []).filter((entry) => entry.product !== productId)
   }
 
-  const updated = await prismaSafeWrite(
-    () => prisma.user.update({
-      where: { id: req.user.userId },
-      data: { cart: newCart },
-    }),
-    { cart: newCart },
-    'USER][ADD_CART',
-  )
+  const updated = await prisma.user.update({
+    where: { id: req.user.userId },
+    data: { cart: newCart },
+  })
 
   const productIds = newCart.map((e) => e.product)
   const products = await prisma.product.findMany({

@@ -258,9 +258,15 @@ describe('HOMEPAGE feed aggregates all published content', () => {
     mockPrisma.virtualDesign.findMany.mockResolvedValue([
       { id: 'v1', title: 'V', description: 'd', category: 'c', imageUrl: 'https://res.cloudinary.com/v.jpg', mediaSettings: null, order: 0, createdAt: new Date() },
     ])
+    mockPrisma.service.findMany.mockResolvedValue([
+      { id: 's1', title: 'S', description: 'd', icon: 'LayoutGrid', imageUrl: 'https://res.cloudinary.com/s.jpg', featured: false, displayOrder: 0, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+    ])
     mockPrisma.about.findFirst.mockResolvedValue({ id: 'a1', aboutImageUrl: 'https://res.cloudinary.com/a.jpg', story: 's', mission: 'm', vision: 'v', mediaSettings: null })
     mockPrisma.testimonial.findMany.mockResolvedValue([
       { id: 't1', name: 'Test', role: 'Client', content: 'Great!', avatarUrl: 'https://res.cloudinary.com/t.jpg', order: 0, displayOrder: 0, isActive: true, createdAt: new Date() },
+    ])
+    mockPrisma.heroMedia.findMany.mockResolvedValue([
+      { id: 'h1', imageUrl: 'https://res.cloudinary.com/h.jpg', title: 'Hero', publicId: 'hero-1', mediaType: 'image', featured: true, displayOrder: 0, isActive: true, createdAt: new Date(), updatedAt: new Date() },
     ])
 
     const res = await request(app).get('/api/content/homepage')
@@ -268,6 +274,8 @@ describe('HOMEPAGE feed aggregates all published content', () => {
     expect(res.body.data.portfolio[0].imageUrl).toContain('res.cloudinary.com')
     expect(res.body.data.about.aboutImageUrl).toContain('res.cloudinary.com')
     expect(res.body.data.virtualInteriorDesign.length).toBe(1)
+    expect(res.body.data.services.length).toBe(1)
+    expect(res.body.data.heroImages.length).toBe(1)
     expect(res.body.data.testimonials.length).toBe(1)
   })
 })

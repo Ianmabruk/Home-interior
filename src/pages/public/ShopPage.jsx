@@ -85,7 +85,7 @@ export const ShopPage = () => {
   const hasFilters = category || query || minPrice || maxPrice
   const clearFilters = useCallback(() => { setCategory(''); setQuery(''); setMinPrice(''); setMaxPrice('') }, [])
 
-  const heroImage = 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=2000&q=80'
+  const heroImage = ''
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
