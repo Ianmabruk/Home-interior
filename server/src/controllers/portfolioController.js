@@ -8,7 +8,7 @@ import { withId, withIdArray, sortByOrderThenDate, orderValue, toBoolean } from 
 import { prismaSafeWrite } from '../utils/prismaSafeWrite.js'
 
 const PORTFOLIO_FIELDS = new Set([
-  'title', 'description', 'category', 'imageUrl', 'galleryImages', 'beforeAfterImages', 'gallery', 'cloudinaryId', 'featured', 'displayOrder'
+  'title', 'description', 'category', 'imageUrl', 'galleryImages', 'cloudinaryId', 'featured', 'displayOrder'
 ])
 
 const GALLERY_FIELDS = new Set([

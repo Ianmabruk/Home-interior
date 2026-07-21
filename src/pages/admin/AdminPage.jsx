@@ -45,7 +45,7 @@ const tabs = [
 ]
 
 export const AdminPage = () => {
-const { user, logout, updateProfile } = useAuth()
+  const { user, logout } = useAuth()
   const [activeTab, setActiveTab] = useState('dashboard')
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [mobileSidebar, setMobileSidebar] = useState(false)

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Loader2, Smartphone, CreditCard, CheckCircle } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
@@ -9,6 +9,7 @@ import { api } from '../../services/api'
 
 export const CheckoutPage = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
   const { cart, clearCart } = useShop()
   const { formatPrice } = useCurrency()
@@ -37,11 +38,11 @@ export const CheckoutPage = () => {
   const [orderId, setOrderId] = useState(null)
 
   useEffect(() => {
-    if (window.location.state?.buyNow && !buyNowHandledRef.current) {
-      setBuyNowItem(window.location.state.buyNow)
+    if (location.state?.buyNow && !buyNowHandledRef.current) {
+      setBuyNowItem(location.state.buyNow)
       buyNowHandledRef.current = true
     }
-  }, [])
+  }, [location])
 
   if (!user) {
     return (

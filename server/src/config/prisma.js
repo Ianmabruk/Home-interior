@@ -9,7 +9,9 @@ export const prisma =
     log: ['error', 'warn'],
     datasources: {
       db: {
-        url: env.databaseUrl,
+        url: env.databaseUrl.includes('prepared_statements=false') 
+          ? env.databaseUrl 
+          : env.databaseUrl + (env.databaseUrl.includes('?') ? '&' : '?') + 'prepared_statements=false',
       },
     },
   })

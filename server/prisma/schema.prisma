@@ -106,7 +106,7 @@ model Product {
   discountPrice Float?   @map("discount_price")
   images        Json
   colorVariants Json     @map("color_variants")
-  styleVariants Json     @map("style_variants")
+  styleVariants Json?    @map("style_variants")
   category      ProductCategory
   vendor        String?  @default("")
   stock         Int
@@ -146,7 +146,7 @@ model Portfolio {
   title              String?
   description        String?
   category           String?  @default("General") @map("category")
-  imageUrl           String   @map("image_url")
+  imageUrl           String?  @map("image_url")
   featuredImage      String?  @map("featured_image")
   cloudinaryId       String?  @map("cloudinary_id")
   featured           Boolean  @default(false)
@@ -276,7 +276,7 @@ model Testimonial {
 
 model HomepageContent {
   id           String   @id @default(uuid()) @map("_id")
-  heroImages   Json     @map("hero_images")
+  heroImages   Json?    @map("hero_images")
   title        String?
   subtitle     String?
   createdAt    DateTime @default(now()) @map("created_at")
