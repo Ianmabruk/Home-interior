@@ -162,6 +162,7 @@ model Project {
   services      String[]
   media         Json?
   mediaSettings Json?    @map("media_settings")
+  galleryMedia  Json?    @map("gallery_media")
   thumbnailUrl  String?  @map("thumbnail_url")
   thumbnailPublicId String? @map("thumbnail_public_id")
   isPublished   Boolean  @default(true) @map("is_published")
