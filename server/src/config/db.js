@@ -9,16 +9,16 @@ const MODEL_TABLE_MAP = {
   Wishlist: 'wishlists',
   Order: 'orders',
   Product: 'products',
-  Project: 'projects',
-  ProjectV2: 'project_v2',
   Portfolio: 'portfolios',
   About: 'abouts',
   VirtualDesign: 'virtual_designs',
   Settings: 'settings',
-  NewsletterSubscription: 'newsletter_subscriptions',
   Analytics: 'analytics',
   Message: 'messages',
+  Service: 'services',
   Testimonial: 'testimonials',
+  HomepageContent: 'homepage_content',
+  Consultation: 'consultations',
 }
 
 export const verifyTables = async () => {
@@ -40,11 +40,11 @@ export const verifyTables = async () => {
 }
 
 const MEDIA_SETTINGS_TABLES = [
-  { table: 'projects', column: 'media_settings' },
   { table: 'portfolios', column: 'media_settings' },
   { table: 'abouts', column: 'media_settings' },
   { table: 'products', column: 'media_settings' },
   { table: 'virtual_designs', column: 'media_settings' },
+  { table: 'services', column: 'media_settings' },
 ]
 
 export const verifyMediaSettingsColumns = async () => {

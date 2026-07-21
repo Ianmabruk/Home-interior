@@ -298,7 +298,7 @@ export const AccountPage = () => {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const res = await api.get('/orders/my-orders')
+      const res = await api.get('/orders/me')
       setOrders(res.data || [])
     } catch {
       setOrders([])

@@ -16,6 +16,28 @@ enum ProductCategory {
   ThrowPillows @map("Throw Pillows")
 }
 
+enum OrderStatus {
+  pending
+  processing
+  shipped
+  delivered
+  cancelled
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  refunded
+}
+
+enum ConsultationStatus {
+  new
+  read
+  replied
+  closed
+}
+
 model User {
   id                   String    @id @default(uuid()) @map("_id")
   fullName             String    @map("full_name")
@@ -38,6 +60,9 @@ model User {
   orders       Order[]
   sentMessages Message[] @relation("MessageSender")
 
+  @@index([email])
+  @@index([role])
+  @@index([isActive])
   @@map("users")
 }
 
@@ -53,19 +78,23 @@ model Wishlist {
 }
 
 model Order {
-  id              String   @id @default(uuid()) @map("_id")
-  userId          String   @map("user_id")
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String        @id @default(uuid()) @map("_id")
+  userId          String        @map("user_id")
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   items           Json
   subtotal        Float
-  shippingFee     Float    @default(0) @map("shipping_fee")
+  shippingFee     Float         @default(0) @map("shipping_fee")
   total           Float
-  status          String   @default("pending")
-  paymentStatus   String   @default("pending") @map("payment_status")
-  shippingAddress Json?    @map("shipping_address")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  status          OrderStatus   @default(pending)
+  paymentStatus   PaymentStatus @default(pending) @map("payment_status")
+  shippingAddress Json?         @map("shipping_address")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
 
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
   @@map("orders")
 }
 
@@ -77,6 +106,7 @@ model Product {
   discountPrice Float?   @map("discount_price")
   images        Json
   colorVariants Json     @map("color_variants")
+  styleVariants Json     @map("style_variants")
   category      ProductCategory
   vendor        String?  @default("")
   stock         Int
@@ -93,11 +123,10 @@ model Product {
   @@index([category])
   @@index([isFeatured])
   @@index([createdAt])
+  @@index([sku])
   @@map("products")
 }
 
-// Relational product images (unlimited). Existing `images` JSON column is kept
-// as the primary store; ProductImage supports ordered, individually managed images.
 model ProductImage {
   id        String   @id @default(uuid()) @map("_id")
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -113,21 +142,20 @@ model ProductImage {
 }
 
 model Portfolio {
-  id                 String          @id @default(uuid()) @map("_id")
+  id                 String   @id @default(uuid()) @map("_id")
   title              String?
   description        String?
-  category           String?         @default("General") @map("category")
-  imageUrl           String          @map("image_url")
-  featuredImage      String?         @map("featured_image")
-  galleryImages      String[]        @default([]) @map("gallery_images")
-  beforeAfterImages  Json?           @map("before_after_images")
-  gallery            Json?           @map("gallery")
-  cloudinaryId       String?         @map("cloudinary_id")
-  featured           Boolean         @default(false)
-  published          Boolean         @default(true) @map("published")
-  displayOrder       Int             @default(0) @map("display_order")
-  createdAt          DateTime        @default(now()) @map("created_at")
-  updatedAt          DateTime        @updatedAt @map("updated_at")
+  category           String?  @default("General") @map("category")
+  imageUrl           String   @map("image_url")
+  featuredImage      String?  @map("featured_image")
+  galleryImages      String[] @default([]) @map("gallery_images")
+  beforeAfterImages  Json?    @map("before_after_images")
+  cloudinaryId       String?  @map("cloudinary_id")
+  featured           Boolean  @default(false)
+  published          Boolean  @default(true) @map("published")
+  displayOrder       Int      @default(0) @map("display_order")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
   media              PortfolioMedia[]
 
   @@index([featured])
@@ -137,9 +165,6 @@ model Portfolio {
   @@map("portfolios")
 }
 
-// Relational media for Portfolio (unlimited records, ordered by sortOrder).
-// Existing galleryImages JSON column is preserved as a fallback for backwards
-// compatibility; new uploads should use PortfolioMedia.
 model PortfolioMedia {
   id          String   @id @default(uuid()) @map("_id")
   portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
@@ -154,42 +179,6 @@ model PortfolioMedia {
   @@map("portfolio_media")
 }
 
-model Project {
-  id            String   @id @default(uuid()) @map("_id")
-  title         String?
-  description   String?
-  tags          String[]
-  services      String[]
-  media         Json?
-  mediaSettings Json?    @map("media_settings")
-  galleryMedia  Json?    @map("gallery_media")
-  thumbnailUrl  String?  @map("thumbnail_url")
-  thumbnailPublicId String? @map("thumbnail_public_id")
-  isPublished   Boolean  @default(true) @map("is_published")
-  order         Int      @default(0)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  @@index([isPublished])
-  @@index([order])
-  @@map("projects")
-}
-
-model ProjectV2 {
-  id            String   @id @default(uuid()) @map("_id")
-  videoUrl      String   @map("video_url")
-  videoPublicId String   @map("video_public_id")
-  thumbnailUrl  String?  @map("thumbnail_url")
-  order         Int      @default(0)
-  isPublished   Boolean  @default(true) @map("is_published")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  @@index([order])
-  @@index([isPublished])
-  @@map("project_v2")
-}
-
 model About {
   id                 String   @id @default(uuid()) @map("_id")
   aboutImageUrl      String?  @map("about_image_url")
@@ -199,8 +188,10 @@ model About {
   companyDescription String   @map("company_description")
   mission            String
   vision             String
+  values             String?
   location           String
   contactEmail       String   @map("contact_email")
+  statistics         String?
   socials            Json
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
@@ -209,92 +200,38 @@ model About {
 }
 
 model VirtualDesign {
-  id           String           @id @default(uuid()) @map("_id")
-  title        String
-  description  String?
-  category     String           @default("General") @map("category")
-  mediaType    String
-  mediaUrl     String           @map("media_url")
-  featuredImage String?         @map("featured_image")
-  galleryMedia Json?            @map("gallery_media")
-  cloudinaryId String?          @map("cloudinary_id")
-  featured     Boolean          @default(false)
-  createdAt    DateTime         @default(now()) @map("created_at")
-  updatedAt    DateTime         @updatedAt @map("updated_at")
-  media        VirtualDesignMedia[]
+  id            String           @id @default(uuid()) @map("_id")
+  title         String
+  description   String?
+  category      String           @default("General") @map("category")
+  mediaType     String
+  mediaUrl      String           @map("media_url")
+  featuredImage String?          @map("featured_image")
+  galleryMedia  Json?            @map("gallery_media")
+  cloudinaryId  String?          @map("cloudinary_id")
+  featured      Boolean          @default(false)
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  media         VirtualDesignMedia[]
 
   @@index([featured])
   @@index([createdAt])
   @@map("virtual_designs")
 }
 
-// Relational media for VirtualDesign (unlimited, ordered by sortOrder).
-// Existing galleryMedia JSON column is preserved as a fallback.
 model VirtualDesignMedia {
-  id           String        @id @default(uuid()) @map("_id")
-  virtualDesign VirtualDesign @relation(fields: [virtualDesignId], references: [id], onDelete: Cascade)
-  virtualDesignId String     @map("virtual_design_id")
-  imageUrl     String        @map("image_url")
-  publicId     String?       @map("public_id")
-  sortOrder    Int           @default(0) @map("sort_order")
-  createdAt    DateTime      @default(now()) @map("created_at")
+  id             String        @id @default(uuid()) @map("_id")
+  virtualDesign  VirtualDesign @relation(fields: [virtualDesignId], references: [id], onDelete: Cascade)
+  virtualDesignId String       @map("virtual_design_id")
+  imageUrl       String        @map("image_url")
+  publicId       String?       @map("public_id")
+  mediaType      String        @default("image") @map("media_type")
+  sortOrder      Int           @default(0) @map("sort_order")
+  createdAt      DateTime      @default(now()) @map("created_at")
 
   @@index([virtualDesignId])
   @@index([sortOrder])
   @@map("virtual_design_media")
-}
-
-model Settings {
-  id              String   @id @default(uuid()) @map("_id")
-  siteName        String?  @default("HOK Interior Designs") @map("site_name")
-  supportEmail    String?  @default("info@hokinterior.com") @map("support_email")
-  maintenanceMode Boolean? @default(false) @map("maintenance_mode")
-  currency        String?  @default("USD")
-  shippingPolicy  String?  @default("") @map("shipping_policy")
-  returnPolicy    String?  @default("") @map("return_policy")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  @@map("settings")
-}
-
-model NewsletterSubscription {
-  id        String   @id @default(uuid()) @map("_id")
-  email     String   @unique
-  source    String?  @default("website")
-  isActive  Boolean? @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("newsletter_subscriptions")
-}
-
-model Analytics {
-  id        String   @id @default(uuid()) @map("_id")
-  date      DateTime @unique
-  visits    Int?     @default(0)
-  revenue   Int?     @default(0)
-  orders    Int?     @default(0)
-  newUsers  Int?     @default(0) @map("new_users")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("analytics")
-}
-
-model Message {
-  id        String   @id @default(uuid()) @map("_id")
-  senderId  String?  @map("sender_id")
-  sender    User?    @relation("MessageSender", fields: [senderId], references: [id], onDelete: SetNull)
-  name      String
-  email     String
-  subject   String
-  content   String
-  isRead    Boolean? @default(false) @map("is_read")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("messages")
 }
 
 model Service {
@@ -331,6 +268,8 @@ model Testimonial {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
+  @@index([displayOrder])
+  @@index([isActive])
   @@map("testimonials")
 }
 
@@ -345,31 +284,63 @@ model HomepageContent {
   @@map("homepage_content")
 }
 
-// Canonical homepage settings: hero slider images, hero text, hero buttons,
-// and featured portfolio project references. Replaces the ad-hoc HomepageContent
-// shape with a structured, admin-editable model.
-model HomepageSettings {
+model Settings {
   id              String   @id @default(uuid()) @map("_id")
-  heroImages      String[] @default([]) @map("hero_images")
-  heroTitle       String?  @map("hero_title")
-  heroSubtitle    String?  @map("hero_subtitle")
-  heroButtons     Json?    @map("hero_buttons")
-  featuredPortfolioIds String[] @default([]) @map("featured_portfolio_ids")
+  siteName        String?  @default("HOK Interior Designs") @map("site_name")
+  supportEmail    String?  @default("info@hokinterior.com") @map("support_email")
+  maintenanceMode Boolean? @default(false) @map("maintenance_mode")
+  currency        String?  @default("USD")
+  shippingPolicy  String?  @default("") @map("shipping_policy")
+  returnPolicy    String?  @default("") @map("return_policy")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  @@map("homepage_settings")
+  @@map("settings")
 }
 
-model Consultation {
+model Analytics {
   id        String   @id @default(uuid()) @map("_id")
-  name      String
-  email     String
-  phone     String?
-  message   String
-  status    String   @default("new")
+  date      DateTime @unique
+  visits    Int?     @default(0)
+  revenue   Int?     @default(0)
+  orders    Int?     @default(0)
+  newUsers  Int?     @default(0) @map("new_users")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@map("analytics")
+}
+
+model Message {
+  id        String   @id @default(uuid()) @map("_id")
+  senderId  String?  @map("sender_id")
+  sender    User?    @relation("MessageSender", fields: [senderId], references: [id], onDelete: SetNull)
+  name      String
+  email     String
+  subject   String
+  content   String
+  isRead    Boolean? @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([senderId])
+  @@index([isRead])
+  @@map("messages")
+}
+
+model Consultation {
+  id            String              @id @default(uuid()) @map("_id")
+  name          String
+  email         String
+  phone         String?
+  message       String
+  preferredDate String?             @map("preferred_date")
+  preferredTime String?             @map("preferred_time")
+  status        ConsultationStatus  @default(new)
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([createdAt])
   @@map("consultations")
 }
