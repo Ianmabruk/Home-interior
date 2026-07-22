@@ -120,8 +120,17 @@ const seed = async () => {
     console.log(`Admin password: ${adminPassword}`)
   } catch (error) {
     console.error('Seed failed', error)
-    process.exit(1)
+    throw error
   }
+}
+
+const isMain = import.meta.url === `file://${process.argv[1]}`
+
+if (isMain) {
+  seed().catch((err) => {
+    console.error('Seed failed', err)
+    process.exit(1)
+  })
 }
 
 export default seed

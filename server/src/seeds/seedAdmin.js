@@ -52,8 +52,17 @@ const seedAdmin = async () => {
     console.log('Admin seed completed successfully')
   } catch (error) {
     console.error('Admin seed failed', error)
-    process.exit(1)
+    throw error
   }
+}
+
+const isMain = import.meta.url === `file://${process.argv[1]}`
+
+if (isMain) {
+  seedAdmin().catch((err) => {
+    console.error('Admin seed failed', err)
+    process.exit(1)
+  })
 }
 
 export default seedAdmin
