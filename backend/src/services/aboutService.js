@@ -47,4 +47,5 @@ async function createOrUpdateAbout(data, file) {
     return mapAbout(item)
   }
   const item = await prisma.about.create({ data: createData })
-
+  return mapAbout(item)
+}
