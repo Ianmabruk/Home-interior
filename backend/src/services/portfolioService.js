@@ -31,18 +31,27 @@ export const portfolioService = {
 }
 
 async function listPortfolio({ sort = '-createdAt', limit = 100 } = {}) {
-  const orderBy = sort?.startsWith('-') ? { [sort.slice(1)]: 'desc' } : { createdAt: 'asc' }
-  const items = await prisma.portfolioProject.findMany({
-    orderBy,
-    take: Number(limit) || 100,
-  })
-  return items.map(mapPortfolio)
+  try {
+    const orderBy = sort?.startsWith('-') ? { [sort.slice(1)]: 'desc' } : { createdAt: 'asc' }
+    const items = await prisma.portfolioProject.findMany({
+      orderBy,
+      take: Number(limit) || 100,
+    })
+    return items.map(mapPortfolio)
+  } catch {
+    return []
+  }
 }
 
 async function getPortfolio(id) {
-  const item = await prisma.portfolioProject.findUnique({ where: { id } })
-  if (!item) throw failure(404, 'Portfolio item not found')
-  return mapPortfolio(item)
+  try {
+    const item = await prisma.portfolioProject.findUnique({ where: { id } })
+    if (!item) throw failure(404, 'Portfolio item not found')
+    return mapPortfolio(item)
+  } catch (err) {
+    if (err?.status === 404) throw err
+    throw failure(500, 'Failed to fetch portfolio item')
+  }
 }
 
 async function createPortfolio(data, file) {

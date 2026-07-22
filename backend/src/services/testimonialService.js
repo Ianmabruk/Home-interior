@@ -24,16 +24,25 @@ export const testimonialService = {
 }
 
 async function listTestimonials() {
-  const items = await prisma.testimonial.findMany({
-    orderBy: { displayOrder: 'asc' },
-  })
-  return items.map(mapTestimonial)
+  try {
+    const items = await prisma.testimonial.findMany({
+      orderBy: { displayOrder: 'asc' },
+    })
+    return items.map(mapTestimonial)
+  } catch {
+    return []
+  }
 }
 
 async function getTestimonial(id) {
-  const item = await prisma.testimonial.findUnique({ where: { id } })
-  if (!item) throw failure(404, 'Testimonial not found')
-  return mapTestimonial(item)
+  try {
+    const item = await prisma.testimonial.findUnique({ where: { id } })
+    if (!item) throw failure(404, 'Testimonial not found')
+    return mapTestimonial(item)
+  } catch (err) {
+    if (err?.status === 404) throw err
+    throw failure(500, 'Failed to fetch testimonial')
+  }
 }
 
 async function createTestimonial(data, file) {

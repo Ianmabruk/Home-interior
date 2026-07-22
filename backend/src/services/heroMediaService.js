@@ -24,16 +24,25 @@ export const heroMediaService = {
 }
 
 async function listHeroMedia() {
-  const items = await prisma.heroMedia.findMany({
-    orderBy: { displayOrder: 'asc' },
-  })
-  return items.map(mapHero)
+  try {
+    const items = await prisma.heroMedia.findMany({
+      orderBy: { displayOrder: 'asc' },
+    })
+    return items.map(mapHero)
+  } catch {
+    return []
+  }
 }
 
 async function getHeroMedia(id) {
-  const item = await prisma.heroMedia.findUnique({ where: { id } })
-  if (!item) throw failure(404, 'Hero media not found')
-  return mapHero(item)
+  try {
+    const item = await prisma.heroMedia.findUnique({ where: { id } })
+    if (!item) throw failure(404, 'Hero media not found')
+    return mapHero(item)
+  } catch (err) {
+    if (err?.status === 404) throw err
+    throw failure(500, 'Failed to fetch hero media')
+  }
 }
 
 async function createHeroMedia(data, file) {

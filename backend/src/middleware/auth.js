@@ -29,7 +29,7 @@ export async function authenticate(req, res, next) {
     if (err instanceof ApiError) {
       return res.status(err.status).json({ success: false, message: err.message })
     }
-    return res.status(401).json({ success: false, message: 'Invalid or expired token' })
+    return res.status(503).json({ success: false, message: 'Service temporarily unavailable' })
   }
 }
 

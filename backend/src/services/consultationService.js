@@ -22,30 +22,34 @@ export const consultationService = {
 }
 
 async function listConsultations({ status, search, page = 1, pageSize = 10 } = {}) {
-  const where = {}
-  if (status && status !== 'all') where.status = status
-  if (search) {
-    where.OR = [
-      { name: { contains: search } },
-      { email: { contains: search } },
-      { message: { contains: search } },
-    ]
-  }
+  try {
+    const where = {}
+    if (status && status !== 'all') where.status = status
+    if (search) {
+      where.OR = [
+        { name: { contains: search } },
+        { email: { contains: search } },
+        { message: { contains: search } },
+      ]
+    }
 
-  const [items, total] = await Promise.all([
-    prisma.consultation.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.consultation.count({ where }),
-  ])
+    const [items, total] = await Promise.all([
+      prisma.consultation.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.consultation.count({ where }),
+    ])
 
-  return {
-    items: items.map(mapConsultation),
-    total,
-    totalPages: Math.ceil(total / pageSize),
+    return {
+      items: items.map(mapConsultation),
+      total,
+      totalPages: Math.ceil(total / pageSize),
+    }
+  } catch {
+    return { items: [], total: 0, totalPages: 0 }
   }
 }
 

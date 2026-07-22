@@ -23,26 +23,34 @@ export const productService = {
 }
 
 async function listProducts({ sort = '-createdAt', limit = 100, featured } = {}) {
-  const orderBy = sort?.startsWith('-') ? { [sort.slice(1)]: 'desc' } : { createdAt: 'asc' }
-  const where = {}
-  if (featured !== undefined) where.featured = featured
-  if (featured === true) where.inStock = true
+  try {
+    const orderBy = sort?.startsWith('-') ? { [sort.slice(1)]: 'desc' } : { createdAt: 'asc' }
+    const where = {}
+    if (featured !== undefined) where.featured = featured
+    if (featured === true) where.inStock = true
 
-  const items = await prisma.product.findMany({
-    where,
-    orderBy,
-    take: Number(limit) || 100,
-  })
-  return items.map(mapProduct)
+    const items = await prisma.product.findMany({
+      where,
+      orderBy,
+      take: Number(limit) || 100,
+    })
+    return items.map(mapProduct)
+  } catch {
+    return []
+  }
 }
 
 async function getAllProducts({ sort = '-createdAt', limit = 500 } = {}) {
-  const orderBy = sort?.startsWith('-') ? { [sort.slice(1)]: 'desc' } : { createdAt: 'asc' }
-  const items = await prisma.product.findMany({
-    orderBy,
-    take: Number(limit) || 500,
-  })
-  return { items: items.map(mapProduct) }
+  try {
+    const orderBy = sort?.startsWith('-') ? { [sort.slice(1)]: 'desc' } : { createdAt: 'asc' }
+    const items = await prisma.product.findMany({
+      orderBy,
+      take: Number(limit) || 500,
+    })
+    return { items: items.map(mapProduct) }
+  } catch {
+    return { items: [] }
+  }
 }
 
 async function getProduct(id) {

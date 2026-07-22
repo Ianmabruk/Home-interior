@@ -23,16 +23,25 @@ export const serviceService = {
 }
 
 async function listServices() {
-  const items = await prisma.service.findMany({
-    orderBy: { displayOrder: 'asc' },
-  })
-  return items.map(mapService)
+  try {
+    const items = await prisma.service.findMany({
+      orderBy: { displayOrder: 'asc' },
+    })
+    return items.map(mapService)
+  } catch {
+    return []
+  }
 }
 
 async function getService(id) {
-  const item = await prisma.service.findUnique({ where: { id } })
-  if (!item) throw failure(404, 'Service not found')
-  return mapService(item)
+  try {
+    const item = await prisma.service.findUnique({ where: { id } })
+    if (!item) throw failure(404, 'Service not found')
+    return mapService(item)
+  } catch (err) {
+    if (err?.status === 404) throw err
+    throw failure(500, 'Failed to fetch service')
+  }
 }
 
 async function createService(data, file) {
