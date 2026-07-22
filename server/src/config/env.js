@@ -38,10 +38,15 @@ const required = [
   'SUPABASE_SERVICE_ROLE_KEY',
   'JWT_ACCESS_SECRET',
   'JWT_REFRESH_SECRET',
-  'CLOUDINARY_CLOUD_NAME',
-  'CLOUDINARY_API_KEY',
-  'CLOUDINARY_API_SECRET',
 ]
+
+if (isProd) {
+  required.push(
+    'CLOUDINARY_CLOUD_NAME',
+    'CLOUDINARY_API_KEY',
+    'CLOUDINARY_API_SECRET',
+  )
+}
 
 for (const key of required) {
   if (!process.env[key]) {

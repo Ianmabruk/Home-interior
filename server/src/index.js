@@ -1,5 +1,4 @@
-import dotenv from 'dotenv'
-dotenv.config()
+import './_loadEnv.js'
 
 import { app } from './app.js'
 import { verifyCloudinaryConfig } from './config/cloudinary.js'
