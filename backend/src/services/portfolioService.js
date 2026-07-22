@@ -61,6 +61,8 @@ async function createPortfolio(data, file) {
     const uploaded = await uploadFile(file.buffer, file.mimetype, 'portfolio')
     createData.imageUrl = uploaded.url
     createData.cloudinaryId = uploaded.path
+  } else if (!createData.imageUrl && createData.mediaUrls?.length > 0) {
+    createData.imageUrl = createData.mediaUrls[0]
   }
   const item = await prisma.portfolioProject.create({ data: createData })
   return mapPortfolio(item)
@@ -76,6 +78,8 @@ async function updatePortfolio(id, data, file) {
     const uploaded = await uploadFile(file.buffer, file.mimetype, 'portfolio')
     updateData.imageUrl = uploaded.url
     updateData.cloudinaryId = uploaded.path
+  } else if (!updateData.imageUrl && updateData.mediaUrls?.length > 0) {
+    updateData.imageUrl = updateData.mediaUrls[0]
   }
   const item = await prisma.portfolioProject.update({ where: { id }, data: updateData })
   return mapPortfolio(item)

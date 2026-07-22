@@ -55,6 +55,25 @@ useEffect(() => {
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
   }, [])
 
+  const getProjectImage = (item) => {
+    if (!item) return null
+    return (
+      item.imageUrl ||
+      item.mediaUrl ||
+      item.mediaUrls?.[0] ||
+      item.galleryImages?.[0] ||
+      null
+    )
+  }
+
+  const getMediaType = (item) => {
+    if (!item) return 'image'
+    return item.mediaType || item.type || 'image'
+  }
+
+  const fallbackImage =
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%23f5f5f5'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23aaa' font-family='sans-serif' font-size='24'%3ENo Image%3C/text%3E%3C/svg%3E"
+
   if (loading) {
     return (
       <main>
@@ -207,7 +226,7 @@ useEffect(() => {
                   <Link to={`/portfolio/${item.id}`} className="block" aria-label={`View ${item.title} project`}>
                     <div className="relative aspect-[3/4] overflow-hidden">
                       <img
-                        src={getOptimizedUrl(item.imageUrl, { width: 800, crop: 'limit' })}
+                        src={getOptimizedUrl(getProjectImage(item) || fallbackImage, { width: 800, crop: 'limit' })}
                         alt={item.title}
                         className="h-full w-full object-cover transition duration-[1.2s] ease-out group-hover:scale-105"
                         loading="lazy"
@@ -398,38 +417,43 @@ useEffect(() => {
                   <Link to={`/virtual-design/project/${item.id}`} className="block">
                     <div className="relative overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
                       <div className="relative aspect-[4/3] overflow-hidden">
-                        {item.mediaType === 'image' && item.imageUrl && (
+                        {getProjectImage(item) && (
                           <>
-                            <img
-                              src={getOptimizedUrl(item.imageUrl, { width: 640 })}
-                              alt={item.title}
-                              className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                              loading="lazy"
-                              decoding="async"
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                                <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
+                            {getMediaType(item) === 'video' ? (
+                              <video
+                                src={getProjectImage(item)}
+                                poster={getOptimizedUrl(getProjectImage(item), { width: 640 })}
+                                className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                                autoPlay
+                                muted
+                                loop
+                                playsInline
+                                preload="metadata"
+                              />
+                            ) : (
+                              <img
+                                src={getOptimizedUrl(getProjectImage(item), { width: 640 })}
+                                alt={item.title}
+                                className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
+                                loading="lazy"
+                                decoding="async"
+                              />
+                            )}
+                            {getMediaType(item) === 'image' && (
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
+                                  <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
+                                </div>
                               </div>
-                            </div>
-                          </>
-                        )}
-                        {item.mediaType === 'video' && item.imageUrl && (
-                          <>
-                            <video
-                              src={item.imageUrl}
-                              poster={getOptimizedUrl(item.imageUrl, { width: 640 })}
-                              className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                              autoPlay
-                              muted
-                              loop
-                              playsInline
-                              preload="metadata"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            <div className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110">
-                              <Play size={20} strokeWidth={1.5} className="ml-1" />
-                            </div>
+                            )}
+                            {getMediaType(item) === 'video' && (
+                              <>
+                                <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                <div className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110">
+                                  <Play size={20} strokeWidth={1.5} className="ml-1" />
+                                </div>
+                              </>
+                            )}
                           </>
                         )}
                       </div>
@@ -544,7 +568,7 @@ useEffect(() => {
                 >
                   <Link to={`/shop/${item.id}`} className="block" aria-label={`View ${item.name}`}>
                     <div className="relative aspect-square overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
-                      {item.images?.[0]?.url && (
+                      {(item.images?.[0]?.url || item.images?.[0]) && (
                         <>
                           <img
                             src={getOptimizedUrl(typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url, { width: 640 })}

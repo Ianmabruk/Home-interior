@@ -59,6 +59,8 @@ async function createVirtualDesign(data, file, galleryFiles) {
     const uploaded = await uploadFile(file.buffer, file.mimetype, 'virtual-designs')
     createData.imageUrl = uploaded.url
     createData.cloudinaryId = uploaded.path
+  } else if (!createData.imageUrl && mediaUrls.length > 0) {
+    createData.imageUrl = mediaUrls[0]
   }
 
   const item = await prisma.virtualDesign.create({ data: createData })
@@ -84,6 +86,8 @@ async function updateVirtualDesign(id, data, file, galleryFiles) {
       const uploaded = await uploadFile(file.buffer, file.mimetype, 'virtual-designs')
       updateData.imageUrl = uploaded.url
       updateData.cloudinaryId = uploaded.path
+    } else if (!updateData.imageUrl && mediaUrls.length > 0) {
+      updateData.imageUrl = mediaUrls[0]
     }
 
     const item = await prisma.virtualDesign.update({ where: { id }, data: updateData })
