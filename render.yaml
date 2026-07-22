@@ -21,4 +21,4 @@ services:
       - key: SEED_ADMIN_PASSWORD
         value: admin123.
       - key: DATABASE_URL
-        value: postgresql://postgres:OqdwDCf4ae8hZ7OY@db.amcaogrlsrwxbvuglyle.supabase.co:5432/postgres
+        value: postgresql://neondb_owner:npg_8g1kJfADurxe@ep-red-cake-aya2hje0-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
