@@ -12,6 +12,8 @@ const seedAdmin = async () => {
     const adminPassword = env.seedAdminPassword
     const adminPasswordHash = await bcrypt.hash(adminPassword, 12)
 
+    console.log(`[AUTO-SEED] Seeding admin: ${adminEmail} | passwordLen=${adminPassword.length}`)
+
     const { data, error } = await supabase
       .from('users')
       .select('id')
@@ -23,7 +25,7 @@ const seedAdmin = async () => {
     }
 
     if (data) {
-      await supabase
+      const updateResult = await supabase
         .from('users')
         .update({
           full_name: 'HOK Platform Admin',
@@ -34,9 +36,13 @@ const seedAdmin = async () => {
         })
         .eq('id', data.id)
 
-      console.log('Admin user updated successfully')
+      if (updateResult.error) {
+        throw new Error(updateResult.error.message)
+      }
+
+      console.log(`[AUTO-SEED] Admin user updated successfully (id=${data.id})`)
     } else {
-      await supabase
+      const insertResult = await supabase
         .from('users')
         .insert([{
           full_name: 'HOK Platform Admin',
@@ -46,12 +52,17 @@ const seedAdmin = async () => {
           password_hash: adminPasswordHash,
         }])
 
-      console.log('Admin user created successfully')
+      if (insertResult.error) {
+        throw new Error(insertResult.error.message)
+      }
+
+      console.log('[AUTO-SEED] Admin user created successfully')
     }
 
-    console.log('Admin seed completed successfully')
+    console.log('[AUTO-SEED] Admin seed completed successfully')
+    console.log(`[AUTO-SEED] Login with: ${adminEmail} / ${adminPassword}`)
   } catch (error) {
-    console.error('Admin seed failed', error)
+    console.error('[AUTO-SEED] Admin seed failed', error)
     throw error
   }
 }

@@ -18,9 +18,11 @@ const start = async () => {
   try {
     verifyCloudinaryConfig().catch(() => {})
     
-    seedAdmin().catch((err) => {
+    try {
+      await seedAdmin()
+    } catch (err) {
       console.error('Auto-seed admin failed', err)
-    })
+    }
     
     app.listen(env.port, "0.0.0.0", () => {
       console.log(`Server listening on port ${env.port}`)
