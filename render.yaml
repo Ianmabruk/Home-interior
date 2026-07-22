@@ -23,4 +23,4 @@ services:
       - key: SEED_ADMIN_PASSWORD
         value: Admin123!
       - key: DATABASE_URL
-        value: ${DATABASE_URL}
+        value: postgresql://postgres:OqdwDCf4ae8hZ7OY@db.amcaogrlsrwxbvuglyle.supabase.co:5432/postgres
