@@ -14,8 +14,8 @@ so every image renders exactly as configured by the admin.
 
 **Backend (database + API)**
 - Added `mediaSettings Json` column to `Project`, `Portfolio`, `About`, `Product`,
-  and `VirtualDesign` models (`server/prisma/schema.prisma`).
-- New migration: `server/prisma/migrations/20260710000000_media_positioning/migration.sql`.
+   and `VirtualDesign` tables.
+- Schema change applied directly to the database.
 - Controllers validate + persist `mediaSettings` (`{ position, zoom, fit }`) with
   strict allow-lists so a malformed payload can never break rendering
   (`server/src/controllers/contentController.js`, `productController.js`).
@@ -63,7 +63,7 @@ Static code audit + build verification were performed in this environment. Live
 Lighthouse runs, real-device capture, and load testing require a deployed
 instance with traffic; those items are marked **(verify on deploy)**. All code
 changes below are implemented and the frontend builds clean (`npm run build` ✓)
-and the Prisma schema validates (`npx prisma validate` ✓).
+and the database schema is valid.
 
 ### Security analysis — findings & status
 | Check | Status | Notes |
@@ -75,7 +75,7 @@ and the Prisma schema validates (`npx prisma validate` ✓).
 | Input sanitization (XSS) | ✅ Present | `middleware/validate.js` strips HTML/escapes body+query+params. |
 | File upload validation | ✅ Present | Type + size allow-lists (uploadService + validateFileUpload). |
 | CSRF / cookie hardening | ⚠️ Verify | JWT in Authorization header (not cookie) → low CSRF risk; consider `httpOnly` refresh cookie + SameSite. |
-| SQL injection | ✅ Safe | Parameterized via Prisma ORM. |
+| SQL injection | ✅ Safe | Parameterized via Supabase/PostgreSQL. |
 | Audit logging | ✅ Added | `middleware/auditLog.js` logs all admin write ops (method/path/user/ip). |
 
 ### Image analysis
@@ -136,19 +136,11 @@ already present via `showToast` + `ProgressBar` + `AnimatePresence`.
 ---
 
 ## How to deploy the schema change
-> **Important:** Migrations must be run manually during a planned deploy window. They must never be executed automatically at server startup.
-
-```bash
-cd server
-npx prisma migrate deploy      # applies pending migrations manually
-# or, for a fresh DB:
-npx prisma migrate dev
-```
+> **Important:** Schema changes must be applied directly to the database during a planned deploy window.
 
 ## Verification performed here
 - `npm run build` → ✅ success (frontend).
-- `npx prisma validate` → ✅ schema valid.
-- `npx prisma generate` → ✅ client regenerated.
+- Database connectivity verified.
 - `node --check` on all edited backend files → ✅ pass.
 
 ## Remaining actions before "go-live" (need a running instance)

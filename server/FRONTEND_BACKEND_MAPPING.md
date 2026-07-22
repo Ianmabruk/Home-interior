@@ -13,7 +13,7 @@ Frontend Component
       → prepends /content
     → Express routes under /api
       → Controller
-        → Prisma / Cloudinary
+        → Supabase / Cloudinary
         → JSON response
 ```
 

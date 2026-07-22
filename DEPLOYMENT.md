@@ -20,7 +20,7 @@
 - Run seeder: `cd server && npm run seed`
 - Seeder is idempotent and safe to run multiple times.
 
-> Note: the database is **PostgreSQL (Neon)** accessed through **Prisma**. There is no MongoDB in this project.
+> Note: the database is **PostgreSQL (Neon)** accessed through **Supabase**. There is no MongoDB in this project.
 
 ## 2. cPanel (Frontend — current hosting)
 
@@ -63,9 +63,9 @@ The React + Vite SPA is built statically and served from cPanel.
 
 ## 4. Render (Backend)
 - Root directory: `server`
-- Build command: `yarn install && npx prisma generate`
-- Start command: `npm run start` — the `start` script runs `npx prisma generate && node src/index.js` at boot. **Migrations are never executed automatically at runtime.** If the database schema needs to be updated, run migrations manually during a planned deploy window.
-- **If you ever see P3009 or PrismaClientValidationError after a deploy:** do not clear the build cache and hope `migrate deploy` fixes it. Instead, verify the Prisma schema matches the database using `server/MIGRATION_RECOVERY.md`.
+- Build command: `yarn install`
+- Start command: `npm run start` — the `start` script runs `node src/index.js` at boot. **Schema changes must be applied directly to the database during a planned deploy window.**
+- **If you ever see database schema errors after a deploy:** verify the database schema matches the application expectations. Do not clear the build cache and hope automatic migrations fix it.
 - Required environment variables:
   - `NODE_ENV=production`
   - `PORT=5000`

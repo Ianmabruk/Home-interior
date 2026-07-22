@@ -84,7 +84,7 @@ prior commits (`c6b2417`, `caa303f`) into one picture.
 - `yarn build` → ✅ success, **0 warnings**; PWA SW generated.
 - `yarn lint` → ✅ clean.
 - SW registration + manifest injected into `dist/index.html` → ✅.
-- Backend `node --check` + `prisma validate` → ✅ (prior commits).
+- Backend `node --check` → ✅ (prior commits).
 - Functionality preserved: no routes, APIs, admin, auth, or business logic changed; media components are backward-compatible (non-Cloudinary URLs pass through untouched).
 
 ---

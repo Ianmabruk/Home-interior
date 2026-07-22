@@ -19,7 +19,7 @@
 - `server/src/config`: Environment, DB, Cloudinary, SendGrid configs
 - `server/src/controllers`: Domain controllers
 - `server/src/routes`: Route modules and API index router
-- `server/src/models`: (none — schemas are defined in `server/prisma/schema.prisma` via Prisma + PostgreSQL/Neon)
+- `server/src/models`: (none — schemas are managed directly with PostgreSQL/Neon via Supabase)
 - `server/src/middleware`: Auth, validation, error handling
 - `server/src/services`: Cloudinary upload service
 - `server/src/utils`: Tokens, async wrapper, API error class

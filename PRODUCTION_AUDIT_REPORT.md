@@ -14,13 +14,13 @@ Commit: `caa303f`
 - Added `packageManager: "yarn@1.22.22"` to root `package.json`.
 - Generated `yarn.lock` at repo root **and** `server/yarn.lock` (backend is deployed from `server/`).
 - Removed both `package-lock.json` files (no longer tracked).
-- Updated `DEPLOYMENT.md`: Netlify build → `yarn build`, Render build → `yarn install && npx prisma generate`, and a note forbidding reintroduction of `package-lock.json`.
+- Updated `DEPLOYMENT.md`: Netlify build → `yarn build`, Render build → `yarn install`, and a note forbidding reintroduction of `package-lock.json`.
 - Netlify/Render auto-detect Yarn from the committed lockfiles.
 
 ## 3. Remove unused dependencies — ✅ NONE FOUND
 - Verified every dependency is referenced:
   - Frontend runtime: `axios, framer-motion, lucide-react, react, react-dom, react-icons, react-router-dom` — all imported. (`react-icons` is used by `SocialIcons.jsx` + `Footer.jsx`.)
-  - Backend: all referenced. `pg` and `prisma` are Prisma runtime/dev deps (not directly imported) and are required.
+  - Backend: all referenced. `pg` is the PostgreSQL runtime dependency.
 - No dependencies were removed because none were unused.
 
 ## 4. Optimize React/Vite build output — ✅ DONE

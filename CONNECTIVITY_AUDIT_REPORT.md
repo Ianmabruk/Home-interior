@@ -1,7 +1,7 @@
 # Frontend ↔ Backend Connectivity Audit & Repair Report
 
 **Date:** 2026-07-09
-**Scope:** Full project (frontend Vite/React + backend Express/Prisma at `server/`)
+**Scope:** Full project (frontend Vite/React + backend Express at `server/`)
 **Result:** Build passes (`npm run build` ✓). Connectivity configuration corrected.
 
 ---

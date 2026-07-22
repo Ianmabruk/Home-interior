@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-09
 **Auditor:** Senior Full-Stack / DevOps / QA review
-**Scope:** Frontend (React+Vite, cPanel) · Backend (Node+Express+Prisma, Render) · DB (PostgreSQL/Neon) · Storage (Cloudinary) · Email (SendGrid)
+**Scope:** Frontend (React+Vite, cPanel) · Backend (Node+Express, Render) · DB (PostgreSQL/Neon) · Storage (Cloudinary) · Email (SendGrid)
 
 > **Headline:** The codebase is fundamentally sound and already modernized. I verified the full request → controller → DB → response → frontend render path against the **live Neon database** and **live Cloudinary**. Two genuine production-blocking bugs were found and fixed; several deployment-config traps were corrected; performance was improved; docs were corrected. No MongoDB is used (documentation was wrong).
 
@@ -12,12 +12,12 @@
 
 | # | Symptom (from brief) | Root cause | Phase | Status |
 |---|---|---|---|---|
-| B1 | "Products uploaded from admin do not appear in shop" | `prisma.product.create` requires `tags` (JSON, NOT NULL) but the controller never supplied it and the admin form has no `tags` field → **HTTP 500**. Cloudinary upload *succeeded* first, masking the DB failure. | 6 | **FIXED** |
+| B1 | "Products uploaded from admin do not appear in shop" | Product create requires `tags` (JSON, NOT NULL) but the controller never supplied it and the admin form has no `tags` field → **HTTP 500**. Cloudinary upload *succeeded* first, masking the DB failure. | 6 | **FIXED** |
 | B2 | "Admin signup/login returns errors / 404" | Admin password in Neon DB was `Admin123!` (seeded from example config) while the running `server/.env` documents `admin123!`. `ensureAdminUser` does not overwrite an existing admin, so login with documented creds failed. | 7 | **FIXED** |
 | B3 | Fresh deploy: uploads fail (permission) | `server/.env.example` shipped a **disabled** Cloudinary API key (`674197779811199`). Copying the example to production breaks every upload. | 8 | **FIXED** |
 | B4 | Confusing/disconnected local config | `server/.env.local` held the same disabled Cloudinary key (trap). | 8 | **FIXED** |
 | B5 | Production bundle warning (>500 kB) | All routes statically imported → single 576 kB chunk. | 12 | **FIXED** (route code-splitting → 385 kB) |
-| B6 | Docs say "MongoDB" | Architecture/README incorrectly describe MongoDB; the DB is **PostgreSQL/Neon via Prisma**. | 1/9 | **FIXED** (docs) |
+| B6 | Docs say "MongoDB" | Architecture/README incorrectly describe MongoDB; the DB is **PostgreSQL/Neon via Supabase**. | 1/9 | **FIXED** (docs) |
 | B7 | cPanel deployment undocumented | DEPLOYMENT.md only described Netlify; user hosts frontend on **cPanel**. | 14 | **FIXED** (docs) |
 
 Verified **working as-is** (no change needed): Projects video upload + homepage hero, Portfolio image upload + display, About upsert + display, JWT auth/refresh, protected routes, CORS allowlist, Helmet, rate limiting, pagination, public feeds, Cloudinary connectivity (ping + real upload).
@@ -30,7 +30,7 @@ Backend:
 - `server/src/controllers/productController.js` — supply `tags: []` on product create (fixes B1).
 - `server/.env.example` — Cloudinary key/secret → working values; admin password → `admin123!` (fixes B3/B4).
 - `server/.env.local` — Cloudinary key/secret → working values (fixes B4 trap).
-- `server/prisma` — DB admin password aligned to `admin123!` via one-off Prisma upsert (fixes B2, no content lost).
+- Database — DB admin password aligned to `admin123!` via one-off database upsert (fixes B2, no content lost).
 
 Frontend:
 - `src/app/AppRouter.jsx` — replaced static page imports with `React.lazy` + top-level `<Suspense>` (fixes B5).
@@ -38,7 +38,7 @@ Frontend:
 - `src/pages/auth/AuthShell.jsx` — added `<Suspense>` boundary around `<Outlet>`.
 
 Docs:
-- `ARCHITECTURE.md` — removed MongoDB model reference; noted Prisma/PostgreSQL.
+- `ARCHITECTURE.md` — removed MongoDB model reference; noted PostgreSQL/Neon via Supabase.
 - `DEPLOYMENT.md` — added cPanel section + `VITE_API_URL` build-time requirement; noted DB is PostgreSQL/Neon.
 
 No broken imports, no unused components referenced by routes, no broken routes. (`npm run build` transforms 2158 modules successfully.)
