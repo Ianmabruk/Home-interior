@@ -86,6 +86,21 @@ async function updateHeroMedia(id, data, files = []) {
 async function deleteHeroMedia(id) {
   const existing = await prisma.heroMedia.findUnique({ where: { id } })
   if (!existing) throw failure(404, 'Hero media not found')
-  if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
+
+  let cloudinaryDeleted = false
+  if (existing.cloudinaryId) {
+    try {
+      await deleteFile(existing.cloudinaryId)
+      cloudinaryDeleted = true
+    } catch (error) {
+      console.error('Failed to delete Cloudinary asset:', error)
+    }
+  }
+
   await prisma.heroMedia.delete({ where: { id } })
+
+  return {
+    message: 'Deleted',
+    cloudinaryDeleted,
+  }
 }

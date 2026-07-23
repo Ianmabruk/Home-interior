@@ -18,6 +18,7 @@ export const HeroImagesDashboard = () => {
   const [deleteId, setDeleteId] = useState(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const [status, setStatus] = useState({ type: '', message: '' })
   const fileRef = useRef(null)
 
   useEffect(() => {
@@ -71,6 +72,7 @@ export const HeroImagesDashboard = () => {
   const submit = async (e) => {
     e.preventDefault()
     setLoading(true)
+    setStatus({ type: '', message: '' })
     try {
       const payload = new FormData()
       payload.append('title', form.title)
@@ -83,28 +85,33 @@ export const HeroImagesDashboard = () => {
       })
 
       await api.post('/hero-media', payload)
+      setStatus({ type: 'success', message: 'Hero images uploaded successfully' })
       resetForm()
       const res = await api.get('/hero-media')
       const data = Array.isArray(res.data) ? res.data : res.data?.items || []
       setHeroImages(data)
       emitAdminDataChanged({ type: 'hero-images-changed' })
     } catch (err) {
+      setStatus({ type: 'error', message: err?.message || 'Upload failed' })
       console.error('Submit error:', err)
     } finally {
       setLoading(false)
+      setTimeout(() => setStatus({ type: '', message: '' }), 4000)
     }
   }
 
   const deleteItem = async () => {
     if (!deleteId) return
     try {
-      await api.delete(`/hero-media/${deleteId}`)
+      const result = await api.delete(`/hero-media/${deleteId}`)
       setDeleteId(null)
+      setStatus({ type: 'success', message: result.data?.data?.message || 'Hero image deleted' })
       const res = await api.get('/hero-media')
       const data = Array.isArray(res.data) ? res.data : res.data?.items || []
       setHeroImages(data)
       emitAdminDataChanged({ type: 'hero-images-changed' })
     } catch (err) {
+      setStatus({ type: 'error', message: err?.message || 'Delete failed' })
       console.error('Delete error:', err)
     }
   }
@@ -132,12 +139,29 @@ export const HeroImagesDashboard = () => {
       </motion.div>
 
       <AnimatePresence>
+        {status.message && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className={`toast flex items-center gap-2 mb-5 px-4 py-3 text-sm rounded-xl border shadow-lg ${
+              status.type === 'error'
+                ? 'bg-[var(--error)]/10 text-[var(--error)] border-[var(--error)]/20'
+                : 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20'
+            }`}
+          >
+            <span>{status.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {showForm && (
           <motion.form
             initial={{ opacity: 0, height: 0, y: -20 }}
             animate={{ opacity: 1, height: 'auto', y: 0 }}
             exit={{ opacity: 0, height: 0, y: -20 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1]}}
             onSubmit={submit}
             className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)] space-y-5 mb-6"
           >

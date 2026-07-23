@@ -37,7 +37,7 @@ export const heroMediaController = {
   }),
 
   delete: asyncHandler(async (req, res) => {
-    await heroMediaService.deleteHeroMedia(req.params.id)
-    res.json({ success: true, data: { message: 'Deleted' } })
+    const result = await heroMediaService.deleteHeroMedia(req.params.id)
+    res.json({ success: true, data: result })
   }),
 }
