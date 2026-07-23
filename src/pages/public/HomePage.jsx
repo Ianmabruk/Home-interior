@@ -20,17 +20,14 @@ export const HomePage = () => {
 
   const loadData = async () => {
     try {
-      const [homepageRes, productsRes] = await Promise.all([
-        api.get('/homepage'),
-        api.get('/products?limit=8&featured=true'),
-      ])
+      const homepageRes = await api.get('/homepage')
 
       const homepageData = homepageRes.data || {}
       setPortfolio(homepageData.portfolio || [])
       setServices(homepageData.services || [])
       setVirtualDesigns(homepageData.virtualInteriorDesign || homepageData.virtualDesigns || [])
       setHeroImages(homepageData.heroImages || [])
-      setProducts(Array.isArray(productsRes.data) ? productsRes.data : productsRes.data?.items || [])
+      setProducts(Array.isArray(homepageData.products) ? homepageData.products : [])
     } catch (err) {
       console.warn('[HOME] Failed to load data:', err?.message)
     } finally {

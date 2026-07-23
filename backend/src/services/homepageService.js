@@ -13,6 +13,7 @@ async function getHomepage() {
       about,
       testimonials,
       heroMedia,
+      featuredProducts,
     ] = await Promise.all([
       prisma.portfolioProject.findMany({
         where: { published: true },
@@ -40,6 +41,11 @@ async function getHomepage() {
         orderBy: { displayOrder: 'asc' },
         take: 5,
       }),
+      prisma.product.findMany({
+        where: { featured: true },
+        orderBy: { createdAt: 'desc' },
+        take: 8,
+      }),
     ])
 
     const featuredPortfolio = portfolio.filter((p) => p.featured).slice(0, 3)
@@ -56,6 +62,7 @@ async function getHomepage() {
       heroImages: heroMedia,
       heroMedia,
       featuredProject: featuredPortfolio[0] || portfolio[0] || null,
+      products: featuredProducts,
     }
   } catch {
     return {
@@ -70,6 +77,7 @@ async function getHomepage() {
       heroImages: [],
       heroMedia: [],
       featuredProject: null,
+      products: [],
     }
   }
 }
