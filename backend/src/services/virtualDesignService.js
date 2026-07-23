@@ -48,27 +48,19 @@ async function getVirtualDesign(id) {
 async function createVirtualDesign(data, file, galleryFiles) {
   const createData = { ...data }
   const mediaUrls = []
-  const mediaPublicIds = []
 
   for (const f of galleryFiles) {
     const uploaded = await uploadFile(f.buffer, f.mimetype, 'virtual-designs')
     mediaUrls.push(uploaded.url)
-    mediaPublicIds.push(uploaded.path)
   }
 
-  if (mediaUrls.length > 0) {
-    createData.mediaUrls = mediaUrls
-    createData.cloudinaryIds = mediaPublicIds
-  }
+  if (mediaUrls.length > 0) createData.mediaUrls = mediaUrls
   if (file) {
     const uploaded = await uploadFile(file.buffer, file.mimetype, 'virtual-designs')
     createData.imageUrl = uploaded.url
     createData.cloudinaryId = uploaded.path
   } else if (!createData.imageUrl && mediaUrls.length > 0) {
     createData.imageUrl = mediaUrls[0]
-    if (!createData.cloudinaryId && mediaPublicIds.length > 0) {
-      createData.cloudinaryId = mediaPublicIds[0]
-    }
   }
 
   const item = await prisma.virtualDesign.create({ data: createData })
@@ -82,17 +74,12 @@ async function updateVirtualDesign(id, data, file, galleryFiles) {
 
     const updateData = { ...data }
     const mediaUrls = [...(existing.mediaUrls || [])]
-    const mediaPublicIds = [...(existing.cloudinaryIds || [])]
 
     for (const f of galleryFiles) {
       const uploaded = await uploadFile(f.buffer, f.mimetype, 'virtual-designs')
       mediaUrls.push(uploaded.url)
-      mediaPublicIds.push(uploaded.path)
     }
-    if (galleryFiles.length > 0) {
-      updateData.mediaUrls = mediaUrls
-      updateData.cloudinaryIds = mediaPublicIds
-    }
+    if (galleryFiles.length > 0) updateData.mediaUrls = mediaUrls
 
     if (file) {
       if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
@@ -101,9 +88,6 @@ async function updateVirtualDesign(id, data, file, galleryFiles) {
       updateData.cloudinaryId = uploaded.path
     } else if (!updateData.imageUrl && mediaUrls.length > 0) {
       updateData.imageUrl = mediaUrls[0]
-      if (!updateData.cloudinaryId && mediaPublicIds.length > 0) {
-        updateData.cloudinaryId = mediaPublicIds[0]
-      }
     }
 
     const item = await prisma.virtualDesign.update({ where: { id }, data: updateData })
@@ -119,9 +103,6 @@ async function deleteVirtualDesign(id) {
     const existing = await prisma.virtualDesign.findUnique({ where: { id } })
     if (!existing) throw failure(404, 'Virtual design not found')
     if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
-    if (existing.cloudinaryIds) {
-      await deleteFiles(existing.cloudinaryIds.filter((pid) => pid && pid !== existing.cloudinaryId))
-    }
     await prisma.virtualDesign.delete({ where: { id } })
   } catch (err) {
     if (err?.status === 404) throw err

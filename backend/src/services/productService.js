@@ -4,9 +4,7 @@ import { failure } from '../utils/response.js'
 
 function mapProduct(item) {
   if (!item) return null
-  const images = Array.isArray(item.images)
-    ? item.images.map((img) => (typeof img === 'string' ? { url: img, publicId: '' } : img))
-    : []
+  const images = Array.isArray(item.images) ? item.images : []
   return {
     ...item,
     _id: item.id,
@@ -64,16 +62,16 @@ async function getProduct(id) {
 
 async function createProduct(data, files) {
   const createData = { ...data }
-  const imageRecords = []
+  const images = []
 
   if (Array.isArray(files)) {
     for (const f of files) {
       const uploaded = await uploadFile(f.buffer, f.mimetype, 'products')
-      imageRecords.push({ url: uploaded.url, publicId: uploaded.path })
+      images.push(uploaded.url)
     }
   }
 
-  if (imageRecords.length > 0) createData.images = imageRecords
+  if (images.length > 0) createData.images = images
   if (createData.tags && typeof createData.tags === 'string') {
     createData.tags = createData.tags.split(',').map((s) => s.trim()).filter(Boolean)
   }
@@ -87,17 +85,17 @@ async function updateProduct(id, data, files) {
   if (!existing) throw failure(404, 'Product not found')
 
   const updateData = { ...data }
-  const imageRecords = [...(existing.images || [])]
+  const images = [...(existing.images || [])]
 
   if (Array.isArray(files) && files.length > 0) {
     for (const f of files) {
       const uploaded = await uploadFile(f.buffer, f.mimetype, 'products')
-      imageRecords.push({ url: uploaded.url, publicId: uploaded.path })
+      images.push(uploaded.url)
     }
   }
 
   if (files?.length > 0) {
-    updateData.images = imageRecords
+    updateData.images = images
   }
 
   if (updateData.tags && typeof updateData.tags === 'string') {
@@ -111,11 +109,5 @@ async function updateProduct(id, data, files) {
 async function deleteProduct(id) {
   const existing = await prisma.product.findUnique({ where: { id } })
   if (!existing) throw failure(404, 'Product not found')
-  if (existing.images) {
-    const publicIds = existing.images
-      .map((img) => typeof img === 'string' ? img : img?.publicId)
-      .filter(Boolean)
-    await deleteFiles(publicIds)
-  }
   await prisma.product.delete({ where: { id } })
 }

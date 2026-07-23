@@ -94,12 +94,12 @@ export const ProductDetailPage = () => {
   const activeVariant = product?.colorVariants?.find((v) => v.colorName === activeColor)
   const galleryImages = useMemo(() => {
     if (activeVariant?.imageUrl) {
-      return [activeVariant.imageUrl, ...(product?.images || []).map((i) => i.url).filter(Boolean)]
+      return [activeVariant.imageUrl, ...(product?.images || []).map((i) => typeof i === 'string' ? i : i.url).filter(Boolean)]
     }
-    return (product?.images || []).map((i) => i.url).filter(Boolean)
+    return (product?.images || []).map((i) => typeof i === 'string' ? i : i.url).filter(Boolean)
   }, [activeVariant, product])
 
-  const displayImage = viewImage || activeVariant?.imageUrl || product?.images?.[0]?.url || null
+  const displayImage = viewImage || activeVariant?.imageUrl || (typeof product?.images?.[0] === 'string' ? product.images[0] : product?.images?.[0]?.url) || null
 
   const salePercent = product?.price > 0 && product?.discountPrice
     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
@@ -454,7 +454,7 @@ export const ProductDetailPage = () => {
                     <div className="overflow-hidden rounded-2xl bg-[var(--card)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] group-hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
                       <div className="relative aspect-[3/4] overflow-hidden bg-[var(--secondary)]">
                         <PositionedImage
-                          src={p.images?.[0]?.url || p.colorVariants?.[0]?.imageUrl}
+                          src={typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url || p.colorVariants?.[0]?.imageUrl}
                           alt={p.name}
                           settings={p.mediaSettings}
                           className="h-full w-full transition duration-700 group-hover:scale-105"

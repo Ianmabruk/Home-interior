@@ -39,7 +39,7 @@ export const WishlistPage = () => {
                 className="group overflow-hidden rounded-3xl border border-[var(--border)] bg-white shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-shadow"
               >
                 <div className="relative aspect-[4/3] overflow-hidden">
-                  <img src={item.images?.[0]?.url} alt={item.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
+                  <img src={typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url} alt={item.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
                   <button
                     onClick={() => toggleWishlist(item)}
                     className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 transition-all duration-300 group-hover:opacity-100 hover:bg-white"

@@ -58,27 +58,19 @@ async function getPortfolio(id) {
 async function createPortfolio(data, file, galleryFiles = []) {
   const createData = { ...data }
   const mediaUrls = []
-  const mediaPublicIds = []
 
   for (const f of galleryFiles) {
     const uploaded = await uploadFile(f.buffer, f.mimetype, 'portfolio')
     mediaUrls.push(uploaded.url)
-    mediaPublicIds.push(uploaded.path)
   }
 
-  if (mediaUrls.length > 0) {
-    createData.mediaUrls = mediaUrls
-    createData.cloudinaryIds = mediaPublicIds
-  }
+  if (mediaUrls.length > 0) createData.mediaUrls = mediaUrls
   if (file) {
     const uploaded = await uploadFile(file.buffer, file.mimetype, 'portfolio')
     createData.imageUrl = uploaded.url
     createData.cloudinaryId = uploaded.path
   } else if (!createData.imageUrl && mediaUrls.length > 0) {
     createData.imageUrl = mediaUrls[0]
-    if (!createData.cloudinaryId && mediaPublicIds.length > 0) {
-      createData.cloudinaryId = mediaPublicIds[0]
-    }
   }
   const item = await prisma.portfolioProject.create({ data: createData })
   return mapPortfolio(item)
@@ -90,17 +82,12 @@ async function updatePortfolio(id, data, file, galleryFiles = []) {
 
   const updateData = { ...data }
   const mediaUrls = [...(existing.mediaUrls || [])]
-  const mediaPublicIds = [...(existing.cloudinaryIds || [])]
 
   for (const f of galleryFiles) {
     const uploaded = await uploadFile(f.buffer, f.mimetype, 'portfolio')
     mediaUrls.push(uploaded.url)
-    mediaPublicIds.push(uploaded.path)
   }
-  if (galleryFiles.length > 0) {
-    updateData.mediaUrls = mediaUrls
-    updateData.cloudinaryIds = mediaPublicIds
-  }
+  if (galleryFiles.length > 0) updateData.mediaUrls = mediaUrls
 
   if (file) {
     if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
@@ -109,9 +96,6 @@ async function updatePortfolio(id, data, file, galleryFiles = []) {
     updateData.cloudinaryId = uploaded.path
   } else if (!updateData.imageUrl && mediaUrls.length > 0) {
     updateData.imageUrl = mediaUrls[0]
-    if (!updateData.cloudinaryId && mediaPublicIds.length > 0) {
-      updateData.cloudinaryId = mediaPublicIds[0]
-    }
   }
   const item = await prisma.portfolioProject.update({ where: { id }, data: updateData })
   return mapPortfolio(item)
@@ -121,8 +105,5 @@ async function deletePortfolio(id) {
   const existing = await prisma.portfolioProject.findUnique({ where: { id } })
   if (!existing) throw failure(404, 'Portfolio item not found')
   if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
-  if (existing.cloudinaryIds) {
-    await deleteFiles(existing.cloudinaryIds.filter((id) => id && id !== existing.cloudinaryId))
-  }
   await prisma.portfolioProject.delete({ where: { id } })
 }
