@@ -26,4 +26,3 @@ export function validateEnv() {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`)
   }
 }
-}
