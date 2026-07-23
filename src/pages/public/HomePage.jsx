@@ -6,7 +6,7 @@ import { Hero } from '../../components/Hero'
 import { AboutPreview } from '../../components/AboutPreview'
 import { ConsultationModal } from '../../components/ConsultationModal'
 import { api } from '../../services/api'
-import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
+import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 
 export const HomePage = () => {
@@ -227,6 +227,8 @@ useEffect(() => {
                     <div className="relative aspect-[3/4] overflow-hidden">
                       <img
                         src={getOptimizedUrl(getProjectImage(item) || fallbackImage, { width: 800, crop: 'limit' })}
+                        srcSet={buildSrcSet(getProjectImage(item) || fallbackImage) || undefined}
+                        sizes={buildSrcSet(getProjectImage(item) || fallbackImage) ? '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw' : undefined}
                         alt={item.title}
                         className="h-full w-full object-cover transition duration-[1.2s] ease-out group-hover:scale-105"
                         loading="lazy"
@@ -433,6 +435,8 @@ useEffect(() => {
                             ) : (
                               <img
                                 src={getOptimizedUrl(getProjectImage(item), { width: 640 })}
+                                srcSet={buildSrcSet(getProjectImage(item)) || undefined}
+                                sizes={buildSrcSet(getProjectImage(item)) ? '(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw' : undefined}
                                 alt={item.title}
                                 className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
                                 loading="lazy"
@@ -568,18 +572,24 @@ useEffect(() => {
                 >
                   <Link to={`/shop/${item.id}`} className="block" aria-label={`View ${item.name}`}>
                     <div className="relative aspect-square overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
-                      {(item.images?.[0]?.url || item.images?.[0]) && (
-                        <>
-                          <img
-                            src={getOptimizedUrl(typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url, { width: 640 })}
-                            alt={item.name}
-                            className="h-full w-full object-cover bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                            loading="lazy"
-                            decoding="async"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                        </>
-                      )}
+                        {(() => {
+                          const imgSrc = typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url
+                          const srcSet = buildSrcSet(imgSrc)
+                          return imgSrc && (
+                            <>
+                              <img
+                                src={getOptimizedUrl(imgSrc, { width: 640 })}
+                                srcSet={srcSet || undefined}
+                                sizes={srcSet ? '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw' : undefined}
+                                alt={item.name}
+                                className="h-full w-full object-cover bg-[var(--bg)] transition duration-700 group-hover:scale-105"
+                                loading="lazy"
+                                decoding="async"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            </>
+                          )
+                        })()}
                     </div>
                   </Link>
 

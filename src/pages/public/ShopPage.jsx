@@ -92,13 +92,15 @@ export const ShopPage = () => {
       {/* Page Header with Luxury Interior Background */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
-          <img
-            src={getOptimizedUrl(heroImage, { width: 2000, crop: 'limit' })}
-            alt="Luxury interior with beige sofa, brown furniture, warm lighting"
-            className="h-full w-full object-cover"
-            loading="eager"
-            decoding="async"
-          />
+          {heroImage && (
+            <img
+              src={getOptimizedUrl(heroImage, { width: 2000, crop: 'limit' })}
+              alt="Luxury interior with beige sofa, brown furniture, warm lighting"
+              className="h-full w-full object-cover"
+              loading="eager"
+              decoding="async"
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/65 via-[var(--primary)]/75 to-transparent" />
         </div>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(232,154,67,0.15),transparent_50%)]" />

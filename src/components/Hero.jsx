@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarCheck } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { getOptimizedUrl } from '../utils/cloudinaryHelpers'
+import { getOptimizedUrl, buildSrcSet } from '../utils/cloudinaryHelpers'
 
 const FADE_DURATION = 2.5
 
@@ -52,7 +52,10 @@ export const Hero = ({ onBookConsultation, heroImages = [] }) => {
               className="absolute inset-0"
             >
               <img
-                src={getOptimizedUrl(activeImage, { width: 1920, crop: 'limit' })}
+                src={getOptimizedUrl(activeImage, { width: 1280, crop: 'limit' })}
+                srcSet={buildSrcSet(activeImage) || undefined}
+                sizes={buildSrcSet(activeImage) ? '100vw' : undefined}
+                fetchpriority="high"
                 alt={currentImage?.alt || 'Luxury interior design'}
                 className="h-full w-full object-cover"
                 loading="eager"
