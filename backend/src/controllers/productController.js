@@ -41,6 +41,10 @@ export const productController = {
   create: asyncHandler(async (req, res) => {
     const files = Array.isArray(req.files) ? req.files : []
 
+    console.log('[PRODUCT CREATE] body keys:', Object.keys(req.body || {}))
+    console.log('[PRODUCT CREATE] files count:', files.length)
+    files.forEach((f, i) => console.log(`[PRODUCT CREATE] file ${i}: fieldname=${f.fieldname}, mimetype=${f.mimetype}, size=${f.size}, bufferLen=${f.buffer?.length}`))
+
     const imageFiles = files.filter((f) => f.fieldname === 'images' || !f.fieldname)
 
     const variantFiles = files

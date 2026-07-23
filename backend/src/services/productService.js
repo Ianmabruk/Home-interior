@@ -93,6 +93,7 @@ async function createProduct(data, files, variantFiles = []) {
   if (Array.isArray(files)) {
     for (const f of files) {
       const uploaded = await uploadFile(f.buffer, f.mimetype, 'products')
+      console.log('[PRODUCT SERVICE] uploaded url:', uploaded.url, 'path:', uploaded.path)
       images.push(uploaded.url)
       if (uploaded.path) storagePaths.push(uploaded.path)
     }
@@ -121,6 +122,7 @@ async function createProduct(data, files, variantFiles = []) {
         create: await Promise.all(
           rawVariants.map(async (v, idx) => {
             const imageFiles = variantFiles.filter((vf) => vf && vf.index === idx)
+            console.log(`[PRODUCT SERVICE] variant ${idx} imageFiles count:`, imageFiles.length)
             let image = v.image || ''
             let storagePath = v.storagePath || ''
             if (imageFiles.length > 0) {
