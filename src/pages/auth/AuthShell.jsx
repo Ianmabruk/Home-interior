@@ -1,6 +1,8 @@
-import { Suspense } from 'react'
+import { Suspense, useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Outlet } from 'react-router-dom'
+import { api } from '../../services/api'
+import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
 const AuthLoader = () => (
   <div className="flex min-h-[40vh] items-center justify-center">
@@ -8,16 +10,55 @@ const AuthLoader = () => (
   </div>
 )
 
+function useHeroImage() {
+  const [image, setImage] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await api.get('/content/hero-media')
+        const items = Array.isArray(res.data) ? res.data : []
+        if (!cancelled && items.length > 0) {
+          const first = items[0]
+          const url = first.imageUrl || first.mediaUrl || first.mediaUrls?.[0] || ''
+          setImage(url)
+        }
+      } catch {
+        // keep fallback
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  return { image, loading }
+}
+
 export const AuthShell = () => {
+  const { image } = useHeroImage()
+
+  const heroImage = useMemo(() => {
+    if (!image) return ''
+    return getOptimizedUrl(image, { width: 1280, crop: 'limit' })
+  }, [image])
+
   return (
     <div className="grid min-h-screen bg-[var(--bg)] md:grid-cols-2">
       {/* Left image panel */}
       <div className="relative hidden overflow-hidden md:block">
-        <img
-          src=""
-          alt="Luxury interior"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        {heroImage ? (
+          <img
+            src={heroImage}
+            alt="Luxury interior"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)] via-[var(--primary)]/95 to-[var(--primary)]/80" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/70 via-[var(--primary)]/20 to-[var(--primary)]/10" />
         <div className="absolute bottom-12 left-12 max-w-sm">
           <Link to="/">
