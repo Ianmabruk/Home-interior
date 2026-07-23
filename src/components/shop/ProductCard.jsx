@@ -1,7 +1,6 @@
 import { memo } from 'react'
 import { Heart, ShoppingBag, Eye } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { useShop } from '../../context/ShopContext'
 import { useCurrency } from '../../context/CurrencyContext'
 import PositionedImage from '../common/PositionedImage'
@@ -21,11 +20,9 @@ export const ProductCard = memo(({ product, onQuickView }) => {
   const isWishlisted = wishlist?.some((w) => w._id === product._id)
   const price = (defaultVariant?.priceOverride ?? product.discountPrice) || product.price
 
-  return (
-    <motion.article
-      whileHover={{ y: -8 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="group relative overflow-hidden bg-white shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] rounded-3xl transition-all duration-500"
+   return (
+    <article
+      className="group relative overflow-hidden bg-white shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] rounded-3xl transition-all duration-500 hover:-translate-y-2"
     >
       <div className="relative aspect-[3/4] overflow-hidden bg-[var(--secondary)]">
         <PositionedImage
@@ -92,6 +89,6 @@ export const ProductCard = memo(({ product, onQuickView }) => {
           )}
         </div>
       </div>
-    </motion.article>
+    </article>
   )
 })

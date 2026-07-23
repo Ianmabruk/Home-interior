@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Maximize2, Play, ShoppingBag } from 'lucide-react'
 import { Hero } from '../../components/Hero'
@@ -8,6 +7,7 @@ import { ConsultationModal } from '../../components/ConsultationModal'
 import { api } from '../../services/api'
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
+import { ScrollReveal } from '../../utils/scrollReveal'
 
 export const HomePage = () => {
   const [showModal, setShowModal] = useState(false)
@@ -17,15 +17,14 @@ export const HomePage = () => {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [heroImages, setHeroImages] = useState([])
-  
+
   const loadData = async () => {
     try {
-      // Use the combined homepage endpoint for all data
       const [homepageRes, productsRes] = await Promise.all([
         api.get('/homepage'),
         api.get('/products?limit=8&featured=true'),
       ])
-      
+
       const homepageData = homepageRes.data || {}
       setPortfolio(homepageData.portfolio || [])
       setServices(homepageData.services || [])
@@ -39,9 +38,9 @@ export const HomePage = () => {
     }
   }
 
-useEffect(() => { 
+  useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial data load is a standard pattern
-    loadData() 
+    loadData()
   }, [])
 
   useEffect(() => {
@@ -122,7 +121,7 @@ useEffect(() => {
           <div className="container-wide">
             <div className="mb-16 text-center">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Shop</p>
-              <h2 className="font-display text-4xl font-medium leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+              <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
                 Curated Collection
               </h2>
             </div>
@@ -165,159 +164,104 @@ useEffect(() => {
     )
   }
 
-  const containerVariants = {
-    hidden: {},
-    show: { transition: { staggerChildren: 0.08 } },
-  }
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 30 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
-  }
-
   return (
     <main>
       <Hero onBookConsultation={() => setShowModal(true)} heroImages={heroImages} />
 
       {/* Portfolio Section */}
-      <motion.section
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        className="bg-[var(--secondary)]/30 px-6 md:px-12 lg:px-20 py-20 md:py-32"
-      >
+      <section className="bg-[var(--secondary)]/30 px-6 md:px-12 lg:px-20 py-20 md:py-32">
         <div className="container-wide">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="mb-16 md:mb-24 text-center"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Portfolio</p>
-            <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
-              Featured Projects
-            </h2>
-          </motion.div>
+          <ScrollReveal>
+            <div className="mb-16 md:mb-24 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Portfolio</p>
+              <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+                Featured Projects
+              </h2>
+            </div>
+          </ScrollReveal>
 
           {portfolio.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="flex min-h-[40vh] items-center justify-center"
-            >
-              <p className="font-display text-xl text-[var(--primary)]/30">No projects yet</p>
-            </motion.div>
+            <ScrollReveal>
+              <div className="flex min-h-[40vh] items-center justify-center">
+                <p className="font-display text-xl text-[var(--primary)]/30">No projects yet</p>
+              </div>
+            </ScrollReveal>
           ) : (
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: '-50px' }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12"
-            >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
               {portfolio.slice(0, 4).map((item) => (
-                <motion.article
-                  key={item.id}
-                  variants={itemVariants}
-                  className="group relative bg-white border border-[var(--border)]/40 rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] transition-all duration-700 hover:-translate-y-2 hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)]"
-                >
-                  <Link to={`/portfolio/${item.id}`} className="block" aria-label={`View ${item.title} project`}>
-                    <div className="relative aspect-[3/4] overflow-hidden">
-                      <img
-                        src={getOptimizedUrl(getProjectImage(item) || fallbackImage, { width: 800, crop: 'limit' })}
-                        srcSet={buildSrcSet(getProjectImage(item) || fallbackImage) || undefined}
-                        sizes={buildSrcSet(getProjectImage(item) || fallbackImage) ? '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw' : undefined}
-                        alt={item.title}
-                        className="h-full w-full object-cover transition duration-[1.2s] ease-out group-hover:scale-105"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </div>
-                  </Link>
+                <ScrollReveal key={item.id}>
+                  <article
+                    className="group relative bg-white border border-[var(--border)]/40 rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] transition-all duration-700 hover:-translate-y-2 hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)]"
+                  >
+                    <Link to={`/portfolio/${item.id}`} className="block" aria-label={`View ${item.title} project`}>
+                      <div className="relative aspect-[3/4] overflow-hidden">
+                        <img
+                          src={getOptimizedUrl(getProjectImage(item) || fallbackImage, { width: 800, crop: 'limit' })}
+                          srcSet={buildSrcSet(getProjectImage(item) || fallbackImage) || undefined}
+                          sizes={buildSrcSet(getProjectImage(item) || fallbackImage) ? '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw' : undefined}
+                          alt={item.title}
+                          className="h-full w-full object-cover transition duration-[1.2s] ease-out group-hover:scale-105"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </div>
+                    </Link>
 
-                  <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
-                    <div className="flex items-center justify-between gap-4">
-                      <motion.button
-                        initial={{ opacity: 0, x: 20 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={(e) => { e.preventDefault(); window.location.href = `/portfolio/${item.id}` }}
-                        className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0"
-                      >
-                        View Project
-                        <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-                      </motion.button>
+                    <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
+                      <div className="flex items-center justify-between gap-4">
+                        <button
+                          onClick={(e) => { e.preventDefault(); window.location.href = `/portfolio/${item.id}` }}
+                          className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 hover:scale-105 active:scale-95"
+                        >
+                          View Project
+                          <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </motion.article>
+                  </article>
+                </ScrollReveal>
               ))}
-            </motion.div>
+            </div>
           )}
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3, duration: 0.7 }}
-            className="mt-16 text-center"
-          >
-            <Link
-              to="/portfolio"
-              className="group inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)] transition-colors duration-300 hover:text-[var(--accent)]"
-            >
-              View All Projects
-              <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
-          </motion.div>
+          <ScrollReveal delay={300}>
+            <div className="mt-16 text-center">
+              <Link
+                to="/portfolio"
+                className="group inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)] transition-colors duration-300 hover:text-[var(--accent)]"
+              >
+                View All Projects
+                <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
+            </div>
+          </ScrollReveal>
         </div>
-      </motion.section>
+      </section>
 
       {/* Services Section */}
-      <motion.section
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        className="bg-soft-cream px-6 md:px-12 lg:px-20 py-20 md:py-32"
-      >
+      <section className="bg-soft-cream px-6 md:px-12 lg:px-20 py-20 md:py-32">
         <div className="container-wide">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.7 }}
-            className="mb-16 md:mb-24 text-center"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-bronze mb-4">Services</p>
-            <h2 className="font-display text-4xl font-medium leading-tight text-espresso md:text-5xl lg:text-6xl">
-              What We Do
-            </h2>
-            <p className="mt-4 max-w-2xl mx-auto text-base text-espresso/60 leading-relaxed">
-              Comprehensive interior design services tailored to elevate your space with timeless elegance.
-            </p>
-          </motion.div>
+          <ScrollReveal>
+            <div className="mb-16 md:mb-24 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-bronze mb-4">Services</p>
+              <h2 className="font-display text-4xl font-medium leading-tight text-espresso md:text-5xl lg:text-6xl">
+                What We Do
+              </h2>
+              <p className="mt-4 max-w-2xl mx-auto text-base text-espresso/60 leading-relaxed">
+                Comprehensive interior design services tailored to elevate your space with timeless elegance.
+              </p>
+            </div>
+          </ScrollReveal>
 
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-50px' }}
-            className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12"
-          >
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
             {services.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7 }}
-                className="col-span-full flex min-h-[40vh] items-center justify-center"
-              >
-                <p className="font-display text-xl text-[var(--primary)]/30">No services configured</p>
-              </motion.div>
+              <ScrollReveal>
+                <div className="col-span-full flex min-h-[40vh] items-center justify-center">
+                  <p className="font-display text-xl text-[var(--primary)]/30">No services configured</p>
+                </div>
+              </ScrollReveal>
             ) : (
-              services.slice(0, 6).map((item) => {
+              services.slice(0, 6).map((item, index) => {
                 const IconMap = {
                   LayoutGrid: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>,
                   Brush: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 4 9 9 0 1 1-9-9Z"/><line x1="21" y1="9" x2="15.5" y2="14.5"/><line x1="15" y1="15" x2="14" y2="16"/></svg>,
@@ -328,94 +272,61 @@ useEffect(() => {
                 }
                 const IconComponent = IconMap[item.icon] || IconMap.LayoutGrid
                 return (
-                  <motion.div
-                    key={item.id}
-                    variants={itemVariants}
-                    whileHover={{ y: -8, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }}
-                    className="group flex flex-col items-center text-center"
-                  >
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      className="mb-8 inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-champagne-beige/60 text-espresso transition-all duration-500 group-hover:bg-espresso group-hover:text-cream group-hover:scale-105"
-                    >
-                      <IconComponent />
-                    </motion.div>
-                    <h3 className="font-display text-xl md:text-2xl font-medium text-espresso leading-tight">
-                      {item.title}
-                    </h3>
-                    <p className="mt-2 text-sm text-espresso/60 leading-relaxed">{item.description}</p>
-                  </motion.div>
+                  <ScrollReveal key={item.id} delay={index * 80}>
+                    <div className="group flex flex-col items-center text-center">
+                      <div className="mb-8 inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-champagne-beige/60 text-espresso transition-all duration-500 group-hover:bg-espresso group-hover:text-cream group-hover:scale-105">
+                        <IconComponent />
+                      </div>
+                      <h3 className="font-display text-xl md:text-2xl font-medium text-espresso leading-tight">
+                        {item.title}
+                      </h3>
+                      <p className="mt-2 text-sm text-espresso/60 leading-relaxed">{item.description}</p>
+                    </div>
+                  </ScrollReveal>
                 )
               })
             )}
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3, duration: 0.7 }}
-            className="mt-16 text-center"
-          >
-            <Link
-              to="/services"
-              className="group inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)] transition-colors duration-300 hover:text-[var(--accent)]"
-            >
-              View Services
-              <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
-          </motion.div>
+          <ScrollReveal delay={300}>
+            <div className="mt-16 text-center">
+              <Link
+                to="/services"
+                className="group inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)] transition-colors duration-300 hover:text-[var(--accent)]"
+              >
+                View Services
+                <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
+            </div>
+          </ScrollReveal>
         </div>
-      </motion.section>
+      </section>
 
       {/* Virtual Designs Section */}
-      <motion.section
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        className="bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 md:px-12 lg:px-20 py-20 md:py-32"
-      >
+      <section className="bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 md:px-12 lg:px-20 py-20 md:py-32">
         <div className="container-wide">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.7 }}
-            className="mb-16 md:mb-24 text-center"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Virtual Designs</p>
-            <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
-              Virtual Designs
-            </h2>
-            <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
-              Immersive 3D renderings and virtual walkthroughs to visualize your space before it's built.
-            </p>
-          </motion.div>
+          <ScrollReveal>
+            <div className="mb-16 md:mb-24 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Virtual Designs</p>
+              <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+                Virtual Designs
+              </h2>
+              <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
+                Immersive 3D renderings and virtual walkthroughs to visualize your space before it's built.
+              </p>
+            </div>
+          </ScrollReveal>
 
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-50px' }}
-            className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          >
-            {virtualDesigns.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7 }}
-                className="col-span-full flex min-h-[40vh] items-center justify-center"
-              >
+          {virtualDesigns.length === 0 ? (
+            <ScrollReveal>
+              <div className="col-span-full flex min-h-[40vh] items-center justify-center">
                 <p className="font-display text-xl text-[var(--primary)]/30">No virtual designs yet</p>
-              </motion.div>
-            ) : (
-              virtualDesigns.slice(0, 1).map((item, index) => (
-                <motion.article
-                  key={item.id}
-                  variants={itemVariants}
-                  custom={index}
-                  className="group"
-                >
+              </div>
+            </ScrollReveal>
+          ) : (
+            virtualDesigns.slice(0, 1).map((item, index) => (
+              <ScrollReveal key={item.id} delay={index * 100}>
+                <article className="group">
                   <Link to={`/virtual-design/project/${item.id}`} className="block">
                     <div className="relative overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
                       <div className="relative aspect-[4/3] overflow-hidden">
@@ -465,111 +376,70 @@ useEffect(() => {
                       <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
-                            <motion.h3
-                              initial={{ opacity: 0, y: 10 }}
-                              whileInView={{ opacity: 1, y: 0 }}
-                              transition={{ delay: 0.1 }}
-                              className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors"
-                            >
+                            <h3 className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors">
                               {item.title}
-                            </motion.h3>
+                            </h3>
                             {item.description && (
-                              <motion.p
-                                initial={{ opacity: 0, y: 10 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.15 }}
-                                className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-2"
-                              >
+                              <p className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-2">
                                 {item.description}
-                              </motion.p>
+                              </p>
                             )}
                           </div>
-                          <motion.button
-                            initial={{ opacity: 0, x: 20 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.3 }}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.98 }}
+                          <button
                             onClick={(e) => { e.stopPropagation(); window.location.href = `/virtual-design/project/${item.id}` }}
-                            className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0"
+                            className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 hover:scale-105 active:scale-95"
                           >
                             View Project
                             <Maximize2 size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-                          </motion.button>
+                          </button>
                         </div>
                       </div>
                     </div>
                   </Link>
-                </motion.article>
-              ))
-            )}
-          </motion.div>
+                </article>
+              </ScrollReveal>
+            ))
+          )}
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3, duration: 0.7 }}
-            className="mt-16 text-center"
-          >
-            <Link
-              to="/virtual-design"
-              className="group inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)] transition-colors duration-300 hover:text-[var(--accent)]"
-            >
-              View All Virtual Designs
-              <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
-          </motion.div>
+          <ScrollReveal delay={300}>
+            <div className="mt-16 text-center">
+              <Link
+                to="/virtual-design"
+                className="group inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)] transition-colors duration-300 hover:text-[var(--accent)]"
+              >
+                View All Virtual Designs
+                <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
+            </div>
+          </ScrollReveal>
         </div>
-      </motion.section>
+      </section>
 
       {/* Shop Section */}
-      <motion.section
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--secondary)]/20 via-[var(--bg)] to-[var(--accent)]/5 px-6 md:px-12 lg:px-20 py-20 md:py-32"
-      >
+      <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--secondary)]/20 via-[var(--bg)] to-[var(--accent)]/5 px-6 md:px-12 lg:px-20 py-20 md:py-32">
         <div className="container-wide">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.7 }}
-            className="mb-16 md:mb-24 text-center"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Shop</p>
-            <h2 className="font-display text-4xl font-medium leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
-              Curated Collection
-            </h2>
-            <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
-              Handpicked furniture and decor pieces to complement your interior vision.
-            </p>
-          </motion.div>
+          <ScrollReveal>
+            <div className="mb-16 md:mb-24 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Shop</p>
+              <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+                Curated Collection
+              </h2>
+              <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
+                Handpicked furniture and decor pieces to complement your interior vision.
+              </p>
+            </div>
+          </ScrollReveal>
 
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-50px' }}
-            className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 lg:gap-12"
-          >
-            {products.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7 }}
-                className="col-span-full flex min-h-[40vh] items-center justify-center"
-              >
+          {products.length === 0 ? (
+            <ScrollReveal>
+              <div className="col-span-full flex min-h-[40vh] items-center justify-center">
                 <p className="font-display text-xl text-[var(--primary)]/30">No products available</p>
-              </motion.div>
-            ) : (
-              products.slice(0, 1).map((item) => (
-                <motion.article
-                  key={item.id}
-                  variants={itemVariants}
-                  className="group"
-                >
+              </div>
+            </ScrollReveal>
+          ) : (
+            products.slice(0, 1).map((item) => (
+              <ScrollReveal key={item.id}>
+                <article className="group">
                   <Link to={`/shop/${item.id}`} className="block" aria-label={`View ${item.name}`}>
                     <div className="relative aspect-square overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
                         {(() => {
@@ -596,60 +466,41 @@ useEffect(() => {
                   <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <motion.h3
-                          initial={{ opacity: 0, y: 10 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.1 }}
-                          className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors"
-                        >
+                        <h3 className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors">
                           {item.name}
-                        </motion.h3>
-                        <motion.p
-                          initial={{ opacity: 0, y: 10 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.15 }}
-                          className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-1"
-                        >
+                        </h3>
+                        <p className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-1">
                           ${Number(item.discountPrice || item.price || 0).toFixed(2)}
-                        </motion.p>
+                        </p>
                       </div>
-                      <motion.button
-                        initial={{ opacity: 0, x: 20 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.98 }}
+                      <button
                         onClick={(e) => { e.preventDefault(); window.location.href = `/shop/${item.id}` }}
-                        className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0"
+                        className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 hover:scale-105 active:scale-95"
                       >
                         View Product
                         <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-                      </motion.button>
+                      </button>
                     </div>
                   </div>
-                </motion.article>
-              ))
-            )}
-          </motion.div>
+                </article>
+              </ScrollReveal>
+            ))
+          )}
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3, duration: 0.7 }}
-            className="mt-16 text-center"
-          >
-            <Link
-              to="/shop"
-              className="group inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)] transition-colors duration-300 hover:text-[var(--accent)]"
-            >
-              View All Products
-              <ShoppingBag size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-              <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
-          </motion.div>
+          <ScrollReveal delay={300}>
+            <div className="mt-16 text-center">
+              <Link
+                to="/shop"
+                className="group inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)] transition-colors duration-300 hover:text-[var(--accent)]"
+              >
+                View All Products
+                <ShoppingBag size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+                <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
+            </div>
+          </ScrollReveal>
         </div>
-      </motion.section>
+      </section>
 
       {/* About Section */}
       <AboutPreview />

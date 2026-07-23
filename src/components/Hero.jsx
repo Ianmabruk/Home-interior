@@ -1,13 +1,16 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarCheck } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { getOptimizedUrl, buildSrcSet } from '../utils/cloudinaryHelpers'
 
-const FADE_DURATION = 2.5
+/* eslint-disable react-hooks/set-state-in-effect -- Carousel crossfade requires synchronous state updates in effect */
 
 export const Hero = ({ onBookConsultation, heroImages = [] }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [displayIndex, setDisplayIndex] = useState(0)
+  const [opacityA, setOpacityA] = useState(1)
+  const [opacityB, setOpacityB] = useState(0)
+  const [nextImage, setNextImage] = useState(null)
 
   const images = useMemo(() => {
     if (!heroImages || heroImages.length === 0) return []
@@ -24,12 +27,27 @@ export const Hero = ({ onBookConsultation, heroImages = [] }) => {
     if (images.length <= 1) return
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % images.length)
-    }, 2000)
+    }, 5000)
     return () => clearInterval(timer)
   }, [images.length])
 
-  const currentImage = images[currentIndex]
+  useEffect(() => {
+    if (currentIndex === displayIndex) return
+    setNextImage(images[currentIndex])
+    setOpacityA(0)
+    setOpacityB(1)
+    const timeout = setTimeout(() => {
+      setDisplayIndex(currentIndex)
+      setOpacityA(1)
+      setOpacityB(0)
+      setNextImage(null)
+    }, 800)
+    return () => clearTimeout(timeout)
+  }, [currentIndex, displayIndex, images])
+
+  const currentImage = images[displayIndex]
   const activeImage = currentImage?.url
+  const activeAlt = currentImage?.alt || 'Luxury interior design'
 
   return (
     <section
@@ -42,27 +60,29 @@ export const Hero = ({ onBookConsultation, heroImages = [] }) => {
       )}
       {images.length > 0 && (
         <div className="absolute inset-0">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentIndex}
-              initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              transition={{ duration: FADE_DURATION, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-0"
-            >
-              <img
-                src={getOptimizedUrl(activeImage, { width: 1280, crop: 'limit' })}
-                srcSet={buildSrcSet(activeImage) || undefined}
-                sizes={buildSrcSet(activeImage) ? '100vw' : undefined}
-                fetchpriority="high"
-                alt={currentImage?.alt || 'Luxury interior design'}
-                className="h-full w-full object-cover"
-                loading="eager"
-                decoding="async"
-              />
-            </motion.div>
-          </AnimatePresence>
+          <img
+            src={getOptimizedUrl(activeImage, { width: 1280, crop: 'limit' })}
+            srcSet={buildSrcSet(activeImage) || undefined}
+            sizes={buildSrcSet(activeImage) ? '100vw' : undefined}
+            fetchpriority="high"
+            alt={activeAlt}
+            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out"
+            style={{ opacity: opacityA }}
+            loading="eager"
+            decoding="async"
+          />
+          {nextImage && (
+            <img
+              src={getOptimizedUrl(nextImage.url, { width: 1280, crop: 'limit' })}
+              srcSet={buildSrcSet(nextImage.url) || undefined}
+              sizes={buildSrcSet(nextImage.url) ? '100vw' : undefined}
+              alt={nextImage.alt}
+              className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out"
+              style={{ opacity: opacityB }}
+              loading="eager"
+              decoding="async"
+            />
+          )}
         </div>
       )}
 
@@ -70,11 +90,9 @@ export const Hero = ({ onBookConsultation, heroImages = [] }) => {
       <div className="absolute inset-0 opacity-[0.03] pattern-overlay" />
 
       <div className="relative z-10 flex h-full items-end justify-center px-6 md:px-12 lg:px-20 pb-20 md:pb-28">
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="max-w-5xl w-full flex flex-col sm:flex-row items-center justify-center gap-4"
+        <div
+          className="max-w-5xl w-full flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up"
+          style={{ animationDelay: '0.8s' }}
         >
           <Link
             to="/portfolio"
@@ -92,7 +110,7 @@ export const Hero = ({ onBookConsultation, heroImages = [] }) => {
             Book Consultation
             <CalendarCheck size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
           </button>
-        </motion.div>
+        </div>
       </div>
     </section>
   )

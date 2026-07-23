@@ -3,7 +3,6 @@ import { Route, Routes, useLocation } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { ProtectedRoute } from './ProtectedRoute'
 import { ErrorBoundary } from '../components/common/ErrorBoundary'
-import { MotionConfig } from 'framer-motion'
 
 const PortfolioDetailPage = lazy(() => import('../pages/public/PortfolioDetailPage').then((m) => ({ default: m.PortfolioDetailPage })))
 const VirtualDesignDetailPage = lazy(() => import('../pages/public/VirtualDesignDetailPage').then((m) => ({ default: m.VirtualDesignDetailPage })))
@@ -87,9 +86,8 @@ const ErrorBoundaryRoute = ({ element }) => (
 
 export const AppRouter = () => {
   return (
-    <MotionConfig reducedMotion="user">
-      <Suspense fallback={<RouteFallback />}>
-        <Routes>
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<ErrorBoundaryRoute element={<HomePage />} />} />
         <Route path="/shop" element={<ErrorBoundaryRoute element={<ShopPage />} />} />
@@ -131,6 +129,5 @@ export const AppRouter = () => {
       <ScrollToTop />
       <PrefetchOnIdle />
     </Suspense>
-    </MotionConfig>
   )
 }

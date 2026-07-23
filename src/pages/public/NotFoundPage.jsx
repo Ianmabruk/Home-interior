@@ -1,11 +1,5 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, Home, Compass } from 'lucide-react'
-import { motion } from 'framer-motion'
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.12, delayChildren: 0.15 } },
-}
 
 export const NotFoundPage = () => {
   return (
@@ -17,29 +11,26 @@ export const NotFoundPage = () => {
         404
       </div>
 
-      <motion.div
-        initial="hidden"
-        animate="show"
-        variants={staggerContainer}
-        className="relative z-10 text-center px-6"
+      <div
+        className="relative z-10 text-center px-6 animate-fade-in"
       >
-        <motion.div variants={{ hidden: { opacity: 0, scale: 0.8 }, show: { opacity: 1, scale: 1, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } } }}>
+        <div className="animate-fade-up" style={{ animationDelay: '0.1s' }}>
           <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-6">Page Not Found</p>
           <h1 className="font-display text-[8rem] font-medium leading-none text-[var(--primary)]/10 md:text-[12rem] select-none">
             404
           </h1>
-        </motion.div>
+        </div>
 
-        <motion.div variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] } } }} className="-mt-4 md:-mt-8">
+        <div className="animate-fade-up -mt-4 md:-mt-8" style={{ animationDelay: '0.25s' }}>
           <h2 className="font-display text-3xl font-medium text-[var(--primary)] md:text-4xl">
             This page has been<br />moved or removed
           </h2>
           <p className="mt-4 text-sm text-[var(--primary)]/50 max-w-md mx-auto leading-relaxed">
             The page you're looking for doesn't exist. It may have been moved, deleted, or you entered the wrong URL. Let's get you back on track.
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.7, delay: 0.35, ease: [0.22, 1, 0.36, 1] } } }} className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+        <div className="animate-fade-up mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center" style={{ animationDelay: '0.4s' }}>
           <Link to="/" className="btn-luxury-primary group inline-flex items-center gap-2">
             <Home size={16} strokeWidth={1.5} />
             Back to Home
@@ -49,8 +40,8 @@ export const NotFoundPage = () => {
             <Compass size={16} strokeWidth={1.5} />
             Explore Portfolio
           </Link>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     </div>
   )
 }

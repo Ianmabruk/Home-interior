@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Instagram, Facebook, ArrowRight } from 'lucide-react'
 import { FaTiktok, FaPinterest } from 'react-icons/fa'
-import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 
 export const Footer = () => {
@@ -33,19 +32,12 @@ export const Footer = () => {
   return (
     <footer className="relative bg-footer-bg text-footer-text" role="contentinfo">
       <div className="relative z-10 container-wide px-6 md:px-12 lg:px-20 py-16 md:py-24 lg:py-32">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.7 }}
-          className="grid gap-12 md:gap-16 lg:grid-cols-2 xl:grid-cols-4"
+        <div
+          className="animate-fade-up grid gap-12 md:gap-16 lg:grid-cols-2 xl:grid-cols-4"
         >
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="lg:col-span-2 xl:col-span-1 space-y-6"
+          <div
+            className="animate-fade-up lg:col-span-2 xl:col-span-1 space-y-6"
+            style={{ animationDelay: '0s' }}
           >
             <Link to="/" className="inline-block group" aria-label="HOK INTERIOR DESIGNS - Home">
               <div className="flex flex-col items-start">
@@ -65,14 +57,11 @@ export const Footer = () => {
               <p>info@hokinteriors.com</p>
               <p className="hidden md:block">Nairobi, Kenya</p>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.1 }}
-            className="space-y-4"
+          <div
+            className="animate-fade-up space-y-4"
+            style={{ animationDelay: '0.1s' }}
           >
             <h3 className="font-display text-xl font-normal text-white">Quick Links</h3>
             <nav aria-label="Footer navigation">
@@ -90,52 +79,42 @@ export const Footer = () => {
                 ))}
               </ul>
             </nav>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.3 }}
-            className="space-y-4"
+          <div
+            className="animate-fade-up space-y-4"
+            style={{ animationDelay: '0.3s' }}
           >
             <h3 className="font-display text-xl font-normal text-white">Follow Us</h3>
             <p className="text-sm text-white/50">Join our design community</p>
             <div className="flex items-center gap-3 md:gap-4 pt-2">
               {socialLinks.map((social, index) => (
-                <motion.a
+                <a
                   key={social.label}
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={social.ariaLabel}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + index * 0.08 }}
-                  whileHover={{ scale: 1.1, rotate: 3 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="social-icon group relative flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border border-white/20 transition-all duration-500 hover:border-orange-accent hover:bg-orange-accent/10 hover:text-orange-accent"
+                  className="social-icon group relative flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border border-white/20 transition-all duration-500 hover:border-orange-accent hover:bg-orange-accent/10 hover:text-orange-accent hover:scale-110 active:scale-95"
+                  style={{ animationDelay: `${0.3 + index * 0.08}s` }}
                   role="listitem"
                 >
                   <social.icon size={22} md={24} strokeWidth={1.5} className="transition-colors duration-300 group-hover:text-orange-accent" aria-hidden="true" />
                   <span className="absolute inset-0 rounded-full border border-transparent transition-all duration-300 group-hover:border-orange-accent group-hover:scale-110" aria-hidden="true" />
-                </motion.a>
+                </a>
               ))}
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-100px' }}
-          transition={{ delay: 0.5, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-16 md:mt-24 pt-8 md:pt-12 border-t border-white/10 text-center"
+        <div
+          className="animate-fade-up mt-16 md:mt-24 pt-8 md:pt-12 border-t border-white/10 text-center"
+          style={{ animationDelay: '0.5s' }}
         >
           <p className="text-[11px] uppercase tracking-widest text-white/30">
             &copy; {new Date().getFullYear()} HOK INTERIOR DESIGNS. All rights reserved.
           </p>
-        </motion.div>
+        </div>
       </div>
     </footer>
   )
