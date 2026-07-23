@@ -17,6 +17,7 @@ import {
   Star,
   UploadCloud,
   Layers,
+  Package,
 } from 'lucide-react'
 import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
@@ -30,12 +31,14 @@ import { ConsultationDashboard } from '../../components/admin/ConsultationDashbo
 import { TestimonialDashboard } from '../../components/admin/TestimonialDashboard'
 import { ServicesDashboard } from '../../components/admin/ServicesDashboard'
 import { HeroImagesDashboard } from '../../components/admin/HeroImagesDashboard'
+import { OrderDashboard } from '../../components/admin/OrderDashboard'
 
 const tabs = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'hero', label: 'Hero Images', icon: UploadCloud },
   { id: 'portfolio', label: 'Portfolio', icon: Images },
   { id: 'shop', label: 'Shop', icon: ShoppingBag },
+  { id: 'orders', label: 'Orders', icon: Package },
   { id: 'services', label: 'Services', icon: Layers },
   { id: 'virtual', label: 'Virtual Designs', icon: Brush },
   { id: 'about', label: 'About', icon: Info },
@@ -394,6 +397,7 @@ export const AdminPage = () => {
               {activeTab === 'hero' && <HeroImagesDashboard />}
               {activeTab === 'portfolio' && <PortfolioDashboard />}
               {activeTab === 'shop' && <ShopDashboard />}
+              {activeTab === 'orders' && <OrderDashboard />}
               {activeTab === 'services' && <ServicesDashboard />}
               {activeTab === 'virtual' && <VirtualDesignDashboard />}
               {activeTab === 'about' && <AboutDashboard />}

@@ -34,4 +34,13 @@ export const orderController = {
     const orders = await orderService.getAllOrders({ sort })
     res.json({ success: true, data: orders })
   }),
+
+  updateStatus: asyncHandler(async (req, res) => {
+    const { status } = req.body
+    if (!status) {
+      return res.status(400).json({ success: false, message: 'Status is required' })
+    }
+    const order = await orderService.updateOrderStatus(req.params.id, status)
+    res.json({ success: true, data: order })
+  }),
 }

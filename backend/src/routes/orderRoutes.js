@@ -7,5 +7,6 @@ const router = Router()
 router.post('/', orderController.create)
 router.get('/me', authenticate, orderController.listMine)
 router.get('/', authenticate, orderController.listAll)
+router.patch('/:id/status', authenticate, orderController.updateStatus)
 
 export default router

@@ -5,6 +5,7 @@ export const orderService = {
   createOrder,
   getUserOrders,
   getAllOrders,
+  updateOrderStatus,
 }
 
 async function createOrder(data) {
@@ -64,4 +65,22 @@ async function getAllOrders({ sort = '-createdAt', limit = 100 } = {}) {
     status: o.status,
     createdAt: o.createdAt,
   }))
+}
+
+async function updateOrderStatus(id, status) {
+  const order = await prisma.order.update({
+    where: { id },
+    data: { status },
+  })
+  return {
+    _id: order.id,
+    id: order.id,
+    email: order.email,
+    name: order.name,
+    phone: order.phone,
+    items: order.items,
+    total: order.total,
+    status: order.status,
+    createdAt: order.createdAt,
+  }
 }
