@@ -5,7 +5,15 @@ const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY
 const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET
 
 if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
-  console.warn('[Cloudinary] Missing credentials. Uploads will fail until env vars are set.')
+  throw new Error(
+    `Cloudinary is not configured. Missing: ${
+      !CLOUDINARY_CLOUD_NAME ? 'CLOUDINARY_CLOUD_NAME ' : ''
+    }${
+      !CLOUDINARY_API_KEY ? 'CLOUDINARY_API_KEY ' : ''
+    }${
+      !CLOUDINARY_API_SECRET ? 'CLOUDINARY_API_SECRET' : ''
+    }`.trim()
+  )
 }
 
 cloudinary.config({
@@ -14,20 +22,6 @@ cloudinary.config({
   api_secret: CLOUDINARY_API_SECRET,
   secure: true,
 })
-
-// Cloudinary v2 sometimes expects camelCase config keys directly as well.
-if (cloudinary.config && typeof cloudinary.config === 'function') {
-  try {
-    cloudinary.config({
-      cloudName: CLOUDINARY_CLOUD_NAME,
-      apiKey: CLOUDINARY_API_KEY,
-      apiSecret: CLOUDINARY_API_SECRET,
-      secure: true,
-    })
-  } catch {
-    // ignore secondary config failure
-  }
-}
 
 export const uploadToCloudinary = async (buffer, mimetype, folder) => {
   const ext = mimetype.split('/')[1] || 'bin'
