@@ -16,7 +16,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { useShop } from '../context/ShopContext'
-import hokLogo from '../assets/hok png logo.png'
+import hokLogoWebP from '../assets/hok-logo.webp'
+import hokLogoPng from '../assets/hok png logo.png'
 
 const NAV_ITEMS = [
   { to: '/portfolio', label: 'Portfolio' },
@@ -94,14 +95,17 @@ export const Navbar = () => {
             aria-label="HOK INTERIOR DESIGNS - Home"
           >
             <div className="flex items-center">
-              <img
-                src={hokLogo}
-                alt="HOK Interior Designs"
-                className="h-[42px] sm:h-[50px] md:h-[50px] lg:h-[60px] w-auto object-contain transition-all duration-300 group-hover:scale-102"
-                loading="eager"
-                width={240}
-                height={60}
-              />
+              <picture>
+                <source srcSet={hokLogoWebP} type="image/webp" />
+                <img
+                  src={hokLogoPng}
+                  alt="HOK Interior Designs"
+                  className="h-[42px] sm:h-[50px] md:h-[50px] lg:h-[60px] w-auto object-contain transition-all duration-300 group-hover:scale-102"
+                  loading="eager"
+                  width={240}
+                  height={60}
+                />
+              </picture>
             </div>
           </Link>
 
@@ -119,6 +123,15 @@ export const Navbar = () => {
                   <Link
                     key={item.to}
                     to={item.to}
+                    onMouseEnter={() => {
+                      const map = {
+                        '/portfolio': () => import('../pages/public/PortfolioPage'),
+                        '/services': () => import('../pages/public/ServicesPage'),
+                        '/virtual-design': () => import('../pages/public/VirtualDesignPage'),
+                        '/about': () => import('../pages/public/AboutPage'),
+                      }
+                      map[item.to]?.().catch(() => {})
+                    }}
                     className={`relative flex items-center rounded-full px-4 py-2.5 md:px-5 md:py-3 text-[10px] md:text-[11px] font-medium uppercase tracking-[0.15em] transition-all duration-300 nav-link-underline ${isActive ? 'text-[#E89A43]' : 'text-[#2A241F]/70 hover:text-[#2A241F]'} focus:outline-none focus:ring-2 focus:ring-[#E89A43]/20`}
                     aria-current={isActive ? 'page' : undefined}
                   >

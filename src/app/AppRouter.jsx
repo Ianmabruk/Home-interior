@@ -3,6 +3,7 @@ import { Route, Routes, useLocation } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { ProtectedRoute } from './ProtectedRoute'
 import { ErrorBoundary } from '../components/common/ErrorBoundary'
+import { MotionConfig } from 'framer-motion'
 
 const PortfolioDetailPage = lazy(() => import('../pages/public/PortfolioDetailPage').then((m) => ({ default: m.PortfolioDetailPage })))
 const VirtualDesignDetailPage = lazy(() => import('../pages/public/VirtualDesignDetailPage').then((m) => ({ default: m.VirtualDesignDetailPage })))
@@ -27,6 +28,33 @@ const ScrollToTop = () => {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [pathname])
+  return null
+}
+
+const prefetchRoutes = [
+  () => import('../pages/public/ShopPage'),
+  () => import('../pages/public/PortfolioPage'),
+  () => import('../pages/public/ServicesPage'),
+  () => import('../pages/public/VirtualDesignPage'),
+  () => import('../pages/public/AboutPage'),
+]
+
+const PrefetchOnIdle = () => {
+  useEffect(() => {
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(() => {
+        prefetchRoutes.forEach((prefetch) => {
+          prefetch().catch(() => {})
+        })
+      })
+    } else {
+      setTimeout(() => {
+        prefetchRoutes.forEach((prefetch) => {
+          prefetch().catch(() => {})
+        })
+      }, 1000)
+    }
+  }, [])
   return null
 }
 
@@ -59,8 +87,9 @@ const ErrorBoundaryRoute = ({ element }) => (
 
 export const AppRouter = () => {
   return (
-    <Suspense fallback={<RouteFallback />}>
-      <Routes>
+    <MotionConfig reducedMotion="user">
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<ErrorBoundaryRoute element={<HomePage />} />} />
         <Route path="/shop" element={<ErrorBoundaryRoute element={<ShopPage />} />} />
@@ -100,6 +129,8 @@ export const AppRouter = () => {
       <Route path="*" element={<NotFoundPage />} />
       </Routes>
       <ScrollToTop />
+      <PrefetchOnIdle />
     </Suspense>
+    </MotionConfig>
   )
 }
