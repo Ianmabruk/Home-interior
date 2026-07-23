@@ -35,6 +35,8 @@ model PortfolioProject {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("portfolios")
+  @@index([published, featured, displayOrder(asc)])
+  @@index([displayOrder(asc)])
 }
 
 model VirtualDesign {
@@ -53,6 +55,8 @@ model VirtualDesign {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("virtual_designs")
+  @@index([published, featured, createdAt(desc)])
+  @@index([featured])
 }
 
 model Product {
@@ -76,6 +80,8 @@ model Product {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@map("products")
+  @@index([featured, inStock, createdAt(desc)])
+  @@index([category])
 }
 
 model Service {
@@ -92,6 +98,7 @@ model Service {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("services")
+  @@index([isActive, displayOrder(asc)])
 }
 
 model Testimonial {
@@ -106,6 +113,7 @@ model Testimonial {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("testimonials")
+  @@index([isActive, displayOrder(asc)])
 }
 
 model HeroMedia {
@@ -121,6 +129,7 @@ model HeroMedia {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("hero_media")
+  @@index([isActive, displayOrder(asc)])
 }
 
 model About {
@@ -138,6 +147,7 @@ model About {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@map("abouts")
+  @@index([createdAt(desc)])
 }
 
 model Consultation {
@@ -152,6 +162,8 @@ model Consultation {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("consultations")
+  @@index([status, createdAt(desc)])
+  @@index([email, createdAt(desc)])
 }
 
 model SiteSetting {
@@ -179,6 +191,8 @@ model Order {
   createdAt       DateTime @default(now()) @map("created_at")
 
   @@map("orders")
+  @@index([email, createdAt(desc)])
+  @@index([status, createdAt(desc)])
 }
 
 model Message {
@@ -192,6 +206,7 @@ model Message {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("messages")
+  @@index([createdAt(desc)])
 }
 
 model PasswordReset {
@@ -202,4 +217,5 @@ model PasswordReset {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("password_resets")
+  @@index([adminId, token])
 }
