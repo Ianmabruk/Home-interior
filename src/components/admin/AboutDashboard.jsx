@@ -18,9 +18,10 @@ const INITIAL_FORM = {
 
 export const AboutDashboard = () => {
   const [form, setForm] = useState(INITIAL_FORM)
-  const [loading, setLoading] = useState(true)
   const [aboutImagePreview, setAboutImagePreview] = useState(null)
   const [aboutImageFile, setAboutImageFile] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
   const aboutImageRef = useRef(null)
 
   const loadAbout = useCallback(async () => {
@@ -40,8 +41,6 @@ export const AboutDashboard = () => {
       setAboutImagePreview(res.data?.aboutImageUrl || null)
     } catch {
       setForm(INITIAL_FORM)
-    } finally {
-      setLoading(false)
     }
   }, [])
 
@@ -63,7 +62,8 @@ export const AboutDashboard = () => {
 
   const submit = async (e) => {
     e.preventDefault()
-    setLoading(true)
+    setError('')
+    setSubmitting(true)
     try {
       const payload = new FormData()
       payload.append('story', form.story || '')
@@ -80,9 +80,9 @@ export const AboutDashboard = () => {
       await loadAbout()
       emitAdminDataChanged({ type: 'about-changed' })
     } catch (err) {
-      window.alert(err?.message || 'Failed to save about page. Please try again.')
+      setError(err?.message || 'Failed to save about page. Please try again.')
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
@@ -261,14 +261,24 @@ export const AboutDashboard = () => {
             </motion.div>
           </div>
 
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl border border-[var(--error)]/30 bg-[var(--error)]/5 px-4 py-3 text-sm text-[var(--error)]"
+            >
+              {error}
+            </motion.div>
+          )}
+
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             type="submit"
-            className="bg-[var(--primary)] text-white w-full py-3 rounded-xl text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--primary)]/90 hover:shadow-lg"
-            disabled={loading}
+            className="bg-[var(--primary)] text-white w-full py-3 rounded-xl text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--primary)]/90 hover:shadow-lg disabled:opacity-50"
+            disabled={submitting}
           >
-            {loading ? 'Saving…' : 'Save About Page'}
+            {submitting ? 'Saving…' : 'Save About Page'}
           </motion.button>
         </motion.form>
 
