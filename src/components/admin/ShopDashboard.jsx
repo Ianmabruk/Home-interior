@@ -649,7 +649,7 @@ export const ShopDashboard = () => {
               className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)] overflow-hidden group"
             >
               <div className="relative overflow-hidden">
-                {typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url ? (
+                {typeof item.images?.[0] === 'string' || item.images?.[0]?.url ? (
                   <img
                     src={typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url}
                     alt={item.name}

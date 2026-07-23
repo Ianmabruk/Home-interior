@@ -62,7 +62,7 @@ export const ShopPage = () => {
 
   const loadProducts = useCallback(() => {
     api.get('/products', { params: { sort: '-createdAt', limit: 100 } })
-      .then((res) => setAllProducts(res.data.items || []))
+      .then((res) => setAllProducts(Array.isArray(res.data) ? res.data : []))
       .catch(() => setAllProducts([]))
       .finally(() => setLoading(false))
   }, [])
