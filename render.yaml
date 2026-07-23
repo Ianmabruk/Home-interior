@@ -4,7 +4,8 @@ services:
     runtime: node
     rootDir: backend
     buildCommand: npm install && npm run db:generate && npm run db:deploy && npm run seed
-    startCommand: npm run db:generate && npm run seed && npm start
+    startCommand: node src/scripts/start.js
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
