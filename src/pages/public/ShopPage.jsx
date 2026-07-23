@@ -1,6 +1,7 @@
 import { Square, PictureInPicture, Armchair, Sparkles, SlidersHorizontal, X, ChevronDown, Filter } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ProductCard } from '../../components/shop/ProductCard'
 import { api } from '../../services/api'
 import { SHOP_CATEGORIES, CURRENCIES } from '../../utils/constants'
@@ -9,9 +10,9 @@ import { useCurrency } from '../../context/CurrencyContext'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
 const categoryIcons = {
-  Mirrors: Square,
-  Artwork: PictureInPicture,
-  'Throw Pillows': Armchair,
+  mirror: Square,
+  artwork: PictureInPicture,
+  'throw-pillows': Armchair,
 }
 
 const fadeUp = {
@@ -24,15 +25,16 @@ const staggerContainer = {
   show: { transition: { staggerChildren: 0.06 } },
 }
 
-export const ShopPage = () => {
-  const { currency, changeCurrency, formatPrice } = useCurrency()
+export const ShopPage = ({ category: initialCategory }) => {
+  const navigate = useNavigate()
+  const { formatPrice, currency, changeCurrency } = useCurrency()
   const [allProducts, setAllProducts] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [category, setCategory] = useState('')
+  const [category, setCategory] = useState(initialCategory || '') // eslint-disable-line no-unused-vars
   const [query, setQuery] = useState('')
+  const [sortBy, setSortBy] = useState('newest')
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
-  const [sortBy, setSortBy] = useState('newest')
+  const [loading, setLoading] = useState(true)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [currencyOpen, setCurrencyOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -84,7 +86,7 @@ export const ShopPage = () => {
       const q = query.toLowerCase()
       next = next.filter((item) => [item.name, item.description, item.category, item.sku].join(' ').toLowerCase().includes(q))
     }
-    if (category) next = next.filter((item) => item.category === category)
+    if (category) next = next.filter((item) => (item.category || '').toLowerCase() === category.toLowerCase())
 
     if (minPrice) next = next.filter((item) => formatPrice(item.discountPrice || item.price) >= Number(minPrice))
     if (maxPrice) next = next.filter((item) => formatPrice(item.discountPrice || item.price) <= Number(maxPrice))
@@ -106,7 +108,7 @@ export const ShopPage = () => {
   }, [allProducts, category, query, minPrice, maxPrice, sortBy, formatPrice])
 
   const hasFilters = category || query || minPrice || maxPrice
-  const clearFilters = useCallback(() => { setCategory(''); setQuery(''); setMinPrice(''); setMaxPrice('') }, [])
+  const clearFilters = useCallback(() => { navigate('/shop'); setQuery(''); setMinPrice(''); setMaxPrice('') }, [navigate])
 
   const heroImage = shopBanner
 
@@ -224,7 +226,7 @@ export const ShopPage = () => {
           <div className="hidden md:block overflow-x-auto mt-4">
             <div className="flex items-center gap-2 min-w-max">
               <button
-                onClick={() => setCategory('')}
+                onClick={() => navigate('/shop')}
                 className={`px-5 py-2 text-2xs font-semibold uppercase tracking-widest transition rounded-full ${
                   !category ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
                 }`}
@@ -232,17 +234,17 @@ export const ShopPage = () => {
                 All
               </button>
               {SHOP_CATEGORIES.map((cat) => {
-                const Icon = categoryIcons[cat] || Sparkles
+                const Icon = categoryIcons[cat.slug] || Sparkles
                 return (
                   <button
-                    key={cat}
-                    onClick={() => setCategory(cat === category ? '' : cat)}
+                    key={cat.slug}
+                    onClick={() => navigate(category === cat.slug ? '/shop' : `/shop/${cat.slug}`)}
                     className={`flex items-center gap-1.5 px-5 py-2 text-2xs font-semibold uppercase tracking-widest transition rounded-full ${
-                      category === cat ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
+                      category === cat.slug ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
                     }`}
                   >
                     <Icon size={12} strokeWidth={1.5} />
-                    {cat}
+                    {cat.label}
                   </button>
                 )
               })}
@@ -319,7 +321,7 @@ export const ShopPage = () => {
                   <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-3">Categories</p>
                   <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={() => { setCategory(''); setMobileMenuOpen(false) }}
+                      onClick={() => { navigate('/shop'); setMobileMenuOpen(false) }}
                       className={`px-4 py-2 text-2xs font-semibold uppercase tracking-widest transition rounded-full ${
                         !category ? 'bg-[var(--primary)] text-white' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
                       }`}
@@ -327,17 +329,17 @@ export const ShopPage = () => {
                       All
                     </button>
                     {SHOP_CATEGORIES.map((cat) => {
-                      const Icon = categoryIcons[cat] || Sparkles
+                      const Icon = categoryIcons[cat.slug] || Sparkles
                       return (
                         <button
-                          key={cat}
-                          onClick={() => { setCategory(cat === category ? '' : cat); setMobileMenuOpen(false) }}
+                          key={cat.slug}
+                          onClick={() => { navigate(category === cat.slug ? '/shop' : `/shop/${cat.slug}`); setMobileMenuOpen(false) }}
                           className={`flex items-center gap-1.5 px-4 py-2 text-2xs font-semibold uppercase tracking-widest transition rounded-full ${
-                            category === cat ? 'bg-[var(--primary)] text-white' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
+                            category === cat.slug ? 'bg-[var(--primary)] text-white' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
                           }`}
                         >
                           <Icon size={12} strokeWidth={1.5} />
-                          {cat}
+                          {cat.label}
                         </button>
                       )
                     })}

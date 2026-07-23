@@ -19,14 +19,14 @@ import {
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
 
-const CATEGORIES = ['Mirrors', 'Artwork', 'Throw Pillows']
+import { SHOP_CATEGORIES } from '../../utils/constants'
 
 const INITIAL_FORM = {
   name: '',
   description: '',
   price: '',
   discountPrice: '',
-  category: 'Mirrors',
+  category: 'mirror',
   vendor: '',
   stock: 0,
   sku: '',
@@ -141,7 +141,7 @@ export const ShopDashboard = () => {
       )
     }
     if (categoryFilter) {
-      items = items.filter((p) => p.category === categoryFilter)
+      items = items.filter((p) => (p.category || '').toLowerCase() === categoryFilter.toLowerCase())
     }
     return items
   }, [allProducts, search, categoryFilter])
@@ -298,9 +298,9 @@ export const ShopDashboard = () => {
               className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition cursor-pointer"
             >
               <option value="">All Categories</option>
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
+              {SHOP_CATEGORIES.map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.label}
                 </option>
               ))}
             </select>
@@ -411,9 +411,9 @@ export const ShopDashboard = () => {
                 onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
                 className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12 cursor-pointer"
               >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+                {SHOP_CATEGORIES.map((c) => (
+                  <option key={c.slug} value={c.slug}>
+                    {c.label}
                   </option>
                 ))}
               </select>

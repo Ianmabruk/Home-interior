@@ -1,7 +1,7 @@
 export const SHOP_CATEGORIES = [
-  'Mirrors',
-  'Artwork',
-  'Throw Pillows',
+  { slug: 'mirror', label: 'Mirror' },
+  { slug: 'artwork', label: 'Artwork' },
+  { slug: 'throw-pillows', label: 'Throw Pillow' },
 ]
 
 export const CURRENCIES = [

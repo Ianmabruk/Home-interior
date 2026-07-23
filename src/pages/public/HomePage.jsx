@@ -6,6 +6,7 @@ import { AboutPreview } from '../../components/AboutPreview'
 import { ConsultationModal } from '../../components/ConsultationModal'
 import { api } from '../../services/api'
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
+import { SHOP_CATEGORIES } from '../../utils/constants'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import { ScrollReveal } from '../../utils/scrollReveal'
 
@@ -436,8 +437,22 @@ export const HomePage = () => {
               </div>
             </ScrollReveal>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
-              {products.slice(0, 4).map((item) => (
+            <>
+              <ScrollReveal>
+                <div className="flex flex-wrap items-center gap-2 mb-8">
+                  {SHOP_CATEGORIES.map((cat) => (
+                    <Link
+                      key={cat.slug}
+                      to={`/shop/${cat.slug}`}
+                      className="px-4 py-2 text-2xs font-semibold uppercase tracking-widest rounded-full border border-[var(--border)] bg-white text-[var(--primary)]/70 hover:border-[var(--accent)] hover:text-[var(--accent)] transition"
+                    >
+                      {cat.label}
+                    </Link>
+                  ))}
+                </div>
+              </ScrollReveal>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+                {products.slice(0, 4).map((item) => (
                 <ScrollReveal key={item.id}>
                   <article className="group">
                     <Link to={`/shop/${item.id}`} className="block" aria-label={`View ${item.name}`}>
@@ -486,7 +501,7 @@ export const HomePage = () => {
                 </ScrollReveal>
               ))}
             </div>
-          )}
+          </>)}"
 
           <ScrollReveal delay={300}>
             <div className="mt-16 text-center">

@@ -91,6 +91,9 @@ export const AppRouter = () => {
       <Route element={<Layout />}>
         <Route path="/" element={<ErrorBoundaryRoute element={<HomePage />} />} />
         <Route path="/shop" element={<ErrorBoundaryRoute element={<ShopPage />} />} />
+        <Route path="/shop/mirror" element={<ErrorBoundaryRoute element={<ShopPage category="mirror" />} />} />
+        <Route path="/shop/artwork" element={<ErrorBoundaryRoute element={<ShopPage category="artwork" />} />} />
+        <Route path="/shop/throw-pillows" element={<ErrorBoundaryRoute element={<ShopPage category="throw-pillows" />} />} />
         <Route path="/shop/:id" element={<ErrorBoundaryRoute element={<ProductDetailPage />} />} />
         <Route path="/portfolio" element={<ErrorBoundaryRoute element={<PortfolioPage />} />} />
         <Route path="/portfolio/:id" element={<ErrorBoundaryRoute element={<PortfolioDetailPage />} />} />

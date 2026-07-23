@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { X, Plus, Image as ImageIcon } from 'lucide-react'
 import { api } from '../../services/api'
@@ -42,6 +42,33 @@ export const AboutDashboard = () => {
     } catch {
       setForm(INITIAL_FORM)
     }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      try {
+        const res = await api.get('/about')
+        if (!cancelled) {
+          setForm({
+            story: res.data?.story || '',
+            mission: res.data?.mission || '',
+            vision: res.data?.vision || '',
+            values: res.data?.values || '',
+            companyDescription: res.data?.companyDescription || '',
+            location: res.data?.location || '',
+            contactEmail: res.data?.contactEmail || '',
+            statistics: res.data?.statistics || '',
+            socialLinks: JSON.stringify(res.data?.socials || {}, null, 2),
+          })
+          setAboutImagePreview(res.data?.aboutImageUrl || null)
+        }
+      } catch {
+        if (!cancelled) setForm(INITIAL_FORM)
+      }
+    }
+    run()
+    return () => { cancelled = true }
   }, [])
 
   const handleAboutImage = (e) => {
