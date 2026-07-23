@@ -2,6 +2,22 @@ import { asyncHandler } from '../middleware/asyncHandler.js'
 import { productService } from '../services/productService.js'
 import { failure } from '../utils/response.js'
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg']
+const ALLOWED_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES]
+
+function assertValidProductFile(file) {
+  if (!file || !file.mimetype || !ALLOWED_TYPES.includes(file.mimetype)) {
+    throw failure(400, `Invalid file type: ${file?.mimetype || 'unknown'}`)
+  }
+}
+
+function assertValidProductFiles(files) {
+  for (const file of files) {
+    assertValidProductFile(file)
+  }
+}
+
 export const productController = {
   list: asyncHandler(async (req, res) => {
     const { sort, limit, featured, category } = req.query
@@ -26,11 +42,14 @@ export const productController = {
     const files = Array.isArray(req.files) ? req.files : []
     const imageFiles = files.filter((f) => f.fieldname === 'images' || !f.fieldname)
     const variantFiles = files
-      .filter((f) => f.fieldname && f.fieldname.startsWith('variantImages['))
+      .filter((f) => f.fieldname && f.fieldname.startsWith('variantImages_'))
       .map((f) => {
-        const match = f.fieldname.match(/variantImages\[(\d+)\]/)
+        const match = f.fieldname.match(/variantImages_(\d+)/)
         return { ...f, index: match ? Number(match[1]) : 0 }
       })
+
+    assertValidProductFiles(imageFiles)
+    assertValidProductFiles(variantFiles)
 
     const data = {
       name: req.body.name || 'Untitled Product',
@@ -55,11 +74,14 @@ export const productController = {
     const files = Array.isArray(req.files) ? req.files : []
     const imageFiles = files.filter((f) => f.fieldname === 'images' || !f.fieldname)
     const variantFiles = files
-      .filter((f) => f.fieldname && f.fieldname.startsWith('variantImages['))
+      .filter((f) => f.fieldname && f.fieldname.startsWith('variantImages_'))
       .map((f) => {
-        const match = f.fieldname.match(/variantImages\[(\d+)\]/)
+        const match = f.fieldname.match(/variantImages_(\d+)/)
         return { ...f, index: match ? Number(match[1]) : 0 }
       })
+
+    assertValidProductFiles(imageFiles)
+    assertValidProductFiles(variantFiles)
 
     const data = {}
     if (req.body.name !== undefined) data.name = req.body.name

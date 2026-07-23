@@ -107,7 +107,7 @@ export const ShopDashboard = () => {
       payload.append('variants', JSON.stringify(variants))
 
       variantFiles.forEach((vf) => {
-        payload.append(`variantImages[${vf.index}]`, vf.file)
+        payload.append(`variantImages_${vf.index}`, vf.file)
       })
 
       if (editingId) {

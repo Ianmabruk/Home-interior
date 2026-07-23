@@ -49,11 +49,5 @@ export const uploadProductImages = (maxCount = 60) => {
   return multer({
     storage,
     limits: { fileSize: MAX_FILE_SIZE, files: maxCount },
-    fileFilter: (req, file, cb) => {
-      if (ALLOWED_IMAGE_TYPES.includes(file.mimetype) || ALLOWED_VIDEO_TYPES.includes(file.mimetype)) {
-        return cb(null, true)
-      }
-      cb(new ApiError(400, `Invalid file type: ${file.mimetype}`))
-    },
   }).any()
 }
