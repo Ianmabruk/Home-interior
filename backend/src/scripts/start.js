@@ -23,7 +23,17 @@ async function migrateWithRetry(maxAttempts = 3, delayMs = 5000) {
       return
     } catch (err) {
       console.warn(`migrate deploy failed (attempt ${attempt}): ${err.message}`)
-      if (attempt === maxAttempts) throw err
+      if (attempt === maxAttempts) {
+        console.warn('Falling back to prisma db push ...')
+        try {
+          run('npx prisma db push')
+          console.log('Schema pushed with db push')
+          return
+        } catch (pushErr) {
+          console.error('db push also failed:', pushErr.message)
+          throw pushErr
+        }
+      }
       console.log(`Retrying in ${delayMs}ms...`)
       await new Promise((resolve) => setTimeout(resolve, delayMs))
     }

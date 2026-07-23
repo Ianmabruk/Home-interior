@@ -76,6 +76,8 @@ model Product {
   featured      Boolean  @default(false)
   inStock       Boolean  @default(true) @map("in_stock")
   displayOrder  Int      @default(0) @map("display_order")
+  colorVariants String[] @default([]) @db.Text @map("color_variants")
+  styleVariants String[] @default([]) @db.Text @map("style_variants")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
