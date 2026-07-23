@@ -1,6 +1,6 @@
 export const SHOP_CATEGORIES = [
   'Mirrors',
-  'Frames',
+  'Artwork',
   'Throw Pillows',
 ]
 

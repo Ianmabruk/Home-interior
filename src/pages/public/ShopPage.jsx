@@ -10,7 +10,7 @@ import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
 const categoryIcons = {
   Mirrors: Square,
-  Frames: PictureInPicture,
+  Artwork: PictureInPicture,
   'Throw Pillows': Armchair,
 }
 

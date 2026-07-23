@@ -316,86 +316,88 @@ export const HomePage = () => {
 
           {virtualDesigns.length === 0 ? (
             <ScrollReveal>
-              <div className="col-span-full flex min-h-[40vh] items-center justify-center">
+              <div className="flex min-h-[40vh] items-center justify-center">
                 <p className="font-display text-xl text-[var(--primary)]/30">No virtual designs yet</p>
               </div>
             </ScrollReveal>
           ) : (
-            virtualDesigns.slice(0, 1).map((item, index) => (
-              <ScrollReveal key={item.id} delay={index * 100}>
-                <article className="group">
-                  <Link to={`/virtual-design/project/${item.id}`} className="block">
-                    <div className="relative overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
-                      <div className="relative aspect-[4/3] overflow-hidden">
-                        {getProjectImage(item) && (
-                          <>
-                            {getMediaType(item) === 'video' ? (
-                              <video
-                                src={getProjectImage(item)}
-                                poster={getOptimizedUrl(getProjectImage(item), { width: 640 })}
-                                className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                                autoPlay
-                                muted
-                                loop
-                                playsInline
-                                preload="metadata"
-                              />
-                            ) : (
-                              <img
-                                src={getOptimizedUrl(getProjectImage(item), { width: 640 })}
-                                srcSet={buildSrcSet(getProjectImage(item)) || undefined}
-                                sizes={buildSrcSet(getProjectImage(item)) ? '(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw' : undefined}
-                                alt={item.title}
-                                className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                                loading="lazy"
-                                decoding="async"
-                              />
-                            )}
-                            {getMediaType(item) === 'image' && (
-                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                                  <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+              {virtualDesigns.slice(0, 4).map((item, index) => (
+                <ScrollReveal key={item.id} delay={index * 80}>
+                  <article className="group">
+                    <Link to={`/virtual-design/project/${item.id}`} className="block">
+                      <div className="relative overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
+                        <div className="relative aspect-[4/3] overflow-hidden">
+                          {getProjectImage(item) && (
+                            <>
+                              {getMediaType(item) === 'video' ? (
+                                <video
+                                  src={getProjectImage(item)}
+                                  poster={getOptimizedUrl(getProjectImage(item), { width: 640 })}
+                                  className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                                  autoPlay
+                                  muted
+                                  loop
+                                  playsInline
+                                  preload="metadata"
+                                />
+                              ) : (
+                                <img
+                                  src={getOptimizedUrl(getProjectImage(item), { width: 640 })}
+                                  srcSet={buildSrcSet(getProjectImage(item)) || undefined}
+                                  sizes={buildSrcSet(getProjectImage(item)) ? '(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw' : undefined}
+                                  alt={item.title}
+                                  className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
+                                  loading="lazy"
+                                  decoding="async"
+                                />
+                              )}
+                              {getMediaType(item) === 'image' && (
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
+                                    <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                            {getMediaType(item) === 'video' && (
-                              <>
-                                <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                <div className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110">
-                                  <Play size={20} strokeWidth={1.5} className="ml-1" />
-                                </div>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </div>
+                              )}
+                              {getMediaType(item) === 'video' && (
+                                <>
+                                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                  <div className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110">
+                                    <Play size={20} strokeWidth={1.5} className="ml-1" />
+                                  </div>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </div>
 
-                      <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors">
-                              {item.title}
-                            </h3>
-                            {item.description && (
-                              <p className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-2">
-                                {item.description}
-                              </p>
-                            )}
+                        <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors">
+                                {item.title}
+                              </h3>
+                              {item.description && (
+                                <p className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-2">
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); window.location.href = `/virtual-design/project/${item.id}` }}
+                              className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 hover:scale-105 active:scale-95"
+                            >
+                              View Project
+                              <Maximize2 size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+                            </button>
                           </div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); window.location.href = `/virtual-design/project/${item.id}` }}
-                            className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 hover:scale-105 active:scale-95"
-                          >
-                            View Project
-                            <Maximize2 size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-                          </button>
                         </div>
                       </div>
-                    </div>
-                  </Link>
-                </article>
-              </ScrollReveal>
-            ))
+                    </Link>
+                  </article>
+                </ScrollReveal>
+              ))}
+            </div>
           )}
 
           <ScrollReveal delay={300}>
@@ -429,16 +431,17 @@ export const HomePage = () => {
 
           {products.length === 0 ? (
             <ScrollReveal>
-              <div className="col-span-full flex min-h-[40vh] items-center justify-center">
+              <div className="flex min-h-[40vh] items-center justify-center">
                 <p className="font-display text-xl text-[var(--primary)]/30">No products available</p>
               </div>
             </ScrollReveal>
           ) : (
-            products.slice(0, 1).map((item) => (
-              <ScrollReveal key={item.id}>
-                <article className="group">
-                  <Link to={`/shop/${item.id}`} className="block" aria-label={`View ${item.name}`}>
-                    <div className="relative aspect-square overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+              {products.slice(0, 4).map((item) => (
+                <ScrollReveal key={item.id}>
+                  <article className="group">
+                    <Link to={`/shop/${item.id}`} className="block" aria-label={`View ${item.name}`}>
+                      <div className="relative aspect-square overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
                         {(() => {
                           const imgSrc = typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url
                           const srcSet = buildSrcSet(imgSrc)
@@ -457,31 +460,32 @@ export const HomePage = () => {
                             </>
                           )
                         })()}
-                    </div>
-                  </Link>
-
-                  <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors">
-                          {item.name}
-                        </h3>
-                        <p className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-1">
-                          ${Number(item.discountPrice || item.price || 0).toFixed(2)}
-                        </p>
                       </div>
-                      <button
-                        onClick={(e) => { e.preventDefault(); window.location.href = `/shop/${item.id}` }}
-                        className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 hover:scale-105 active:scale-95"
-                      >
-                        View Product
-                        <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-                      </button>
+                    </Link>
+
+                    <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors">
+                            {item.name}
+                          </h3>
+                          <p className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-1">
+                            ${Number(item.discountPrice || item.price || 0).toFixed(2)}
+                          </p>
+                        </div>
+                        <button
+                          onClick={(e) => { e.preventDefault(); window.location.href = `/shop/${item.id}` }}
+                          className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 hover:scale-105 active:scale-95"
+                        >
+                          View Product
+                          <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </article>
-              </ScrollReveal>
-            ))
+                  </article>
+                </ScrollReveal>
+              ))}
+            </div>
           )}
 
           <ScrollReveal delay={300}>

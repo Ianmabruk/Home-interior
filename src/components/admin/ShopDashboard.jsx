@@ -20,7 +20,7 @@ import {
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
 
-const CATEGORIES = ['Mirrors', 'Frames', 'Throw Pillows']
+const CATEGORIES = ['Mirrors', 'Artwork', 'Throw Pillows']
 
 const INITIAL_FORM = {
   name: '',

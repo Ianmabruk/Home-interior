@@ -99,22 +99,26 @@ export const Navbar = () => {
           {/* LEFT SECTION - Logo */}
           <Link
             to="/"
-            className="flex-shrink-0 leading-tight group -ml-4 md:-ml-8"
-            aria-label="HOK INTERIOR DESIGNS - Home"
+            className="flex-shrink-0 leading-tight group -ml-4 md:-ml-8 flex items-center"
+            aria-label="HOK Interior - Home"
           >
-            <div className="flex items-center">
-              <picture>
-                <source srcSet={hokLogoWebP} type="image/webp" />
-                <img
-                  src={hokLogoPng}
-                  alt="HOK Interior Designs"
-                  className="h-[42px] sm:h-[50px] md:h-[50px] lg:h-[60px] w-auto object-contain transition-all duration-300 group-hover:scale-102"
-                  loading="eager"
-                  width={240}
-                  height={60}
-                />
-              </picture>
-            </div>
+            <picture>
+              <source srcSet={hokLogoWebP} type="image/webp" />
+              <img
+                src={hokLogoPng}
+                alt="HOK Interior"
+                className="h-[34px] sm:h-[38px] md:h-[48px] lg:h-[50px] w-auto object-contain transition-all duration-300 group-hover:scale-102"
+                loading="eager"
+                width={200}
+                height={50}
+              />
+            </picture>
+            <span
+              className="ml-3 md:ml-4 text-[16px] md:text-[18px] font-semibold tracking-[0.06em] text-[#8B5E3C] whitespace-nowrap"
+              style={{ fontFamily: "'Cormorant Garamond', 'Cormorant Garamond Fallback', serif" }}
+            >
+              HOK Interior
+            </span>
           </Link>
 
           {/* CENTER SECTION - Navigation Links */}
