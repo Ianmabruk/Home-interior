@@ -40,12 +40,14 @@ export const productController = {
 
   create: asyncHandler(async (req, res) => {
     const files = Array.isArray(req.files) ? req.files : []
+
     const imageFiles = files.filter((f) => f.fieldname === 'images' || !f.fieldname)
+
     const variantFiles = files
-      .filter((f) => f.fieldname && f.fieldname.startsWith('variantImages_'))
+      .filter((f) => f.fieldname && /^variantImages(_|\[)(\d+)/.test(f.fieldname))
       .map((f) => {
-        const match = f.fieldname.match(/variantImages_(\d+)/)
-        return { ...f, index: match ? Number(match[1]) : 0 }
+        const match = f.fieldname.match(/^variantImages(_|\[)(\d+)/)
+        return { ...f, index: match ? Number(match[2]) : 0 }
       })
 
     assertValidProductFiles(imageFiles)
@@ -74,10 +76,10 @@ export const productController = {
     const files = Array.isArray(req.files) ? req.files : []
     const imageFiles = files.filter((f) => f.fieldname === 'images' || !f.fieldname)
     const variantFiles = files
-      .filter((f) => f.fieldname && f.fieldname.startsWith('variantImages_'))
+      .filter((f) => f.fieldname && /^variantImages(_|\[)(\d+)/.test(f.fieldname))
       .map((f) => {
-        const match = f.fieldname.match(/variantImages_(\d+)/)
-        return { ...f, index: match ? Number(match[1]) : 0 }
+        const match = f.fieldname.match(/^variantImages(_|\[)(\d+)/)
+        return { ...f, index: match ? Number(match[2]) : 0 }
       })
 
     assertValidProductFiles(imageFiles)
