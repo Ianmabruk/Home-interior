@@ -65,4 +65,15 @@ router.post('/test-upload', uploadSingle('media'), async (req, res) => {
   res.status(201).json({ success: true, data: { url: uploaded.url, path: uploaded.path } })
 })
 
+router.get('/settings/shop-banner', async (req, res) => {
+  try {
+    const settings = await prisma.siteSetting.findMany()
+    const result = {}
+    for (const s of settings) result[s.key] = s.value
+    res.json({ success: true, data: { shopBannerImage: result.shopBannerImage || '' } })
+  } catch {
+    res.json({ success: true, data: { shopBannerImage: '' } })
+  }
+})
+
 export default router

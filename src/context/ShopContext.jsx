@@ -40,7 +40,7 @@ export const ShopProvider = ({ children }) => {
   }, [isAuthenticated])
 
   const addToCart = useCallback((product, quantity = 1, variant = null) => {
-    const selectedVariant = variant ? { colorName: variant.colorName, colorHex: variant.colorHex, imageUrl: variant.imageUrl } : null
+    const selectedVariant = variant ? { color: variant.color, colorHex: variant.colorHex, image: variant.image } : null
 
     if (isAuthenticated) {
       api.post('/users/cart', { productId: product._id, quantity, variant: selectedVariant }).then((res) => {
@@ -50,10 +50,10 @@ export const ShopProvider = ({ children }) => {
     }
 
     setCart((prev) => {
-      const existing = prev.find((item) => item._id === product._id && item.selectedVariant?.colorName === selectedVariant?.colorName)
+      const existing = prev.find((item) => item._id === product._id && item.selectedVariant?.color === selectedVariant?.color)
       if (existing) {
         return prev.map((item) =>
-          item._id === product._id && item.selectedVariant?.colorName === selectedVariant?.colorName
+          item._id === product._id && item.selectedVariant?.color === selectedVariant?.color
             ? { ...item, quantity: item.quantity + quantity }
             : item,
         )
@@ -63,17 +63,17 @@ export const ShopProvider = ({ children }) => {
   }, [isAuthenticated])
 
   const removeFromCart = useCallback((productId, variant = null) => {
-    const selectedVariant = variant ? { colorName: variant.colorName } : null
+    const selectedVariant = variant ? { color: variant.color } : null
 
     if (isAuthenticated) {
-      const params = selectedVariant?.colorName ? `?colorName=${encodeURIComponent(selectedVariant.colorName)}` : ''
+      const params = selectedVariant?.color ? `?color=${encodeURIComponent(selectedVariant.color)}` : ''
       api.delete(`/users/cart/${productId}${params}`).then((res) => {
         const mapped = (res.data?.items || []).map((entry) => ({ ...entry, quantity: entry.quantity, selectedVariant: entry.selectedVariant || null }))
         setCart(mapped)
       }).catch(() => {})
     }
 
-    setCart((prev) => prev.filter((item) => !(item._id === productId && item.selectedVariant?.colorName === selectedVariant?.colorName)))
+    setCart((prev) => prev.filter((item) => !(item._id === productId && item.selectedVariant?.color === selectedVariant?.color)))
   }, [isAuthenticated])
 
   const setCartQuantity = useCallback((productId, quantity, variant = null) => {
@@ -82,7 +82,7 @@ export const ShopProvider = ({ children }) => {
       return
     }
 
-    const selectedVariant = variant ? { colorName: variant.colorName } : null
+    const selectedVariant = variant ? { color: variant.color } : null
 
     if (isAuthenticated) {
       api.patch('/users/cart', { productId, quantity, variant: selectedVariant }).then((res) => {
@@ -91,7 +91,7 @@ export const ShopProvider = ({ children }) => {
       }).catch(() => {})
     }
 
-    setCart((prev) => prev.map((item) => (item._id === productId && item.selectedVariant?.colorName === selectedVariant?.colorName ? { ...item, quantity } : item)))
+    setCart((prev) => prev.map((item) => (item._id === productId && item.selectedVariant?.color === selectedVariant?.color ? { ...item, quantity } : item)))
   }, [isAuthenticated, removeFromCart])
 
   const toggleWishlist = useCallback((product) => {
@@ -118,7 +118,7 @@ export const ShopProvider = ({ children }) => {
       toggleWishlist,
       clearCart,
       cartTotal: cart.reduce((sum, item) => {
-        const price = item.selectedVariant?.priceOverride || item.price
+        const price = item.selectedVariant?.price || item.price
         return sum + price * item.quantity
       }, 0),
     }),

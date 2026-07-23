@@ -71,7 +71,9 @@ export const AdminPage = () => {
   })
   const [profilePreview, setProfilePreview] = useState(null)
   const [savingProfile, setSavingProfile] = useState(false)
+  const [shopBannerPreview, setShopBannerPreview] = useState(null)
   const fileRef = useRef(null)
+  const shopBannerRef = useRef(null)
 
   const fetchAll = useCallback(() => {
     Promise.all([
@@ -92,6 +94,7 @@ export const AdminPage = () => {
             returnPolicy: settingsRes.data.returnPolicy || '',
             socialLinks: settingsRes.data.socialLinks || '',
           })
+          setShopBannerPreview(settingsRes.data.shopBannerImage || null)
         }
       })
   }, [])
@@ -135,6 +138,26 @@ export const AdminPage = () => {
       setTimeout(() => setStatus(''), 3000)
     } catch {
       setStatus('Settings save failed. Please try again.')
+    }
+  }
+
+  const handleShopBanner = async (e) => {
+    const f = e.target.files?.[0] || null
+    if (!f) return
+    try {
+      const payload = new FormData()
+      payload.append('image', f)
+      const res = await api.post('/admin/settings/shop-banner', payload)
+      const url = res.data?.url || res.data?.data?.url
+      if (url) {
+        setShopBannerPreview(url)
+        setStatus('Shop banner uploaded successfully.')
+        setTimeout(() => setStatus(''), 3000)
+      }
+    } catch {
+      setStatus('Shop banner upload failed. Please try again.')
+    } finally {
+      if (shopBannerRef.current) shopBannerRef.current.value = ''
     }
   }
 
@@ -468,25 +491,42 @@ export const AdminPage = () => {
                       />
                     </div>
 
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/60">Social Links (JSON format)</label>
-                      <textarea
-                        value={settingsForm.socialLinks}
-                        onChange={(e) => setSettingsForm((s) => ({ ...s, socialLinks: e.target.value }))}
-                        className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition font-mono text-xs resize-none"
-                        placeholder='{"instagram": "url", "facebook": "url"}'
-                        rows={2}
-                      />
+                     <div className="space-y-1">
+                       <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/60">Social Links (JSON format)</label>
+                       <textarea
+                         value={settingsForm.socialLinks}
+                         onChange={(e) => setSettingsForm((s) => ({ ...s, socialLinks: e.target.value }))}
+                         className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition font-mono text-xs resize-none"
+                         placeholder='{"instagram": "url", "facebook": "url"}'
+                         rows={2}
+                       />
+                     </div>
+
+                    <div className="border-t border-[var(--border)] pt-5">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/60 mb-3">Shop Banner Image</p>
+                      <input ref={shopBannerRef} type="file" accept="image/*" onChange={handleShopBanner} className="hidden" />
+                      {shopBannerPreview && (
+                        <div className="relative mb-3 h-40 w-full overflow-hidden rounded-2xl border border-[var(--border)]">
+                          <img src={shopBannerPreview} alt="Shop banner" className="h-full w-full object-cover" />
+                          <button type="button" onClick={() => setShopBannerPreview(null)} className="absolute top-2 right-2 rounded-full bg-[var(--primary)]/80 p-1.5 text-white backdrop-blur-sm hover:bg-[var(--primary)]">
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+                      <button type="button" onClick={() => shopBannerRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
+                        <UploadCloud size={14} />
+                        {shopBannerPreview ? 'Replace Shop Banner' : 'Upload Shop Banner'}
+                      </button>
                     </div>
 
-                    <motion.button
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="submit"
-                      className="bg-[var(--accent)] text-white w-full py-3 rounded-xl text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--accent)] hover:shadow-lg"
-                    >
-                      Save Settings
-                    </motion.button>
+                     <motion.button
+                       whileHover={{ scale: 1.01 }}
+                       whileTap={{ scale: 0.98 }}
+                       type="submit"
+                       className="bg-[var(--accent)] text-white w-full py-3 rounded-xl text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--accent)] hover:shadow-lg"
+                     >
+                       Save Settings
+                     </motion.button>
                   </motion.form>
                 </div>
               )}

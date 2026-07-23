@@ -25,7 +25,8 @@ router.post('/cart', authenticate, (req, res) => {
 })
 
 router.delete('/cart/:productId', authenticate, (req, res) => {
-  const result = userService.removeFromCart(req.admin.email, req.params.productId, req.body?.colorName || req.body?.variant)
+  const variant = req.body?.color || req.body?.colorName || req.body?.variant
+  const result = userService.removeFromCart(req.admin.email, req.params.productId, variant)
   res.json({ success: true, data: result })
 })
 

@@ -36,6 +36,29 @@ export const ShopPage = () => {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [currencyOpen, setCurrencyOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [shopBanner, setShopBanner] = useState('')
+
+  const loadShopBanner = useCallback(async () => {
+    try {
+      const res = await api.get('/settings/shop-banner')
+      const banner = res.data?.shopBannerImage || res.data?.data?.shopBannerImage || ''
+      setShopBanner(banner)
+    } catch {
+      setShopBanner('')
+    }
+  }, [])
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial data load is a standard pattern
+  useEffect(() => { loadShopBanner() }, [loadShopBanner])
+
+  useEffect(() => {
+    const handler = (event) => {
+      const payload = getAdminDataChangedPayload(event)
+      if (payload?.type === 'settings-changed') loadShopBanner()
+    }
+    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+    return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+  }, [loadShopBanner])
 
   const loadProducts = useCallback(() => {
     api.get('/products', { params: { sort: '-createdAt', limit: 100 } })
@@ -85,12 +108,12 @@ export const ShopPage = () => {
   const hasFilters = category || query || minPrice || maxPrice
   const clearFilters = useCallback(() => { setCategory(''); setQuery(''); setMinPrice(''); setMaxPrice('') }, [])
 
-  const heroImage = ''
+  const heroImage = shopBanner
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       {/* Page Header with Luxury Interior Background */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden md:h-[420px] h-[260px] md:rounded-[24px] rounded-[16px]">
         <div className="absolute inset-0">
           {heroImage && (
             <img

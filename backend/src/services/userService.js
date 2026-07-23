@@ -52,12 +52,12 @@ function addToCart(email, productId, quantity = 1, variant) {
   const current = cartStore.get(key) || []
   const selectedVariant = variant || null
   const existing = current.find(
-    (item) => (item._id === productId || item.id === productId) && item.selectedVariant?.colorName === selectedVariant?.colorName,
+    (item) => (item._id === productId || item.id === productId) && (item.selectedVariant?.colorName === selectedVariant?.colorName || item.selectedVariant?.color === selectedVariant?.color),
   )
   let updated
   if (existing) {
     updated = current.map((item) =>
-      (item._id === productId || item.id === productId) && item.selectedVariant?.colorName === selectedVariant?.colorName
+      (item._id === productId || item.id === productId) && (item.selectedVariant?.colorName === selectedVariant?.colorName || item.selectedVariant?.color === selectedVariant?.color)
         ? { ...item, quantity: item.quantity + quantity }
         : item,
     )
@@ -73,7 +73,7 @@ function removeFromCart(email, productId, variant) {
   const selectedVariant = variant || null
   const current = cartStore.get(key) || []
   const updated = current.filter(
-    (item) => !((item._id === productId || item.id === productId) && item.selectedVariant?.colorName === selectedVariant?.colorName),
+    (item) => !((item._id === productId || item.id === productId) && (item.selectedVariant?.colorName === selectedVariant?.colorName || item.selectedVariant?.color === selectedVariant?.color)),
   )
   cartStore.set(key, updated)
   return { items: updated }
@@ -87,7 +87,7 @@ function updateCart(email, productId, quantity, variant) {
     return removeFromCart(email, productId, variant)
   }
   const updated = current.map((item) =>
-    (item._id === productId || item.id === productId) && item.selectedVariant?.colorName === selectedVariant?.colorName
+    (item._id === productId || item.id === productId) && (item.selectedVariant?.colorName === selectedVariant?.colorName || item.selectedVariant?.color === selectedVariant?.color)
       ? { ...item, quantity }
       : item,
   )

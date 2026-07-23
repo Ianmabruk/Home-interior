@@ -114,7 +114,7 @@ export const CheckoutPage = () => {
         productId: item._id || item.product?._id,
         quantity: item.quantity || 1,
         variant: item.selectedVariant ? {
-          colorName: item.selectedVariant.colorName,
+          color: item.selectedVariant.color,
           colorHex: item.selectedVariant.colorHex,
         } : undefined,
       }))
@@ -162,8 +162,8 @@ export const CheckoutPage = () => {
   }
 
   const getItemPrice = (item) => {
-    if (item.selectedVariant?.priceOverride !== undefined) return item.selectedVariant.priceOverride
-    if (item.variant?.priceOverride !== undefined) return item.variant.priceOverride
+    if (item.selectedVariant?.price !== undefined) return item.selectedVariant.price
+    if (item.variant?.price !== undefined) return item.variant.price
     return item.discountPrice || item.price
   }
 
@@ -394,9 +394,9 @@ export const CheckoutPage = () => {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-[var(--primary)] truncate">{item.name || item.product?.name}</p>
                         <p className="text-[var(--primary)]/50">Qty: {item.quantity || 1}</p>
-                        {item.selectedVariant && (
-                          <p className="text-[var(--primary)]/50 text-xs">{item.selectedVariant.colorName}</p>
-                        )}
+                         {item.selectedVariant && (
+                           <p className="text-[var(--primary)]/50 text-xs">{item.selectedVariant.color}</p>
+                         )}
                       </div>
                       <span className="text-[var(--primary)] font-medium">{formatPrice(getItemTotal(item))}</span>
                     </div>

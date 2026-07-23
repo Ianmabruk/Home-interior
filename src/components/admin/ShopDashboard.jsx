@@ -15,7 +15,6 @@ import {
   Palette,
   Tag,
   Box,
-  Sparkles,
 } from 'lucide-react'
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
@@ -34,8 +33,7 @@ const INITIAL_FORM = {
   tags: '',
   isFeatured: false,
   isPublished: true,
-  colorVariants: [],
-  styleVariants: [],
+  variants: [],
 }
 
 const PAGE_SIZE = 12
@@ -53,6 +51,9 @@ export const ShopDashboard = () => {
   const [viewItem, setViewItem] = useState(null)
   const [page, setPage] = useState(1)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [variantFiles, setVariantFiles] = useState([])
+  const [variantPreviews, setVariantPreviews] = useState([])
+  const [error, setError] = useState('')
   const fileRef = useRef(null)
 
   useMemo(() => {
@@ -61,6 +62,75 @@ export const ShopDashboard = () => {
       .then((res) => setAllProducts(res.data?.items || []))
       .catch(() => setAllProducts([]))
   }, [])
+
+  const showError = (msg) => setError(msg)
+
+  const validate = () => {
+    if (!form.name.trim()) return 'Product name is required'
+    if (!form.price || Number(form.price) <= 0) return 'Price must be greater than 0'
+    if (!form.category) return 'Category is required'
+    if (imageFiles.length === 0 && !editingId) return 'At least one product image is required'
+    return null
+  }
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setError('')
+    const validationError = validate()
+    if (validationError) {
+      showError(validationError)
+      return
+    }
+    setLoading(true)
+    try {
+      const payload = new FormData()
+      payload.append('name', form.name)
+      payload.append('description', form.description)
+      payload.append('price', String(form.price))
+      if (form.discountPrice) payload.append('discountPrice', String(form.discountPrice))
+      payload.append('category', form.category)
+      if (form.vendor) payload.append('vendor', form.vendor)
+      payload.append('stock', String(form.stock))
+      payload.append('sku', form.sku)
+      payload.append('tags', JSON.stringify(form.tags.split(',').map((t) => t.trim()).filter(Boolean)))
+      payload.append('isFeatured', String(form.isFeatured))
+      payload.append('isPublished', String(form.isPublished))
+
+      imageFiles.forEach((file) => payload.append('images', file))
+
+      const variants = form.variants.map((v) => ({
+        color: v.color || 'Default',
+        image: v.image || '',
+        stock: Number(v.stock) || 0,
+        price: v.price ? Number(v.price) : null,
+      }))
+      payload.append('variants', JSON.stringify(variants))
+
+      variantFiles.forEach((vf) => {
+        payload.append(`variantImages[${vf.index}]`, vf.file)
+      })
+
+      if (editingId) {
+        await api.patch(`/products/${editingId}`, payload)
+        setEditingId(null)
+      } else {
+        await api.post('/products', payload)
+      }
+
+      setForm(INITIAL_FORM)
+      setImageFiles([])
+      setImagePreviews([])
+      setVariantFiles([])
+      setVariantPreviews([])
+      const res = await api.get('/products/admin/all', { params: { sort: '-createdAt', limit: 500 } })
+      setAllProducts(res.data?.items || [])
+      emitAdminDataChanged({ type: 'products-changed' })
+    } catch (err) {
+      showError(err?.message || 'Failed to save product. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filtered = useMemo(() => {
     let items = allProducts
@@ -93,52 +163,6 @@ export const ShopDashboard = () => {
     setImagePreviews(files.map((f) => URL.createObjectURL(f)))
   }
 
-  const submit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    try {
-      const payload = new FormData()
-      payload.append('name', form.name)
-      payload.append('description', form.description)
-      payload.append('price', String(form.price))
-      if (form.discountPrice) payload.append('discountPrice', String(form.discountPrice))
-      payload.append('category', form.category)
-      if (form.vendor) payload.append('vendor', form.vendor)
-      payload.append('stock', String(form.stock))
-      payload.append('sku', form.sku)
-      payload.append('tags', JSON.stringify(form.tags.split(',').map((t) => t.trim()).filter(Boolean)))
-      payload.append('isFeatured', String(form.isFeatured))
-      payload.append('isPublished', String(form.isPublished))
-
-      imageFiles.forEach((file) => payload.append('images', file))
-
-      if (form.colorVariants.length > 0) {
-        payload.append('colorVariants', JSON.stringify(form.colorVariants))
-      }
-
-      if (form.styleVariants.length > 0) {
-        payload.append('styleVariants', JSON.stringify(form.styleVariants))
-      }
-
-      if (editingId) {
-        await api.patch(`/products/${editingId}`, payload)
-        setEditingId(null)
-      } else {
-        await api.post('/products', payload)
-      }
-
-      setForm(INITIAL_FORM)
-      setImageFiles([])
-      setImagePreviews([])
-      const res = await api.get('/products/admin/all', { params: { sort: '-createdAt', limit: 500 } })
-      setAllProducts(res.data?.items || [])
-      emitAdminDataChanged({ type: 'products-changed' })
-    } catch {
-      // handle error
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const startEdit = (item) => {
     setEditingId(item._id || item.id)
@@ -154,10 +178,17 @@ export const ShopDashboard = () => {
       tags: (item.tags || []).join(', '),
       isFeatured: item.isFeatured || false,
       isPublished: item.isPublished ?? true,
-      colorVariants: item.colorVariants || [],
+      variants: (item.variants || []).map((v) => ({
+        color: v.color || '',
+        image: v.image || '',
+        stock: v.stock || 0,
+        price: v.price || '',
+      })),
     })
     setImagePreviews(item.images?.map((i) => typeof i === 'string' ? i : i.url) || [])
     setImageFiles([])
+    setVariantPreviews((item.variants || []).map((v) => v.image || ''))
+    setVariantFiles([])
   }
 
   const deleteItem = async () => {
@@ -168,37 +199,50 @@ export const ShopDashboard = () => {
       const res = await api.get('/products/admin/all', { params: { sort: '-createdAt', limit: 500 } })
       setAllProducts(res.data?.items || [])
       emitAdminDataChanged({ type: 'products-changed' })
-    } catch {
-      // handle error
+    } catch (err) {
+      window.alert(err?.message || 'Failed to delete product. Please try again.')
     }
   }
 
-  const addColorVariant = () => {
+  const addVariant = () => {
     setForm((f) => ({
       ...f,
-      colorVariants: [
-        ...f.colorVariants,
-        {
-          colorName: '',
-          colorHex: '#000000',
-          stockQuantity: 0,
-          priceOverride: '',
-          sku: '',
-          isDefault: f.colorVariants.length === 0,
-        },
+      variants: [
+        ...f.variants,
+        { color: '', image: '', stock: 0, price: '' },
       ],
     }))
+    setVariantPreviews((p) => [...p, ''])
+    setVariantFiles((files) => [...files, { index: 0, file: null }])
   }
 
   const updateVariant = (index, field, value) => {
     setForm((f) => ({
       ...f,
-      colorVariants: f.colorVariants.map((v, i) => (i === index ? { ...v, [field]: value } : v)),
+      variants: f.variants.map((v, i) => (i === index ? { ...v, [field]: value } : v)),
     }))
   }
 
   const removeVariant = (index) => {
-    setForm((f) => ({ ...f, colorVariants: f.colorVariants.filter((_, i) => i !== index) }))
+    setForm((f) => ({ ...f, variants: f.variants.filter((_, i) => i !== index) }))
+    setVariantPreviews((p) => p.filter((_, i) => i !== index))
+    setVariantFiles((files) => files.filter((f) => f.index !== index))
+  }
+
+  const handleVariantImage = (index, e) => {
+    const file = e.target.files?.[0] || null
+    if (!file) return
+    const preview = URL.createObjectURL(file)
+    setVariantPreviews((p) => {
+      const next = [...p]
+      next[index] = preview
+      return next
+    })
+    setVariantFiles((files) => {
+      const next = files.filter((f) => f.index !== index)
+      next.push({ index, file })
+      return next
+    })
   }
 
   const exportCsv = () => {
@@ -281,6 +325,15 @@ export const ShopDashboard = () => {
           onSubmit={submit}
           className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)] space-y-5 self-start"
         >
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl border border-[var(--error)]/30 bg-[var(--error)]/5 px-4 py-3 text-sm text-[var(--error)]"
+            >
+              {error}
+            </motion.div>
+          )}
           <div>
             <h3 className="font-display text-xl text-[var(--primary)]">
               {editingId ? 'Edit Product' : 'Add Product'}
@@ -499,21 +552,21 @@ export const ShopDashboard = () => {
             <div className="flex items-center justify-between mb-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 flex items-center gap-1.5">
                 <Palette size={12} />
-                Color Variants
+                Variants
               </p>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 type="button"
-                onClick={addColorVariant}
+                onClick={addVariant}
                 className="text-[10px] text-[var(--accent)] hover:text-[var(--primary)] transition-colors font-medium flex items-center gap-1"
               >
                 <Plus size={12} />
-                Add
+                Add Variant
               </motion.button>
             </div>
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1 scrollbar-hide">
-              {form.colorVariants.map((v, i) => (
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-1 scrollbar-hide">
+              {form.variants.map((v, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, y: 10 }}
@@ -521,39 +574,44 @@ export const ShopDashboard = () => {
                   className="flex gap-2 items-center bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/20 p-2.5 rounded-xl"
                 >
                   <input
-                    value={v.colorName}
-                    onChange={(e) => updateVariant(i, 'colorName', e.target.value)}
+                    value={v.color}
+                    onChange={(e) => updateVariant(i, 'color', e.target.value)}
                     className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-xs outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition flex-1"
-                    placeholder="Color"
+                    placeholder="Color (e.g., White)"
                   />
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleVariantImage(i, e)}
+                      className="hidden"
+                      id={`variant-image-${i}`}
+                    />
+                    <label
+                      htmlFor={`variant-image-${i}`}
+                      className="cursor-pointer inline-flex items-center gap-1 rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-2xs font-medium text-[var(--primary)]/70 hover:border-[var(--accent)] transition"
+                    >
+                      <ImageIcon size={12} />
+                      Image
+                    </label>
+                  </div>
+                  {variantPreviews[i] && (
+                    <img src={variantPreviews[i]} alt="" className="h-10 w-10 rounded-lg object-cover border border-[var(--border)]" />
+                  )}
                   <input
-                    value={v.colorHex}
-                    onChange={(e) => updateVariant(i, 'colorHex', e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-xs outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition w-16"
-                    placeholder="#000"
-                  />
-                  <input
-                    value={v.stockQuantity}
-                    onChange={(e) =>
-                      updateVariant(i, 'stockQuantity', Number(e.target.value) || 0)
-                    }
+                    value={v.stock}
+                    onChange={(e) => updateVariant(i, 'stock', Number(e.target.value) || 0)}
                     type="number"
                     className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-xs outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition w-16"
                     placeholder="Qty"
                   />
                   <input
-                    value={v.priceOverride}
-                    onChange={(e) => updateVariant(i, 'priceOverride', e.target.value)}
+                    value={v.price}
+                    onChange={(e) => updateVariant(i, 'price', e.target.value)}
                     type="number"
                     step="0.01"
                     className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-xs outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition w-20"
                     placeholder="Price"
-                  />
-                  <input
-                    value={v.sku}
-                    onChange={(e) => updateVariant(i, 'sku', e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-xs outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition w-20"
-                    placeholder="SKU"
                   />
                   <motion.button
                     whileHover={{ scale: 1.1 }}
@@ -566,113 +624,6 @@ export const ShopDashboard = () => {
                   </motion.button>
                 </motion.div>
               ))}
-            </div>
-          </div>
-
-          {/* Style Variants */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 flex items-center gap-1.5">
-                <Sparkles size={12} />
-                Style Variants
-              </p>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                type="button"
-                onClick={() => setForm(f => ({ ...f, styleVariants: [...f.styleVariants, { styleName: '', images: [], description: '', specifications: {} }] }))}
-                className="text-[10px] text-[var(--accent)] hover:text-[var(--primary)] transition-colors font-medium flex items-center gap-1"
-              >
-                <Plus size={12} />
-                Add
-              </motion.button>
-            </div>
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1 scrollbar-hide">
-              {form.styleVariants.map((s, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/20 p-3 rounded-xl"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-[var(--accent)]">Style {i + 1}</p>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      type="button"
-                      onClick={() => setForm(f => ({ ...f, styleVariants: f.styleVariants.filter((_, idx) => idx !== i) }))}
-                      className="text-[var(--error)] hover:bg-[var(--error)]/10 p-1 rounded-lg"
-                    >
-                      <Trash2 size={12} />
-                    </motion.button>
-                  </div>
-                  <div className="space-y-2">
-                    <input
-                      value={s.styleName}
-                      onChange={(e) => setForm(f => ({ ...f, styleVariants: f.styleVariants.map((sv, idx) => idx === i ? { ...sv, styleName: e.target.value } : sv) }))}
-                      className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-xs outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
-                      placeholder="Style name (e.g., Modern, Classic, Luxury)"
-                    />
-                    <textarea
-                      value={s.description || ''}
-                      onChange={(e) => setForm(f => ({ ...f, styleVariants: f.styleVariants.map((sv, idx) => idx === i ? { ...sv, description: e.target.value } : sv) }))}
-                      className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-xs outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
-                      placeholder="Style description..."
-                      rows={2}
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Materials</label>
-                        <input
-                          value={s.specifications?.materials || ''}
-                          onChange={(e) => setForm(f => ({ ...f, styleVariants: f.styleVariants.map((sv, idx) => idx === i ? { ...sv, specifications: { ...sv.specifications, materials: e.target.value } } : sv) }))}
-                          className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-xs outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
-                          placeholder="Materials"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Dimensions</label>
-                        <input
-                          value={s.specifications?.dimensions || ''}
-                          onChange={(e) => setForm(f => ({ ...f, styleVariants: f.styleVariants.map((sv, idx) => idx === i ? { ...sv, specifications: { ...sv.specifications, dimensions: e.target.value } } : sv) }))}
-                          className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-xs outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
-                          placeholder="Dimensions"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Available Colors</label>
-                        <input
-                          value={s.availableColors?.join(', ') || ''}
-                          onChange={(e) => setForm(f => ({ ...f, styleVariants: f.styleVariants.map((sv, idx) => idx === i ? { ...sv, availableColors: e.target.value.split(',').map(c => c.trim()) } : sv) }))}
-                          className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-xs outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
-                          placeholder="White, Beige, Brown"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Images</label>
-                        <input
-                          value={s.images?.join(', ') || ''}
-                          onChange={(e) => setForm(f => ({ ...f, styleVariants: f.styleVariants.map((sv, idx) => idx === i ? { ...sv, images: e.target.value.split(',').map(c => c.trim()) } : sv) }))}
-                          className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-xs outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
-                          placeholder="Image URLs (comma separated)"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={() => setForm(f => ({ ...f, styleVariants: [...f.styleVariants, { styleName: '', images: [], description: '', specifications: {}, availableColors: [] }] }))}
-                className="w-full mt-2 inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-              >
-                <Plus size={14} /> Add Another Style
-              </motion.button>
             </div>
           </div>
 

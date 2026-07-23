@@ -128,13 +128,13 @@ const OrderCard = ({ order }) => {
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-[var(--primary)] truncate">{item.name || item.productName || 'Product'}</p>
-                  {item.variant?.colorName && (
-                    <p className="text-[var(--primary)]/60">{item.variant.colorName}</p>
+                  {item.variant?.color && (
+                    <p className="text-[var(--primary)]/60">{item.variant.color}</p>
                   )}
                   <p className="text-[var(--primary)]/60">Qty: {item.quantity}</p>
                 </div>
                 <p className="font-semibold text-[var(--primary)] whitespace-nowrap">
-                  ${Number(item.price || item.discountPrice || item.priceOverride || 0).toFixed(2)}
+                  ${Number(item.price || item.discountPrice || item.variant?.price || item.variant?.priceOverride || 0).toFixed(2)}
                 </p>
               </div>
             ))}

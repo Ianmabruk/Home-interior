@@ -66,9 +66,9 @@ model Product {
   price         Float
   originalPrice Float?   @map("original_price")
   category      String?  @db.Text
+  mainImage     String?  @db.Text @map("main_image")
   images        String[] @default([]) @db.Text
-  colorVariants String[] @default([]) @map("color_variants") @db.Text
-  styleVariants String[] @default([]) @map("style_variants") @db.Text
+  storagePaths  String[] @default([]) @db.Text @map("storage_paths")
   vendor        String?  @db.Text
   stock         Int      @default(0)
   sku           String?  @db.Text
@@ -79,9 +79,28 @@ model Product {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
+  variants ProductVariant[]
+
   @@map("products")
   @@index([featured, inStock, createdAt(desc)])
   @@index([category])
+}
+
+model ProductVariant {
+  id           String   @id @default(cuid())
+  productId    String   @map("product_id") @db.Text
+  color        String   @db.Text
+  colorHex     String?  @db.Text @map("color_hex")
+  image        String?  @db.Text
+  stock        Int      @default(0)
+  price        Float?
+  storagePath  String?  @db.Text @map("storage_path")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_variants")
+  @@index([productId])
 }
 
 model Service {
@@ -141,6 +160,8 @@ model About {
   location        String   @db.Text @default("")
   contactEmail    String   @default("") @map("contact_email") @db.Text
   socials         String   @default("{}") @db.Text
+  values          String   @default("") @db.Text
+  statistics      String   @default("") @db.Text
   imageUrl        String?  @db.Text @map("image_url")
   cloudinaryId    String?  @db.Text @map("cloudinary_id")
   createdAt       DateTime @default(now()) @map("created_at")

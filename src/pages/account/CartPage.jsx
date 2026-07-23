@@ -30,48 +30,48 @@ export const CartPage = () => {
           <div className="mt-12 grid gap-10 lg:grid-cols-[1fr_380px]">
             <div className="space-y-5">
               <AnimatePresence>
-                {cart.map((item, i) => (
-                  <motion.div
-                    key={`${item._id || item.id}-${item.selectedVariant?.colorName || 'default'}`}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3, delay: i * 0.05 }}
-                    className="flex gap-5 rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_10px_30px_rgba(42,36,31,0.08)] transition-shadow"
-                  >
-                    <div className="relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-xl">
-                      <img src={item.selectedVariant?.imageUrl || item.image || (typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url)} alt={item.name} className="h-full w-full object-cover" />
-                      {item.stock === 0 && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-[var(--primary)]/60">
-                          <span className="text-xs font-medium uppercase tracking-widest text-white">Out of Stock</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-2xs font-medium uppercase tracking-widest text-[var(--accent)]">{item.category}</p>
-                          <h3 className="mt-1 font-display text-2xl font-medium text-[var(--primary)]">
-                            <Link to={`/shop/${item._id}`} className="hover:text-[var(--accent)] transition-colors">
-                              {item.name}
-                            </Link>
-                          </h3>
-                          {item.selectedVariant && (
-                            <div className="mt-1 flex items-center gap-2">
-                              <span className="h-4 w-4 rounded-full border border-[var(--primary)]/10" style={{ backgroundColor: item.selectedVariant.colorHex || '#ccc' }} />
-                              <span className="text-xs text-[var(--primary)]/60">{item.selectedVariant.colorName}</span>
-                            </div>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => removeFromCart(item._id, item.selectedVariant)}
-                          className="text-[var(--primary)]/30 transition hover:text-[var(--accent)]"
-                          aria-label="Remove"
-                        >
-                          <X size={18} strokeWidth={1.5} />
-                        </button>
-                      </div>
-                      <p className="mt-2 text-base font-medium text-[var(--primary)]">{formatPrice(item.selectedVariant?.priceOverride || item.discountPrice || item.price)}</p>
+                 {cart.map((item, i) => (
+                   <motion.div
+                     key={`${item._id || item.id}-${item.selectedVariant?.color || 'default'}`}
+                     initial={{ opacity: 0, y: 10 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     exit={{ opacity: 0, x: -20 }}
+                     transition={{ duration: 0.3, delay: i * 0.05 }}
+                     className="flex gap-5 rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_10px_30px_rgba(42,36,31,0.08)] transition-shadow"
+                   >
+                     <div className="relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-xl">
+                       <img src={item.selectedVariant?.image || item.image || (typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url)} alt={item.name} className="h-full w-full object-cover" />
+                       {item.stock === 0 && (
+                         <div className="absolute inset-0 flex items-center justify-center bg-[var(--primary)]/60">
+                           <span className="text-xs font-medium uppercase tracking-widest text-white">Out of Stock</span>
+                         </div>
+                       )}
+                     </div>
+                     <div className="flex-1">
+                       <div className="flex items-start justify-between">
+                         <div>
+                           <p className="text-2xs font-medium uppercase tracking-widest text-[var(--accent)]">{item.category}</p>
+                           <h3 className="mt-1 font-display text-2xl font-medium text-[var(--primary)]">
+                             <Link to={`/shop/${item._id}`} className="hover:text-[var(--accent)] transition-colors">
+                               {item.name}
+                             </Link>
+                           </h3>
+                           {item.selectedVariant && (
+                             <div className="mt-1 flex items-center gap-2">
+                               <span className="h-4 w-4 rounded-full border border-[var(--primary)]/10" style={{ backgroundColor: item.selectedVariant.colorHex || '#ccc' }} />
+                               <span className="text-xs text-[var(--primary)]/60">{item.selectedVariant.color}</span>
+                             </div>
+                           )}
+                         </div>
+                         <button
+                           onClick={() => removeFromCart(item._id, item.selectedVariant)}
+                           className="text-[var(--primary)]/30 transition hover:text-[var(--accent)]"
+                           aria-label="Remove"
+                         >
+                           <X size={18} strokeWidth={1.5} />
+                         </button>
+                       </div>
+                       <p className="mt-2 text-base font-medium text-[var(--primary)]">{formatPrice(item.selectedVariant?.price || item.discountPrice || item.price)}</p>
                       <div className="mt-4 flex items-center gap-3">
                         <div className="flex items-center rounded-full border border-[var(--border)]">
                           <button

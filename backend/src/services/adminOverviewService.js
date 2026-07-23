@@ -34,6 +34,7 @@ export async function getSettings() {
     shippingPolicy: result.shippingPolicy || '',
     returnPolicy: result.returnPolicy || '',
     socialLinks: result.socialLinks || '',
+    shopBannerImage: result.shopBannerImage || '',
   }
 }
 

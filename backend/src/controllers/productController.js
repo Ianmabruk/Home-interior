@@ -23,7 +23,15 @@ export const productController = {
   }),
 
   create: asyncHandler(async (req, res) => {
-    const files = req.files?.images || (req.file ? [req.file] : [])
+    const files = Array.isArray(req.files) ? req.files : []
+    const imageFiles = files.filter((f) => f.fieldname === 'images' || !f.fieldname)
+    const variantFiles = files
+      .filter((f) => f.fieldname && f.fieldname.startsWith('variantImages['))
+      .map((f) => {
+        const match = f.fieldname.match(/variantImages\[(\d+)\]/)
+        return { ...f, index: match ? Number(match[1]) : 0 }
+      })
+
     const data = {
       name: req.body.name || 'Untitled Product',
       description: req.body.description || '',
@@ -37,15 +45,22 @@ export const productController = {
       featured: req.body.isFeatured === 'true' || req.body.isFeatured === true,
       inStock: req.body.isPublished !== 'false' && req.body.isPublished !== false,
       displayOrder: Number(req.body.displayOrder) || 0,
-      colorVariants: req.body.colorVariants ? (() => { try { return JSON.parse(req.body.colorVariants) } catch { return [] } })() : [],
-      styleVariants: req.body.styleVariants ? (() => { try { return JSON.parse(req.body.styleVariants) } catch { return [] } })() : [],
+      variants: req.body.variants ? (() => { try { return JSON.parse(req.body.variants) } catch { return [] } })() : [],
     }
-    const item = await productService.createProduct(data, files)
+    const item = await productService.createProduct(data, imageFiles, variantFiles)
     res.status(201).json({ success: true, data: item })
   }),
 
   update: asyncHandler(async (req, res) => {
-    const files = req.files?.images || (req.file ? [req.file] : [])
+    const files = Array.isArray(req.files) ? req.files : []
+    const imageFiles = files.filter((f) => f.fieldname === 'images' || !f.fieldname)
+    const variantFiles = files
+      .filter((f) => f.fieldname && f.fieldname.startsWith('variantImages['))
+      .map((f) => {
+        const match = f.fieldname.match(/variantImages\[(\d+)\]/)
+        return { ...f, index: match ? Number(match[1]) : 0 }
+      })
+
     const data = {}
     if (req.body.name !== undefined) data.name = req.body.name
     if (req.body.description !== undefined) data.description = req.body.description
@@ -58,13 +73,10 @@ export const productController = {
     if (req.body.tags !== undefined) data.tags = req.body.tags
     if (req.body.isFeatured !== undefined) data.featured = req.body.isFeatured === 'true' || req.body.isFeatured === true
     if (req.body.isPublished !== undefined) data.inStock = req.body.isPublished === 'false' || req.body.isPublished === false
-    if (req.body.colorVariants !== undefined) {
-      try { data.colorVariants = JSON.parse(req.body.colorVariants) } catch { data.colorVariants = [] }
+    if (req.body.variants !== undefined) {
+      try { data.variants = JSON.parse(req.body.variants) } catch { data.variants = [] }
     }
-    if (req.body.styleVariants !== undefined) {
-      try { data.styleVariants = JSON.parse(req.body.styleVariants) } catch { data.styleVariants = [] }
-    }
-    const item = await productService.updateProduct(req.params.id, data, files)
+    const item = await productService.updateProduct(req.params.id, data, imageFiles, variantFiles)
     res.json({ success: true, data: item })
   }),
 

@@ -8,17 +8,17 @@ import PositionedImage from '../common/PositionedImage'
 export const ProductCard = memo(({ product, onQuickView }) => {
   const { addToCart, toggleWishlist, wishlist } = useShop()
   const { formatPrice } = useCurrency()
-  const variants = product.colorVariants || []
-  const defaultVariant = variants.length ? (variants.find((v) => v.isDefault) || variants[0]) : null
+  const variants = product.variants || []
+  const defaultVariant = variants.length ? variants[0] : null
   const primaryImage =
-    defaultVariant?.imageUrl ||
+    defaultVariant?.image ||
     (typeof product.images?.[0] === 'string' ? product.images[0] : product.images?.[0]?.url) ||
     ''
   const salePercent = product.discountPrice
     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
     : null
   const isWishlisted = wishlist?.some((w) => w._id === product._id)
-  const price = (defaultVariant?.priceOverride ?? product.discountPrice) || product.price
+  const price = (defaultVariant?.price ?? product.discountPrice) || product.price
 
    return (
     <article
@@ -56,7 +56,7 @@ export const ProductCard = memo(({ product, onQuickView }) => {
             <Heart size={16} strokeWidth={1.5} fill={isWishlisted ? 'currentColor' : 'none'} />
           </button>
           <button
-            onClick={() => addToCart(product, 1, defaultVariant ? { colorName: defaultVariant.colorName, colorHex: defaultVariant.colorHex, imageUrl: defaultVariant.imageUrl } : null)}
+            onClick={() => addToCart(product, 1, defaultVariant ? { color: defaultVariant.color, colorHex: defaultVariant.colorHex, image: defaultVariant.image } : null)}
             disabled={product.stock === 0}
             className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center bg-white rounded-full shadow-md text-[var(--primary)]/50 transition hover:bg-[var(--secondary)] disabled:opacity-40"
             aria-label="Add to cart"

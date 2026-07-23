@@ -35,9 +35,9 @@ async function createOrUpdateAbout(data, file) {
 
   if (file) {
     if (existing?.cloudinaryId) await deleteFile(existing.cloudinaryId)
-    const updated = await uploadFile(file.buffer, file.mimetype, 'about')
-    createData.imageUrl = updated.url
-    createData.cloudinaryId = updated.path
+    const uploaded = await uploadFile(file.buffer, file.mimetype, 'about')
+    createData.imageUrl = uploaded.url
+    createData.cloudinaryId = uploaded.path
   } else if (!existing?.imageUrl) {
     createData.imageUrl = ''
   }

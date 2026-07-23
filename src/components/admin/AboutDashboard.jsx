@@ -73,12 +73,14 @@ export const AboutDashboard = () => {
       payload.append('location', form.location || '')
       payload.append('contactEmail', form.contactEmail || '')
       payload.append('socials', form.socialLinks || '{}')
+      payload.append('values', form.values || '')
+      payload.append('statistics', form.statistics || '')
       if (aboutImageFile) payload.append('media', aboutImageFile)
       await api.put('/about', payload)
       await loadAbout()
       emitAdminDataChanged({ type: 'about-changed' })
-    } catch {
-      // handle error
+    } catch (err) {
+      window.alert(err?.message || 'Failed to save about page. Please try again.')
     } finally {
       setLoading(false)
     }

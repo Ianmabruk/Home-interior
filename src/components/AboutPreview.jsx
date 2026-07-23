@@ -1,23 +1,35 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { api } from '../services/api'
 import { getOptimizedUrl } from '../utils/cloudinaryHelpers'
 import { Link } from 'react-router-dom'
+import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../utils/adminEvents'
 
 export const AboutPreview = () => {
   const [aboutData, setAboutData] = useState(null)
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await api.get('/about')
-        setAboutData(res.data || null)
-      } catch {
-        setAboutData(null)
-      }
+  const loadAbout = useCallback(async () => {
+    try {
+      const res = await api.get('/about')
+      setAboutData(res.data || null)
+    } catch {
+      setAboutData(null)
     }
-    load()
   }, [])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial data load is a standard pattern
+    loadAbout()
+  }, [loadAbout])
+
+  useEffect(() => {
+    const handler = (event) => {
+      const payload = getAdminDataChangedPayload(event)
+      if (payload?.type === 'about-changed') loadAbout()
+    }
+    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+    return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+  }, [loadAbout])
 
   const story =
     aboutData?.story ||

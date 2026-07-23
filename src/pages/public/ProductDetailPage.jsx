@@ -50,10 +50,10 @@ export const ProductDetailPage = () => {
 
       setProduct(productData)
 
-      const variants = productData?.colorVariants || []
+      const variants = productData?.variants || []
       if (variants.length) {
-        const def = variants.find((v) => v.isDefault) || variants[0]
-        setActiveColor(def.colorName)
+        const def = variants[0]
+        setActiveColor(def.color)
         setViewImage(null)
       }
 
@@ -91,23 +91,23 @@ export const ProductDetailPage = () => {
 
   const goBack = () => navigate(-1)
 
-  const activeVariant = product?.colorVariants?.find((v) => v.colorName === activeColor)
+  const activeVariant = product?.variants?.find((v) => v.color === activeColor)
   const galleryImages = useMemo(() => {
-    if (activeVariant?.imageUrl) {
-      return [activeVariant.imageUrl, ...(product?.images || []).map((i) => typeof i === 'string' ? i : i.url).filter(Boolean)]
+    if (activeVariant?.image) {
+      return [activeVariant.image, ...(product?.images || []).map((i) => typeof i === 'string' ? i : i.url).filter(Boolean)]
     }
     return (product?.images || []).map((i) => typeof i === 'string' ? i : i.url).filter(Boolean)
   }, [activeVariant, product])
 
-  const displayImage = viewImage || activeVariant?.imageUrl || (typeof product?.images?.[0] === 'string' ? product.images[0] : product?.images?.[0]?.url) || null
+  const displayImage = viewImage || activeVariant?.image || (typeof product?.images?.[0] === 'string' ? product.images[0] : product?.images?.[0]?.url) || null
 
   const salePercent = product?.price > 0 && product?.discountPrice
     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
     : null
 
-  const price = activeVariant?.priceOverride ?? product?.discountPrice ?? product?.price
+  const price = activeVariant?.price ?? product?.discountPrice ?? product?.price
   const inStock =
-    activeVariant?.stockQuantity !== undefined ? activeVariant.stockQuantity > 0 : (product?.stock ?? 0) > 0
+    activeVariant?.stock !== undefined ? activeVariant.stock > 0 : (product?.stock ?? 0) > 0
 
   const isWishlisted = wishlist?.some((w) => w._id === product?._id)
 
@@ -265,7 +265,7 @@ export const ProductDetailPage = () => {
                 <p className="font-display text-3xl font-medium text-[var(--primary)]">
                   {formatPrice(price)}
                 </p>
-                {product.discountPrice && !activeVariant?.priceOverride && (
+                {product.discountPrice && !activeVariant?.price && (
                   <p className="text-lg text-[var(--primary)]/35 line-through">{formatPrice(product.price)}</p>
                 )}
               </div>
@@ -278,8 +278,8 @@ export const ProductDetailPage = () => {
               <div className="mt-4 flex items-center gap-2">
                 <div className={`h-2.5 w-2.5 rounded-full ${inStock ? 'bg-[var(--success)]' : 'bg-[var(--error)]'}`} />
                 <p className={`text-sm font-medium ${inStock ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-                  {activeVariant?.stockQuantity !== undefined
-                    ? `${activeVariant.stockQuantity} in stock`
+                  {activeVariant?.stock !== undefined
+                    ? `${activeVariant.stock} in stock`
                     : product?.stock > 0
                     ? `In Stock (${product.stock} available)`
                     : 'Out of Stock'}
@@ -332,27 +332,27 @@ export const ProductDetailPage = () => {
               )}
 
               {/* Color Variants - Single selector, no duplicates */}
-              {product.colorVariants?.length > 0 && (
+              {product.variants?.length > 0 && (
                 <div className="mt-8">
                   <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-3">
                     Color: <span className="text-[var(--primary)] font-medium">{activeColor}</span>
                   </p>
                   <div className="flex flex-wrap gap-3">
-                    {product.colorVariants.map((variant) => (
+                    {product.variants.map((variant) => (
                       <button
-                        key={variant.colorName}
-                        onClick={() => { setActiveColor(variant.colorName); setViewImage(null) }}
-                        title={variant.colorName}
+                        key={variant.color}
+                        onClick={() => { setActiveColor(variant.color); setViewImage(null) }}
+                        title={variant.color}
                         className={`relative h-12 w-12 min-h-[48px] min-w-[48px] overflow-hidden rounded-full border-2 transition-all duration-300 ${
-                          activeColor === variant.colorName
+                          activeColor === variant.color
                             ? 'border-[var(--accent)] shadow-lg scale-110'
                             : 'border-[var(--border)] hover:border-[var(--accent)]/60'
                         }`}
                       >
-                        {variant.imageUrl ? (
+                        {variant.image ? (
                           <PositionedImage
-                            src={variant.imageUrl}
-                            alt={variant.colorName}
+                            src={variant.image}
+                            alt={variant.color}
                             settings={{ fit: 'contain', position: 'center', zoom: 100 }}
                             className="h-full w-full object-cover bg-[var(--bg)]"
                             loading="lazy"
@@ -360,7 +360,7 @@ export const ProductDetailPage = () => {
                         ) : (
                           <span className="block h-full w-full rounded-full" style={{ backgroundColor: variant.colorHex || '#ccc' }} />
                         )}
-                        {activeColor === variant.colorName && (
+                        {activeColor === variant.color && (
                           <span className="absolute inset-0 flex items-center justify-center rounded-full">
                             <Check size={14} strokeWidth={2.5} className="text-[var(--bg)] drop-shadow-md" />
                           </span>
@@ -376,9 +376,9 @@ export const ProductDetailPage = () => {
                 <button
                   onClick={() => {
                     addToCart(product, 1, activeVariant ? { 
-                      colorName: activeVariant.colorName, 
+                      color: activeVariant.color, 
                       colorHex: activeVariant.colorHex, 
-                      imageUrl: activeVariant.imageUrl 
+                      image: activeVariant.image 
                     } : null)
                     setAddedToCart(true)
                     setTimeout(() => setAddedToCart(false), 2000)
@@ -391,10 +391,10 @@ export const ProductDetailPage = () => {
                 </button>
                 <button
                   onClick={() => navigate('/checkout', { state: { buyNow: product, variant: activeVariant ? { 
-                    colorName: activeVariant.colorName, 
+                    color: activeVariant.color, 
                     colorHex: activeVariant.colorHex, 
-                    imageUrl: activeVariant.imageUrl,
-                    priceOverride: activeVariant.priceOverride 
+                    image: activeVariant.image,
+                    priceOverride: activeVariant.price 
                   } : null } })}
                   disabled={!inStock || product.stock === 0}
                   className="btn-luxury-secondary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -454,7 +454,7 @@ export const ProductDetailPage = () => {
                     <div className="overflow-hidden rounded-2xl bg-[var(--card)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] group-hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
                       <div className="relative aspect-[3/4] overflow-hidden bg-[var(--secondary)]">
                         <PositionedImage
-                          src={typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url || p.colorVariants?.[0]?.imageUrl}
+                          src={typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url || p.variants?.[0]?.image}
                           alt={p.name}
                           settings={p.mediaSettings}
                           className="h-full w-full transition duration-700 group-hover:scale-105"

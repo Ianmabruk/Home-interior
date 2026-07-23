@@ -217,32 +217,32 @@ export const Navbar = () => {
                           <>
                             <div className="max-h-80 overflow-y-auto p-4 space-y-3">
                               {cartItems.map((item) => (
-                                <div
-                                  key={`${item._id}-${item.selectedVariant?.colorName || 'default'}`}
-                                  className="flex gap-3 rounded-xl border border-[#E6D8C9]/40 bg-white/50 p-3 transition-colors hover:border-[#E89A43]/40"
-                                >
-                                  <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg">
-                                    <img
-                                      src={item.selectedVariant?.imageUrl || item.image || item.images?.[0]?.url}
-                                      alt={item.name}
-                                      className="h-full w-full object-cover"
-                                    />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-2xs font-medium uppercase tracking-widest text-[#E89A43]">{item.category}</p>
-                                    <h4 className="mt-0.5 font-display text-base font-medium text-[#2A241F] truncate">
-                                      <Link to={`/shop/${item._id}`} className="hover:text-[#E89A43] transition-colors" onClick={() => setCartOpen(false)}>
-                                        {item.name}
-                                      </Link>
-                                    </h4>
-                                    {item.selectedVariant && (
-                                      <div className="mt-0.5 flex items-center gap-1.5">
-                                        <span className="h-3 w-3 rounded-full border border-[#2A241F]/10" style={{ backgroundColor: item.selectedVariant.colorHex || '#ccc' }} />
-                                        <span className="text-xs text-[#2A241F]/60">{item.selectedVariant.colorName}</span>
-                                      </div>
-                                    )}
-                                    <p className="mt-1 text-sm font-medium text-[#2A241F]">${Number(item.selectedVariant?.priceOverride || item.discountPrice || item.price || 0).toFixed(2)}</p>
-                                  </div>
+                                 <div
+                                   key={`${item._id}-${item.selectedVariant?.color || 'default'}`}
+                                   className="flex gap-3 rounded-xl border border-[#E6D8C9]/40 bg-white/50 p-3 transition-colors hover:border-[#E89A43]/40"
+                                 >
+                                   <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg">
+                                     <img
+                                       src={item.selectedVariant?.image || item.image || item.images?.[0]?.url}
+                                       alt={item.name}
+                                       className="h-full w-full object-cover"
+                                     />
+                                   </div>
+                                   <div className="flex-1 min-w-0">
+                                     <p className="text-2xs font-medium uppercase tracking-widest text-[#E89A43]">{item.category}</p>
+                                     <h4 className="mt-0.5 font-display text-base font-medium text-[#2A241F] truncate">
+                                       <Link to={`/shop/${item._id}`} className="hover:text-[#E89A43] transition-colors" onClick={() => setCartOpen(false)}>
+                                         {item.name}
+                                       </Link>
+                                     </h4>
+                                     {item.selectedVariant && (
+                                       <div className="mt-0.5 flex items-center gap-1.5">
+                                         <span className="h-3 w-3 rounded-full border border-[#2A241F]/10" style={{ backgroundColor: item.selectedVariant.colorHex || '#ccc' }} />
+                                         <span className="text-xs text-[#2A241F]/60">{item.selectedVariant.color}</span>
+                                       </div>
+                                     )}
+                                     <p className="mt-1 text-sm font-medium text-[#2A241F]">${Number(item.selectedVariant?.price || item.discountPrice || item.price || 0).toFixed(2)}</p>
+                                   </div>
                                   <div className="flex flex-col items-end gap-1.5">
                                     <button
                                       onClick={() => removeFromCart(item._id, item.selectedVariant)}
@@ -276,7 +276,7 @@ export const Navbar = () => {
                             <div className="border-t border-[#E6D8C9]/40 p-4 space-y-3">
                               <div className="flex justify-between text-sm">
                                 <span className="text-[#2A241F]/55">Subtotal</span>
-                                <span className="font-medium text-[#2A241F]">${cartItems.reduce((sum, item) => sum + Number(item.selectedVariant?.priceOverride || item.discountPrice || item.price || 0) * item.quantity, 0).toFixed(2)}</span>
+                                <span className="font-medium text-[#2A241F]">${cartItems.reduce((sum, item) => sum + Number(item.selectedVariant?.price || item.discountPrice || item.price || 0) * item.quantity, 0).toFixed(2)}</span>
                               </div>
                               <div className="flex justify-between text-sm">
                                 <span className="text-[#2A241F]/55">Shipping</span>
@@ -289,7 +289,7 @@ export const Navbar = () => {
                               <div className="border-t border-[#E6D8C9]/40 pt-3">
                                 <div className="flex justify-between text-lg font-semibold text-[#2A241F]">
                                   <span>Total</span>
-                                  <span>${cartItems.reduce((sum, item) => sum + Number(item.selectedVariant?.priceOverride || item.discountPrice || item.price || 0) * item.quantity, 0).toFixed(2)}</span>
+                                  <span>${cartItems.reduce((sum, item) => sum + Number(item.selectedVariant?.price || item.discountPrice || item.price || 0) * item.quantity, 0).toFixed(2)}</span>
                                 </div>
                               </div>
                               <Link

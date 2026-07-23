@@ -24,6 +24,8 @@ export const aboutController = {
         data.socials = '{}'
       }
     }
+    if (req.body.values !== undefined) data.values = req.body.values
+    if (req.body.statistics !== undefined) data.statistics = req.body.statistics
     const item = await aboutService.createOrUpdateAbout(data, file)
     res.json({ success: true, data: item })
   }),
