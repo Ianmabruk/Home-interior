@@ -11,8 +11,14 @@ import {
   X,
   Package,
   CreditCard,
-  CalendarCheck,
+  LayoutGrid,
+  MonitorSmartphone,
+  Share2,
+  Mail,
+  Sparkles,
+  Home,
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { useShop } from '../context/ShopContext'
 import hokLogoWebP from '../assets/hok-logo.webp'
@@ -25,12 +31,15 @@ const NAV_ITEMS = [
   { to: '/about', label: 'About' },
 ]
 
-const MOBILE_NAV_ITEMS = [
-  { to: '/portfolio', label: 'Portfolio' },
-  { to: '/services', label: 'Services' },
-  { to: '/shop', label: 'Shop' },
-  { to: '/virtual-design', label: 'Virtual Designs' },
-  { to: '/about', label: 'About' },
+const FULLSCREEN_MENU_ITEMS = [
+  { to: '/', label: 'Home', icon: Home },
+  { to: '/portfolio', label: 'Portfolio', icon: LayoutGrid },
+  { to: '/services', label: 'Services', icon: Sparkles },
+  { to: '/virtual-design', label: 'Virtual Designs', icon: MonitorSmartphone },
+  { to: '/shop', label: 'Shop', icon: ShoppingBag },
+  { to: '/about', label: 'About', icon: User },
+  { to: '/socials', label: 'Socials', icon: Share2 },
+  { to: '/contact', label: 'Contact', icon: Mail },
 ]
 
 export const Navbar = () => {
@@ -63,7 +72,7 @@ export const Navbar = () => {
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    return () => window.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   useEffect(() => {
@@ -72,7 +81,7 @@ export const Navbar = () => {
       if (e.key === 'Escape') setMobileOpen(false)
     }
     document.addEventListener('keydown', handleEsc)
-    return () => document.removeEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
   }, [mobileOpen])
 
   const handleLogout = async () => {
@@ -82,6 +91,21 @@ export const Navbar = () => {
 
   const cartItems = cart || []
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+
+  const menuVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.06, delayChildren: 0.1 },
+    },
+    exit: { opacity: 0, transition: { staggerChildren: 0.04, staggerDirection: -1 } },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: 30 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
+    exit: { opacity: 0, x: -20, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } },
+  }
 
   return (
     <header
@@ -94,19 +118,19 @@ export const Navbar = () => {
       role="banner"
       style={{ willChange: 'transform, box-shadow, background' }}
     >
+      {/* DESKTOP HEADER - EXACTLY PRESERVED */}
       <div className="container-wide mx-auto px-4 md:px-8 lg:px-12">
-        <div className="flex items-center justify-between h-[88px] md:h-[96px] gap-4 md:gap-8 relative">
-          {/* LEFT SECTION - Logo */}
+        <div className="hidden md:flex items-center justify-between h-[88px] md:h-[96px] gap-4 md:gap-8 relative">
           <Link
             to="/"
             className="flex-shrink-0 leading-tight group -ml-4 md:-ml-8 flex items-center"
-            aria-label="HOK Interior - Home"
+            aria-label="HOK Interiors - Home"
           >
             <picture>
               <source srcSet={hokLogoWebP} type="image/webp" />
               <img
                 src={hokLogoPng}
-                alt="HOK Interior"
+                alt="HOK Interiors"
                 className="h-[34px] sm:h-[38px] md:h-[48px] lg:h-[50px] w-auto object-contain transition-all duration-300 group-hover:scale-102"
                 loading="eager"
                 width={200}
@@ -117,12 +141,11 @@ export const Navbar = () => {
               className="ml-3 md:ml-4 text-[16px] md:text-[18px] font-semibold tracking-[0.06em] text-[#8B5E3C] whitespace-nowrap"
               style={{ fontFamily: "'Cormorant Garamond', 'Cormorant Garamond Fallback', serif" }}
             >
-              HOK Interior
+              HOK Interiors
             </span>
           </Link>
 
-          {/* CENTER SECTION - Navigation Links */}
-          <nav className="hidden md:flex items-center justify-center flex-1" role="navigation" aria-label="Main navigation">
+          <nav className="flex items-center justify-center flex-1" role="navigation" aria-label="Main navigation">
             <div
               className="flex items-center gap-2 md:gap-4 lg:gap-6 animate-fade-in"
               style={{ animationDelay: '0.05s' }}
@@ -152,12 +175,9 @@ export const Navbar = () => {
                 )
               })}
 
-              {/* Vertical Divider */}
               <div className="w-px h-8 md:h-10 bg-[#E6D8C9]/40 mx-2 md:mx-4 hidden lg:block" aria-hidden="true" />
 
-              {/* RIGHT SECTION - Shop Icon + Account Icon + Cart */}
               <div className="flex items-center gap-3">
-                {/* Shop Icon - Direct link to shop page */}
                 <Link
                   to="/shop"
                   className="relative p-2 rounded-full text-[#2A241F]/70 transition-colors hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
@@ -166,7 +186,6 @@ export const Navbar = () => {
                   <ShoppingBag size={20} md={22} strokeWidth={1.5} aria-hidden="true" />
                 </Link>
 
-                {/* Cart Icon */}
                 <div className="relative" ref={cartRef}>
                   <button
                     onClick={() => setCartOpen((p) => !p)}
@@ -183,7 +202,6 @@ export const Navbar = () => {
                     )}
                   </button>
 
-                  {/* Cart Dropdown */}
                   {cartOpen && (
                     <>
                       <div
@@ -316,7 +334,6 @@ export const Navbar = () => {
                   )}
                 </div>
 
-                {/* User Account Dropdown */}
                 <div className="relative" role="menu" aria-label="User menu" ref={userMenuRef}>
                   <button
                     onClick={() => setUserMenuOpen((p) => !p)}
@@ -413,106 +430,157 @@ export const Navbar = () => {
               </div>
             </div>
           </nav>
+        </div>
 
-          {/* Mobile Menu Button - Right */}
-          <div className="md:hidden flex items-center gap-2">
-            {/* Shop Icon - Mobile */}
-            <Link
-              to="/shop"
-              className="p-2 rounded-full text-[#2A241F] transition-colors hover:bg-[#E6D8C9]/50 hover:text-[#E89A43]"
-              aria-label="Shop"
+        {/* MOBILE HEADER - CENTERED LOGO + HAMBURGER */}
+        <div className="flex md:hidden items-center justify-between h-[80px] relative">
+          <Link
+            to="/"
+            className="flex flex-col items-center leading-tight group"
+            aria-label="HOK Interiors - Home"
+          >
+            <picture>
+              <source srcSet={hokLogoWebP} type="image/webp" />
+              <img
+                src={hokLogoPng}
+                alt="HOK Interiors"
+                className="h-[42px] sm:h-[48px] w-auto object-contain transition-all duration-300 group-hover:scale-102"
+                loading="eager"
+                width={200}
+                height={50}
+              />
+            </picture>
+            <span
+              className="text-[11px] font-semibold tracking-[0.2em] text-[#8B5E3C] whitespace-nowrap mt-1"
+              style={{ fontFamily: "'Cormorant Garamond', 'Cormorant Garamond Fallback', serif" }}
             >
-              <ShoppingBag size={22} strokeWidth={1.5} />
-              {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-[#E89A43] text-white text-[9px] font-semibold flex items-center justify-center px-1 animate-badge-in">
-                  {totalItems > 99 ? '99+' : totalItems}
-                </span>
-              )}
-            </Link>
-            {/* Mobile Menu Button */}
-            <button
-              className="p-2 rounded-full text-[#2A241F] transition-colors hover:bg-[#E6D8C9]/50 active:scale-90"
-              onClick={() => setMobileOpen((p) => !p)}
-              aria-label="Toggle menu"
-              aria-expanded={mobileOpen}
-            >
-              {mobileOpen ? <X size={24} strokeWidth={1.5} /> : <Menu size={24} strokeWidth={1.5} />}
-            </button>
-          </div>
+              HOK Interiors
+            </span>
+          </Link>
+
+          <button
+            className="p-2.5 rounded-full text-[#2A241F] transition-all duration-300 hover:bg-[#E6D8C9]/50 active:scale-90"
+            onClick={() => setMobileOpen((p) => !p)}
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileOpen}
+          >
+            {mobileOpen ? <X size={26} strokeWidth={1.5} /> : <Menu size={26} strokeWidth={1.5} />}
+          </button>
         </div>
       </div>
 
-      {/* Mobile Slide-down Menu */}
-      {mobileOpen && (
-        <>
-          <div
-            className="fixed inset-0 bg-[#2A241F]/30 backdrop-blur-sm z-40 md:hidden animate-fade-in"
-            onClick={() => setMobileOpen(false)}
-            aria-hidden="true"
-          />
-          <div
-            className="fixed left-0 right-0 top-[96px] z-50 bg-white border-b border-[#E6D8C9]/40 shadow-xl md:hidden overflow-hidden animate-fade-in"
-          >
-            <div className="container-wide px-4 md:px-8 lg:px-12 py-6 space-y-6">
-              {/* Hero Buttons - Primary Actions */}
-              <div className="space-y-3 pt-2">
-                <Link
-                  to="/portfolio"
-                  onClick={() => setMobileOpen(false)}
-                  className="btn-luxury-primary w-full justify-center"
+      {/* FULLSCREEN MOBILE MENU */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35 }}
+              className="fixed inset-0 z-40 md:hidden bg-[#2A241F]/40 backdrop-blur-md"
+              onClick={() => setMobileOpen(false)}
+              aria-hidden="true"
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              className="fixed inset-y-0 right-0 z-50 md:hidden w-full max-w-md bg-[#FAF8F4] shadow-2xl"
+            >
+              <div className="flex h-full flex-col">
+                <div className="flex items-center justify-between px-6 h-[72px] border-b border-[#E6D8C9]/40">
+                  <span className="text-[11px] font-semibold tracking-[0.2em] text-[#8B5E3C]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                    Menu
+                  </span>
+                  <button
+                    className="p-2 rounded-full text-[#2A241F] transition-all duration-300 hover:bg-[#E6D8C9]/50 active:scale-90"
+                    onClick={() => setMobileOpen(false)}
+                    aria-label="Close menu"
+                  >
+                    <X size={24} strokeWidth={1.5} />
+                  </button>
+                </div>
+
+                <motion.nav
+                  variants={menuVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="flex-1 overflow-y-auto px-6 py-8"
+                  role="navigation"
+                  aria-label="Mobile navigation"
                 >
-                  View Portfolio
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-300 group-hover:translate-x-1">
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                  </svg>
-                </Link>
-                <button
-                  onClick={() => { setMobileOpen(false); setTimeout(() => window.dispatchEvent(new CustomEvent('open-consultation')), 100) }}
-                  className="btn-luxury-secondary w-full justify-center group"
-                >
-                  Book Consultation
-                  <CalendarCheck size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
-                </button>
+                  <div className="space-y-1">
+                    {FULLSCREEN_MENU_ITEMS.map((item) => {
+                      const isActive = location.pathname === item.to
+                      const Icon = item.icon
+                      return (
+                        <motion.div key={item.to} variants={itemVariants}>
+                          <Link
+                            to={item.to}
+                            onClick={() => setMobileOpen(false)}
+                            className={`flex items-center gap-5 rounded-2xl px-5 py-4.5 transition-all duration-300 ${
+                              isActive
+                                ? 'bg-[#E89A43]/10 text-[#E89A43]'
+                                : 'text-[#2A241F] hover:bg-[#E6D8C9]/40'
+                            }`}
+                            aria-current={isActive ? 'page' : undefined}
+                          >
+                            <span className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors duration-300 ${
+                              isActive ? 'bg-[#E89A43]/15 text-[#E89A43]' : 'bg-[#E6D8C9]/40 text-[#2A241F]/70'
+                            }`}>
+                              <Icon size={20} strokeWidth={1.5} aria-hidden="true" />
+                            </span>
+                            <span className="font-display text-lg md:text-xl font-normal tracking-wide">
+                              {item.label}
+                            </span>
+                          </Link>
+                        </motion.div>
+                      )
+                    })}
+                  </div>
+
+                  <div className="mt-10 space-y-4">
+                    {isAuthenticated && user ? (
+                      <motion.button
+                        variants={itemVariants}
+                        onClick={() => { handleLogout(); setMobileOpen(false) }}
+                        className="flex items-center gap-5 rounded-2xl px-5 py-4.5 text-[#C62828] hover:bg-[#C62828]/5 transition-all duration-300 w-full"
+                      >
+                        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E6D8C9]/40 text-[#C62828]">
+                          <LogOut size={20} strokeWidth={1.5} aria-hidden="true" />
+                        </span>
+                        <span className="font-display text-lg md:text-xl font-normal tracking-wide">Logout</span>
+                      </motion.button>
+                    ) : (
+                      <motion.div variants={itemVariants} className="space-y-3">
+                        <Link
+                          to="/login"
+                          onClick={() => setMobileOpen(false)}
+                          className="flex items-center justify-center gap-2 rounded-full border border-[#2A241F]/20 bg-white px-6 py-3.5 text-sm font-medium text-[#2A241F] transition-all duration-300 hover:border-[#E89A43] hover:text-[#E89A43]"
+                        >
+                          <LogIn size={16} strokeWidth={1.5} aria-hidden="true" />
+                          Log In
+                        </Link>
+                        <Link
+                          to="/register"
+                          onClick={() => setMobileOpen(false)}
+                          className="flex items-center justify-center gap-2 rounded-full bg-[#2A241F] px-6 py-3.5 text-sm font-medium text-white transition-all duration-300 hover:bg-[#2A241F]/90"
+                        >
+                          <UserPlus size={16} strokeWidth={1.5} aria-hidden="true" />
+                          Sign Up
+                        </Link>
+                      </motion.div>
+                    )}
+                  </div>
+                </motion.nav>
               </div>
-
-              {/* Divider */}
-              <div className="h-px bg-[#E6D8C9]/40" aria-hidden="true" />
-
-              {/* Nav Links */}
-              <nav className="space-y-4" role="navigation" aria-label="Mobile navigation">
-                {MOBILE_NAV_ITEMS.map((item) => {
-                  const isActive = location.pathname === item.to
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                        isActive ? 'bg-[#E89A43]/10 text-[#E89A43]' : 'text-[#2A241F] hover:bg-[#E6D8C9]/40 hover:text-[#E89A43]'
-                      }`}
-                      aria-current={isActive ? 'page' : undefined}
-                    >
-                      <span className="font-medium text-base">{item.label}</span>
-                    </Link>
-                  )
-                })}
-              </nav>
-
-              {/* Divider */}
-              <div className="h-px bg-[#E6D8C9]/40" aria-hidden="true" />
-
-              {/* Book Consultation */}
-              <button
-                onClick={() => { setMobileOpen(false); setTimeout(() => window.dispatchEvent(new CustomEvent('open-consultation')), 100) }}
-                className="btn-luxury-secondary w-full justify-center group"
-              >
-                Book Consultation
-                <CalendarCheck size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </header>
   )
 }

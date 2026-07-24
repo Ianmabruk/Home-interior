@@ -4,13 +4,12 @@ import { ArrowRight, Maximize2, Play, ShoppingBag } from 'lucide-react'
 import { Hero } from '../../components/Hero'
 import { AboutPreview } from '../../components/AboutPreview'
 import { ConsultationModal } from '../../components/ConsultationModal'
+import { CircularNavCard } from '../../components/mobile/CircularNavCard'
 import { api } from '../../services/api'
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 import { SHOP_CATEGORIES } from '../../utils/constants'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import { ScrollReveal } from '../../utils/scrollReveal'
-import { useIsMobile } from '../../utils/useIsMobile'
-import { MobilePreviewCard } from '../../components/MobilePreviewCard'
 
 export const HomePage = () => {
   const [showModal, setShowModal] = useState(false)
@@ -21,7 +20,6 @@ export const HomePage = () => {
   const [loading, setLoading] = useState(true)
   const [heroImages, setHeroImages] = useState([])
   const [aboutData, setAboutData] = useState(null)
-  const isMobile = useIsMobile()
 
   const loadData = async () => {
     try {
@@ -80,6 +78,31 @@ export const HomePage = () => {
 
   const fallbackImage =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%23f5f5f5'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23aaa' font-family='sans-serif' font-size='24'%3ENo Image%3C/text%3E%3C/svg%3E"
+
+  const getServiceImage = () => {
+    if (services.length > 0) {
+      const first = services[0]
+      if (first?.imageUrl || first?.mediaUrl || first?.image) return first.imageUrl || first.mediaUrl || first.image
+      if (first?.galleryImages?.[0]) return first.galleryImages[0]
+    }
+    if (aboutData?.aboutImageUrl) return aboutData.aboutImageUrl
+    if (aboutData?.heroImage) return aboutData.heroImage
+    if (heroImages.length > 0) {
+      const h = heroImages[0]
+      return typeof h === 'string' ? h : (h.imageUrl || h.mediaUrls?.[0] || h.url)
+    }
+    return null
+  }
+
+  const getSocialImage = () => {
+    if (aboutData?.aboutImageUrl) return aboutData.aboutImageUrl
+    if (aboutData?.heroImage) return aboutData.heroImage
+    if (heroImages.length > 0) {
+      const h = heroImages[0]
+      return typeof h === 'string' ? h : (h.imageUrl || h.mediaUrls?.[0] || h.url)
+    }
+    return null
+  }
 
   if (loading) {
     return (
@@ -198,11 +221,12 @@ export const HomePage = () => {
             <>
               <div className="md:hidden">
                 <ScrollReveal>
-                  <MobilePreviewCard
+                  <CircularNavCard
                     to="/portfolio"
-                    label="View Portfolio"
+                    label="Portfolio"
                     imageUrl={getProjectImage(portfolio[0])}
                     alt={portfolio[0].title}
+                    size={240}
                   />
                 </ScrollReveal>
               </div>
@@ -275,15 +299,15 @@ export const HomePage = () => {
             </div>
           </ScrollReveal>
 
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
-            {services.length === 0 ? (
-              <ScrollReveal>
-                <div className="col-span-full flex min-h-[40vh] items-center justify-center">
-                  <p className="font-display text-xl text-[var(--primary)]/60">No services configured</p>
-                </div>
-              </ScrollReveal>
-            ) : (
-              services.slice(0, 6).map((item, index) => {
+          {services.length === 0 ? (
+            <ScrollReveal>
+              <div className="flex min-h-[40vh] items-center justify-center">
+                <p className="font-display text-xl text-[var(--primary)]/60">No services configured</p>
+              </div>
+            </ScrollReveal>
+          ) : (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
+              {services.slice(0, 6).map((item, index) => {
                 const IconMap = {
                   LayoutGrid: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>,
                   Brush: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 4 9 9 0 1 1-9-9Z"/><line x1="21" y1="9" x2="15.5" y2="14.5"/><line x1="15" y1="15" x2="14" y2="16"/></svg>,
@@ -306,19 +330,19 @@ export const HomePage = () => {
                     </div>
                   </ScrollReveal>
                 )
-              })
-            )}
-          </div>
+              })}
+            </div>
+          )}
 
           <ScrollReveal delay={300}>
-            <div className="mt-16 text-center">
-              <Link
+            <div className="mt-16 text-center md:hidden">
+              <CircularNavCard
                 to="/services"
-                className="group inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)] transition-colors duration-300 hover:text-[var(--accent)]"
-              >
-                View Services
-                <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-              </Link>
+                label="Services"
+                imageUrl={getServiceImage()}
+                alt="Interior design services"
+                size={220}
+              />
             </div>
           </ScrollReveal>
         </div>
@@ -349,11 +373,12 @@ export const HomePage = () => {
             <>
               <div className="md:hidden">
                 <ScrollReveal>
-                  <MobilePreviewCard
+                  <CircularNavCard
                     to="/virtual-design"
-                    label="View Virtual Designs"
+                    label="Virtual Designs"
                     imageUrl={getProjectImage(virtualDesigns[0])}
                     alt={virtualDesigns[0].title}
+                    size={240}
                   />
                 </ScrollReveal>
               </div>
@@ -478,11 +503,12 @@ export const HomePage = () => {
             <>
               <div className="md:hidden">
                 <ScrollReveal>
-                  <MobilePreviewCard
+                  <CircularNavCard
                     to="/shop"
-                    label="Visit Shop"
+                    label="Shop With Us"
                     imageUrl={getProductImage(products[0])}
                     alt={products[0].name}
+                    size={260}
                   />
                 </ScrollReveal>
               </div>
@@ -503,54 +529,54 @@ export const HomePage = () => {
                   </ScrollReveal>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
                     {products.slice(0, 4).map((item) => (
-                    <ScrollReveal key={item.id}>
-                      <article className="group">
-                        <Link to={`/shop/${item.id}`} className="block" aria-label={`View ${item.name}`}>
-                          <div className="relative aspect-square overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
-                            {(() => {
-                              const imgSrc = typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url
-                              const srcSet = buildSrcSet(imgSrc)
-                              return imgSrc && (
-                                <>
-                                  <img
-                                    src={getOptimizedUrl(imgSrc, { width: 640 })}
-                                    srcSet={srcSet || undefined}
-                                    sizes={srcSet ? '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw' : undefined}
-                                    alt={item.name}
-                                    className="h-full w-full object-cover bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                                    loading="lazy"
-                                    decoding="async"
-                                  />
-                                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                </>
-                              )
-                            })()}
-                          </div>
-                        </Link>
-
-                        <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors">
-                                {item.name}
-                              </h3>
-                              <p className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-1">
-                                ${Number(item.discountPrice || item.price || 0).toFixed(2)}
-                              </p>
+                      <ScrollReveal key={item.id}>
+                        <article className="group">
+                          <Link to={`/shop/${item.id}`} className="block" aria-label={`View ${item.name}`}>
+                            <div className="relative aspect-square overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
+                              {(() => {
+                                const imgSrc = typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url
+                                const srcSet = buildSrcSet(imgSrc)
+                                return imgSrc && (
+                                  <>
+                                    <img
+                                      src={getOptimizedUrl(imgSrc, { width: 640 })}
+                                      srcSet={srcSet || undefined}
+                                      sizes={srcSet ? '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw' : undefined}
+                                      alt={item.name}
+                                      className="h-full w-full object-cover bg-[var(--bg)] transition duration-700 group-hover:scale-105"
+                                      loading="lazy"
+                                      decoding="async"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                  </>
+                                )
+                              })()}
                             </div>
-                            <button
-                              onClick={(e) => { e.preventDefault(); window.location.href = `/shop/${item.id}` }}
-                              className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 hover:scale-105 active:scale-95"
-                            >
-                              View Product
-                              <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-                            </button>
+                          </Link>
+
+                          <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors">
+                                  {item.name}
+                                </h3>
+                                <p className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-1">
+                                  ${Number(item.discountPrice || item.price || 0).toFixed(2)}
+                                </p>
+                              </div>
+                              <button
+                                onClick={(e) => { e.preventDefault(); window.location.href = `/shop/${item.id}` }}
+                                className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 hover:scale-105 active:scale-95"
+                              >
+                                View Product
+                                <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      </article>
-                    </ScrollReveal>
-                  ))}
-                </div>
+                        </article>
+                      </ScrollReveal>
+                    ))}
+                  </div>
                 </>
               </div>
             </>
@@ -572,18 +598,80 @@ export const HomePage = () => {
       </section>
 
       {/* About Section */}
-      {isMobile ? (
-        <ScrollReveal>
-          <MobilePreviewCard
-            to="/about"
-            label="Learn More"
-            imageUrl={aboutData?.aboutImageUrl || aboutData?.heroImage}
-            alt="About HOK Interior"
-          />
-        </ScrollReveal>
-      ) : (
-        <AboutPreview />
-      )}
+      <section className="bg-soft-cream px-6 md:px-12 lg:px-20 py-20 md:py-32">
+        <div className="container-wide">
+          <div className="grid items-center gap-12 lg:gap-24 lg:grid-cols-2">
+            <ScrollReveal>
+              <div className="relative overflow-hidden shadow-[0_24px_80px_rgba(42,36,31,0.1)] aspect-[4/5] md:aspect-[3/4] rounded-3xl">
+                <img
+                  src={getOptimizedUrl(aboutData?.aboutImageUrl || aboutData?.heroImage || '', { width: 1200, crop: 'limit' })}
+                  alt="Luxury interior design studio"
+                  className="h-full w-full object-cover transition duration-[1.2s] hover:scale-105"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-luxury-text/10 to-transparent" />
+              </div>
+            </ScrollReveal>
+
+            <ScrollReveal delay={150}>
+              <div className="space-y-8 md:space-y-10 max-w-3xl">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-orange-accent mb-4">Our Story</p>
+                  <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-normal text-luxury-text leading-[1.15]">
+                    Designing Spaces,
+                    <br />
+                    Creating Memories
+                  </h3>
+                </div>
+                <p className="text-base md:text-lg leading-[1.8] text-luxury-text/70">
+                  {aboutData?.story || aboutData?.content || aboutData?.description || 'We are a team of passionate designers dedicated to creating spaces that inspire and delight.'}
+                </p>
+
+                <div className="py-2 border-t border-b border-linen/40">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-orange-accent mb-3">Our Philosophy</p>
+                  <p className="font-display text-xl md:text-2xl text-luxury-text italic leading-relaxed">
+                    {aboutData?.mission || 'To transform spaces into timeless environments that reflect the unique personality and lifestyle of each client.'}
+                  </p>
+                </div>
+
+                <Link
+                  to="/about"
+                  className="group inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-orange-accent transition-colors duration-300 hover:text-warm-bronze"
+                >
+                  Discover Our Story
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="transition-transform duration-300 group-hover:translate-x-1"
+                  >
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+            </ScrollReveal>
+          </div>
+
+          <ScrollReveal delay={200}>
+            <div className="mt-16 text-center md:hidden">
+              <CircularNavCard
+                to="/about"
+                label="About Us"
+                imageUrl={getSocialImage()}
+                alt="About HOK Interiors"
+                size={240}
+              />
+            </div>
+          </ScrollReveal>
+        </div>
+      </section>
+
       <ConsultationModal isOpen={showModal} onClose={() => setShowModal(false)} />
     </main>
   )

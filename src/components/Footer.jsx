@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Instagram, Facebook, ArrowRight } from 'lucide-react'
 import { FaTiktok, FaPinterest } from 'react-icons/fa'
 import { useAuth } from '../context/AuthContext'
+import { api } from '../services/api'
 
 export const Footer = () => {
   const { user } = useAuth()
+  const [email, setEmail] = useState('')
+  const [status, setStatus] = useState('')
 
   const socialLinks = [
     { icon: FaTiktok, href: 'https://www.tiktok.com/@hokinteriors', label: 'TikTok', ariaLabel: 'Follow us on TikTok' },
@@ -17,10 +21,10 @@ export const Footer = () => {
     { to: '/portfolio', label: 'Portfolio' },
     { to: '/services', label: 'Services' },
     { to: '/virtual-design', label: 'Virtual Designs' },
+    { to: '/shop', label: 'Shop' },
     { to: '/about', label: 'About Us' },
-    { to: '/account', label: 'My Account', auth: true },
-    { to: '/register', label: 'Register', guest: true },
-    { to: '/login', label: 'Login', guest: true },
+    { to: '/socials', label: 'Socials' },
+    { to: '/contact', label: 'Contact' },
   ]
 
   const filteredQuickLinks = quickLinks.filter(link => {
@@ -28,6 +32,18 @@ export const Footer = () => {
     if (link.guest && user) return false
     return true
   })
+
+  const handleSubscribe = async (e) => {
+    e.preventDefault()
+    setStatus('')
+    try {
+      await api.post('/content/newsletter', { email })
+      setStatus('success')
+      setEmail('')
+    } catch {
+      setStatus('error')
+    }
+  }
 
   return (
     <footer className="relative bg-footer-bg text-footer-text" role="contentinfo">
@@ -104,6 +120,36 @@ export const Footer = () => {
                 </a>
               ))}
             </div>
+          </div>
+
+          <div
+            className="animate-fade-up space-y-4"
+            style={{ animationDelay: '0.5s' }}
+          >
+            <h3 className="font-display text-xl font-normal text-white">Newsletter</h3>
+            <p className="text-sm text-white/50">Subscribe to receive the latest updates and offers.</p>
+            <form onSubmit={handleSubscribe} className="space-y-3">
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                type="email"
+                required
+                placeholder="Email Address"
+                className="w-full rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm text-white placeholder:text-white/40 outline-none transition-all duration-300 focus:border-orange-accent focus:bg-white/10"
+              />
+              <button
+                type="submit"
+                className="w-full rounded-full bg-orange-accent px-5 py-3 text-[11px] font-semibold uppercase tracking-widest text-white transition-all duration-300 hover:bg-orange-hover hover:shadow-lg"
+              >
+                Join Mailing List
+              </button>
+            </form>
+            {status === 'success' && (
+              <p className="text-xs text-white/70">Thank you for subscribing.</p>
+            )}
+            {status === 'error' && (
+              <p className="text-xs text-white/70">Subscription failed. Please try again.</p>
+            )}
           </div>
         </div>
 
