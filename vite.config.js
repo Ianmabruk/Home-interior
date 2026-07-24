@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { compression } from 'vite-plugin-compression2'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -92,6 +93,10 @@ export default defineConfig({
         ],
       },
     }),
+    compression({
+      algorithms: ['gzip', 'brotliCompress'],
+      exclude: [/\.svg$/, /\.woff2$/, /\.webp$/],
+    }),
   ],
   server: {
     proxy: {
@@ -108,8 +113,9 @@ export default defineConfig({
     // main-thread parse/exec time (TBT) on mobile.
     target: 'es2020',
     cssCodeSplit: true,
-    reportCompressedSize: false,
-    chunkSizeWarningLimit: 700,
+    reportCompressedSize: true,
+    chunkSizeWarningLimit: 500,
+    minify: 'esbuild',
     rollupOptions: {
       output: {
         // Split heavy vendors into their own long-term-cacheable chunks so the
@@ -126,6 +132,10 @@ export default defineConfig({
           if (id.includes('react') || id.includes('scheduler')) return 'vendor-react'
           return 'vendor'
         },
+        // Preload critical chunks
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
       },
     },
   },

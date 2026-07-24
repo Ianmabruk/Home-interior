@@ -22,7 +22,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { useShop } from '../context/ShopContext'
 import hokLogoWebP from '../assets/hok-logo.webp'
-import hokLogoPng from '../assets/hok png logo.png'
 
 const NAV_ITEMS = [
   { to: '/portfolio', label: 'Portfolio' },
@@ -132,9 +131,8 @@ export const Navbar = () => {
             aria-label="HOK Interiors - Home"
           >
             <picture>
-              <source srcSet={hokLogoWebP} type="image/webp" />
               <img
-                src={hokLogoPng}
+                src={hokLogoWebP}
                 alt="HOK Interiors"
                 className="h-[34px] sm:h-[38px] md:h-[48px] lg:h-[50px] w-auto object-contain transition-all duration-300 group-hover:scale-102"
                 loading="eager"
@@ -445,9 +443,8 @@ export const Navbar = () => {
             aria-label="HOK Interiors - Home"
           >
             <picture>
-              <source srcSet={hokLogoWebP} type="image/webp" />
               <img
-                src={hokLogoPng}
+                src={hokLogoWebP}
                 alt="HOK Interiors"
                 className="h-[170px] w-[170px] object-contain transition-all duration-300 group-hover:scale-102"
                 loading="eager"
