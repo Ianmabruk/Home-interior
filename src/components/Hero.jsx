@@ -4,7 +4,7 @@ import { getOptimizedUrl, buildSrcSet } from '../utils/cloudinaryHelpers'
 /* eslint-disable react-hooks/set-state-in-effect -- Carousel crossfade requires synchronous state updates in effect */
 
 /* eslint-disable no-unused-vars -- onBookConsultation is kept for component API compatibility */
-export const Hero = ({ onBookConsultation, heroImages = [] }) => {
+export const Hero = ({ onBookConsultation, heroImages = [], className = '' }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [displayIndex, setDisplayIndex] = useState(0)
   const [opacityA, setOpacityA] = useState(1)
@@ -50,7 +50,7 @@ export const Hero = ({ onBookConsultation, heroImages = [] }) => {
 
   return (
     <section
-      className="relative w-full h-screen min-h-[700px] overflow-hidden bg-[var(--primary)]"
+      className={`relative w-full h-screen min-h-[700px] overflow-hidden bg-[var(--primary)] ${className}`}
       role="region"
       aria-label="Hero image"
     >

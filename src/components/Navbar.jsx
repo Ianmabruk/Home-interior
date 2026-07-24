@@ -433,10 +433,10 @@ export const Navbar = () => {
         </div>
 
         {/* MOBILE HEADER - CENTERED LOGO + HAMBURGER */}
-        <div className="flex md:hidden items-center justify-between h-[80px] relative">
+        <div className="flex md:hidden items-center justify-center h-[170px] relative">
           <Link
             to="/"
-            className="flex flex-col items-center leading-tight group"
+            className="flex flex-col items-center leading-none group"
             aria-label="HOK Interiors - Home"
           >
             <picture>
@@ -444,27 +444,28 @@ export const Navbar = () => {
               <img
                 src={hokLogoPng}
                 alt="HOK Interiors"
-                className="h-[42px] sm:h-[48px] w-auto object-contain transition-all duration-300 group-hover:scale-102"
+                className="h-[170px] w-[170px] object-contain transition-all duration-300 group-hover:scale-102"
                 loading="eager"
-                width={200}
-                height={50}
+                width={170}
+                height={170}
               />
             </picture>
             <span
-              className="text-[11px] font-semibold tracking-[0.2em] text-[#8B5E3C] whitespace-nowrap mt-1"
-              style={{ fontFamily: "'Cormorant Garamond', 'Cormorant Garamond Fallback', serif" }}
+              className="text-[34px] font-medium tracking-[0.4px] text-[#8B5E3C] whitespace-nowrap uppercase"
+              style={{ fontFamily: "'Cormorant Garamond', 'Cormorant Garamond Fallback', serif", marginTop: '4px', marginBottom: '18px' }}
             >
               HOK Interiors
             </span>
           </Link>
 
           <button
-            className="p-2.5 rounded-full text-[#2A241F] transition-all duration-300 hover:bg-[#E6D8C9]/50 active:scale-90"
+            className="absolute text-[#F7F4EF] transition-all duration-300 hover:bg-[#E6D8C9]/50 active:scale-90"
+            style={{ top: '28px', right: '20px', width: '34px', height: '34px' }}
             onClick={() => setMobileOpen((p) => !p)}
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileOpen}
           >
-            {mobileOpen ? <X size={26} strokeWidth={1.5} /> : <Menu size={26} strokeWidth={1.5} />}
+            {mobileOpen ? <X size={34} strokeWidth={1.5} /> : <Menu size={34} strokeWidth={1.5} />}
           </button>
         </div>
       </div>
