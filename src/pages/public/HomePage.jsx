@@ -205,7 +205,7 @@ export const HomePage = () => {
       <section className="bg-[var(--secondary)]/30 md:py-20 md:md:py-32">
         <div className="container-wide md:px-12 lg:px-20">
           {isMobile ? (
-            <div className="px-4 pt-8 pb-4">
+            <div className="px-4 pt-[30px] pb-[15px]">
               <CircularNavCard
                 to="/portfolio"
                 label="Portfolio"
@@ -272,7 +272,7 @@ export const HomePage = () => {
           )}
 
           {isMobile && (
-            <div className="px-4 py-6">
+            <div className="px-4 py-[15px]">
               <CircularNavCard
                 to="/services"
                 label="Services"
@@ -288,7 +288,7 @@ export const HomePage = () => {
       <section className="bg-soft-cream md:py-20 md:md:py-32">
         <div className="container-wide md:px-12 lg:px-20">
           {isMobile ? (
-            <div className="px-4 pt-8 pb-4">
+            <div className="px-4 py-[15px]">
               <CircularNavCard
                 to="/virtual-design"
                 label="Virtual Designs"
@@ -349,7 +349,7 @@ export const HomePage = () => {
           )}
 
           {isMobile && (
-            <div className="px-4 py-6">
+            <div className="px-4 py-[15px]">
               <CircularNavCard
                 to="/shop"
                 label="Shop With Us"
@@ -365,7 +365,7 @@ export const HomePage = () => {
       <section className="bg-[var(--bg)]/40 md:py-20 md:md:py-32">
         <div className="container-wide md:px-12 lg:px-20">
           {isMobile ? (
-            <div className="px-4 pt-8 pb-4">
+            <div className="px-4 py-[15px]">
               <CircularNavCard
                 to="/about"
                 label="About Us"
@@ -477,7 +477,7 @@ export const HomePage = () => {
           )}
 
           {isMobile && (
-            <div className="px-4 pt-6">
+            <div className="px-4 pt-[15px] pb-[40px]">
               <CircularNavCard
                 to="/socials"
                 label="Socials"
@@ -489,18 +489,6 @@ export const HomePage = () => {
           )}
         </div>
       </section>
-
-      {isMobile && (
-        <div className="px-4 pt-6">
-          <CircularNavCard
-            to="/about"
-            label="About Us"
-            imageUrl={getSocialImage()}
-            alt="About HOK Interiors"
-            size={300}
-          />
-        </div>
-      )}
 
       <ConsultationModal isOpen={showModal} onClose={() => setShowModal(false)} />
     </main>

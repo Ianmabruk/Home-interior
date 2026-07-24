@@ -12,9 +12,9 @@ const floatKeyframes = {
 }
 
 const TriangleSVG = () => (
-  <svg viewBox="0 0 175 70" className="h-full w-full" preserveAspectRatio="none">
+  <svg viewBox="0 0 180 72" className="h-full w-full" preserveAspectRatio="none">
     <path
-      d="M 87.5 35 L 159 0 A 16 16 0 0 1 175 16 L 175 54 A 16 16 0 0 1 159 70 Z"
+      d="M 90 36 L 164 0 A 16 16 0 0 1 180 16 L 180 56 A 16 16 0 0 1 164 72 Z"
       fill="#E89A43"
     />
   </svg>
@@ -32,7 +32,7 @@ export const CircularNavCard = ({ to, label, imageUrl, alt, size = 300 }) => {
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="relative" style={{ width: clampedSize, height: clampedSize + 70 }}>
+      <div className="relative" style={{ width: clampedSize, height: clampedSize + 72 }}>
         <motion.div
           animate={floatKeyframes}
           className="absolute left-1/2 -translate-x-1/2 rounded-full"
@@ -66,13 +66,13 @@ export const CircularNavCard = ({ to, label, imageUrl, alt, size = 300 }) => {
 
         <Link
           to={to}
-          className="absolute bottom-0 left-0 flex items-end group focus:outline-none"
-          style={{ width: 175, height: 70 }}
+          className="absolute bottom-[15px] left-0 flex items-end group focus:outline-none"
+          style={{ width: 180, height: 72 }}
           aria-label={`${label} — tap to explore`}
         >
           <TriangleSVG />
           <span
-            className="absolute left-[22px] bottom-[18px] text-white font-medium"
+            className="absolute left-[22px] bottom-[18px] text-white font-semibold"
             style={{
               fontFamily: "'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, sans-serif",
               fontSize: '16px',

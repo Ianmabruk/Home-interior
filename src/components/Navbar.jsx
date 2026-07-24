@@ -84,6 +84,11 @@ export const Navbar = () => {
     return () => window.removeEventListener('keydown', handleEsc)
   }, [mobileOpen])
 
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [mobileOpen])
+
   const handleLogout = async () => {
     await logout()
     setUserMenuOpen(false)
@@ -450,22 +455,16 @@ export const Navbar = () => {
                 height={170}
               />
             </picture>
-            <span
-              className="text-[34px] font-medium tracking-[0.4px] text-[#8B5E3C] whitespace-nowrap uppercase"
-              style={{ fontFamily: "'Cormorant Garamond', 'Cormorant Garamond Fallback', serif", marginTop: '4px', marginBottom: '18px' }}
-            >
-              HOK Interiors
-            </span>
           </Link>
 
           <button
-            className="absolute text-[#F7F4EF] transition-all duration-300 hover:bg-[#E6D8C9]/50 active:scale-90"
-            style={{ top: '28px', right: '20px', width: '34px', height: '34px' }}
+            className="absolute text-[#2A241F] transition-all duration-300 hover:bg-[#E6D8C9]/50 active:scale-90"
+            style={{ top: '20px', right: '16px', width: '48px', height: '48px', padding: '6px' }}
             onClick={() => setMobileOpen((p) => !p)}
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileOpen}
           >
-            {mobileOpen ? <X size={34} strokeWidth={1.5} /> : <Menu size={34} strokeWidth={1.5} />}
+            {mobileOpen ? <X size={36} strokeWidth={3} /> : <Menu size={36} strokeWidth={3} />}
           </button>
         </div>
       </div>
@@ -479,7 +478,7 @@ export const Navbar = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.35 }}
-              className="fixed inset-0 z-40 md:hidden bg-[#2A241F]/40 backdrop-blur-md"
+              className="fixed inset-0 z-[9998] md:hidden bg-[#2A241F]/50 backdrop-blur-md"
               onClick={() => setMobileOpen(false)}
               aria-hidden="true"
             />
@@ -488,7 +487,7 @@ export const Navbar = () => {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              className="fixed inset-y-0 right-0 z-50 md:hidden w-full max-w-md bg-[#FAF8F4] shadow-2xl"
+              className="fixed inset-0 z-[9999] md:hidden w-full h-full bg-[#FAF8F4] shadow-2xl"
             >
               <div className="flex h-full flex-col">
                 <div className="flex items-center justify-between px-6 h-[72px] border-b border-[#E6D8C9]/40">
