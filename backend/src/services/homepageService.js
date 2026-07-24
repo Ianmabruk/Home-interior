@@ -64,7 +64,8 @@ async function getHomepage() {
       featuredProject: featuredPortfolio[0] || portfolio[0] || null,
       products: featuredProducts,
     }
-  } catch {
+  } catch (err) {
+    console.error('[homepageService] Failed to load homepage data:', err)
     return {
       portfolio: [],
       virtualDesigns: [],

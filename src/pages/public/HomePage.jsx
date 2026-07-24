@@ -181,7 +181,7 @@ export const HomePage = () => {
           {portfolio.length === 0 ? (
             <ScrollReveal>
               <div className="flex min-h-[40vh] items-center justify-center">
-                <p className="font-display text-xl text-[var(--primary)]/30">No projects yet</p>
+                <p className="font-display text-xl text-[var(--primary)]/60">No projects yet</p>
               </div>
             </ScrollReveal>
           ) : (
@@ -255,7 +255,7 @@ export const HomePage = () => {
             {services.length === 0 ? (
               <ScrollReveal>
                 <div className="col-span-full flex min-h-[40vh] items-center justify-center">
-                  <p className="font-display text-xl text-[var(--primary)]/30">No services configured</p>
+                  <p className="font-display text-xl text-[var(--primary)]/60">No services configured</p>
                 </div>
               </ScrollReveal>
             ) : (
@@ -318,7 +318,7 @@ export const HomePage = () => {
           {virtualDesigns.length === 0 ? (
             <ScrollReveal>
               <div className="flex min-h-[40vh] items-center justify-center">
-                <p className="font-display text-xl text-[var(--primary)]/30">No virtual designs yet</p>
+                <p className="font-display text-xl text-[var(--primary)]/60">No virtual designs yet</p>
               </div>
             </ScrollReveal>
           ) : (
@@ -433,7 +433,7 @@ export const HomePage = () => {
           {products.length === 0 ? (
             <ScrollReveal>
               <div className="flex min-h-[40vh] items-center justify-center">
-                <p className="font-display text-xl text-[var(--primary)]/30">No products available</p>
+                <p className="font-display text-xl text-[var(--primary)]/60">No products available</p>
               </div>
             </ScrollReveal>
           ) : (
@@ -501,7 +501,8 @@ export const HomePage = () => {
                 </ScrollReveal>
               ))}
             </div>
-          </>)}"
+          </>
+          )}
 
           <ScrollReveal delay={300}>
             <div className="mt-16 text-center">
