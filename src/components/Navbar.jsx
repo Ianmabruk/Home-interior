@@ -113,16 +113,16 @@ export const Navbar = () => {
   }
 
   return (
-    <header
-      ref={navRef}
-      className={`relative w-full z-50 transition-all duration-300 sticky top-0 ${
-        scrolled
-          ? 'bg-white/90 backdrop-blur-xl border-b border-[#E6D8C9]/40 shadow-[0_8px_32px_rgba(27,23,20,0.08)]'
-          : 'bg-white/70 backdrop-blur-lg border-b border-[#E6D8C9]/30'
-      }`}
-      role="banner"
-      style={{ willChange: 'transform, box-shadow, background' }}
-    >
+    <>
+      <header
+        ref={navRef}
+        className={`relative w-full z-50 transition-all duration-300 sticky top-0 ${
+          scrolled
+            ? 'bg-white/90 backdrop-blur-xl border-b border-[#E6D8C9]/40 shadow-[0_8px_32px_rgba(27,23,20,0.08)]'
+            : 'bg-white/70 backdrop-blur-lg border-b border-[#E6D8C9]/30'
+        }`}
+        role="banner"
+      >
       {/* DESKTOP HEADER - EXACTLY PRESERVED */}
       <div className="container-wide mx-auto px-4 md:px-8 lg:px-12">
         <div className="hidden md:flex items-center justify-between h-[88px] md:h-[96px] gap-4 md:gap-8 relative">
@@ -468,8 +468,9 @@ export const Navbar = () => {
           </button>
         </div>
       </div>
+    </header>
 
-      {/* FULLSCREEN MOBILE MENU */}
+      {/* FULLSCREEN MOBILE MENU - rendered outside header to avoid stacking context issues */}
       <AnimatePresence>
         {mobileOpen && (
           <>
@@ -581,7 +582,7 @@ export const Navbar = () => {
           </>
         )}
       </AnimatePresence>
-    </header>
+    </>
   )
 }
 

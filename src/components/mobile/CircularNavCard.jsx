@@ -2,39 +2,52 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
-const floatKeyframes = {
-  y: [0, -10, 0],
-  transition: {
-    duration: 5,
-    repeat: Infinity,
-    ease: 'easeInOut',
-  },
+const labelWidths = {
+  'Portfolio': 100,
+  'Services': 90,
+  'Virtual Designs': 140,
+  'Shop With Us': 120,
+  'About Us': 80,
+  'Socials': 85,
 }
 
-const TriangleSVG = ({ label }) => (
-  <svg viewBox="0 0 180 72" className="w-full h-full" preserveAspectRatio="none" aria-hidden="true">
-    <path
-      d="M 0 0 L 144 0 A 16 16 0 0 1 160 16 L 160 56 A 16 16 0 0 1 144 72 Z"
-      fill="#E89A43"
-    />
-    <text
-      x="38"
-      y="42"
-      fill="white"
-      fontFamily="'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, sans-serif"
-      fontSize="16"
-      fontWeight="600"
-      letterSpacing="0.02em"
-      textAnchor="start"
-    >
-      {label}
-    </text>
-  </svg>
-)
+const getTriangleWidth = (label) => {
+  const baseWidth = labelWidths[label] || label.length * 8 + 40
+  return Math.max(baseWidth, 80)
+}
+
+const TriangleSVG = ({ label }) => {
+  const width = getTriangleWidth(label)
+  const height = 56
+  const textX = width * 0.22
+  const textY = height * 0.58
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full" preserveAspectRatio="none" aria-hidden="true">
+      <path
+        d={`M 0 0 L ${width - 16} 0 A 16 16 0 0 1 ${width} 16 L ${width} ${height - 16} A 16 16 0 0 1 ${width - 16} ${height} Z`}
+        fill="#E89A43"
+      />
+      <text
+        x={textX}
+        y={textY}
+        fill="white"
+        fontFamily="'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, sans-serif"
+        fontSize="14"
+        fontWeight="600"
+        letterSpacing="0.02em"
+        textAnchor="start"
+      >
+        {label}
+      </text>
+    </svg>
+  )
+}
 
 export const CircularNavCard = ({ to, label, imageUrl, alt, size = 300 }) => {
   const displayUrl = typeof imageUrl === 'string' ? imageUrl : null
   const clampedSize = Math.min(size, 320)
+  const triangleWidth = getTriangleWidth(label)
 
   return (
     <motion.div
@@ -44,15 +57,14 @@ export const CircularNavCard = ({ to, label, imageUrl, alt, size = 300 }) => {
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="relative flex justify-center items-start w-full" style={{ height: clampedSize + 50 }}>
+      <div className="relative flex justify-center items-start w-full" style={{ height: clampedSize + 40 }}>
         <Link
           to={to}
           className="relative flex flex-col items-center group focus:outline-none"
-          aria-label={`${label} — tap to explore`}
+          aria-label={`${label} \u2014 tap to explore`}
         >
-          <motion.div
-            animate={floatKeyframes}
-            className="relative rounded-full"
+          <div
+            className="relative rounded-full transition-transform duration-300 hover:scale-[1.02] active:scale-[0.98]"
             style={{
               width: clampedSize,
               height: clampedSize,
@@ -79,9 +91,9 @@ export const CircularNavCard = ({ to, label, imageUrl, alt, size = 300 }) => {
                 </svg>
               </div>
             )}
-          </motion.div>
+          </div>
 
-          <TriangleSVG label={label} className="relative -mt-px w-[180px] h-[72px] flex-shrink-0" />
+          <TriangleSVG label={label} className="relative -mt-2 w-[180px] h-[56px] flex-shrink-0" style={{ width: triangleWidth }} />
         </Link>
       </div>
     </motion.div>

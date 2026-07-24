@@ -1,194 +1,368 @@
 import { motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
+import { useState } from 'react'
+import { Upload, X, Image as ImageIcon, Send } from 'lucide-react'
 import { api } from '../../services/api'
-import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
-import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
+import { toast } from 'react-hot-toast'
 
-const containerVariants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.08 } },
+const uploadVariants = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } },
+  exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } },
 }
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 30 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
-}
+const ImageUpload = ({ index, onRemove, previews, setPreviews }) => {
+  const [isDragging, setIsDragging] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState(null)
+  const fileInputRef = useRef(null)
 
-export const ServicesPage = () => {
-  const [services, setServices] = useState([])
-  const [loading, setLoading] = useState(true)
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
 
-  const loadServices = async () => {
-    try {
-      const res = await api.get('/services')
-      setServices(Array.isArray(res.data) ? res.data : res.data?.items || [])
-    } catch (err) {
-      console.warn('[SERVICES] Failed to load:', err?.message)
-      setServices([])
-    } finally {
-      setLoading(false)
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files[0]
+    if (file && file.type.startsWith('image/')) {
+      handleFile(file)
     }
   }
 
-  useEffect(() => { 
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial data load is a standard pattern
-    loadServices() 
-  }, [])
-
-  useEffect(() => {
-    const handler = (event) => {
-      const payload = getAdminDataChangedPayload(event)
-      if (payload?.type === 'services-changed') loadServices()
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0]
+    if (file && file.type.startsWith('image/')) {
+      handleFile(file)
     }
-    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-    return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-  }, [])
+  }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[var(--bg)]">
-        <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)] via-[var(--primary)]/80 to-[var(--primary)]/60" />
-          <div className="relative z-10 flex h-full items-center justify-center px-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-              className="text-center"
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]/80 mb-4">Services</p>
-              <h1 className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl">Loading...</h1>
-            </motion.div>
+  const handleFile = (file) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB')
+      return
+    }
+    const url = URL.createObjectURL(file)
+    setPreviewUrl(url)
+    const newPreviews = [...previews]
+    newPreviews[index] = { file, url }
+    setPreviews(newPreviews)
+  }
+
+  const removeImage = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setPreviewUrl(null)
+    const newPreviews = [...previews]
+    newPreviews[index] = null
+    setPreviews(newPreviews)
+    onRemove(index)
+  }
+
+  const uploadAreaClass = `relative rounded-2xl border-2 border-dashed transition-all duration-300 ${
+    isDragging ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--border)]/60 hover:border-[var(--accent)]/50'
+  }`
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="flex-1 min-w-0"
+    >
+      {previewUrl ? (
+        <div className="relative aspect-square rounded-2xl overflow-hidden border border-[var(--border)]/40 bg-white">
+          <img
+            src={previewUrl}
+            alt={`Upload preview ${index + 1}`}
+            className="h-full w-full object-cover"
+          />
+          <button
+            type="button"
+            onClick={removeImage}
+            className="absolute top-2 right-2 p-1.5 rounded-full bg-[var(--primary)]/80 text-white hover:bg-[var(--accent)] transition-colors shadow-md"
+            aria-label={`Remove image ${index + 1}`}
+          >
+            <X size={16} strokeWidth={2} />
+          </button>
+          <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
+            <p className="text-xs text-white/80 truncate">{previews[index]?.file?.name || 'Image'}</p>
           </div>
-        </section>
-      </div>
-    )
+        </div>
+      ) : (
+        <div
+          className={`${uploadAreaClass} aspect-square flex flex-col items-center justify-center p-6 text-center cursor-pointer`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelect}
+            className="hidden"
+            aria-label={`Upload image ${index + 1}`}
+          />
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--secondary)]/50 text-[var(--accent)]">
+              <Upload size={28} strokeWidth={1.5} />
+            </div>
+            <p className="text-sm font-medium text-[var(--primary)]">Upload Image {index + 1}</p>
+            <p className="text-xs text-[var(--primary)]/50">Max 5MB • JPG, PNG, WebP</p>
+            <p className="text-[10px] text-[var(--primary)]/40">Drag & drop or click to browse</p>
+          </div>
+        </div>
+      )}
+    </motion.div>
+  )
+}
+
+export const ServicesPage = () => {
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    projectSummary: '',
+  })
+  const [previews, setPreviews] = useState([null, null, null])
+  const [submitting, setSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState(null)
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setSubmitStatus(null)
+
+    try {
+      const formDataToSend = new FormData()
+      formDataToSend.append('fullName', formData.fullName)
+      formDataToSend.append('email', formData.email)
+      formDataToSend.append('phone', formData.phone)
+      formDataToSend.append('projectSummary', formData.projectSummary)
+
+      previews.forEach((preview, index) => {
+        if (preview?.file) {
+          formDataToSend.append(`image${index + 1}`, preview.file)
+        }
+      })
+
+      await api.post('/contact/inquiry', formDataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+
+      setSubmitStatus('success')
+      setFormData({ fullName: '', email: '', phone: '', projectSummary: '' })
+      setPreviews([null, null, null])
+      toast.success('Inquiry submitted successfully!')
+    } catch (err) {
+      console.error('[SERVICES] Submission failed:', err)
+      setSubmitStatus('error')
+      toast.error('Failed to submit inquiry. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
-      {/* Page Header */}
       <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
-        <div className="absolute inset-0">
-           <img
-             src={getOptimizedUrl('', { width: 2000, crop: 'limit' })}
-             alt="Luxury interior design services"
-            className="h-full w-full object-cover"
-            loading="eager"
-            decoding="async"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/65 via-[var(--primary)]/75 to-transparent" />
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)] via-[var(--primary)]/80 to-[var(--primary)]/60" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(232,154,67,0.15),transparent_50%)]" />
         <div className="relative z-10 container-wide px-6 md:px-12 lg:px-20">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--bg)]/80 mb-4">Our Services</p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]/80 mb-4">Project Inquiry</p>
             <h1 className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl">
-              What We Do
+              Tell Us About Your Project
             </h1>
             <p className="mt-6 max-w-xl text-base text-white/60 leading-relaxed">
-              Comprehensive interior design services tailored to elevate your space with timeless elegance.
+              Share your vision and we&apos;ll get back to you with a personalized proposal.
             </p>
           </motion.div>
         </div>
       </section>
 
-      {/* Services Grid */}
       <section className="section-pad bg-[var(--bg)] pt-12">
         <div className="container-wide px-6 md:px-12 lg:px-20">
-          {loading && (
-            <div className="grid gap-8 grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="group">
-                  <div className="skeleton aspect-square w-full rounded-3xl mb-8" />
-                  <div className="skeleton h-6 w-full mb-2" />
-                  <div className="skeleton h-4 w-3/4" />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {!loading && services.length === 0 && (
+          <div className="max-w-3xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="py-24 text-center"
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             >
-              <p className="font-display text-3xl text-[var(--primary)]/30">No services configured</p>
-            </motion.div>
-          )}
+              <form onSubmit={handleSubmit} className="space-y-8">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div>
+                    <label htmlFor="fullName" className="block text-sm font-medium text-[var(--primary)] mb-2">
+                      Full Name <span className="text-[var(--accent)]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="fullName"
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleChange}
+                      required
+                      className="w-full rounded-xl border border-[var(--border)]/40 bg-white px-5 py-3.5 text-base text-[var(--primary)] placeholder:text-[var(--primary)]/30 outline-none transition-all duration-300 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                      placeholder="John Doe"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-[var(--primary)] mb-2">
+                      Email Address <span className="text-[var(--accent)]">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      className="w-full rounded-xl border border-[var(--border)]/40 bg-white px-5 py-3.5 text-base text-[var(--primary)] placeholder:text-[var(--primary)]/30 outline-none transition-all duration-300 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                      placeholder="john@example.com"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-[var(--primary)] mb-2">
+                      Phone Number <span className="text-[var(--accent)]">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      required
+                      className="w-full rounded-xl border border-[var(--border)]/40 bg-white px-5 py-3.5 text-base text-[var(--primary)] placeholder:text-[var(--primary)]/30 outline-none transition-all duration-300 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                      placeholder="+254 7XX XXX XXX"
+                    />
+                  </div>
+                </div>
 
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-50px' }}
-            className="grid gap-8 md:gap-10 lg:gap-12 grid-cols-2 lg:grid-cols-3"
-          >
-            {services.filter(s => s.isActive).map((item) => {
-              const IconComponent = {
-                LayoutGrid: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>,
-                Brush: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 4 9 9 0 1 1-9-9Z"/><line x1="21" y1="9" x2="15.5" y2="14.5"/><line x1="15" y1="15" x2="14" y2="16"/></svg>,
-                MonitorSmartphone: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M18 8V5a2 2 0 0 0-2-2H4"/><path d="M17 9h.01"/><rect width="6" height="10" x="16" y="12" rx="2"/><path d="M6 12h.01"/><rect width="6" height="12" x="4" y="8" rx="2"/></svg>,
-                Armchair: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5"/><path d="M5 18v2"/><path d="M19 18v2"/></svg>,
-                Search: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-                Sparkles: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v2.2"/><path d="M16.38 4.74l1.06 1.06"/><path d="M18 12h2.2"/><path d="M21 16.38l-1.06 1.06"/><path d="M12 21v-2.2"/><path d="M7.64 19.34l1.06-1.06"/><path d="M3 12h-2.2"/><path d="M4.74 4.74l-1.06 1.06"/></svg>,
-              }[item.icon] || (() => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/></svg>)
-              return (
-                <motion.div
-                  key={item.id}
-                  variants={itemVariants}
-                  whileHover={{ y: -8, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }}
-                  className="group flex flex-col items-center text-center"
-                >
+                <div>
+                  <label htmlFor="projectSummary" className="block text-sm font-medium text-[var(--primary)] mb-2">
+                    Project Summary <span className="text-[var(--accent)]">*</span>
+                  </label>
+                  <textarea
+                    id="projectSummary"
+                    name="projectSummary"
+                    value={formData.projectSummary}
+                    onChange={handleChange}
+                    required
+                    rows={5}
+                    className="w-full rounded-xl border border-[var(--border)]/40 bg-white px-5 py-3.5 text-base text-[var(--primary)] placeholder:text-[var(--primary)]/30 outline-none transition-all duration-300 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 resize-none"
+                    placeholder="Tell us about your project: type of space, style preferences, timeline, budget range, and any specific requirements..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--primary)] mb-4">
+                    Reference Images (Optional) <span className="text-[var(--primary)]/50 font-normal">— Up to 3 images</span>
+                  </label>
+                  <p className="text-sm text-[var(--primary)]/50 mb-4">
+                    Upload inspiration photos, floor plans, or current space photos to help us understand your vision.
+                  </p>
                   <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    className="mb-8 inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-champagne-beige/60 text-espresso transition-all duration-500 group-hover:bg-espresso group-hover:text-cream group-hover:scale-105"
+                    initial="hidden"
+                    animate="visible"
+                    variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
+                    className="grid gap-4 grid-cols-3"
                   >
-                    <IconComponent />
+                    {[0, 1, 2].map((i) => (
+                      <ImageUpload
+                        key={i}
+                        index={i}
+                        previews={previews}
+                        setPreviews={setPreviews}
+                        onRemove={() => {}}
+                      />
+                    ))}
                   </motion.div>
-                  <h3 className="font-display text-xl md:text-2xl font-medium text-espresso leading-tight">
-                    {item.title}
-                  </h3>
-                  <p className="mt-2 text-sm text-espresso/60 leading-relaxed">{item.description}</p>
-                </motion.div>
-              )
-            })}
-          </motion.div>
+                </div>
 
-          {/* CTA Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-100px' }}
-            transition={{ delay: 0.3, duration: 0.7 }}
-            className="mt-16 md:mt-24 text-center"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Ready to Start?</p>
-            <h2 className="font-display text-3xl md:text-4xl font-normal text-[var(--primary)] mb-6">
-              Let&apos;s Create Something Beautiful
-            </h2>
-            <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed mb-10">
-              From concept to completion, we guide you through every step of the design journey.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button
-                onClick={() => window.dispatchEvent(new CustomEvent('open-consultation'))}
-                className="btn-luxury-primary group px-8 py-4 text-[11px] rounded-xl"
-              >
-                Book Consultation
-                <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-              </button>
-              <Link
-                to="/portfolio"
-                className="group btn-luxury-secondary px-8 py-4 text-[11px] rounded-xl"
-              >
-                View Portfolio
-              </Link>
-            </div>
-          </motion.div>
+                {submitStatus === 'success' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 rounded-xl bg-[var(--success)]/10 border border-[var(--success)]/20 text-[var(--success)] text-sm"
+                  >
+                    Thank you! Your inquiry has been submitted. We&apos;ll contact you within 24 hours.
+                  </motion.div>
+                )}
+
+                {submitStatus === 'error' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 rounded-xl bg-[var(--error)]/10 border border-[var(--error)]/20 text-[var(--error)] text-sm"
+                  >
+                    Something went wrong. Please try again or contact us directly.
+                  </motion.div>
+                )}
+
+                <motion.button
+                  type="submit"
+                  disabled={submitting}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="btn-luxury-primary w-full md:w-auto px-10 py-4 text-[11px] rounded-xl flex items-center justify-center gap-2"
+                >
+                  {submitting ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      Submit Inquiry
+                      <Send size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+                    </>
+                  )}
+                </motion.button>
+              </form>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section-pad bg-[var(--primary)]">
+        <div className="container-wide px-6 md:px-12 lg:px-20 text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--secondary)]/50 mb-4">Prefer Direct Contact?</p>
+          <h2 className="font-display text-4xl font-normal text-white md:text-5xl lg:text-6xl leading-[1.05] mb-6">
+            Let&apos;s Talk
+          </h2>
+          <p className="mt-6 max-w-2xl mx-auto text-base text-white/50 leading-relaxed mb-10">
+            Call or email us directly for immediate assistance.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a
+              href="tel:+254700000000"
+              className="btn-luxury-primary group px-8 py-4 text-[11px] rounded-xl"
+            >
+              Call Us
+            </a>
+            <a
+              href="mailto:info@hokinteriors.com"
+              className="group btn-luxury-secondary px-8 py-4 text-[11px] rounded-xl"
+            >
+              Email Us
+            </a>
+          </div>
         </div>
       </section>
     </div>
