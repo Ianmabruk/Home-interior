@@ -9,6 +9,8 @@ import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 import { SHOP_CATEGORIES } from '../../utils/constants'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import { ScrollReveal } from '../../utils/scrollReveal'
+import { useIsMobile } from '../../utils/useIsMobile'
+import { MobilePreviewCard } from '../../components/MobilePreviewCard'
 
 export const HomePage = () => {
   const [showModal, setShowModal] = useState(false)
@@ -18,6 +20,8 @@ export const HomePage = () => {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [heroImages, setHeroImages] = useState([])
+  const [aboutData, setAboutData] = useState(null)
+  const isMobile = useIsMobile()
 
   const loadData = async () => {
     try {
@@ -29,6 +33,7 @@ export const HomePage = () => {
       setVirtualDesigns(homepageData.virtualInteriorDesign || homepageData.virtualDesigns || [])
       setHeroImages(homepageData.heroImages || [])
       setProducts(Array.isArray(homepageData.products) ? homepageData.products : [])
+      setAboutData(homepageData.about || null)
     } catch (err) {
       console.warn('[HOME] Failed to load data:', err?.message)
     } finally {
@@ -68,6 +73,11 @@ export const HomePage = () => {
     return item.mediaType || item.type || 'image'
   }
 
+  const getProductImage = (item) => {
+    if (!item || !item.images) return null
+    return typeof item.images[0] === 'string' ? item.images[0] : item.images[0]?.url || null
+  }
+
   const fallbackImage =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%23f5f5f5'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23aaa' font-family='sans-serif' font-size='24'%3ENo Image%3C/text%3E%3C/svg%3E"
 
@@ -79,7 +89,7 @@ export const HomePage = () => {
           <div className="container-wide">
             <div className="mb-16 text-center">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Portfolio</p>
-              <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
                 Featured Projects
               </h2>
             </div>
@@ -99,8 +109,8 @@ export const HomePage = () => {
         <section className="bg-soft-cream px-6 md:px-12 lg:px-20 py-20 md:py-32">
           <div className="container-wide">
             <div className="mb-16 text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-bronze mb-4">Services</p>
-              <h2 className="font-display text-4xl font-medium leading-tight text-espresso md:text-5xl lg:text-6xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Services</p>
+              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
                 What We Do
               </h2>
             </div>
@@ -119,7 +129,7 @@ export const HomePage = () => {
           <div className="container-wide">
             <div className="mb-16 text-center">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Shop</p>
-              <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
                 Curated Collection
               </h2>
             </div>
@@ -138,7 +148,7 @@ export const HomePage = () => {
           <div className="container-wide">
             <div className="mb-16 text-center">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Virtual Designs</p>
-              <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
                 Virtual Designs
               </h2>
             </div>
@@ -172,7 +182,7 @@ export const HomePage = () => {
           <ScrollReveal>
             <div className="mb-16 md:mb-24 text-center">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Portfolio</p>
-              <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
                 Featured Projects
               </h2>
             </div>
@@ -185,41 +195,55 @@ export const HomePage = () => {
               </div>
             </ScrollReveal>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
-              {portfolio.slice(0, 4).map((item) => (
-                <ScrollReveal key={item.id}>
-                  <article
-                    className="group relative bg-white border border-[var(--border)]/40 rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] transition-all duration-700 hover:-translate-y-2 hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)]"
-                  >
-                    <Link to={`/portfolio/${item.id}`} className="block" aria-label={`View ${item.title} project`}>
-                      <div className="relative aspect-[3/4] overflow-hidden">
-                        <img
-                          src={getOptimizedUrl(getProjectImage(item) || fallbackImage, { width: 800, crop: 'limit' })}
-                          srcSet={buildSrcSet(getProjectImage(item) || fallbackImage) || undefined}
-                          sizes={buildSrcSet(getProjectImage(item) || fallbackImage) ? '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw' : undefined}
-                          alt={item.title}
-                          className="h-full w-full object-cover transition duration-[1.2s] ease-out group-hover:scale-105"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </div>
-                    </Link>
-
-                    <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
-                      <div className="flex items-center justify-between gap-4">
-                        <button
-                          onClick={(e) => { e.preventDefault(); window.location.href = `/portfolio/${item.id}` }}
-                          className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 hover:scale-105 active:scale-95"
-                        >
-                          View Project
-                          <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-                        </button>
-                      </div>
-                    </div>
-                  </article>
+            <>
+              <div className="md:hidden">
+                <ScrollReveal>
+                  <MobilePreviewCard
+                    to="/portfolio"
+                    label="View Portfolio"
+                    imageUrl={getProjectImage(portfolio[0])}
+                    alt={portfolio[0].title}
+                  />
                 </ScrollReveal>
-              ))}
-            </div>
+              </div>
+              <div className="hidden md:block">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+                  {portfolio.slice(0, 4).map((item) => (
+                    <ScrollReveal key={item.id}>
+                      <article
+                        className="group relative bg-white border border-[var(--border)]/40 rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] transition-all duration-700 hover:-translate-y-2 hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)]"
+                      >
+                        <Link to={`/portfolio/${item.id}`} className="block" aria-label={`View ${item.title} project`}>
+                          <div className="relative aspect-[3/4] overflow-hidden">
+                            <img
+                              src={getOptimizedUrl(getProjectImage(item) || fallbackImage, { width: 800, crop: 'limit' })}
+                              srcSet={buildSrcSet(getProjectImage(item) || fallbackImage) || undefined}
+                              sizes={buildSrcSet(getProjectImage(item) || fallbackImage) ? '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw' : undefined}
+                              alt={item.title}
+                              className="h-full w-full object-cover transition duration-[1.2s] ease-out group-hover:scale-105"
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          </div>
+                        </Link>
+
+                        <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
+                          <div className="flex items-center justify-between gap-4">
+                            <button
+                              onClick={(e) => { e.preventDefault(); window.location.href = `/portfolio/${item.id}` }}
+                              className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 hover:scale-105 active:scale-95"
+                            >
+                              View Project
+                              <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    </ScrollReveal>
+                  ))}
+                </div>
+              </div>
+            </>
           )}
 
           <ScrollReveal delay={300}>
@@ -241,8 +265,8 @@ export const HomePage = () => {
         <div className="container-wide">
           <ScrollReveal>
             <div className="mb-16 md:mb-24 text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-bronze mb-4">Services</p>
-              <h2 className="font-display text-4xl font-medium leading-tight text-espresso md:text-5xl lg:text-6xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Services</p>
+              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
                 What We Do
               </h2>
               <p className="mt-4 max-w-2xl mx-auto text-base text-espresso/60 leading-relaxed">
@@ -306,7 +330,7 @@ export const HomePage = () => {
           <ScrollReveal>
             <div className="mb-16 md:mb-24 text-center">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Virtual Designs</p>
-              <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
                 Virtual Designs
               </h2>
               <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
@@ -322,83 +346,97 @@ export const HomePage = () => {
               </div>
             </ScrollReveal>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
-              {virtualDesigns.slice(0, 4).map((item, index) => (
-                <ScrollReveal key={item.id} delay={index * 80}>
-                  <article className="group">
-                    <Link to={`/virtual-design/project/${item.id}`} className="block">
-                      <div className="relative overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
-                        <div className="relative aspect-[4/3] overflow-hidden">
-                          {getProjectImage(item) && (
-                            <>
-                              {getMediaType(item) === 'video' ? (
-                                <video
-                                  src={getProjectImage(item)}
-                                  poster={getOptimizedUrl(getProjectImage(item), { width: 640 })}
-                                  className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                                  autoPlay
-                                  muted
-                                  loop
-                                  playsInline
-                                  preload="metadata"
-                                />
-                              ) : (
-                                <img
-                                  src={getOptimizedUrl(getProjectImage(item), { width: 640 })}
-                                  srcSet={buildSrcSet(getProjectImage(item)) || undefined}
-                                  sizes={buildSrcSet(getProjectImage(item)) ? '(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw' : undefined}
-                                  alt={item.title}
-                                  className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                                  loading="lazy"
-                                  decoding="async"
-                                />
-                              )}
-                              {getMediaType(item) === 'image' && (
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                                    <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
-                                  </div>
-                                </div>
-                              )}
-                              {getMediaType(item) === 'video' && (
+            <>
+              <div className="md:hidden">
+                <ScrollReveal>
+                  <MobilePreviewCard
+                    to="/virtual-design"
+                    label="View Virtual Designs"
+                    imageUrl={getProjectImage(virtualDesigns[0])}
+                    alt={virtualDesigns[0].title}
+                  />
+                </ScrollReveal>
+              </div>
+              <div className="hidden md:block">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+                  {virtualDesigns.slice(0, 4).map((item, index) => (
+                    <ScrollReveal key={item.id} delay={index * 80}>
+                      <article className="group">
+                        <Link to={`/virtual-design/project/${item.id}`} className="block">
+                          <div className="relative overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
+                            <div className="relative aspect-[4/3] overflow-hidden">
+                              {getProjectImage(item) && (
                                 <>
-                                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                  <div className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110">
-                                    <Play size={20} strokeWidth={1.5} className="ml-1" />
-                                  </div>
+                                  {getMediaType(item) === 'video' ? (
+                                    <video
+                                      src={getProjectImage(item)}
+                                      poster={getOptimizedUrl(getProjectImage(item), { width: 640 })}
+                                      className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                                      autoPlay
+                                      muted
+                                      loop
+                                      playsInline
+                                      preload="metadata"
+                                    />
+                                  ) : (
+                                    <img
+                                      src={getOptimizedUrl(getProjectImage(item), { width: 640 })}
+                                      srcSet={buildSrcSet(getProjectImage(item)) || undefined}
+                                      sizes={buildSrcSet(getProjectImage(item)) ? '(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw' : undefined}
+                                      alt={item.title}
+                                      className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
+                                      loading="lazy"
+                                      decoding="async"
+                                    />
+                                  )}
+                                  {getMediaType(item) === 'image' && (
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
+                                        <Maximize2 size={20} strokeWidth={1.5} className="text-[var(--primary)]" />
+                                      </div>
+                                    </div>
+                                  )}
+                                  {getMediaType(item) === 'video' && (
+                                    <>
+                                      <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                      <div className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110">
+                                        <Play size={20} strokeWidth={1.5} className="ml-1" />
+                                      </div>
+                                    </>
+                                  )}
                                 </>
                               )}
-                            </>
-                          )}
-                        </div>
-
-                        <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors">
-                                {item.title}
-                              </h3>
-                              {item.description && (
-                                <p className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-2">
-                                  {item.description}
-                                </p>
-                              )}
                             </div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); window.location.href = `/virtual-design/project/${item.id}` }}
-                              className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 hover:scale-105 active:scale-95"
-                            >
-                              View Project
-                              <Maximize2 size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-                            </button>
+
+                            <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors">
+                                    {item.title}
+                                  </h3>
+                                  {item.description && (
+                                    <p className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-2">
+                                      {item.description}
+                                    </p>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); window.location.href = `/virtual-design/project/${item.id}` }}
+                                  className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 hover:scale-105 active:scale-95"
+                                >
+                                  View Project
+                                  <Maximize2 size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </Link>
-                  </article>
-                </ScrollReveal>
-              ))}
-            </div>
+                        </Link>
+                      </article>
+                    </ScrollReveal>
+                  ))}
+                </div>
+              </div>
+            </>
           )}
 
           <ScrollReveal delay={300}>
@@ -421,7 +459,7 @@ export const HomePage = () => {
           <ScrollReveal>
             <div className="mb-16 md:mb-24 text-center">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Shop</p>
-              <h2 className="font-display text-4xl font-normal leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
                 Curated Collection
               </h2>
               <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
@@ -438,70 +476,84 @@ export const HomePage = () => {
             </ScrollReveal>
           ) : (
             <>
-              <ScrollReveal>
-                <div className="flex flex-wrap items-center gap-2 mb-8">
-                  {SHOP_CATEGORIES.map((cat) => (
-                    <Link
-                      key={cat.slug}
-                      to={`/shop/${cat.slug}`}
-                      className="px-4 py-2 text-2xs font-semibold uppercase tracking-widest rounded-full border border-[var(--border)] bg-white text-[var(--primary)]/70 hover:border-[var(--accent)] hover:text-[var(--accent)] transition"
-                    >
-                      {cat.label}
-                    </Link>
+              <div className="md:hidden">
+                <ScrollReveal>
+                  <MobilePreviewCard
+                    to="/shop"
+                    label="Visit Shop"
+                    imageUrl={getProductImage(products[0])}
+                    alt={products[0].name}
+                  />
+                </ScrollReveal>
+              </div>
+              <div className="hidden md:block">
+                <>
+                  <ScrollReveal>
+                    <div className="flex flex-wrap items-center gap-2 mb-8">
+                      {SHOP_CATEGORIES.map((cat) => (
+                        <Link
+                          key={cat.slug}
+                          to={`/shop/${cat.slug}`}
+                          className="px-4 py-2 text-2xs font-semibold uppercase tracking-widest rounded-full border border-[var(--border)] bg-white text-[var(--primary)]/70 hover:border-[var(--accent)] hover:text-[var(--accent)] transition"
+                        >
+                          {cat.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </ScrollReveal>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+                    {products.slice(0, 4).map((item) => (
+                    <ScrollReveal key={item.id}>
+                      <article className="group">
+                        <Link to={`/shop/${item.id}`} className="block" aria-label={`View ${item.name}`}>
+                          <div className="relative aspect-square overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
+                            {(() => {
+                              const imgSrc = typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url
+                              const srcSet = buildSrcSet(imgSrc)
+                              return imgSrc && (
+                                <>
+                                  <img
+                                    src={getOptimizedUrl(imgSrc, { width: 640 })}
+                                    srcSet={srcSet || undefined}
+                                    sizes={srcSet ? '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw' : undefined}
+                                    alt={item.name}
+                                    className="h-full w-full object-cover bg-[var(--bg)] transition duration-700 group-hover:scale-105"
+                                    loading="lazy"
+                                    decoding="async"
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                </>
+                              )
+                            })()}
+                          </div>
+                        </Link>
+
+                        <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors">
+                                {item.name}
+                              </h3>
+                              <p className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-1">
+                                ${Number(item.discountPrice || item.price || 0).toFixed(2)}
+                              </p>
+                            </div>
+                            <button
+                              onClick={(e) => { e.preventDefault(); window.location.href = `/shop/${item.id}` }}
+                              className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 hover:scale-105 active:scale-95"
+                            >
+                              View Product
+                              <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    </ScrollReveal>
                   ))}
                 </div>
-              </ScrollReveal>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
-                {products.slice(0, 4).map((item) => (
-                <ScrollReveal key={item.id}>
-                  <article className="group">
-                    <Link to={`/shop/${item.id}`} className="block" aria-label={`View ${item.name}`}>
-                      <div className="relative aspect-square overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 shadow-[0_10px_40px_rgba(42,36,31,0.06)] hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] transition-all duration-500 hover:-translate-y-1">
-                        {(() => {
-                          const imgSrc = typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url
-                          const srcSet = buildSrcSet(imgSrc)
-                          return imgSrc && (
-                            <>
-                              <img
-                                src={getOptimizedUrl(imgSrc, { width: 640 })}
-                                srcSet={srcSet || undefined}
-                                sizes={srcSet ? '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw' : undefined}
-                                alt={item.name}
-                                className="h-full w-full object-cover bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                                loading="lazy"
-                                decoding="async"
-                              />
-                              <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            </>
-                          )
-                        })()}
-                      </div>
-                    </Link>
-
-                    <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors">
-                            {item.name}
-                          </h3>
-                          <p className="text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-1">
-                            ${Number(item.discountPrice || item.price || 0).toFixed(2)}
-                          </p>
-                        </div>
-                        <button
-                          onClick={(e) => { e.preventDefault(); window.location.href = `/shop/${item.id}` }}
-                          className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 hover:scale-105 active:scale-95"
-                        >
-                          View Product
-                          <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                </ScrollReveal>
-              ))}
-            </div>
-          </>
+                </>
+              </div>
+            </>
           )}
 
           <ScrollReveal delay={300}>
@@ -520,7 +572,18 @@ export const HomePage = () => {
       </section>
 
       {/* About Section */}
-      <AboutPreview />
+      {isMobile ? (
+        <ScrollReveal>
+          <MobilePreviewCard
+            to="/about"
+            label="Learn More"
+            imageUrl={aboutData?.aboutImageUrl || aboutData?.heroImage}
+            alt="About HOK Interior"
+          />
+        </ScrollReveal>
+      ) : (
+        <AboutPreview />
+      )}
       <ConsultationModal isOpen={showModal} onClose={() => setShowModal(false)} />
     </main>
   )

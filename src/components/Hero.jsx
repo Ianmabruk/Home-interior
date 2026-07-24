@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Link } from 'react-router-dom'
-import { CalendarCheck } from 'lucide-react'
 import { getOptimizedUrl, buildSrcSet } from '../utils/cloudinaryHelpers'
 
 /* eslint-disable react-hooks/set-state-in-effect -- Carousel crossfade requires synchronous state updates in effect */
 
+/* eslint-disable no-unused-vars -- onBookConsultation is kept for component API compatibility */
 export const Hero = ({ onBookConsultation, heroImages = [] }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [displayIndex, setDisplayIndex] = useState(0)
@@ -88,37 +87,6 @@ export const Hero = ({ onBookConsultation, heroImages = [] }) => {
 
       <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)] via-[var(--primary)]/95 to-[var(--primary)]/80" />
       <div className="absolute inset-0 opacity-[0.03] pattern-overlay" />
-
-      <div className="relative z-10 flex h-full items-end justify-center px-6 md:px-12 lg:px-20 pb-20 md:pb-28">
-        <div className="max-w-5xl w-full flex flex-col items-center gap-6 animate-fade-up" style={{ animationDelay: '0.3s' }}>
-          <div className="text-center px-4">
-            <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-normal text-white leading-tight mb-4 drop-shadow-lg">
-              Timeless Interiors
-            </h1>
-            <p className="text-sm md:text-base text-white/80 max-w-2xl mx-auto leading-relaxed drop-shadow-md">
-              Luxury interior design, curated furniture, and premium virtual design services tailored to elevate your space.
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-            <Link
-              to="/portfolio"
-              className="btn-luxury-primary group hidden sm:w-auto"
-            >
-              View Portfolio
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-300 group-hover:translate-x-1">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </Link>
-            <button
-              onClick={onBookConsultation}
-              className="btn-luxury-secondary group w-full sm:w-auto"
-            >
-              Book Consultation
-              <CalendarCheck size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
-            </button>
-          </div>
-        </div>
-      </div>
     </section>
   )
 }
