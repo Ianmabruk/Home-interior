@@ -246,57 +246,35 @@ export const PortfolioDetailPage = () => {
       {/* Gallery Section */}
       <section className="section-pad bg-[var(--bg)] pt-12">
         <div className="container-wide px-6 md:px-12 lg:px-20">
-          {projectImages.length > 1 && (
+          {projectImages.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="mb-12"
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true }}
+              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
+              className="grid gap-8 grid-cols-1 max-w-4xl mx-auto"
             >
-              <p className="text-sm text-[var(--primary)]/50 text-center">
-                {projectImages.length} images &mdash; Click any image to view fullscreen
-              </p>
+              {projectImages.map((img, idx) => (
+                <motion.article
+                  key={idx}
+                  variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } } }}
+                  className="group"
+                >
+                  <div className="relative overflow-hidden rounded-3xl bg-white border border-[var(--border)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
+                    <div className="relative aspect-[4/3] overflow-hidden">
+                      <img
+                        src={getOptimizedUrl(img, { width: 1200 })}
+                        alt={`${project.title} - Image ${idx + 1}`}
+                        className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </div>
+                  </div>
+                </motion.article>
+              ))}
             </motion.div>
           )}
-
-          <motion.div
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true }}
-            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
-            className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          >
-            {projectImages.map((img, idx) => (
-              <motion.article
-                key={idx}
-                variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } } }}
-                className="group"
-              >
-                <div className="relative overflow-hidden rounded-3xl bg-white border border-[var(--border)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
-                  <div className="relative aspect-[3/4] overflow-hidden">
-                    <img
-                      src={getOptimizedUrl(img, { width: 800 })}
-                      alt={`${project.title} - Image ${idx + 1}`}
-                      className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setImageFullscreen({ imageUrl: img, title: project.title, category: project.category }); setGalleryIndex(idx) }}
-                      className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                      aria-label="View fullscreen"
-                    >
-                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="text-[var(--primary)]">
-                          <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3" />
-                        </svg>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              </motion.article>
-            ))}
-          </motion.div>
 
           {/* Project Details */}
           <motion.div

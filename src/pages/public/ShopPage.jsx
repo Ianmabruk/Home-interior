@@ -1,4 +1,4 @@
-import { Square, PictureInPicture, Armchair, Sparkles, SlidersHorizontal, X, ChevronDown, Filter } from 'lucide-react'
+import { Square, PictureInPicture, Armchair, SlidersHorizontal, X, ChevronDown, Filter, Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -7,7 +7,6 @@ import { api } from '../../services/api'
 import { SHOP_CATEGORIES, CURRENCIES } from '../../utils/constants'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import { useCurrency } from '../../context/CurrencyContext'
-import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
 const categoryIcons = {
   mirror: Square,
@@ -38,29 +37,6 @@ export const ShopPage = ({ category: initialCategory }) => {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [currencyOpen, setCurrencyOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [shopBanner, setShopBanner] = useState('')
-
-  const loadShopBanner = useCallback(async () => {
-    try {
-      const res = await api.get('/settings/shop-banner')
-      const banner = res.data?.shopBannerImage || res.data?.data?.shopBannerImage || ''
-      setShopBanner(banner)
-    } catch {
-      setShopBanner('')
-    }
-  }, [])
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial data load is a standard pattern
-  useEffect(() => { loadShopBanner() }, [loadShopBanner])
-
-  useEffect(() => {
-    const handler = (event) => {
-      const payload = getAdminDataChangedPayload(event)
-      if (payload?.type === 'settings-changed') loadShopBanner()
-    }
-    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-    return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-  }, [loadShopBanner])
 
   const loadProducts = useCallback(() => {
     api.get('/products', { params: { sort: '-createdAt', limit: 100 } })
@@ -110,55 +86,26 @@ export const ShopPage = ({ category: initialCategory }) => {
   const hasFilters = category || query || minPrice || maxPrice
   const clearFilters = useCallback(() => { navigate('/shop'); setQuery(''); setMinPrice(''); setMaxPrice('') }, [navigate])
 
-  const heroImage = shopBanner
-
   return (
     <div className="min-h-screen bg-[var(--bg)]">
-      {/* Page Header with Luxury Interior Background */}
-      <section className="relative overflow-hidden md:h-[420px] h-[260px] md:rounded-[24px] rounded-[16px]">
-        <div className="absolute inset-0">
-          {heroImage && (
-            <img
-              src={getOptimizedUrl(heroImage, { width: 2000, crop: 'limit' })}
-              alt="Luxury interior with beige sofa, brown furniture, warm lighting"
-              className="h-full w-full object-cover"
-              loading="eager"
-              decoding="async"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/65 via-[var(--primary)]/75 to-transparent" />
-        </div>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(232,154,67,0.15),transparent_50%)]" />
-        <div className="relative z-10 container-wide px-6 md:px-12 lg:px-20">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--bg)]/80 mb-4">Curated Collection</p>
-            <h1 className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl">
-              Shop
-            </h1>
-            <p className="mt-6 max-w-xl text-base text-white/60 leading-relaxed">
-              Handpicked luxury pieces to elevate your interior spaces with timeless elegance.
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Sticky Premium Header - Filters only, no permanent search */}
+      {/* Sticky Premium Header - Search, Category, Sort, Currency */}
       <div className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-xl shadow-sm md:top-[72px]">
-        <div className="container-wide px-4 py-3 md:px-12 md:py-4">
-          {/* Mobile Row */}
-          <div className="flex items-center gap-2 md:hidden">
-            <button
-              onClick={() => setMobileMenuOpen((p) => !p)}
-              className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white px-3 py-2.5 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/70"
-            >
-              <Filter size={14} strokeWidth={1.5} />
-              {hasFilters ? 'Filters' : 'Menu'}
-            </button>
-          </div>
+        <div className="container-wide px-4 py-4 md:px-12 md:py-5">
+          {/* Search Bar */}
+          <div className="mb-4 md:mb-0 flex items-center gap-3">
+            <div className="relative flex-1 max-w-md md:max-w-lg">
+              <Search size={16} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--primary)]/30" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search products..."
+                className="w-full rounded-full border border-[var(--border)] bg-white pl-10 pr-4 py-2.5 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
+              />
+            </div>
 
-          {/* Desktop Controls - Filter/Category/Sort/Currency only */}
-          <div className="hidden md:flex items-center gap-4">
-            <div className="flex items-center gap-3 ml-auto">
+            {/* Desktop Controls - Filter/Category/Sort/Currency */}
+            <div className="hidden md:flex items-center gap-3 ml-auto">
               <div className="relative">
                 <button
                   onClick={() => setCurrencyOpen((p) => !p)}
@@ -217,12 +164,11 @@ export const ShopPage = ({ category: initialCategory }) => {
                   <X size={12} strokeWidth={1.5} /> Clear
                 </button>
               )}
-
               <span className="text-2xs text-[var(--primary)]/40 font-medium">{products.length} items</span>
             </div>
           </div>
 
-          {/* Desktop Category Bar */}
+          {/* Desktop Category Bar - Only 3 Categories */}
           <div className="hidden md:block overflow-x-auto mt-4">
             <div className="flex items-center gap-2 min-w-max">
               <button
@@ -234,7 +180,7 @@ export const ShopPage = ({ category: initialCategory }) => {
                 All
               </button>
               {SHOP_CATEGORIES.map((cat) => {
-                const Icon = categoryIcons[cat.slug] || Sparkles
+                const Icon = categoryIcons[cat.slug] || Armchair
                 return (
                   <button
                     key={cat.slug}
@@ -244,11 +190,32 @@ export const ShopPage = ({ category: initialCategory }) => {
                     }`}
                   >
                     <Icon size={12} strokeWidth={1.5} />
-                    {cat.label}
+                    {cat.label}s
                   </button>
                 )
               })}
             </div>
+          </div>
+
+          {/* Mobile Row - Search + Menu */}
+          <div className="flex items-center gap-2 md:hidden mt-4">
+            <div className="relative flex-1">
+              <Search size={16} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--primary)]/30" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search..."
+                className="w-full rounded-full border border-[var(--border)] bg-white pl-10 pr-4 py-2.5 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
+              />
+            </div>
+            <button
+              onClick={() => setMobileMenuOpen((p) => !p)}
+              className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white px-3 py-2.5 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/70"
+            >
+              <Filter size={14} strokeWidth={1.5} />
+              {hasFilters ? 'Filters' : 'Menu'}
+            </button>
           </div>
         </div>
       </div>
@@ -329,7 +296,7 @@ export const ShopPage = ({ category: initialCategory }) => {
                       All
                     </button>
                     {SHOP_CATEGORIES.map((cat) => {
-                      const Icon = categoryIcons[cat.slug] || Sparkles
+                      const Icon = categoryIcons[cat.slug] || Armchair
                       return (
                         <button
                           key={cat.slug}
@@ -339,7 +306,7 @@ export const ShopPage = ({ category: initialCategory }) => {
                           }`}
                         >
                           <Icon size={12} strokeWidth={1.5} />
-                          {cat.label}
+                          {cat.label}s
                         </button>
                       )
                     })}
@@ -412,7 +379,7 @@ export const ShopPage = ({ category: initialCategory }) => {
       </AnimatePresence>
 
       {/* Product Grid */}
-      <section className="section-pad bg-[var(--bg)] pt-8 md:pt-12">
+      <section className="section-pad bg-[var(--bg)] pt-6 md:pt-10">
         <div className="container-wide px-4 md:px-12 lg:px-20">
           {loading && (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -431,7 +398,7 @@ export const ShopPage = ({ category: initialCategory }) => {
 
           {!loading && products.length === 0 && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="py-24 text-center">
-              <Sparkles size={48} strokeWidth={1} className="mx-auto text-[var(--secondary)] mb-4" />
+              <Armchair size={48} strokeWidth={1} className="mx-auto text-[var(--secondary)] mb-4" />
               <p className="font-display text-3xl text-[var(--primary)]/30">
                 {allProducts.length === 0 ? 'No products yet.' : 'No products found'}
               </p>

@@ -229,44 +229,48 @@ export const VirtualDesignDetailPage = () => {
         </div>
       </section>
 
-      {/* Gallery Section */}
+      {/* Gallery Section - Vertical Stack */}
       {project.galleryMedia && project.galleryMedia.length > 0 && (
         <section className="section-pad bg-[var(--bg)] pt-8">
           <div className="container-wide px-6 md:px-12 lg:px-20">
-            <h2 className="font-display text-2xl md:text-3xl text-[var(--primary)] mb-6">Project Gallery</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            <motion.div
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true }}
+              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
+              className="grid gap-8 grid-cols-1"
+            >
               {project.galleryMedia.map((media, idx) => (
                 <motion.div
                   key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className="relative aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer group"
-                  onClick={() => {
-                    if (media.type === 'video') {
-                      setVideoFullscreen({ videoUrl: media.url, title: `${project.title} - Gallery ${idx + 1}`, category: media.type })
-                    } else {
-                      setImageFullscreen({ ...project, mediaUrl: media.url, title: `${project.title} - Gallery ${idx + 1}` })
-                    }
-                  }}
+                  variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } } }}
+                  className="group cursor-pointer"
                 >
-                  <img
-                    src={media.url}
-                    alt={`${project.title} gallery ${idx + 1}`}
-                    className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                  {media.type === 'video' && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-[var(--primary)] shadow-lg">
-                        <Play size={20} strokeWidth={1.5} className="ml-0.5" />
-                      </div>
+                  <div className="relative overflow-hidden rounded-3xl bg-white border border-[var(--border)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
+                    <div className="relative aspect-[4/3] overflow-hidden">
+                      <img
+                        src={media.url}
+                        alt={`${project.title} gallery ${idx + 1}`}
+                        className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                      {media.type === 'video' && (
+                        <>
+                          <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setVideoFullscreen({ videoUrl: media.url, title: `${project.title} - Gallery ${idx + 1}`, category: media.type }) }}
+                            className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110"
+                            aria-label="Play video"
+                          >
+                            <Play size={20} strokeWidth={1.5} className="ml-1" />
+                          </button>
+                        </>
+                      )}
                     </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+                  </div>
                 </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
       )}

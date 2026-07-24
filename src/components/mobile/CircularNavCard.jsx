@@ -2,52 +2,9 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
-const labelWidths = {
-  'Portfolio': 100,
-  'Services': 90,
-  'Virtual Designs': 140,
-  'Shop With Us': 120,
-  'About Us': 80,
-  'Socials': 85,
-}
-
-const getTriangleWidth = (label) => {
-  const baseWidth = labelWidths[label] || label.length * 8 + 40
-  return Math.max(baseWidth, 80)
-}
-
-const TriangleSVG = ({ label }) => {
-  const width = getTriangleWidth(label)
-  const height = 56
-  const textX = width * 0.22
-  const textY = height * 0.58
-
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full" preserveAspectRatio="none" aria-hidden="true">
-      <path
-        d={`M 0 0 L ${width - 16} 0 A 16 16 0 0 1 ${width} 16 L ${width} ${height - 16} A 16 16 0 0 1 ${width - 16} ${height} Z`}
-        fill="#E89A43"
-      />
-      <text
-        x={textX}
-        y={textY}
-        fill="white"
-        fontFamily="'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, sans-serif"
-        fontSize="14"
-        fontWeight="600"
-        letterSpacing="0.02em"
-        textAnchor="start"
-      >
-        {label}
-      </text>
-    </svg>
-  )
-}
-
 export const CircularNavCard = ({ to, label, imageUrl, alt, size = 300 }) => {
   const displayUrl = typeof imageUrl === 'string' ? imageUrl : null
   const clampedSize = Math.min(size, 320)
-  const triangleWidth = getTriangleWidth(label)
 
   return (
     <motion.div
@@ -93,7 +50,9 @@ export const CircularNavCard = ({ to, label, imageUrl, alt, size = 300 }) => {
             )}
           </div>
 
-          <TriangleSVG label={label} className="relative -mt-2 w-[180px] h-[56px] flex-shrink-0" style={{ width: triangleWidth }} />
+          <div className="mt-4 inline-flex items-center justify-center px-5 py-2 bg-[var(--accent)] text-white text-sm font-semibold uppercase tracking-wide rounded-[16px] whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.3)]">
+            {label}
+          </div>
         </Link>
       </div>
     </motion.div>

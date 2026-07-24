@@ -205,7 +205,7 @@ export const HomePage = () => {
       <section className="bg-[var(--secondary)]/30 md:py-20 md:md:py-32">
         <div className="container-wide md:px-12 lg:px-20">
           {isMobile ? (
-            <div className="px-4 pt-[30px] pb-[15px]">
+            <div className="px-4 pt-[30px] pb-[56px]">
               <CircularNavCard
                 to="/portfolio"
                 label="Portfolio"
@@ -272,7 +272,7 @@ export const HomePage = () => {
           )}
 
           {isMobile && (
-            <div className="px-4 py-[15px]">
+            <div className="px-4 py-[56px]">
               <CircularNavCard
                 to="/services"
                 label="Services"
@@ -288,7 +288,7 @@ export const HomePage = () => {
       <section className="bg-soft-cream md:py-20 md:md:py-32">
         <div className="container-wide md:px-12 lg:px-20">
           {isMobile ? (
-            <div className="px-4 py-[15px]">
+            <div className="px-4 py-[56px]">
               <CircularNavCard
                 to="/virtual-design"
                 label="Virtual Designs"
@@ -348,8 +348,8 @@ export const HomePage = () => {
             </>
           )}
 
-          {isMobile && (
-            <div className="px-4 py-[15px]">
+{isMobile && (
+            <div className="px-4 py-[56px]">
               <CircularNavCard
                 to="/shop"
                 label="Shop With Us"
@@ -477,12 +477,24 @@ export const HomePage = () => {
           )}
 
           {isMobile && (
-            <div className="px-4 pt-[15px] pb-[40px]">
+            <div className="px-4 pt-[56px] pb-[40px]">
               <CircularNavCard
                 to="/socials"
                 label="Socials"
                 imageUrl={getSocialImage()}
                 alt="HOK Interiors social"
+                size={300}
+              />
+            </div>
+          )}
+
+          {isMobile && (
+            <div className="px-4 pt-[56px] pb-[40px]">
+              <CircularNavCard
+                to="/about"
+                label="About Us"
+                imageUrl={getSocialImage()}
+                alt="About HOK Interiors"
                 size={300}
               />
             </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Instagram, Facebook, ArrowRight } from 'lucide-react'
+import { Instagram, Facebook } from 'lucide-react'
 import { FaTiktok, FaPinterest } from 'react-icons/fa'
 import { api } from '../services/api'
 

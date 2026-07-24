@@ -29,10 +29,10 @@ const ProjectCard = ({ item }) => (
       className="block bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500"
       aria-label={`View ${item.title} project`}
     >
-      <div className="relative aspect-square overflow-hidden">
+      <div className="relative aspect-[4/3] overflow-hidden">
         {item.imageUrl ? (
           <img
-            src={getOptimizedUrl(item.imageUrl, { width: 800, crop: 'limit' })}
+            src={getOptimizedUrl(item.imageUrl, { width: 1200, crop: 'limit' })}
             alt={item.title}
             className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
             loading="lazy"
@@ -54,12 +54,12 @@ const ProjectCard = ({ item }) => (
         )}
       </div>
 
-      <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white text-center">
+      <div className="p-6 md:p-8 border-t border-[var(--border)]/40 bg-white text-center">
         <motion.h3
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight mb-4"
+          className="font-display text-2xl md:text-3xl font-normal text-[var(--primary)] leading-tight mb-6"
         >
           {item.title}
         </motion.h3>
@@ -70,7 +70,7 @@ const ProjectCard = ({ item }) => (
         >
           <button
             type="button"
-            className="btn-luxury-primary group inline-flex items-center gap-2 text-[10px] px-6 py-2.5 rounded-full whitespace-nowrap hover:scale-105 active:scale-95"
+            className="btn-luxury-primary group inline-flex items-center gap-2 text-[11px] px-8 py-3 rounded-full whitespace-nowrap hover:scale-105 active:scale-95"
           >
             View Project
             <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
@@ -129,17 +129,17 @@ export const PortfolioPage = () => {
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="text-center px-6"
           >
-            <h1 className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl tracking-wide">
+<h1 className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl tracking-wide">
               PORTFOLIO
             </h1>
             <p className="mt-4 text-base md:text-lg text-white/70 leading-relaxed max-w-2xl mx-auto">
-              A curated collection of our completed interior design projects across residential, commercial, and hospitality spaces.
+              From concept to completion, we guide you through every step of the design journey.
             </p>
           </motion.div>
         </div>
       </section>
 
-      <section className="bg-[var(--secondary)]/30 py-12 px-6 md:px-12 lg:px-20 border-y border-[var(--border)]/40">
+<section className="bg-[var(--secondary)]/30 py-12 px-6 md:px-12 lg:px-20 border-y border-[var(--border)]/40">
         <div className="container-wide mx-auto max-w-4xl text-center">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Ready to Start Your Project?</p>
           <h2 className="font-display text-3xl md:text-4xl font-normal text-[var(--primary)] mb-6 leading-tight">
@@ -148,17 +148,10 @@ export const PortfolioPage = () => {
           <p className="text-base md:text-lg text-[var(--primary)]/60 mb-8 leading-relaxed">
             From concept to completion, we guide you through every step of the design journey.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/virtual-design"
-              className="btn-luxury-primary group px-8 py-4 text-[11px] rounded-xl"
-            >
-              Explore Virtual Design
-              <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
+<div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('open-consultation'))}
-              className="btn-luxury-secondary group px-8 py-4 text-[11px] rounded-xl"
+              className="btn-luxury-primary group px-8 py-4 text-[11px] rounded-xl"
             >
               Book Consultation
             </button>
@@ -169,13 +162,13 @@ export const PortfolioPage = () => {
       <section className="section-pad bg-[var(--bg)] pt-12">
         <div className="container-wide px-6 md:px-12 lg:px-20">
           {loading && (
-            <div className="grid gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid gap-8 grid-cols-1">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <div key={i} className="group">
-                  <div className="skeleton aspect-square w-full rounded-3xl" />
-                  <div className="mt-4 space-y-2 text-center">
-                    <div className="skeleton h-3 w-20 mx-auto" />
-                    <div className="skeleton h-5 w-24 mx-auto" />
+                  <div className="skeleton aspect-[4/3] w-full rounded-3xl" />
+                  <div className="mt-6 space-y-2 text-center">
+                    <div className="skeleton h-8 w-48 mx-auto" />
+                    <div className="skeleton h-10 w-32 mx-auto" />
                   </div>
                 </div>
               ))}
@@ -197,7 +190,7 @@ export const PortfolioPage = () => {
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: '-50px' }}
-            className="grid gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            className="grid gap-8 grid-cols-1"
           >
             {items.map((item) => (
               <ProjectCard key={item.id} item={item} />
