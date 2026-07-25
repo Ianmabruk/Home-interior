@@ -44,8 +44,14 @@ export const CircularNavCard = ({ to, label, imageUrl, alt, size = 300, priority
             )}
           </div>
 
-          <div className="mt-4 inline-flex items-center justify-center px-5 py-2 bg-[var(--accent)] text-white text-sm font-semibold uppercase tracking-wide rounded-[16px] whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.3)]">
-            {label}
+          <div className="mt-6 w-full max-w-xs">
+            <Link
+              to={to}
+              className="block w-full py-4 px-8 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full whitespace-nowrap text-center shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+              aria-label={`View ${label}`}
+            >
+              {label}
+            </Link>
           </div>
         </Link>
       </div>

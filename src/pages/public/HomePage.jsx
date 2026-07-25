@@ -352,6 +352,18 @@ export const HomePage = () => {
         <section className="bg-soft-cream px-6 py-16">
           <div className="container-wide">
             <CircularNavCard
+              to="/shop"
+              label="Shop"
+              imageUrl={heroImages[0] ? (typeof heroImages[0] === 'string' ? heroImages[0] : heroImages[0].imageUrl || heroImages[0].mediaUrls?.[0] || heroImages[0].url) : null}
+              alt="HOK Interiors Shop"
+              size={300}
+            />
+          </div>
+        </section>
+
+        <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 px-6 py-16">
+          <div className="container-wide">
+            <CircularNavCard
               to="/socials"
               label="Socials"
               imageUrl={heroImages[0] ? (typeof heroImages[0] === 'string' ? heroImages[0] : heroImages[0].imageUrl || heroImages[0].mediaUrls?.[0] || heroImages[0].url) : null}
@@ -361,7 +373,7 @@ export const HomePage = () => {
           </div>
         </section>
 
-        <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 px-6 py-16 pb-24">
+        <section className="bg-soft-cream px-6 py-16 pb-24">
           <div className="container-wide">
             <CircularNavCard
               to="/about"
@@ -379,28 +391,40 @@ export const HomePage = () => {
         {/* Portfolio Section */}
         <section id="portfolio" className="bg-[var(--secondary)]/30 py-20 md:py-32">
           <div className="container-wide md:px-12 lg:px-20">
-            <CircularPortfolioShowcase
-              portfolio={portfolio}
-              getProjectImage={getProjectImage}
-            />
+            <div className="mb-16 md:mb-24 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Portfolio</p>
+              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
+                Featured Projects
+              </h2>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
+              {portfolio.slice(0, 6).map((item, index) => (
+                <div key={item.id || index} className="group flex flex-col items-center">
+                  <div className="relative w-full max-w-sm mx-auto mb-6">
+                    <div className="relative rounded-full overflow-hidden">
+                      <img
+                        src={getOptimizedUrl(getProjectImage(item), { width: 600, crop: 'limit' })}
+                        alt={item.title}
+                        className="h-[320px] w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/20 via-transparent to-transparent pointer-events-none" />
+                    </div>
+                  </div>
+                  <Link
+                    to={`/portfolio/${item.id}`}
+                    className="w-full max-w-xs px-8 py-4 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                  >
+                    {item.title}
+                  </Link>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
-        {/* Services Section */}
-        <section id="services" className="bg-soft-cream py-20 md:py-32">
-          <div className="container-wide md:px-12 lg:px-20">
-            <CircularServicesGrid
-              services={services}
-              images={services.reduce((acc, s) => {
-                const img = s.imageUrl || s.mediaUrl || s.image || s.galleryImages?.[0]
-                if (img) acc[s.key || s.id] = img
-                return acc
-              }, {})}
-            />
-          </div>
-        </section>
-
-        {/* Virtual Interior Designs Section */}
+        {/* Virtual Designs Section */}
         <section id="virtual-designs" className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 py-20 md:py-32">
           <div className="container-wide md:px-12 lg:px-20">
             <div className="mb-16 md:mb-24 text-center">
@@ -413,19 +437,30 @@ export const HomePage = () => {
               </p>
             </div>
 
-            {virtualDesigns.length === 0 ? (
-              <div className="flex min-h-[40vh] items-center justify-center">
-                <p className="font-display text-xl text-[var(--primary)]/60">No virtual design projects yet</p>
-              </div>
-            ) : (
-              <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {virtualDesigns.slice(0, 4).map((item) => (
-                  <ScrollReveal key={item.id}>
-                    <VirtualDesignCard item={item} />
-                  </ScrollReveal>
-                ))}
-              </div>
-            )}
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
+              {virtualDesigns.slice(0, 6).map((item, index) => (
+                <div key={item.id || index} className="group flex flex-col items-center">
+                  <div className="relative w-full max-w-sm mx-auto mb-6">
+                    <div className="relative rounded-full overflow-hidden">
+                      <img
+                        src={getOptimizedUrl(getProjectImage(item), { width: 600, crop: 'limit' })}
+                        alt={item.title}
+                        className="h-[320px] w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/20 via-transparent to-transparent pointer-events-none" />
+                    </div>
+                  </div>
+                  <Link
+                    to={`/virtual-design/project/${item.id}`}
+                    className="w-full max-w-xs px-8 py-4 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                  >
+                    {item.title}
+                  </Link>
+                </div>
+              ))}
+            </div>
 
             <div className="mt-12 text-center">
               <Link to="/virtual-design" className="btn-luxury-primary group inline-flex items-center gap-2">
@@ -436,10 +471,106 @@ export const HomePage = () => {
           </div>
         </section>
 
-        {/* Contact Section */}
-        <section id="contact" className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 py-20 md:py-32">
+        {/* Services Section */}
+        <section id="services" className="bg-soft-cream py-20 md:py-32">
           <div className="container-wide md:px-12 lg:px-20">
-            <ContactSection contactInfo={contactInfo} />
+            <div className="mb-16 md:mb-24 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Services</p>
+              <h2 className="font-display text-4xl font-medium leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+                What We Do
+              </h2>
+              <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
+                Comprehensive interior design services tailored to elevate your space with timeless elegance.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
+              {services.slice(0, 6).map((service, index) => {
+                const img = service.imageUrl || service.mediaUrl || service.image || service.galleryImages?.[0]
+                return (
+                  <div key={service.id || service.key || index} className="group flex flex-col items-center">
+                    <div className="relative w-full max-w-sm mx-auto mb-6">
+                      <div className="relative rounded-full overflow-hidden">
+                        {img ? (
+                          <img
+                            src={getOptimizedUrl(img, { width: 600, crop: 'limit' })}
+                            alt={service.title}
+                            className="h-[320px] w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : (
+                          <div className="h-[320px] w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                              <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                              <circle cx="9" cy="9" r="2" />
+                              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                            </svg>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/20 via-transparent to-transparent pointer-events-none" />
+                      </div>
+                    </div>
+                    <Link
+                      to="/services"
+                      className="w-full max-w-xs px-8 py-4 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                    >
+                      {service.title}
+                    </Link>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* Shop Section */}
+        <section id="shop" className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 py-20 md:py-32">
+          <div className="container-wide md:px-12 lg:px-20">
+            <div className="mb-16 md:mb-24 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Shop</p>
+              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
+                Shop Collection
+              </h2>
+              <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
+                Curated pieces to elevate your space with timeless elegance.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
+              {[
+                { label: 'Mirrors', category: 'mirror' },
+                { label: 'Artwork', category: 'artwork' },
+                { label: 'Throw Pillows', category: 'throw-pillows' },
+              ].map((cat, index) => (
+                <div key={cat.category} className="group flex flex-col items-center">
+                  <div className="relative w-full max-w-sm mx-auto mb-6">
+                    <div className="relative rounded-full overflow-hidden bg-[var(--secondary)]/30">
+                      <div className="h-[320px] w-full flex items-center justify-center text-[var(--primary)]/30">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                          <circle cx="9" cy="9" r="2" />
+                          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <Link
+                    to={`/shop/${cat.category}`}
+                    className="w-full max-w-xs px-8 py-4 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                  >
+                    {cat.label}
+                  </Link>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-12 text-center">
+              <Link to="/shop" className="btn-luxury-primary group inline-flex items-center gap-2">
+                View Full Collection
+                <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -447,6 +578,56 @@ export const HomePage = () => {
         <section id="about" className="bg-soft-cream py-20 md:py-32">
           <div className="container-wide md:px-12 lg:px-20">
             <AboutPreview />
+          </div>
+        </section>
+
+        {/* Socials Section */}
+        <section id="socials" className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 py-20 md:py-32">
+          <div className="container-wide md:px-12 lg:px-20">
+            <div className="mb-16 md:mb-24 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Socials</p>
+              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
+                Follow Our Journey
+              </h2>
+              <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
+                Stay inspired with our latest projects, design tips, and behind-the-scenes moments.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
+              {[
+                { label: 'Instagram', icon: 'instagram' },
+                { label: 'Pinterest', icon: 'pinterest' },
+                { label: 'LinkedIn', icon: 'linkedin' },
+              ].map((social, index) => (
+                <div key={social.label} className="group flex flex-col items-center">
+                  <div className="relative w-full max-w-sm mx-auto mb-6">
+                    <div className="relative rounded-full overflow-hidden bg-[var(--secondary)]/30">
+                      <div className="h-[320px] w-full flex items-center justify-center text-[var(--primary)]/30">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                          <circle cx="9" cy="9" r="2" />
+                          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <Link
+                    to="/socials"
+                    className="w-full max-w-xs px-8 py-4 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                  >
+                    {social.label}
+                  </Link>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-12 text-center">
+              <Link to="/socials" className="btn-luxury-primary group inline-flex items-center gap-2">
+                View All Socials
+                <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
+            </div>
           </div>
         </section>
       </div>

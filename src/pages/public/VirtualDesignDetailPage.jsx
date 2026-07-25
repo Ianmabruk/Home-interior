@@ -153,18 +153,22 @@ export const VirtualDesignDetailPage = () => {
   if (loading) {
     return (
       <main className="min-h-screen bg-[var(--bg)]">
-        <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)] via-[var(--primary)]/80 to-[var(--primary)]/60" />
-          <div className="relative z-10 flex h-full items-center justify-center px-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-              className="text-center"
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]/80 mb-4">Virtual Designs</p>
-              <h1 className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl">Loading...</h1>
-            </motion.div>
+        <section className="py-16 md:py-24 px-6 md:px-12 lg:px-20">
+          <div className="container-wide text-center">
+            <div className="mb-12 md:mb-16 flex flex-col items-center">
+              <div className="relative w-[150px] h-[150px] mx-auto mb-8">
+                <div className="w-full h-full rounded-full bg-[var(--secondary)]/30 border-4 border-white flex items-center justify-center">
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-[var(--primary)]/30" aria-hidden="true">
+                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                    <line x1="3" y1="9" x2="21" y2="9" />
+                    <line x1="9" y1="21" x2="9" y2="9" />
+                  </svg>
+                </div>
+              </div>
+              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-normal text-[var(--primary)] leading-tight">
+                Loading...
+              </h1>
+            </div>
           </div>
         </section>
       </main>
@@ -185,50 +189,6 @@ export const VirtualDesignDetailPage = () => {
 
   return (
     <main className="min-h-screen bg-[var(--bg)]">
-      {/* Hero Section */}
-      <section className="relative h-[60vh] min-h-[500px] overflow-hidden">
-        <div className="absolute inset-0">
-          {project.mediaUrl && project.mediaType === 'image' && (
-            <img
-              src={getOptimizedUrl(project.mediaUrl, { width: 1920, crop: 'limit' })}
-              alt={project.title}
-              className="absolute inset-0 h-full w-full object-cover"
-              loading="eager"
-            />
-          )}
-          {project.mediaUrl && project.mediaType === 'video' && (
-            <video
-              src={getOptimizedVideoUrl(project.mediaUrl, { width: 1920 })}
-              poster={getVideoPosterUrl(project.mediaUrl, { width: 1920 })}
-              className="absolute inset-0 h-full w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)] via-[var(--primary)]/90 to-[var(--primary)]/70" />
-        </div>
-        <div className="relative z-10 flex h-full items-center justify-center px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
-            className="text-center max-w-5xl"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]/80 mb-4">Virtual Design Project</p>
-            <h1 className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl tracking-tight">
-              {project.title}
-            </h1>
-            {project.description && (
-              <p className="mt-6 text-base md:text-lg text-white/70 leading-relaxed max-w-2xl mx-auto">
-                {project.description}
-              </p>
-            )}
-          </motion.div>
-        </div>
-      </section>
-
       {/* Gallery Section - Vertical Stack */}
       {project.galleryMedia && project.galleryMedia.length > 0 && (
         <section className="section-pad bg-[var(--bg)] pt-8">

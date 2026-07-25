@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Upload, X, Send } from 'lucide-react'
+import { Upload, X, Send, LayoutGrid, Brush, MonitorSmartphone, Armchair, Search, Sparkles, ArrowUpDown, Hammer, Palette, Home, Truck, Gem, Wrench } from 'lucide-react'
 import { api } from '../../services/api'
 import { toast } from 'react-hot-toast'
 
@@ -112,6 +112,17 @@ const ImageUpload = ({ index, onRemove, previews, setPreviews }) => {
   )
 }
 
+const SERVICE_CARDS = [
+  { title: 'Interior Design', icon: Brush, description: 'Full-service interior design from concept to completion, tailored to your lifestyle and aesthetic.' },
+  { title: 'Virtual Design', icon: MonitorSmartphone, description: 'Immersive 3D renderings and virtual walkthroughs to visualize your space before construction.' },
+  { title: 'Space Planning', icon: Search, description: 'Optimize your layout for flow, function, and beauty with expert spatial planning.' },
+  { title: 'Furniture Selection', icon: Armchair, description: 'Curated furniture sourcing and specification for every room and budget.' },
+  { title: 'Styling & Décor', icon: Sparkles, description: 'Artful styling with accessories, textiles, and finishing touches that elevate your space.' },
+  { title: 'Renovation Consultation', icon: Hammer, description: 'Expert guidance through renovations, from structural changes to material selection.' },
+  { title: 'Material & Finish Selection', icon: Palette, description: 'Curated palettes of finishes, surfaces, and materials for cohesive, lasting beauty.' },
+  { title: 'Custom Interior Solutions', icon: Wrench, description: 'Bespoke design solutions for unique challenges and one-of-a-kind spaces.' },
+]
+
 export const ServicesPage = () => {
   const [formData, setFormData] = useState({
     fullName: '',
@@ -179,11 +190,42 @@ export const ServicesPage = () => {
               </div>
             </div>
             <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-normal text-[var(--primary)] leading-tight mb-4">
-              Hello, Welcome
+              Hello, Welcome 👋
             </h1>
             <p className="text-base md:text-lg text-[var(--primary)]/60 max-w-2xl mx-auto leading-relaxed">
-              Tell us about your project below and we\u2019ll be in touch.
+              Tell us about your project below and we'll be in touch.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Services Cards Section */}
+      <section className="bg-[var(--bg)] py-16 md:py-24 px-6 md:px-12 lg:px-20">
+        <div className="container-wide">
+          <div className="mb-16 md:mb-24 text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Our Services</p>
+            <h2 className="font-display text-4xl font-medium leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+              What We Do
+            </h2>
+            <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
+              Comprehensive interior design services tailored to elevate your space with timeless elegance.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 max-w-6xl mx-auto mb-20">
+            {SERVICE_CARDS.map((service, index) => (
+              <div key={service.title} className="group bg-white rounded-3xl p-6 md:p-8 border border-[var(--border)]/40 hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] mb-6 transition-all duration-300 group-hover:bg-[var(--accent)] group-hover:text-white">
+                  <service.icon size={28} strokeWidth={1.5} aria-hidden="true" />
+                </div>
+                <h3 className="font-display text-xl font-medium text-[var(--primary)] mb-3">
+                  {service.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-[var(--primary)]/60">
+                  {service.description}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

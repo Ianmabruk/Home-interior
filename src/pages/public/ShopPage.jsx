@@ -28,7 +28,7 @@ export const ShopPage = ({ category: initialCategory }) => {
   const navigate = useNavigate()
   const { formatPrice, currency, changeCurrency } = useCurrency()
   const [allProducts, setAllProducts] = useState([])
-  const [category, setCategory] = useState(initialCategory || '') // eslint-disable-line no-unused-vars
+  const [category, setCategory] = useState(initialCategory || '')
   const [query, setQuery] = useState('')
   const [sortBy, setSortBy] = useState('newest')
   const [minPrice, setMinPrice] = useState('')
@@ -84,16 +84,16 @@ export const ShopPage = ({ category: initialCategory }) => {
   }, [allProducts, category, query, minPrice, maxPrice, sortBy, formatPrice])
 
   const hasFilters = category || query || minPrice || maxPrice
-  const clearFilters = useCallback(() => { navigate('/shop'); setQuery(''); setMinPrice(''); setMaxPrice('') }, [navigate])
+  const clearFilters = useCallback(() => { navigate('/shop'); setQuery(''); setCategory(''); setMinPrice(''); setMaxPrice('') }, [navigate])
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       {/* Sticky Premium Header - Search, Category, Sort, Currency */}
       <div className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-xl shadow-sm md:top-[72px]">
         <div className="container-wide px-4 py-4 md:px-12 md:py-5">
-          {/* Search Bar - Desktop Only */}
-          <div className="hidden md:flex md:mb-0 flex items-center gap-3">
-            <div className="relative flex-1 max-w-md md:max-w-lg">
+          {/* Unified Search Bar - Both Desktop and Mobile */}
+          <div className="flex items-center gap-3 mb-4 md:mb-0">
+            <div className="relative flex-1 max-w-full">
               <Search size={16} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--primary)]/30" />
               <input
                 type="text"
@@ -104,7 +104,7 @@ export const ShopPage = ({ category: initialCategory }) => {
               />
             </div>
 
-            {/* Desktop Controls - Filter/Category/Sort/Currency */}
+            {/* Desktop Controls - Filter/Sort/Currency */}
             <div className="hidden md:flex items-center gap-3 ml-auto">
               <div className="relative">
                 <button
@@ -168,54 +168,46 @@ export const ShopPage = ({ category: initialCategory }) => {
             </div>
           </div>
 
-          {/* Desktop Category Bar - Only 3 Categories */}
-          <div className="hidden md:block overflow-x-auto mt-4">
-            <div className="flex items-center gap-2 min-w-max">
-              <button
-                onClick={() => navigate('/shop')}
-                className={`px-5 py-2 text-2xs font-semibold uppercase tracking-widest transition rounded-full ${
-                  !category ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
-                }`}
-              >
-                All
-              </button>
-              {SHOP_CATEGORIES.map((cat) => {
-                const Icon = categoryIcons[cat.slug] || Armchair
-                return (
-                  <button
-                    key={cat.slug}
-                    onClick={() => navigate(category === cat.slug ? '/shop' : `/shop/${cat.slug}`)}
-                    className={`flex items-center gap-1.5 px-5 py-2 text-2xs font-semibold uppercase tracking-widest transition rounded-full ${
-                      category === cat.slug ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
-                    }`}
-                  >
-                    <Icon size={12} strokeWidth={1.5} />
-                    {cat.label}s
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Mobile Row - Search + Menu */}
-          <div className="flex items-center gap-2 md:hidden mt-4">
-            <div className="relative flex-1">
-              <Search size={16} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--primary)]/30" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search..."
-                className="w-full rounded-full border border-[var(--border)] bg-white pl-10 pr-4 py-2.5 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
-              />
-            </div>
+          {/* Mobile Filters Button */}
+          <div className="md:hidden">
             <button
               onClick={() => setMobileMenuOpen((p) => !p)}
-              className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white px-3 py-2.5 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/70"
+              className="w-full flex items-center justify-center gap-1.5 rounded-full border border-[var(--border)] bg-white px-3 py-2.5 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/70"
             >
               <Filter size={14} strokeWidth={1.5} />
               {hasFilters ? 'Filters' : 'Menu'}
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Category Bar - Both Desktop and Mobile */}
+      <div className="border-b border-[var(--border)] bg-[var(--bg)]/50 overflow-x-auto">
+        <div className="container-wide px-6 md:px-12 lg:px-20 py-3">
+          <div className="flex items-center gap-2 min-w-max">
+            <button
+              onClick={() => { navigate('/shop'); setCategory('') }}
+              className={`px-5 py-2 text-2xs font-semibold uppercase tracking-widest transition rounded-full whitespace-nowrap ${
+                !category ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
+              }`}
+            >
+              All
+            </button>
+            {SHOP_CATEGORIES.map((cat) => {
+              const Icon = categoryIcons[cat.slug] || Armchair
+              return (
+                <button
+                  key={cat.slug}
+                  onClick={() => { navigate(category === cat.slug ? '/shop' : `/shop/${cat.slug}`); setCategory(category === cat.slug ? '' : cat.slug) }}
+                  className={`flex items-center gap-1.5 px-5 py-2 text-2xs font-semibold uppercase tracking-widest transition rounded-full whitespace-nowrap ${
+                    category === cat.slug ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
+                  }`}
+                >
+                  <Icon size={12} strokeWidth={1.5} />
+                  {cat.label}s
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -288,7 +280,7 @@ export const ShopPage = ({ category: initialCategory }) => {
                   <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-3">Categories</p>
                   <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={() => { navigate('/shop'); setMobileMenuOpen(false) }}
+                      onClick={() => { navigate('/shop'); setCategory(''); setMobileMenuOpen(false) }}
                       className={`px-4 py-2 text-2xs font-semibold uppercase tracking-widest transition rounded-full ${
                         !category ? 'bg-[var(--primary)] text-white' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
                       }`}
@@ -300,7 +292,7 @@ export const ShopPage = ({ category: initialCategory }) => {
                       return (
                         <button
                           key={cat.slug}
-                          onClick={() => { navigate(category === cat.slug ? '/shop' : `/shop/${cat.slug}`); setMobileMenuOpen(false) }}
+                          onClick={() => { navigate(category === cat.slug ? '/shop' : `/shop/${cat.slug}`); setCategory(category === cat.slug ? '' : cat.slug); setMobileMenuOpen(false) }}
                           className={`flex items-center gap-1.5 px-4 py-2 text-2xs font-semibold uppercase tracking-widest transition rounded-full ${
                             category === cat.slug ? 'bg-[var(--primary)] text-white' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
                           }`}

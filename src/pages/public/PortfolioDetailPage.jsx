@@ -173,12 +173,20 @@ export const PortfolioDetailPage = () => {
   if (loading) {
     return (
       <main className="min-h-screen bg-[var(--bg)]">
-        <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)] via-[var(--primary)]/80 to-[var(--primary)]/60" />
-          <div className="relative z-10 flex h-full items-center justify-center px-6">
-            <div className="text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]/80 mb-4">Portfolio</p>
-              <h1 className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl">Loading...</h1>
+        <section className="py-16 md:py-24 px-6 md:px-12 lg:px-20">
+          <div className="container-wide text-center">
+            <div className="mb-12 md:mb-16 flex flex-col items-center">
+              <div className="relative w-[150px] h-[150px] mx-auto mb-8">
+                <div className="w-full h-full rounded-full bg-[var(--secondary)]/30 border-4 border-white flex items-center justify-center">
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-[var(--primary)]/30" aria-hidden="true">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M12 14c-4.418 0-8 3.582-8 8h16c0-4.418-3.582-8-8-8z" />
+                  </svg>
+                </div>
+              </div>
+              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-normal text-[var(--primary)] leading-tight">
+                Loading...
+              </h1>
             </div>
           </div>
         </section>
@@ -189,12 +197,20 @@ export const PortfolioDetailPage = () => {
   if (!project) {
     return (
       <main className="min-h-screen bg-[var(--bg)]">
-        <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)] via-[var(--primary)]/80 to-[var(--primary)]/60" />
-          <div className="relative z-10 flex h-full items-center justify-center px-6">
-            <div className="text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]/80 mb-4">Portfolio</p>
-              <h1 className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl">Project Not Found</h1>
+        <section className="py-16 md:py-24 px-6 md:px-12 lg:px-20">
+          <div className="container-wide text-center">
+            <div className="mb-12 md:mb-16 flex flex-col items-center">
+              <div className="relative w-[150px] h-[150px] mx-auto mb-8">
+                <div className="w-full h-full rounded-full bg-[var(--secondary)]/30 border-4 border-white flex items-center justify-center">
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-[var(--primary)]/30" aria-hidden="true">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M12 14c-4.418 0-8 3.582-8 8h16c0-4.418-3.582-8-8-8z" />
+                  </svg>
+                </div>
+              </div>
+              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-normal text-[var(--primary)] leading-tight">
+                Project Not Found
+              </h1>
             </div>
           </div>
         </section>
@@ -204,47 +220,8 @@ export const PortfolioDetailPage = () => {
 
   return (
     <main className="min-h-screen bg-[var(--bg)]">
-      {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
-        <img
-          src={getOptimizedUrl(projectImages[galleryIndex] || project.imageUrl, { width: 1920, crop: 'limit' })}
-          alt={project.title}
-          className="absolute inset-0 h-full w-full object-cover opacity-20"
-          loading="eager"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/85 via-[var(--primary)]/50 to-[var(--primary)]/30" />
-        <div className="relative z-10 flex h-full items-center justify-center px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="text-center max-w-4xl"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Portfolio</p>
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="font-display text-5xl font-normal leading-tight text-white md:text-7xl lg:text-8xl"
-            >
-              {project.title}
-            </motion.h1>
-            {project.description && (
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="mt-6 text-base md:text-lg text-white/60 leading-relaxed max-w-2xl mx-auto"
-              >
-                {project.description}
-              </motion.p>
-            )}
-          </motion.div>
-        </div>
-      </section>
-
       {/* Gallery Section */}
-      <section className="section-pad bg-[var(--bg)] pt-12">
+      <section className="section-pad bg-[var(--bg)] pt-8">
         <div className="container-wide px-6 md:px-12 lg:px-20">
           {projectImages.length > 0 && (
             <motion.div
