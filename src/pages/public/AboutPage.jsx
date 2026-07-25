@@ -1,37 +1,13 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Award, Leaf, Users, Target, PenTool, Layers, Clock, Shield, Heart, MapPin, SparklesIcon, Star } from 'lucide-react'
+import { ArrowRight, Award, Leaf, Users, Target, PenTool, Layers, Shield, Heart, MapPin, SparklesIcon } from 'lucide-react'
 import { api } from '../../services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import PositionedImage from '../../components/common/PositionedImage'
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.8, delay: i * 0.15, ease: [0.22, 1, 0.36, 1] } }),
-}
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.15, delayChildren: 0.1 } },
-}
-
-const fadeLeft = {
-  hidden: { opacity: 0, x: -40 },
-  show: (i = 0) => ({ opacity: 1, x: 0, transition: { duration: 0.8, delay: i * 0.15, ease: [0.22, 1, 0.36, 1] } }),
-}
-
-const fadeRight = {
-  hidden: { opacity: 0, x: 40 },
-  show: (i = 0) => ({ opacity: 1, x: 0, transition: { duration: 0.8, delay: i * 0.15, ease: [0.22, 1, 0.36, 1] } }),
-}
-
 export const AboutPage = () => {
   const [about, setAbout] = useState(null)
   const [loading, setLoading] = useState(true)
-  const heroRef = useRef(null)
-  const { scrollY } = useScroll()
-  const heroY = useTransform(scrollY, [0, 600], [0, 150])
-  const heroOpacity = useTransform(scrollY, [0, 500], [1, 0.3])
 
   const loadAbout = () => {
     api.get('/about')
@@ -106,7 +82,7 @@ export const AboutPage = () => {
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       {/* Hero Header */}
-      <section ref={heroRef} className="relative h-[70vh] min-h-[500px] overflow-hidden bg-[var(--primary)]">
+      <section className="relative h-[70vh] min-h-[500px] overflow-hidden bg-[var(--primary)]">
         <div className="absolute inset-0">
           {about.aboutImageUrl && (
             <PositionedImage
@@ -277,7 +253,7 @@ export const AboutPage = () => {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {team.map((member, i) => (
+              {team.map((member) => (
                 <div
                   key={member.name}
                   className="group relative overflow-hidden bg-white rounded-3xl shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500 border border-[var(--border)]"

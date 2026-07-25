@@ -1,17 +1,12 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Phone, Mail, MapPin, Clock, Send, Loader2 } from 'lucide-react'
+import { Phone, Mail, MapPin, Clock, Send } from 'lucide-react'
 import { api } from '../../services/api'
 import { toast } from 'react-hot-toast'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.7, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] } }),
-}
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.1 } },
 }
 
 export const ContactPage = () => {
@@ -38,7 +33,10 @@ export const ContactPage = () => {
     }
   }
 
-  useEffect(() => { loadContact() }, [])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial data load is a standard pattern
+    loadContact()
+  }, [])
 
   const handleChange = (e) => {
     const { name, value } = e.target

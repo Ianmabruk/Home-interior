@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { X, Plus, Image as ImageIcon, Users, Target, Award, Leaf, PenTool, Layers, Clock, Shield, Heart, Sparkles, MapPin, Star } from 'lucide-react'
+import { X, Plus, Image as ImageIcon } from 'lucide-react'
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
 

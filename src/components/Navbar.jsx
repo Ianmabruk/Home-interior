@@ -128,25 +128,19 @@ export const Navbar = () => {
         <div className="hidden md:flex items-center justify-between h-[88px] md:h-[96px] gap-4 md:gap-8 relative">
           <Link
             to="/"
-            className="flex-shrink-0 leading-tight group -ml-4 md:-ml-8 flex items-center"
+            className="flex-shrink-0 leading-tight group -ml-2 md:-ml-4 flex items-center"
             aria-label="HOK Interiors - Home"
           >
             <picture>
               <img
                 src={hokLogoWebP}
                 alt="HOK Interiors"
-                className="h-[34px] sm:h-[38px] md:h-[48px] lg:h-[50px] w-auto object-contain transition-all duration-300 group-hover:scale-102"
+                className="h-[68px] sm:h-[76px] md:h-[96px] lg:h-[100px] w-auto object-contain transition-all duration-300 group-hover:scale-102"
                 loading="eager"
-                width={200}
-                height={50}
+                width={400}
+                height={100}
               />
             </picture>
-            <span
-              className="ml-3 md:ml-4 text-[16px] md:text-[18px] font-semibold tracking-[0.06em] text-[#8B5E3C] whitespace-nowrap"
-              style={{ fontFamily: "'Cormorant Garamond', 'Cormorant Garamond Fallback', serif" }}
-            >
-              HOK Interiors
-            </span>
           </Link>
 
           <nav className="flex items-center justify-center flex-1" role="navigation" aria-label="Main navigation">
@@ -437,7 +431,7 @@ export const Navbar = () => {
         </div>
 
         {/* MOBILE HEADER - CENTERED LOGO + HAMBURGER */}
-        <div className="flex md:hidden items-center justify-center h-[170px] relative">
+        <div className="flex md:hidden items-center justify-center h-[300px] relative">
           <Link
             to="/"
             className="flex flex-col items-center leading-none group"
@@ -447,10 +441,10 @@ export const Navbar = () => {
               <img
                 src={hokLogoWebP}
                 alt="HOK Interiors"
-                className="h-[170px] w-[170px] object-contain transition-all duration-300 group-hover:scale-102"
+                className="h-[300px] w-[300px] object-contain transition-all duration-300 group-hover:scale-102"
                 loading="eager"
-                width={170}
-                height={170}
+                width={300}
+                height={300}
               />
             </picture>
           </Link>

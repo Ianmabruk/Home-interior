@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion'
 import { useState, useRef } from 'react'
 import { Upload, X, Send } from 'lucide-react'
 import { api } from '../../services/api'

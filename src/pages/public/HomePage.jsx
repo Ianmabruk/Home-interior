@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Users } from 'lucide-react'
 import { Hero } from '../../components/Hero'
 import { AboutPreview } from '../../components/AboutPreview'
 import { ConsultationModal } from '../../components/ConsultationModal'
-import { CircularNavCard } from '../../components/mobile/CircularNavCard'
+import { CircularPortfolioShowcase } from '../../components/CircularPortfolioShowcase'
+import { CircularServicesGrid } from '../../components/CircularServicesGrid'
 import { api } from '../../services/api'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
@@ -16,7 +17,6 @@ export const HomePage = () => {
   const [showModal, setShowModal] = useState(false)
   const [portfolio, setPortfolio] = useState([])
   const [services, setServices] = useState([])
-  const [virtualDesigns, setVirtualDesigns] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [heroImages, setHeroImages] = useState([])
@@ -30,7 +30,6 @@ export const HomePage = () => {
       const homepageData = homepageRes.data || {}
       setPortfolio(homepageData.portfolio || [])
       setServices(homepageData.services || [])
-      setVirtualDesigns(homepageData.virtualInteriorDesign || homepageData.virtualDesigns || [])
       setHeroImages(homepageData.heroImages || [])
       setProducts(Array.isArray(homepageData.products) ? homepageData.products : [])
       setAboutData(homepageData.about || null)
@@ -49,7 +48,7 @@ export const HomePage = () => {
   useEffect(() => {
     const handler = (event) => {
       const payload = getAdminDataChangedPayload(event)
-      if (payload?.type === 'portfolio-changed' || payload?.type === 'services-changed' || payload?.type === 'virtual-changed' || payload?.type === 'products-changed' || payload?.type === 'hero-images-changed' || payload?.type === 'about-changed') {
+      if (payload?.type === 'portfolio-changed' || payload?.type === 'services-changed' || payload?.type === 'products-changed' || payload?.type === 'hero-images-changed' || payload?.type === 'about-changed') {
         loadData()
       }
     }
@@ -68,39 +67,9 @@ export const HomePage = () => {
     )
   }
 
-  const getMediaType = (item) => {
-    if (!item) return 'image'
-    return item.mediaType || item.type || 'image'
-  }
-
 const getProductImage = (item) => {
     if (!item || !item.images) return null
     return typeof item.images[0] === 'string' ? item.images[0] : item.images[0]?.url || null
-  }
-
-  const getServiceImage = () => {
-    if (services.length > 0) {
-      const first = services[0]
-      if (first?.imageUrl || first?.mediaUrl || first?.image) return first.imageUrl || first.mediaUrl || first.image
-      if (first?.galleryImages?.[0]) return first.galleryImages[0]
-    }
-    if (aboutData?.aboutImageUrl) return aboutData.aboutImageUrl
-    if (aboutData?.heroImage) return aboutData.heroImage
-    if (heroImages.length > 0) {
-      const h = heroImages[0]
-      return typeof h === 'string' ? h : (h.imageUrl || h.mediaUrls?.[0] || h.url)
-    }
-    return null
-  }
-
-  const getSocialImage = () => {
-    if (aboutData?.aboutImageUrl) return aboutData.aboutImageUrl
-    if (aboutData?.heroImage) return aboutData.heroImage
-    if (heroImages.length > 0) {
-      const h = heroImages[0]
-      return typeof h === 'string' ? h : (h.imageUrl || h.mediaUrls?.[0] || h.url)
-    }
-    return null
   }
 
   const socialLinks = [
@@ -210,189 +179,19 @@ const getProductImage = (item) => {
         <Hero onBookConsultation={() => setShowModal(true)} heroImages={heroImages} />
       </div>
 
-      <section className="bg-[var(--secondary)]/30 md:py-20 md:md:py-32">
-        <div className="container-wide md:px-12 lg:px-20">
-          {isMobile ? (
-            <div className="px-4 pt-[30px] pb-[56px]">
-              <CircularNavCard
-                to="/portfolio"
-                label="Portfolio"
-                imageUrl={getProjectImage(portfolio[0])}
-                alt={portfolio[0]?.title}
-                size={300}
-              />
-            </div>
-          ) : (
-            <>
-              <ScrollReveal>
-                <div className="mb-16 md:mb-24 text-center">
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Portfolio</p>
-                  <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
-                    Featured Projects
-                  </h2>
-                </div>
-              </ScrollReveal>
+      <CircularPortfolioShowcase
+        portfolio={portfolio}
+        getProjectImage={getProjectImage}
+      />
 
-              {portfolio.length === 0 ? (
-                <ScrollReveal>
-                  <div className="flex min-h-[40vh] items-center justify-center">
-                    <p className="font-display text-xl text-[var(--primary)]/60">No projects yet</p>
-                  </div>
-                </ScrollReveal>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
-                  {portfolio.slice(0, 4).map((item, index) => (
-                    <ScrollReveal key={item.id}>
-                      <article
-                        className="group relative bg-white border border-[var(--border)]/40 rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] transition-all duration-700 hover:-translate-y-2 hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)]"
-                      >
-                        <Link to={`/portfolio/${item.id}`} className="block" aria-label={`View ${item.title} project`}>
-                          <div className="relative aspect-[3/4] overflow-hidden">
-                            <PositionedImage
-                              src={getProjectImage(item) || ''}
-                              alt={item.title}
-                              settings={{ fit: 'cover', position: 'center', zoom: 100 }}
-                              className="h-full w-full transition duration-[1.2s] ease-out group-hover:scale-105"
-                              loading={index < 2 ? 'eager' : 'lazy'}
-                              fetchPriority={index < 2 ? 'high' : undefined}
-                              sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-                            />
-                          </div>
-                        </Link>
-
-                        <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
-                          <div className="flex items-center justify-between gap-4">
-                            <button
-                              onClick={(e) => { e.preventDefault(); window.location.href = `/portfolio/${item.id}` }}
-                              className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 hover:scale-105 active:scale-95"
-                            >
-                              View Project
-                              <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-                            </button>
-                          </div>
-                        </div>
-                      </article>
-                    </ScrollReveal>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-
-          {isMobile && (
-            <div className="px-4 py-[56px]">
-              <CircularNavCard
-                to="/services"
-                label="Services"
-                imageUrl={getServiceImage()}
-                alt="Interior design services"
-                size={300}
-              />
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="bg-soft-cream md:py-20 md:md:py-32">
-        <div className="container-wide md:px-12 lg:px-20">
-          {isMobile ? (
-            <div className="px-4 py-[56px]">
-              <CircularNavCard
-                to="/virtual-design"
-                label="Virtual Designs"
-                imageUrl={getProjectImage(virtualDesigns[0])}
-                alt={virtualDesigns[0]?.title}
-                size={300}
-              />
-            </div>
-          ) : (
-            <>
-              <ScrollReveal>
-                <div className="mb-16 md:mb-24 text-center">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Services</p>
-                  <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
-                    What We Do
-                  </h2>
-                  <p className="mt-4 max-w-2xl mx-auto text-base text-espresso/60 leading-relaxed">
-                    Comprehensive interior design services tailored to elevate your space with timeless elegance.
-                  </p>
-                </div>
-              </ScrollReveal>
-
-              {services.length === 0 ? (
-                <ScrollReveal>
-                  <div className="flex min-h-[40vh] items-center justify-center">
-                    <p className="font-display text-xl text-[var(--primary)]/60">No services configured</p>
-                  </div>
-                </ScrollReveal>
-              ) : (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
-                  {services.slice(0, 6).map((item, index) => {
-                    const IconMap = {
-                      LayoutGrid: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>,
-                      Brush: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 4 9 9 0 1 1-9-9Z"/><line x1="21" y1="9" x2="15.5" y2="14.5"/><line x1="15" y1="15" x2="14" y2="16"/></svg>,
-                      MonitorSmartphone: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M18 8V5a2 2 0 0 0-2-2H4"/><path d="M17 9h.01"/><rect width="6" height="10" x="16" y="12" rx="2"/><path d="M6 12h.01"/><rect width="6" height="12" x="4" y="8" rx="2"/></svg>,
-                      Armchair: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5"/><path d="M5 18v2"/><path d="M19 18v2"/></svg>,
-                      Search: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-                      Sparkles: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v2.2"/><path d="M16.38 4.74l1.06 1.06"/><path d="M18 12h2.2"/><path d="M21 16.38l-1.06 1.06"/><path d="M12 21v-2.2"/><path d="M7.64 19.34l1.06-1.06"/><path d="M3 12h-2.2"/><path d="M4.74 4.74l-1.06 1.06"/></svg>,
-                    }
-                    const IconComponent = IconMap[item.icon] || IconMap.LayoutGrid
-                    return (
-                      <ScrollReveal key={item.id} delay={index * 80}>
-                        <div className="group flex flex-col items-center text-center">
-                          <div className="mb-8 inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-champagne-beige/60 text-espresso transition-all duration-500 group-hover:bg-espresso group-hover:text-cream group-hover:scale-105">
-                            <IconComponent />
-                          </div>
-                          <h3 className="font-display text-xl md:text-2xl font-medium text-espresso leading-tight">
-                            {item.title}
-                          </h3>
-                          <p className="mt-2 text-sm text-espresso/60 leading-relaxed">{item.description}</p>
-                        </div>
-                      </ScrollReveal>
-                    )
-                  })}
-                </div>
-              )}
-            </>
-          )}
-
-{isMobile && (
-            <div className="px-4 py-[56px]">
-              <CircularNavCard
-                to="/shop"
-                label="Shop With Us"
-                imageUrl={getProductImage(products[0])}
-                alt={products[0]?.name}
-                size={300}
-              />
-            </div>
-          )}
-
-          {isMobile && (
-            <div className="px-4 py-[56px]">
-              <CircularNavCard
-                to="/about"
-                label="About Us"
-                imageUrl={aboutData?.aboutImageUrl || aboutData?.heroImage || getServiceImage()}
-                alt="About HOK Interiors"
-                size={300}
-              />
-            </div>
-          )}
-
-          {isMobile && (
-            <div className="px-4 pt-[56px] pb-[40px]">
-              <CircularNavCard
-                to="/socials"
-                label="Socials"
-                imageUrl={getSocialImage()}
-                alt="HOK Interiors social"
-                size={300}
-              />
-            </div>
-          )}
-        </div>
-      </section>
+      <CircularServicesGrid
+        services={services}
+        images={services.reduce((acc, s) => {
+          const img = s.imageUrl || s.mediaUrl || s.image || s.galleryImages?.[0]
+          if (img) acc[s.key || s.id] = img
+          return acc
+        }, {})}
+      />
 
       {/* Shop With Us - Desktop */}
       {!isMobile && (

@@ -2,36 +2,12 @@ import { Brush, LayoutGrid, MonitorSmartphone, Armchair, Search, Sparkles } from
 import { motion } from 'framer-motion'
 
 const SERVICES = [
-  {
-    icon: Brush,
-    title: 'Residential Interior Design',
-    description: 'Luxury homes tailored to your lifestyle',
-  },
-  {
-    icon: LayoutGrid,
-    title: 'Commercial Interior Design',
-    description: 'Sophisticated spaces for business',
-  },
-  {
-    icon: MonitorSmartphone,
-    title: 'Virtual Designs',
-    description: 'Transform your space from anywhere',
-  },
-  {
-    icon: Armchair,
-    title: 'Furniture Selection',
-    description: 'Curated pieces for every room',
-  },
-  {
-    icon: Search,
-    title: 'Space Planning',
-    description: 'Optimize flow and functionality',
-  },
-  {
-    icon: Sparkles,
-    title: 'Styling Consultation',
-    description: 'Expert finishing touches',
-  },
+  { key: 'residential', icon: Brush, title: 'Residential Interior Design', description: 'Luxury homes tailored to your lifestyle' },
+  { key: 'commercial', icon: LayoutGrid, title: 'Commercial Interior Design', description: 'Sophisticated spaces for business' },
+  { key: 'virtual', icon: MonitorSmartphone, title: 'Virtual Designs', description: 'Transform your space from anywhere' },
+  { key: 'furniture', icon: Armchair, title: 'Furniture Selection', description: 'Curated pieces for every room' },
+  { key: 'space', icon: Search, title: 'Space Planning', description: 'Optimize flow and functionality' },
+  { key: 'styling', icon: Sparkles, title: 'Styling Consultation', description: 'Expert finishing touches' },
 ]
 
 const containerVariants = {
@@ -42,6 +18,29 @@ const containerVariants = {
 const itemVariants = {
   hidden: { opacity: 0, y: 30 },
   show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
+}
+
+const CircularServiceCard = ({ service }) => {
+  const Icon = service.icon
+
+  return (
+    <motion.div
+      variants={itemVariants}
+      whileHover={{ y: -8, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }}
+      className="flex flex-col items-center text-center"
+    >
+      <motion.div
+        className="relative mb-8 inline-flex h-20 w-20 items-center justify-center rounded-full bg-champagne-beige/60 text-espresso transition-all duration-500 group-hover:bg-espresso group-hover:text-cream group-hover:scale-105"
+        whileHover={{ scale: 1.05, transition: { duration: 0.4 } }}
+      >
+        <Icon size={28} strokeWidth={1.5} />
+      </motion.div>
+      <h3 className="font-display text-xl md:text-2xl font-medium text-espresso leading-tight">
+        {service.title}
+      </h3>
+      <p className="mt-2 text-sm text-espresso/60 leading-relaxed">{service.description}</p>
+    </motion.div>
+  )
 }
 
 export const Services = () => {
@@ -71,30 +70,13 @@ export const Services = () => {
           viewport={{ once: true, margin: '-50px' }}
           className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12"
         >
-          {SERVICES.map((item) => {
-            const Icon = item.icon
-            return (
-              <motion.div
-                key={item.title}
-                variants={itemVariants}
-                whileHover={{ y: -8, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }}
-                className="group flex flex-col items-center text-center"
-              >
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  className="mb-8 inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-champagne-beige/60 text-espresso transition-all duration-500 group-hover:bg-espresso group-hover:text-cream group-hover:scale-105"
-                >
-                  <Icon size={28} strokeWidth={1.5} />
-                </motion.div>
-                <h3 className="font-display text-xl md:text-2xl font-medium text-espresso leading-tight">
-                  {item.title}
-                </h3>
-                <p className="mt-2 text-sm text-espresso/60 leading-relaxed">{item.description}</p>
-              </motion.div>
-            )
-          })}
+          {SERVICES.map((service) => (
+            <CircularServiceCard key={service.key} service={service} />
+          ))}
         </motion.div>
       </div>
     </section>
   )
 }
+
+export default Services

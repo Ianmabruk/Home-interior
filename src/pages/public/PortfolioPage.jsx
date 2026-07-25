@@ -6,11 +6,6 @@ import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../util
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 import { ScrollReveal } from '../../utils/scrollReveal'
 
-const getProjectImage = (item) => {
-  if (!item) return null
-  return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
-}
-
 const ProjectCard = ({ item }) => (
   <article className="group cursor-pointer bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
     <Link
