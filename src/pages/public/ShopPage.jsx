@@ -91,8 +91,8 @@ export const ShopPage = ({ category: initialCategory }) => {
       {/* Sticky Premium Header - Search, Category, Sort, Currency */}
       <div className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-xl shadow-sm md:top-[72px]">
         <div className="container-wide px-4 py-4 md:px-12 md:py-5">
-          {/* Search Bar */}
-          <div className="mb-4 md:mb-0 flex items-center gap-3">
+          {/* Search Bar - Desktop Only */}
+          <div className="hidden md:flex md:mb-0 flex items-center gap-3">
             <div className="relative flex-1 max-w-md md:max-w-lg">
               <Search size={16} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--primary)]/30" />
               <input

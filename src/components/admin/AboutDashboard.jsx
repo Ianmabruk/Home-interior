@@ -1,10 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { X, Plus, Image as ImageIcon } from 'lucide-react'
+import { X, Plus, Image as ImageIcon, Users, Target, Award, Leaf, PenTool, Layers, Clock, Shield, Heart, Sparkles, MapPin, Star } from 'lucide-react'
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
 
 const INITIAL_FORM = {
+  heading: '',
+  heroSubtitle: '',
   story: '',
   mission: '',
   vision: '',
@@ -14,6 +16,10 @@ const INITIAL_FORM = {
   contactEmail: '',
   statistics: '',
   socialLinks: '',
+  whyChooseHok: '',
+  areasServed: '',
+  team: '',
+  process: '',
 }
 
 export const AboutDashboard = () => {
@@ -28,6 +34,8 @@ export const AboutDashboard = () => {
     try {
       const res = await api.get('/about')
       setForm({
+        heading: res.data?.heading || '',
+        heroSubtitle: res.data?.heroSubtitle || '',
         story: res.data?.story || '',
         mission: res.data?.mission || '',
         vision: res.data?.vision || '',
@@ -37,6 +45,10 @@ export const AboutDashboard = () => {
         contactEmail: res.data?.contactEmail || '',
         statistics: res.data?.statistics || '',
         socialLinks: JSON.stringify(res.data?.socials || {}, null, 2),
+        whyChooseHok: res.data?.whyChooseHok || '',
+        areasServed: res.data?.areasServed || '',
+        team: JSON.stringify(res.data?.team || [], null, 2),
+        process: JSON.stringify(res.data?.process || [], null, 2),
       })
       setAboutImagePreview(res.data?.aboutImageUrl || null)
     } catch {
@@ -51,6 +63,8 @@ export const AboutDashboard = () => {
         const res = await api.get('/about')
         if (!cancelled) {
           setForm({
+            heading: res.data?.heading || '',
+            heroSubtitle: res.data?.heroSubtitle || '',
             story: res.data?.story || '',
             mission: res.data?.mission || '',
             vision: res.data?.vision || '',
@@ -60,6 +74,10 @@ export const AboutDashboard = () => {
             contactEmail: res.data?.contactEmail || '',
             statistics: res.data?.statistics || '',
             socialLinks: JSON.stringify(res.data?.socials || {}, null, 2),
+            whyChooseHok: res.data?.whyChooseHok || '',
+            areasServed: res.data?.areasServed || '',
+            team: JSON.stringify(res.data?.team || [], null, 2),
+            process: JSON.stringify(res.data?.process || [], null, 2),
           })
           setAboutImagePreview(res.data?.aboutImageUrl || null)
         }
@@ -93,6 +111,8 @@ export const AboutDashboard = () => {
     setSubmitting(true)
     try {
       const payload = new FormData()
+      payload.append('heading', form.heading || '')
+      payload.append('heroSubtitle', form.heroSubtitle || '')
       payload.append('story', form.story || '')
       payload.append('companyDescription', form.companyDescription || '')
       payload.append('mission', form.mission || '')
@@ -102,6 +122,10 @@ export const AboutDashboard = () => {
       payload.append('socials', form.socialLinks || '{}')
       payload.append('values', form.values || '')
       payload.append('statistics', form.statistics || '')
+      payload.append('whyChooseHok', form.whyChooseHok || '')
+      payload.append('areasServed', form.areasServed || '')
+      payload.append('team', form.team || '[]')
+      payload.append('process', form.process || '[]')
       if (aboutImageFile) payload.append('media', aboutImageFile)
       await api.put('/about', payload)
       await loadAbout()
@@ -122,7 +146,7 @@ export const AboutDashboard = () => {
       >
         <div>
           <h2 className="font-display text-3xl text-[var(--primary)]">About Page</h2>
-          <p className="text-sm text-[var(--primary)]/50 mt-1">Manage company story, mission, gallery and contact info</p>
+          <p className="text-sm text-[var(--primary)]/50 mt-1">Manage all about page content including hero, story, team, process and more</p>
         </div>
       </motion.div>
 
@@ -132,98 +156,192 @@ export const AboutDashboard = () => {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
           onSubmit={submit}
-          className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)] space-y-5 self-start"
+          className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)] space-y-5 self-start max-h-[calc(100vh-120px)] overflow-y-auto"
         >
           <div>
-            <h3 className="font-display text-xl text-[var(--primary)]">About Content</h3>
-            <p className="text-[10px] text-[var(--primary)]/50 mt-1">Update company story, mission and values</p>
+            <h3 className="font-display text-xl text-[var(--primary)]">Hero Section</h3>
+            <p className="text-[10px] text-[var(--primary)]/50 mt-1">Main heading and subtitle</p>
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Company Description</label>
-            <textarea
-              value={form.companyDescription}
-              onChange={(e) => setForm((f) => ({ ...f, companyDescription: e.target.value }))}
-              className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
-              placeholder="Brief company overview..."
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Our Story</label>
-            <textarea
-              value={form.story}
-              onChange={(e) => setForm((f) => ({ ...f, story: e.target.value }))}
-              className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
-              placeholder="Share your journey and philosophy..."
-              rows={4}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Mission</label>
-              <textarea
-                value={form.mission}
-                onChange={(e) => setForm((f) => ({ ...f, mission: e.target.value }))}
-                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
-                placeholder="Our mission..."
-                rows={3}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Vision</label>
-              <textarea
-                value={form.vision}
-                onChange={(e) => setForm((f) => ({ ...f, vision: e.target.value }))}
-                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
-                placeholder="Our vision..."
-                rows={3}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Core Values</label>
-            <textarea
-              value={form.values}
-              onChange={(e) => setForm((f) => ({ ...f, values: e.target.value }))}
-              className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
-              placeholder="Integrity, Excellence, Innovation..."
-              rows={3}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Location</label>
-              <input
-                value={form.location}
-                onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                placeholder="Nairobi, Kenya"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Contact Email</label>
-              <input
-                value={form.contactEmail}
-                onChange={(e) => setForm((f) => ({ ...f, contactEmail: e.target.value }))}
-                type="email"
-                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                placeholder="info@hqkinteriors.com"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Statistics</label>
+            <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Page Heading</label>
             <input
+              value={form.heading}
+              onChange={(e) => setForm((f) => ({ ...f, heading: e.target.value }))}
+              className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+              placeholder="About HOK"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Hero Subtitle</label>
+            <textarea
+              value={form.heroSubtitle}
+              onChange={(e) => setForm((f) => ({ ...f, heroSubtitle: e.target.value }))}
+              className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
+              placeholder="Redefining luxury interiors with timeless elegance..."
+              rows={2}
+            />
+          </div>
+
+          <div className="border-t border-[var(--border)] pt-5 space-y-5">
+            <div>
+              <h3 className="font-display text-xl text-[var(--primary)]">Company Story & Values</h3>
+              <p className="text-[10px] text-[var(--primary)]/50 mt-1">Update company story, mission, vision and values</p>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Company Description</label>
+              <textarea
+                value={form.companyDescription}
+                onChange={(e) => setForm((f) => ({ ...f, companyDescription: e.target.value }))}
+                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
+                placeholder="Brief company overview..."
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Our Story</label>
+              <textarea
+                value={form.story}
+                onChange={(e) => setForm((f) => ({ ...f, story: e.target.value }))}
+                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
+                placeholder="Share your journey and philosophy..."
+                rows={4}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Mission</label>
+                <textarea
+                  value={form.mission}
+                  onChange={(e) => setForm((f) => ({ ...f, mission: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
+                  placeholder="Our mission..."
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Vision</label>
+                <textarea
+                  value={form.vision}
+                  onChange={(e) => setForm((f) => ({ ...f, vision: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
+                  placeholder="Our vision..."
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Core Values (one per line, format: Title: Description)</label>
+              <textarea
+                value={form.values}
+                onChange={(e) => setForm((f) => ({ ...f, values: e.target.value }))}
+                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none font-mono text-xs"
+                placeholder="Excellence: Crafting spaces that inspire and elevate everyday living.\nSustainability: Committed to eco-friendly materials and responsible design practices."
+                rows={4}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Location</label>
+                <input
+                  value={form.location}
+                  onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                  placeholder="Nairobi, Kenya"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Contact Email</label>
+                <input
+                  value={form.contactEmail}
+                  onChange={(e) => setForm((f) => ({ ...f, contactEmail: e.target.value }))}
+                  type="email"
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                  placeholder="info@hokinteriors.com"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-[var(--border)] pt-5 space-y-5">
+            <div>
+              <h3 className="font-display text-xl text-[var(--primary)]">Why Choose HOK & Areas Served</h3>
+              <p className="text-[10px] text-[var(--primary)]/50 mt-1">One item per line, format: Title: Description</p>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Why Choose HOK</label>
+              <textarea
+                value={form.whyChooseHok}
+                onChange={(e) => setForm((f) => ({ ...f, whyChooseHok: e.target.value }))}
+                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none font-mono text-xs"
+                placeholder="Proven Expertise: 15+ years delivering exceptional interiors.\nPersonalized Approach: Every project tailored to your lifestyle."
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Areas Served (one per line)</label>
+              <textarea
+                value={form.areasServed}
+                onChange={(e) => setForm((f) => ({ ...f, areasServed: e.target.value }))}
+                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none font-mono text-xs"
+                placeholder="Nairobi & Surrounds\nMombasa & Coast\nKisumu & Western Kenya"
+                rows={4}
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-[var(--border)] pt-5 space-y-5">
+            <div>
+              <h3 className="font-display text-xl text-[var(--primary)]">Team Members (JSON array)</h3>
+              <p className="text-[10px] text-[var(--primary)]/50 mt-1">Example JSON format shown below</p>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Team</label>
+              <textarea
+                value={form.team}
+                onChange={(e) => setForm((f) => ({ ...f, team: e.target.value }))}
+                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none font-mono text-xs"
+                placeholder="JSON array format"
+                rows={4}
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-[var(--border)] pt-5 space-y-5">
+            <div>
+              <h3 className="font-display text-xl text-[var(--primary)]">Process Steps (JSON array)</h3>
+              <p className="text-[10px] text-[var(--primary)]/50 mt-1">Example JSON format shown below</p>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Process</label>
+              <textarea
+                value={form.process}
+                onChange={(e) => setForm((f) => ({ ...f, process: e.target.value }))}
+                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none font-mono text-xs"
+                placeholder="JSON array format"
+                rows={4}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Statistics (one per line, format: Value: Label)</label>
+            <textarea
               value={form.statistics}
               onChange={(e) => setForm((f) => ({ ...f, statistics: e.target.value }))}
-              className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-              placeholder="e.g., 100+ Projects, 15 Years Experience"
+              className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none font-mono text-xs"
+              placeholder="15+: Years Experience&#10;500+: Projects Completed&#10;50+: Team Members&#10;12: Awards Won"
+              rows={4}
             />
           </div>
 

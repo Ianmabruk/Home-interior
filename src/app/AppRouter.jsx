@@ -78,6 +78,7 @@ const ServicesPage = lazy(() => import('../pages/public/ServicesPage').then((m) 
 const SocialsPage = lazy(() => import('../pages/public/SocialsPage').then((m) => ({ default: m.SocialsPage })))
 const VirtualDesignPage = lazy(() => import('../pages/public/VirtualDesignPage').then((m) => ({ default: m.VirtualDesignPage })))
 const NotFoundPage = lazy(() => import('../pages/public/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
+const ContactPage = lazy(() => import('../pages/public/ContactPage').then((m) => ({ default: m.ContactPage })))
 
 const ErrorBoundaryRoute = ({ element }) => (
   <ErrorBoundary fallback={<ErrorFallback />}>
@@ -104,8 +105,7 @@ export const AppRouter = () => {
         <Route path="/virtual-design" element={<ErrorBoundaryRoute element={<VirtualDesignPage />} />} />
         <Route path="/virtual-design/project/:id" element={<ErrorBoundaryRoute element={<VirtualDesignDetailPage />} />} />
         <Route path="/socials" element={<ErrorBoundaryRoute element={<SocialsPage />} />} />
-        <Route path="/contact" element={<ErrorBoundaryRoute element={<AboutPage />} />} />
-        <Route path="/consultation" element={<ErrorBoundaryRoute element={<AboutPage />} />} />
+        <Route path="/contact" element={<ErrorBoundaryRoute element={<ContactPage />} />} />
         <Route path="/chat" element={<ErrorBoundaryRoute element={<ChatPage />} />} />
 
         <Route element={<ProtectedRoute />}>

@@ -27,6 +27,7 @@ const NAV_ITEMS = [
   { to: '/portfolio', label: 'Portfolio' },
   { to: '/services', label: 'Services' },
   { to: '/virtual-design', label: 'Virtual Designs' },
+  { to: '/contact', label: 'Contact' },
   { to: '/about', label: 'About' },
 ]
 

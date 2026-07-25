@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Maximize2, Play } from 'lucide-react'
+import { ArrowRight, Maximize2, Play, Users, Instagram, Facebook } from 'lucide-react'
+import { FaTiktok, FaPinterest } from 'react-icons/fa'
 import { Hero } from '../../components/Hero'
 import { AboutPreview } from '../../components/AboutPreview'
 import { ConsultationModal } from '../../components/ConsultationModal'
@@ -10,6 +11,34 @@ import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import { ScrollReveal } from '../../utils/scrollReveal'
 import { useIsMobile } from '../../utils/useIsMobile'
+import PositionedImage from '../../components/common/PositionedImage'
+
+const socialLinks = [
+  {
+    label: 'Instagram',
+    href: 'https://www.instagram.com/hokinteriors',
+    icon: Instagram,
+    desc: 'Follow our visual journey through luxury interiors.',
+  },
+  {
+    label: 'TikTok',
+    href: 'https://www.tiktok.com/@hokinteriors',
+    icon: FaTiktok,
+    desc: 'Watch behind-the-scenes design reels and walkthroughs.',
+  },
+  {
+    label: 'Facebook',
+    href: 'https://www.facebook.com/share/14i3V8Sw7uo',
+    icon: Facebook,
+    desc: 'Stay connected with our latest projects and stories.',
+  },
+  {
+    label: 'Pinterest',
+    href: 'https://www.pinterest.com/hokinterior',
+    icon: FaPinterest,
+    desc: 'Explore curated mood boards and design inspiration.',
+  },
+]
 
 export const HomePage = () => {
   const [showModal, setShowModal] = useState(false)
@@ -101,6 +130,13 @@ export const HomePage = () => {
     }
     return null
   }
+
+  const socialLinks = [
+    { label: 'Instagram', href: 'https://www.instagram.com/hokinteriors', icon: 'Instagram' },
+    { label: 'TikTok', href: 'https://www.tiktok.com/@hokinteriors', icon: 'TikTok' },
+    { label: 'Facebook', href: 'https://www.facebook.com/share/14i3V8Sw7uo', icon: 'Facebook' },
+    { label: 'Pinterest', href: 'https://www.pinterest.com/hokinterior', icon: 'Pinterest' },
+  ]
 
   if (loading) {
     return (
@@ -501,6 +537,168 @@ export const HomePage = () => {
           )}
         </div>
       </section>
+
+      {/* Shop With Us - Desktop */}
+      {!isMobile && (
+        <section className="bg-[var(--secondary)]/30 md:py-20 md:md:py-32">
+          <div className="container-wide md:px-12 lg:px-20">
+            <ScrollReveal>
+              <div className="mb-16 md:mb-24 text-center">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Shop</p>
+                <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
+                  Shop With Us
+                </h2>
+                <p className="mt-4 max-w-2xl mx-auto text-base text-espresso/60 leading-relaxed">
+                  Curated collection of premium home decor and accessories.
+                </p>
+              </div>
+            </ScrollReveal>
+
+            {products.length === 0 ? (
+              <ScrollReveal>
+                <div className="flex min-h-[40vh] items-center justify-center">
+                  <p className="font-display text-xl text-[var(--primary)]/60">No products yet</p>
+                </div>
+              </ScrollReveal>
+            ) : (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 lg:gap-12">
+                {products.slice(0, 4).map((item, index) => (
+                  <ScrollReveal key={item.id} delay={index * 80}>
+                    <article className="group">
+                      <Link to={`/shop/${item._id || item.id}`} className="block" aria-label={`View ${item.name} product`}>
+                        <div className="relative aspect-square overflow-hidden rounded-3xl bg-white border border-[var(--border)]/40 shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-700">
+                          <img
+                            src={getOptimizedUrl(getProductImage(item) || '', { width: 800, crop: 'limit' })}
+                            srcSet={buildSrcSet(getProductImage(item)) || undefined}
+                            sizes={buildSrcSet(getProductImage(item)) ? '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw' : undefined}
+                            alt={item.name}
+                            className="h-full w-full object-cover transition duration-[1.2s] ease-out group-hover:scale-105"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        </div>
+                        <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white text-center">
+                          <h3 className="font-display text-lg md:text-xl font-medium text-espresso leading-tight mb-2">
+                            {item.name}
+                          </h3>
+                          <p className="font-medium text-espresso">{item.discountPrice ? `$${Number(item.discountPrice).toFixed(2)}` : item.price ? `$${Number(item.price).toFixed(2)}` : ''}</p>
+                        </div>
+</Link>
+                    </article>
+                  </ScrollReveal>
+                ))}
+              </div>
+            )}
+            <div className="mt-12 text-center">
+              <Link to="/shop" className="btn-luxury-primary group inline-flex items-center gap-2">
+                View All Products
+                <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Socials - Desktop */}
+      {!isMobile && (
+        <section className="bg-soft-cream md:py-20 md:md:py-32">
+          <div className="container-wide md:px-12 lg:px-20">
+            <ScrollReveal>
+              <div className="mb-16 md:mb-24 text-center">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Follow Us</p>
+                <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+                  Socials
+                </h2>
+                <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
+                  Join our design community across platforms and see how we bring luxury interiors to life.
+                </p>
+              </div>
+            </ScrollReveal>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {socialLinks.map((item, index) => {
+                const Icon = item.icon
+                return (
+                  <ScrollReveal key={item.label} delay={index * 80}>
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group flex flex-col items-center text-center rounded-3xl border border-[var(--border)] bg-white p-8 transition-all duration-500 hover:border-[var(--accent)]/60 hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] hover:-translate-y-1"
+                    >
+                      <span className="flex h-20 w-20 items-center justify-center rounded-full bg-[#E6D8C9]/60 text-[#2A241F] transition-all duration-500 group-hover:bg-[#E89A43] group-hover:text-white group-hover:scale-105 mb-6">
+                        <Icon size={32} strokeWidth={1.5} aria-hidden="true" />
+                      </span>
+                      <h3 className="font-display text-xl md:text-2xl font-normal text-[#2A241F] leading-tight mb-2 group-hover:text-[#E89A43] transition-colors">
+                        {item.label}
+                      </h3>
+                      <p className="text-sm text-[#2A241F]/60 leading-relaxed mb-6">{item.desc}</p>
+                      <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]">
+                        Give Me A Follow
+                        <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+                      </span>
+                    </a>
+                  </ScrollReveal>
+                )
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* About Us - Desktop */}
+      {!isMobile && aboutData && (
+        <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 md:py-20 md:md:py-32">
+          <div className="container-wide md:px-12 lg:px-20">
+            <div className="grid gap-16 md:grid-cols-2">
+              <ScrollReveal>
+                <div className="space-y-6 max-w-3xl">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">About Us</p>
+                  <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
+                    {aboutData.heading || 'About HOK'}
+                  </h2>
+                  {aboutData.companyDescription && (
+                    <p className="text-base leading-[1.8] text-[var(--primary)]/55">{aboutData.companyDescription}</p>
+                  )}
+                  {aboutData.story && (
+                    <p className="text-lg leading-[1.8] text-[var(--primary)]">{aboutData.story}</p>
+                  )}
+                  <Link to="/about" className="btn-luxury-primary mt-4 inline-flex items-center gap-2">
+                    Learn More
+                    <ArrowRight size={14} strokeWidth={1.5} className="transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </div>
+              </ScrollReveal>
+              <ScrollReveal>
+                <div className="space-y-4">
+                  {aboutData.aboutImageUrl && (
+                    <PositionedImage
+                      src={aboutData.aboutImageUrl}
+                      alt="About HOK Interior Designs"
+                      settings={aboutData.mediaSettings}
+                      className="rounded-3xl w-full aspect-[4/5] object-cover shadow-[0_10px_40px_rgba(42,36,31,0.06)]"
+                    />
+                  )}
+                  {aboutData.heroImage && !aboutData.aboutImageUrl && (
+                    <div className="rounded-3xl w-full aspect-[4/5] overflow-hidden shadow-[0_10px_40px_rgba(42,36,31,0.06)]">
+                      <img
+                        src={getOptimizedUrl(aboutData.heroImage, { width: 800, height: 1000, crop: 'fill' })}
+                        alt="About HOK Interior Designs"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  )}
+                  {!aboutData.aboutImageUrl && !aboutData.heroImage && (
+                    <div className="rounded-3xl w-full aspect-[4/5] bg-gradient-to-br from-[var(--secondary)]/30 to-[var(--accent)]/10 flex items-center justify-center text-[var(--primary)]/30">
+                      <Users size={64} />
+                    </div>
+                  )}
+                </div>
+              </ScrollReveal>
+            </div>
+          </div>
+        </section>
+      )}
 
       <ConsultationModal isOpen={showModal} onClose={() => setShowModal(false)} />
     </main>
