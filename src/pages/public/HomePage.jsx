@@ -10,8 +10,8 @@ import { api } from '../../services/api'
 import { getOptimizedUrl, getOptimizedVideoUrl, getVideoPosterUrl } from '../../utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import { ScrollReveal } from '../../utils/scrollReveal'
-import { useIsMobile } from '../../utils/useIsMobile'
 import LazyVideo from '../../components/common/LazyVideo'
+import { CircularNavCard } from '../../components/mobile/CircularNavCard'
 
 const getProjectImage = (item) => {
   if (!item) return null
@@ -167,7 +167,6 @@ export const HomePage = () => {
   const [loading, setLoading] = useState(true)
   const [heroImages, setHeroImages] = useState([])
   const [contactInfo, setContactInfo] = useState(null)
-  const isMobile = useIsMobile(768)
 
   const loadData = useCallback(async () => {
     try {
@@ -301,86 +300,156 @@ export const HomePage = () => {
 
   return (
     <main>
-      <div className={isMobile ? 'md:hidden' : 'hidden md:block'}>
-        <Hero onBookConsultation={() => setShowModal(true)} heroImages={heroImages} className="h-[240px] min-h-[240px] rounded-b-[20px] mb-7" />
-      </div>
-      <div className={isMobile ? 'hidden md:block' : 'md:hidden'}>
+      {/* HERO - Mobile */}
+      <div className="md:hidden">
         <Hero onBookConsultation={() => setShowModal(true)} heroImages={heroImages} />
       </div>
 
-      {/* Portfolio Section */}
-      <section id="portfolio" className="bg-[var(--secondary)]/30 py-20 md:py-32">
-        <div className="container-wide md:px-12 lg:px-20">
-          <CircularPortfolioShowcase
-            portfolio={portfolio}
-            getProjectImage={getProjectImage}
-          />
-        </div>
-      </section>
+      {/* HERO - Desktop */}
+      <div className="hidden md:block">
+        <Hero onBookConsultation={() => setShowModal(true)} heroImages={heroImages} className="h-[240px] min-h-[240px] rounded-b-[20px] mb-7" />
+      </div>
 
-      {/* Services Section */}
-      <section id="services" className="bg-soft-cream py-20 md:py-32">
-        <div className="container-wide md:px-12 lg:px-20">
-          <CircularServicesGrid
-            services={services}
-            images={services.reduce((acc, s) => {
-              const img = s.imageUrl || s.mediaUrl || s.image || s.galleryImages?.[0]
-              if (img) acc[s.key || s.id] = img
-              return acc
-            }, {})}
-          />
-        </div>
-      </section>
-
-      {/* Virtual Interior Designs Section */}
-      <section id="virtual-designs" className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 py-20 md:py-32">
-        <div className="container-wide md:px-12 lg:px-20">
-          <div className="mb-16 md:mb-24 text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Virtual Designs</p>
-            <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
-              Virtual Interior Designs
-            </h2>
-            <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
-              Experience your dream space before it&apos;s built. Our virtual design service brings your vision to life with immersive 3D renderings and virtual walkthroughs.
-            </p>
+      {/* MOBILE: Vertical stack of CircularNavCard */}
+      <div className="md:hidden">
+        <section className="bg-[var(--secondary)]/30 px-6 py-16">
+          <div className="container-wide">
+            <CircularNavCard
+              to="/portfolio"
+              label="Portfolio"
+              imageUrl={portfolio[0] ? getProjectImage(portfolio[0]) : null}
+              alt={portfolio[0]?.title}
+              size={300}
+              priority
+            />
           </div>
+        </section>
 
-          {virtualDesigns.length === 0 ? (
-            <div className="flex min-h-[40vh] items-center justify-center">
-              <p className="font-display text-xl text-[var(--primary)]/60">No virtual design projects yet</p>
-            </div>
-          ) : (
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {virtualDesigns.slice(0, 4).map((item) => (
-                <ScrollReveal key={item.id}>
-                  <VirtualDesignCard item={item} />
-                </ScrollReveal>
-              ))}
-            </div>
-          )}
-
-          <div className="mt-12 text-center">
-            <Link to="/virtual-design" className="btn-luxury-primary group inline-flex items-center gap-2">
-              View All Virtual Designs
-              <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
+        <section className="bg-soft-cream px-6 py-16">
+          <div className="container-wide">
+            <CircularNavCard
+              to="/services"
+              label="Services"
+              imageUrl={services[0] ? (services[0].imageUrl || services[0].mediaUrl || services[0].image || services[0].galleryImages?.[0]) : null}
+              alt={services[0]?.title}
+              size={300}
+            />
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Contact Section */}
-      <section id="contact" className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 py-20 md:py-32">
-        <div className="container-wide md:px-12 lg:px-20">
-          <ContactSection contactInfo={contactInfo} />
-        </div>
-      </section>
+        <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 py-16">
+          <div className="container-wide">
+            <CircularNavCard
+              to="/virtual-design"
+              label="Virtual Designs"
+              imageUrl={virtualDesigns[0] ? getProjectImage(virtualDesigns[0]) : null}
+              alt={virtualDesigns[0]?.title}
+              size={300}
+            />
+          </div>
+        </section>
 
-      {/* About Us Section */}
-      <section id="about" className="bg-soft-cream py-20 md:py-32">
-        <div className="container-wide md:px-12 lg:px-20">
-          <AboutPreview />
-        </div>
-      </section>
+        <section className="bg-soft-cream px-6 py-16">
+          <div className="container-wide">
+            <CircularNavCard
+              to="/socials"
+              label="Socials"
+              imageUrl={heroImages[0] ? (typeof heroImages[0] === 'string' ? heroImages[0] : heroImages[0].imageUrl || heroImages[0].mediaUrls?.[0] || heroImages[0].url) : null}
+              alt="HOK Interiors Social"
+              size={300}
+            />
+          </div>
+        </section>
+
+        <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 px-6 py-16 pb-24">
+          <div className="container-wide">
+            <CircularNavCard
+              to="/about"
+              label="About Us"
+              imageUrl={heroImages[0] ? (typeof heroImages[0] === 'string' ? heroImages[0] : heroImages[0].imageUrl || heroImages[0].mediaUrls?.[0] || heroImages[0].url) : null}
+              alt="About HOK Interiors"
+              size={300}
+            />
+          </div>
+        </section>
+      </div>
+
+      {/* DESKTOP: Full sections */}
+      <div className="hidden md:block">
+        {/* Portfolio Section */}
+        <section id="portfolio" className="bg-[var(--secondary)]/30 py-20 md:py-32">
+          <div className="container-wide md:px-12 lg:px-20">
+            <CircularPortfolioShowcase
+              portfolio={portfolio}
+              getProjectImage={getProjectImage}
+            />
+          </div>
+        </section>
+
+        {/* Services Section */}
+        <section id="services" className="bg-soft-cream py-20 md:py-32">
+          <div className="container-wide md:px-12 lg:px-20">
+            <CircularServicesGrid
+              services={services}
+              images={services.reduce((acc, s) => {
+                const img = s.imageUrl || s.mediaUrl || s.image || s.galleryImages?.[0]
+                if (img) acc[s.key || s.id] = img
+                return acc
+              }, {})}
+            />
+          </div>
+        </section>
+
+        {/* Virtual Interior Designs Section */}
+        <section id="virtual-designs" className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 py-20 md:py-32">
+          <div className="container-wide md:px-12 lg:px-20">
+            <div className="mb-16 md:mb-24 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Virtual Designs</p>
+              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
+                Virtual Interior Designs
+              </h2>
+              <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
+                Experience your dream space before it&apos;s built. Our virtual design service brings your vision to life with immersive 3D renderings and virtual walkthroughs.
+              </p>
+            </div>
+
+            {virtualDesigns.length === 0 ? (
+              <div className="flex min-h-[40vh] items-center justify-center">
+                <p className="font-display text-xl text-[var(--primary)]/60">No virtual design projects yet</p>
+              </div>
+            ) : (
+              <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {virtualDesigns.slice(0, 4).map((item) => (
+                  <ScrollReveal key={item.id}>
+                    <VirtualDesignCard item={item} />
+                  </ScrollReveal>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-12 text-center">
+              <Link to="/virtual-design" className="btn-luxury-primary group inline-flex items-center gap-2">
+                View All Virtual Designs
+                <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Contact Section */}
+        <section id="contact" className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 py-20 md:py-32">
+          <div className="container-wide md:px-12 lg:px-20">
+            <ContactSection contactInfo={contactInfo} />
+          </div>
+        </section>
+
+        {/* About Us Section */}
+        <section id="about" className="bg-soft-cream py-20 md:py-32">
+          <div className="container-wide md:px-12 lg:px-20">
+            <AboutPreview />
+          </div>
+        </section>
+      </div>
 
       <ConsultationModal isOpen={showModal} onClose={() => setShowModal(false)} />
     </main>
