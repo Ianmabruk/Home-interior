@@ -479,6 +479,125 @@ video {
   .stagger-children.visible > * {
     animation: fadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
+
+  /* Fade Up Animation */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-up {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  /* Fade In Animation */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.7s ease-out forwards;
+  }
+
+  /* Hover Scale */
+  .hover-scale {
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .hover-scale:hover {
+    transform: scale(1.05);
+  }
+
+  /* Stagger delays */
+  .stagger-1 { animation-delay: 100ms; }
+  .stagger-2 { animation-delay: 200ms; }
+  .stagger-3 { animation-delay: 300ms; }
+  .stagger-4 { animation-delay: 400ms; }
+  .stagger-5 { animation-delay: 500ms; }
+  .stagger-6 { animation-delay: 600ms; }
+}
+
+/* Scroll Animation Utilities - Replace Framer Motion */
+@layer utilities {
+  /* Fade In Up */
+  .animate-fade-up {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  /* Fade In */
+  .animate-fade-in {
+    opacity: 0;
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  /* Slide Up */
+  .animate-slide-up {
+    opacity: 0;
+    transform: translateY(30px);
+    animation: slideUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  /* Scale In */
+  .animate-scale-in {
+    opacity: 0;
+    transform: scale(0.95);
+    animation: scaleIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  /* Stagger delays */
+  .stagger-1 { animation-delay: 100ms; }
+  .stagger-2 { animation-delay: 200ms; }
+  .stagger-3 { animation-delay: 300ms; }
+  .stagger-4 { animation-delay: 400ms; }
+  .stagger-5 { animation-delay: 500ms; }
+  .stagger-6 { animation-delay: 600ms; }
+
+  /* Hover Effects */
+  .hover-lift {
+    @apply transition-transform duration-300 ease-out;
+  }
+  .hover-lift:hover {
+    @apply -translate-y-2;
+  }
+
+  .hover-scale {
+    @apply transition-transform duration-300 ease-out;
+  }
+  .hover-scale:hover {
+    @apply scale-105;
+  }
+
+  .hover-scale-subtle {
+    @apply transition-transform duration-300 ease-out;
+  }
+  .hover-scale-subtle:hover {
+    @apply scale-[1.02];
+  }
+
+  /* Focus visible for accessibility */
+  .focus-visible-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-white;
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-up,
+    .animate-fade-in,
+    .animate-slide-up,
+    .animate-scale-in,
+    .hover-lift,
+    .hover-scale,
+    .hover-scale-subtle {
+      animation: none !important;
+      transition: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
 }
 
 @layer utilities {

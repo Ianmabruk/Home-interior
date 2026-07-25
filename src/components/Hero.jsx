@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { motion, useAnimation, useMotionValue, useSpring, useTransform } from 'framer-motion'
 import { getOptimizedUrl, buildSrcSet } from '../utils/cloudinaryHelpers'
 
 export const Hero = ({ heroImages = [], className = '' }) => {
@@ -9,6 +8,7 @@ export const Hero = ({ heroImages = [], className = '' }) => {
   const [opacityB, setOpacityB] = useState(0)
   const [nextImage, setNextImage] = useState(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [kenBurnsKey, setKenBurnsKey] = useState(0)
 
   const images = useMemo(() => {
     if (!heroImages || heroImages.length === 0) return []
@@ -63,41 +63,14 @@ export const Hero = ({ heroImages = [], className = '' }) => {
   const activeImage = currentImage?.url
   const activeAlt = currentImage?.alt || 'Luxury interior design'
 
-  const controls = useAnimation()
-
-  const x = useMotionValue(0)
-  const y = useMotionValue(0)
-  const scale = useMotionValue(1)
-
-  const springConfig = { stiffness: 15, damping: 25, mass: 2 }
-
-  const springX = useSpring(x, springConfig)
-  const springY = useSpring(y, springConfig)
-  const springScale = useSpring(scale, springConfig)
-
-  const transform = useTransform(
-    [springX, springY, springScale],
-    ([xVal, yVal, s]) => `translate3d(${xVal}%, ${yVal}%, 0) scale(${s})`
-  )
+  const handleImageLoad = () => {
+    setIsLoaded(true)
+  }
 
   const startKenBurns = useCallback(() => {
     if (images.length <= 1) return
-    const duration = 8 + Math.random() * 4
-    const targetX = (Math.random() - 0.5) * 12
-    const targetY = (Math.random() - 0.5) * 12
-    const targetScale = 1 + Math.random() * 0.18
-
-    x.set(0)
-    y.set(0)
-    scale.set(1)
-
-    controls.start({
-      x: targetX,
-      y: targetY,
-      scale: targetScale,
-      transition: { duration, ease: 'linear' }
-    })
-  }, [controls, images.length, x, y, scale])
+    setKenBurnsKey(prev => prev + 1)
+  }, [images.length])
 
   useEffect(() => {
     if (!isLoaded || images.length <= 1) return
@@ -105,10 +78,6 @@ export const Hero = ({ heroImages = [], className = '' }) => {
     const interval = setInterval(startKenBurns, 10000)
     return () => clearInterval(interval)
   }, [isLoaded, images.length, startKenBurns])
-
-  const handleImageLoad = () => {
-    setIsLoaded(true)
-  }
 
   if (!images.length) {
     return (
@@ -128,9 +97,10 @@ export const Hero = ({ heroImages = [], className = '' }) => {
       role="region"
       aria-label="Hero image"
     >
-      <motion.div
-        style={{ transform }}
-        className="absolute inset-0 will-change-transform"
+      <div
+        className="absolute inset-0 will-change-transform animate-ken-burns"
+        style={{ animationDelay: '0s', animationDuration: '12s' }}
+        key={kenBurnsKey}
       >
         <img
           src={getOptimizedUrl(activeImage, { width: 1920, crop: 'limit' })}
@@ -156,7 +126,7 @@ export const Hero = ({ heroImages = [], className = '' }) => {
             decoding="async"
           />
         )}
-      </motion.div>
+      </div>
     </section>
   )
 }

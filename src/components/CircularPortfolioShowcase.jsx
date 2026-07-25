@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import { motion, useAnimation, useInView } from 'framer-motion'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { getOptimizedUrl } from '../utils/cloudinaryHelpers'
@@ -7,8 +6,9 @@ import { getOptimizedUrl } from '../utils/cloudinaryHelpers'
 export const CircularPortfolioShowcase = ({ portfolio = [], getProjectImage }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
-  const controls = useAnimation()
-  const ref = useInView({ once: false, margin: '-100px' })
+  const [rotateDeg, setRotateDeg] = useState(0)
+  const elementRef = useRef(null)
+  const intervalRef = useRef(null)
 
   const portfolioImages = useMemo(() => {
     return portfolio
@@ -26,29 +26,27 @@ export const CircularPortfolioShowcase = ({ portfolio = [], getProjectImage }) =
   const goToNext = useCallback(() => {
     if (isAnimating || totalImages <= 1) return
     setIsAnimating(true)
-    controls.start({ rotate: 360, transition: { duration: 1.5, ease: [0.22, 1, 0.36, 1] } })
+    setRotateDeg(prev => prev + 360)
     setCurrentIndex(prev => (prev + 1) % totalImages)
     setTimeout(() => {
-      controls.set({ rotate: 0 })
       setIsAnimating(false)
     }, 1500)
-  }, [controls, isAnimating, totalImages])
+  }, [isAnimating, totalImages])
 
   const goToPrev = useCallback(() => {
     if (isAnimating || totalImages <= 1) return
     setIsAnimating(true)
-    controls.start({ rotate: -360, transition: { duration: 1.5, ease: [0.22, 1, 0.36, 1] } })
+    setRotateDeg(prev => prev - 360)
     setCurrentIndex(prev => (prev - 1 + totalImages) % totalImages)
     setTimeout(() => {
-      controls.set({ rotate: 0 })
       setIsAnimating(false)
     }, 1500)
-  }, [controls, isAnimating, totalImages])
+  }, [isAnimating, totalImages])
 
   useEffect(() => {
     if (totalImages <= 1) return
-    const interval = setInterval(goToNext, 7000)
-    return () => clearInterval(interval)
+    intervalRef.current = setInterval(goToNext, 7000)
+    return () => clearInterval(intervalRef.current)
   }, [totalImages, goToNext])
 
   const currentItem = portfolioImages[currentIndex]
@@ -56,37 +54,31 @@ export const CircularPortfolioShowcase = ({ portfolio = [], getProjectImage }) =
   return (
     <section className="bg-[var(--secondary)]/30 py-20 md:py-32">
       <div className="container-wide md:px-12 lg:px-20">
-        <motion.div
-          ref={ref}
-          initial={{ opacity: 0, y: 20 }}
-          animate={ref ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.7 }}
-          className="mb-16 md:mb-24 text-center"
-        >
+        <div className="animate-fade-up mb-16 md:mb-24 text-center">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Portfolio</p>
           <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
             Featured Projects
           </h2>
-        </motion.div>
+        </div>
 
         {totalImages === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex min-h-[50vh] items-center justify-center"
-          >
+          <div className="animate-fade-in flex min-h-[50vh] items-center justify-center">
             <p className="font-display text-xl text-[var(--primary)]/60">No projects yet</p>
-          </motion.div>
+          </div>
         ) : (
           <div className="relative flex flex-col items-center">
-            <motion.div
-              animate={controls}
+            <div
+              ref={elementRef}
               className="relative w-[320px] md:w-[420px] lg:w-[520px] h-[320px] md:h-[420px] lg:h-[520px]"
-              style={{ perspective: '1000px' }}
+              style={{
+                perspective: '1000px',
+                transform: `rotateY(${rotateDeg}deg)`,
+                transition: isAnimating ? 'transform 1.5s cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
+              }}
             >
               <div className="relative w-full h-full">
                 <div
-                  className="absolute inset-0 rounded-full overflow-hidden transition-all duration-1500 ease-out"
+                  className="absolute inset-0 rounded-full overflow-hidden"
                   style={{
                     boxShadow: '0 25px 80px rgba(42,36,31,0.12), 0 0 0 3px rgba(232,154,67,0.3)',
                     border: '3px solid #E89A43',
@@ -94,15 +86,11 @@ export const CircularPortfolioShowcase = ({ portfolio = [], getProjectImage }) =
                   }}
                 >
                   {currentItem?.imageUrl ? (
-                    <motion.img
+                    <img
                       key={currentItem.id}
                       src={getOptimizedUrl(currentItem.imageUrl, { width: 1200, crop: 'limit' })}
                       alt={currentItem.title}
-                      className="h-full w-full object-cover"
-                      initial={{ scale: 1.1, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.9, opacity: 0 }}
-                      transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+                      className="h-full w-full object-cover animate-fade-in"
                       loading={currentIndex === 0 ? 'eager' : 'lazy'}
                       decoding="async"
                       fetchPriority={currentIndex === 0 ? 'high' : undefined}
@@ -119,13 +107,8 @@ export const CircularPortfolioShowcase = ({ portfolio = [], getProjectImage }) =
                   <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/30 via-transparent to-transparent pointer-events-none" />
                 </div>
 
-                <motion.div
-                  className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-3 bg-[var(--accent)] text-white rounded-[16px] shadow-[0_8px_32px_rgba(232,154,67,0.4)] whitespace-nowrap"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5, duration: 0.5 }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                <div
+                  className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-3 bg-[var(--accent)] text-white rounded-[16px] shadow-[0_8px_32px_rgba(232,154,67,0.4)] whitespace-nowrap hover:scale-105 active:scale-95 transition-transform duration-200"
                 >
                   <Link
                     to={`/portfolio/${currentItem?.slug}`}
@@ -140,9 +123,9 @@ export const CircularPortfolioShowcase = ({ portfolio = [], getProjectImage }) =
                     View Project
                     <ArrowRight size={16} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
                   </Link>
-                </motion.div>
+                </div>
               </div>
-            </motion.div>
+            </div>
 
             {totalImages > 1 && (
               <div className="mt-12 flex items-center gap-6">
@@ -165,10 +148,9 @@ export const CircularPortfolioShowcase = ({ portfolio = [], getProjectImage }) =
                         if (index !== currentIndex && !isAnimating) {
                           setIsAnimating(true)
                           const direction = index > currentIndex ? 1 : -1
-                          controls.start({ rotate: direction * 360, transition: { duration: 1.2, ease: [0.22, 1, 0.36, 1] } })
+                          setRotateDeg(prev => prev + direction * 360)
                           setCurrentIndex(index)
                           setTimeout(() => {
-                            controls.set({ rotate: 0 })
                             setIsAnimating(false)
                           }, 1200)
                         }

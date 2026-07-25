@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
 export const CircularNavCard = ({ to, label, imageUrl, alt, size = 300, priority = false }) => {
@@ -7,13 +6,7 @@ export const CircularNavCard = ({ to, label, imageUrl, alt, size = 300, priority
   const clampedSize = Math.min(size, 320)
 
   return (
-    <motion.div
-      className="flex flex-col items-center w-full"
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-    >
+    <div className="flex flex-col items-center w-full animate-fade-up">
       <div className="relative flex justify-center items-start w-full" style={{ height: clampedSize + 40 }}>
         <Link
           to={to}
@@ -56,7 +49,7 @@ export const CircularNavCard = ({ to, label, imageUrl, alt, size = 300, priority
           </div>
         </Link>
       </div>
-    </motion.div>
+    </div>
   )
 }
 

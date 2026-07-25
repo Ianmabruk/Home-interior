@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion'
 import { getOptimizedUrl } from '../utils/cloudinaryHelpers'
 
 const SERVICES_CONFIG = [
@@ -26,18 +25,14 @@ export const CircularServiceCard = ({ service, imageUrl, size = 280, index = 0 }
   const clampedSize = Math.min(size, 320)
 
   return (
-    <motion.div
-      className="flex flex-col items-center"
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: index * 0.1 }}
-      whileHover={{ y: -8, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }}
+    <div
+      className="animate-fade-up flex flex-col items-center"
+      style={{ transitionDelay: `${index * 100}ms` }}
     >
       <div className="relative flex justify-center items-start w-full" style={{ height: clampedSize + 20 }}>
         <div className="relative flex flex-col items-center group focus:outline-none">
           <div
-            className="relative rounded-full transition-transform duration-500 hover:scale-[1.02] active:scale-[0.98]"
+            className="relative rounded-full hover-scale hover:shadow-[0_20px_60px_rgba(42,36,31,0.15)] active:scale-[0.98]"
             style={{
               width: clampedSize,
               height: clampedSize,
@@ -70,7 +65,7 @@ export const CircularServiceCard = ({ service, imageUrl, size = 280, index = 0 }
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
@@ -86,13 +81,7 @@ export const CircularServicesGrid = ({ services = [], images = {}, size = 280 })
   return (
     <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-20 md:py-32">
       <div className="container-wide">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.7 }}
-          className="mb-16 md:mb-24 text-center"
-        >
+        <div className="animate-fade-up mb-16 md:mb-24 text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Services</p>
           <h2 className="font-display text-4xl font-medium leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
             What We Do
@@ -100,7 +89,7 @@ export const CircularServicesGrid = ({ services = [], images = {}, size = 280 })
           <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
             Comprehensive interior design services tailored to elevate your space with timeless elegance.
           </p>
-        </motion.div>
+        </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
           {serviceItems.map((item, index) => (
