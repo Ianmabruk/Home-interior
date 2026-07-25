@@ -116,6 +116,9 @@ export default defineConfig({
     reportCompressedSize: true,
     chunkSizeWarningLimit: 500,
     minify: 'esbuild',
+    modulePreload: {
+      polyfill: false,
+    },
     rollupOptions: {
       output: {
         // Split heavy vendors into their own long-term-cacheable chunks so the
@@ -132,7 +135,7 @@ export default defineConfig({
           if (id.includes('react') || id.includes('scheduler')) return 'vendor-react'
           return 'vendor'
         },
-        // Preload critical chunks
+        // Preload critical chunks - vendor-react is needed for initial render
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',

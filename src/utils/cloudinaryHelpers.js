@@ -31,10 +31,11 @@ export const getOptimizedUrl = (url, options = {}) => {
   return url.replace(CLOUDINARY_IMAGE_SEGMENT, `${CLOUDINARY_IMAGE_SEGMENT}${transform}/`)
 }
 
-// Default responsive widths that cover phones → desktops. Cloudinary generates
-// (and caches) each size on first request, so mobiles only ever download the
-// small variant they select via `sizes`.
-export const RESPONSIVE_WIDTHS = [320, 480, 640, 768, 1024, 1280, 1600]
+// Default responsive widths optimized for mobile-first delivery.
+// Cloudinary generates (and caches) each size on first request,
+// so mobile devices only ever download the small variant they select via `sizes`.
+// Reduced from 7 to 5 widths to minimize origin requests and cache misses.
+export const RESPONSIVE_WIDTHS = [320, 480, 640, 960, 1280]
 
 // Build a `srcset` string of Cloudinary width variants (all f_auto,q_auto).
 // Returns '' for non-Cloudinary URLs so callers can safely spread it.

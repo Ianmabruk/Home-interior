@@ -1,44 +1,16 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Maximize2, Play, Users, Instagram, Facebook } from 'lucide-react'
-import { FaTiktok, FaPinterest } from 'react-icons/fa'
+import { ArrowRight, Maximize2, Play, Users } from 'lucide-react'
 import { Hero } from '../../components/Hero'
 import { AboutPreview } from '../../components/AboutPreview'
 import { ConsultationModal } from '../../components/ConsultationModal'
 import { CircularNavCard } from '../../components/mobile/CircularNavCard'
 import { api } from '../../services/api'
-import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
+import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import { ScrollReveal } from '../../utils/scrollReveal'
 import { useIsMobile } from '../../utils/useIsMobile'
 import PositionedImage from '../../components/common/PositionedImage'
-
-const socialLinks = [
-  {
-    label: 'Instagram',
-    href: 'https://www.instagram.com/hokinteriors',
-    icon: Instagram,
-    desc: 'Follow our visual journey through luxury interiors.',
-  },
-  {
-    label: 'TikTok',
-    href: 'https://www.tiktok.com/@hokinteriors',
-    icon: FaTiktok,
-    desc: 'Watch behind-the-scenes design reels and walkthroughs.',
-  },
-  {
-    label: 'Facebook',
-    href: 'https://www.facebook.com/share/14i3V8Sw7uo',
-    icon: Facebook,
-    desc: 'Stay connected with our latest projects and stories.',
-  },
-  {
-    label: 'Pinterest',
-    href: 'https://www.pinterest.com/hokinterior',
-    icon: FaPinterest,
-    desc: 'Explore curated mood boards and design inspiration.',
-  },
-]
 
 export const HomePage = () => {
   const [showModal, setShowModal] = useState(false)
@@ -269,21 +241,21 @@ export const HomePage = () => {
                 </ScrollReveal>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
-                  {portfolio.slice(0, 4).map((item) => (
+                  {portfolio.slice(0, 4).map((item, index) => (
                     <ScrollReveal key={item.id}>
                       <article
                         className="group relative bg-white border border-[var(--border)]/40 rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] transition-all duration-700 hover:-translate-y-2 hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)]"
                       >
                         <Link to={`/portfolio/${item.id}`} className="block" aria-label={`View ${item.title} project`}>
                           <div className="relative aspect-[3/4] overflow-hidden">
-                            <img
-                              src={getOptimizedUrl(getProjectImage(item) || '', { width: 800, crop: 'limit' })}
-                              srcSet={buildSrcSet(getProjectImage(item)) || undefined}
-                              sizes={buildSrcSet(getProjectImage(item)) ? '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw' : undefined}
+                            <PositionedImage
+                              src={getProjectImage(item) || ''}
                               alt={item.title}
-                              className="h-full w-full object-cover transition duration-[1.2s] ease-out group-hover:scale-105"
-                              loading="lazy"
-                              decoding="async"
+                              settings={{ fit: 'cover', position: 'center', zoom: 100 }}
+                              className="h-full w-full transition duration-[1.2s] ease-out group-hover:scale-105"
+                              loading={index < 2 ? 'eager' : 'lazy'}
+                              fetchPriority={index < 2 ? 'high' : undefined}
+                              sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
                             />
                           </div>
                         </Link>
@@ -400,19 +372,7 @@ export const HomePage = () => {
 
       <section className="bg-[var(--bg)]/40 md:py-20 md:md:py-32">
         <div className="container-wide md:px-12 lg:px-20">
-          {isMobile ? (
-            <div className="px-4 py-[15px]">
-              <CircularNavCard
-                to="/about"
-                label="About Us"
-                imageUrl={getSocialImage()}
-                alt="About HOK Interiors"
-                size={300}
-              />
-            </div>
-          ) : (
-            <>
-              <ScrollReveal>
+          <ScrollReveal>
                 <div className="mb-16 md:mb-24 text-center">
                   <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Virtual Designs</p>
                   <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
@@ -452,14 +412,14 @@ export const HomePage = () => {
                                       preload="metadata"
                                     />
                                   ) : (
-                                    <img
-                                      src={getOptimizedUrl(getProjectImage(item), { width: 640 })}
-                                      srcSet={buildSrcSet(getProjectImage(item)) || undefined}
-                                      sizes={buildSrcSet(getProjectImage(item)) ? '(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw' : undefined}
+                                    <PositionedImage
+                                      src={getProjectImage(item)}
                                       alt={item.title}
-                                      className="h-full w-full object-contain bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-                                      loading="lazy"
-                                      decoding="async"
+                                      settings={{ fit: 'contain', position: 'center', zoom: 100 }}
+                                      className="h-full w-full transition duration-700 group-hover:scale-105 bg-[var(--bg)]"
+                                      loading={index < 2 ? 'eager' : 'lazy'}
+                                      fetchPriority={index < 2 ? 'high' : undefined}
+                                      sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                                     />
                                   )}
                                   {getMediaType(item) === 'image' && (
@@ -509,28 +469,14 @@ export const HomePage = () => {
                   ))}
                 </div>
               )}
-            </>
-          )}
 
-          {isMobile && (
-            <div className="px-4 pt-[56px] pb-[40px]">
+            {isMobile && (
+              <div className="px-4 pt-[56px] pb-[40px]">
               <CircularNavCard
                 to="/socials"
                 label="Socials"
                 imageUrl={getSocialImage()}
                 alt="HOK Interiors social"
-                size={300}
-              />
-            </div>
-          )}
-
-          {isMobile && (
-            <div className="px-4 pt-[56px] pb-[40px]">
-              <CircularNavCard
-                to="/about"
-                label="About Us"
-                imageUrl={getSocialImage()}
-                alt="About HOK Interiors"
                 size={300}
               />
             </div>
@@ -567,14 +513,14 @@ export const HomePage = () => {
                     <article className="group">
                       <Link to={`/shop/${item._id || item.id}`} className="block" aria-label={`View ${item.name} product`}>
                         <div className="relative aspect-square overflow-hidden rounded-3xl bg-white border border-[var(--border)]/40 shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-700">
-                          <img
-                            src={getOptimizedUrl(getProductImage(item) || '', { width: 800, crop: 'limit' })}
-                            srcSet={buildSrcSet(getProductImage(item)) || undefined}
-                            sizes={buildSrcSet(getProductImage(item)) ? '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw' : undefined}
+                          <PositionedImage
+                            src={getProductImage(item) || ''}
                             alt={item.name}
-                            className="h-full w-full object-cover transition duration-[1.2s] ease-out group-hover:scale-105"
-                            loading="lazy"
-                            decoding="async"
+                            settings={{ fit: 'cover', position: 'center', zoom: 100 }}
+                            className="h-full w-full transition duration-[1.2s] ease-out group-hover:scale-105"
+                            loading={index < 2 ? 'eager' : 'lazy'}
+                            fetchPriority={index < 2 ? 'high' : undefined}
+                            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
                           />
                         </div>
                         <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white text-center">
@@ -583,7 +529,7 @@ export const HomePage = () => {
                           </h3>
                           <p className="font-medium text-espresso">{item.discountPrice ? `$${Number(item.discountPrice).toFixed(2)}` : item.price ? `$${Number(item.price).toFixed(2)}` : ''}</p>
                         </div>
-</Link>
+                      </Link>
                     </article>
                   </ScrollReveal>
                 ))}

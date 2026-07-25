@@ -59,11 +59,12 @@ export const AboutPreview = () => {
             className="relative overflow-hidden shadow-[0_24px_80px_rgba(42,36,31,0.1)] aspect-[4/5] md:aspect-[3/4] rounded-3xl"
           >
             <img
-              src={getOptimizedUrl(imageUrl, { width: 1200, crop: 'limit' })}
+              src={getOptimizedUrl(imageUrl, { width: 960, crop: 'limit' })}
               alt="Luxury interior design studio"
               className="h-full w-full object-cover transition duration-[1.2s] hover:scale-105"
               loading="lazy"
               decoding="async"
+              fetchPriority="high"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-luxury-text/10 to-transparent" />
           </motion.div>

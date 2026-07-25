@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
-export const CircularNavCard = ({ to, label, imageUrl, alt, size = 300 }) => {
+export const CircularNavCard = ({ to, label, imageUrl, alt, size = 300, priority = false }) => {
   const displayUrl = typeof imageUrl === 'string' ? imageUrl : null
   const clampedSize = Math.min(size, 320)
 
@@ -36,8 +36,9 @@ export const CircularNavCard = ({ to, label, imageUrl, alt, size = 300 }) => {
                 src={getOptimizedUrl(displayUrl, { width: clampedSize * 2, crop: 'limit' })}
                 alt={alt || label}
                 className="h-full w-full object-cover"
-                loading="lazy"
+                loading={priority ? 'eager' : 'lazy'}
                 decoding="async"
+                fetchPriority={priority ? 'high' : undefined}
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-espresso/20">

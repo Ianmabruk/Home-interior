@@ -13,6 +13,7 @@ import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 // tighter value (e.g. "(min-width:1024px) 33vw, 50vw") for grid tiles.
 //
 // Supports blur placeholder: shows a tiny blurred version while loading.
+// Supports fetchpriority for above-fold images to improve LCP.
 function PositionedImage({
   src,
   alt = '',
@@ -24,6 +25,7 @@ function PositionedImage({
   sizes = '100vw',
   responsive = true,
   blurPlaceholder = true,
+  fetchPriority,
 }) {
   const [loaded, setLoaded] = useState(false)
 
@@ -37,14 +39,14 @@ function PositionedImage({
   const objectPosition = positionToObjectPosition(s.position)
   const zoom = s.zoom / 100
 
-  const optimizedSrc = responsive ? getOptimizedUrl(src, { width: 1024, crop: 'limit' }) : src
+  const optimizedSrc = responsive ? getOptimizedUrl(src, { width: 960, crop: 'limit' }) : src
   const srcSet = responsive ? buildSrcSet(src) : ''
 
   return (
     <div className="relative overflow-hidden" style={{ width: '100%', height: '100%', ...style }}>
       {blurPlaceholder && !loaded && (
         <img
-          src={src.includes('cloudinary.com') 
+          src={src.includes('cloudinary.com')
             ? src.replace('/image/upload/', '/image/upload/w_20,f_auto,q_10/')
             : src}
           alt=""
@@ -61,6 +63,7 @@ function PositionedImage({
         loading={loading}
         draggable={draggable}
         decoding="async"
+        fetchPriority={fetchPriority}
         className={`${className} transition-opacity duration-700 ${loaded ? 'opacity-100' : 'opacity-0'}`}
         style={{
           width: '100%',
