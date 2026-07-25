@@ -85,10 +85,10 @@ export const PortfolioPage = () => {
       <section className="py-16 md:py-24 px-6 md:px-12 lg:px-20">
         <div className="container-wide text-center">
           <div className="mb-12 md:mb-16 flex flex-col items-center">
-            <div className="relative w-32 h-32 md:w-36 md:h-36 mx-auto mb-8">
+            <div className="relative w-[150px] h-[150px] mx-auto mb-8">
               {items.length > 0 && items[0]?.imageUrl ? (
                 <img
-                  src={getOptimizedUrl(items[0].imageUrl, { width: 280, height: 280, crop: 'fill' })}
+                  src={getOptimizedUrl(items[0].imageUrl, { width: 300, height: 300, crop: 'fill' })}
                   alt="Profile"
                   className="w-full h-full rounded-full object-cover shadow-lg border-4 border-white"
                 />

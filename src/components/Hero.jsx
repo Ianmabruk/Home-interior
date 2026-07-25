@@ -62,11 +62,6 @@ export const Hero = ({ heroImages = [], className = '' }) => {
   const activeImage = currentImage?.url
   const activeAlt = currentImage?.alt || 'Luxury interior design'
 
-  const gradientStyle = {
-    background: 'linear-gradient(to bottom right, #1E1713, #1E1713, #1E1713)',
-    opacity: 0.95
-  }
-
   return (
     <section
       className={`relative w-full h-screen min-h-[700px] overflow-hidden bg-primary ${className}`}
@@ -74,7 +69,7 @@ export const Hero = ({ heroImages = [], className = '' }) => {
       aria-label="Hero image"
     >
       {!images.length && (
-        <div className="absolute inset-0" style={gradientStyle} />
+        <div className="absolute inset-0 bg-[var(--primary)]" />
       )}
       {images.length > 0 && (
         <div className="absolute inset-0">
@@ -104,7 +99,6 @@ export const Hero = ({ heroImages = [], className = '' }) => {
         </div>
       )}
 
-      <div className="absolute inset-0" style={gradientStyle} />
       <div className="absolute inset-0 opacity-[0.03] pattern-overlay" />
     </section>
   )

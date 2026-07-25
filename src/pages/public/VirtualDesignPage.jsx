@@ -6,16 +6,6 @@ import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../util
 import { getOptimizedUrl, getOptimizedVideoUrl, getVideoPosterUrl } from '../../utils/cloudinaryHelpers'
 import LazyVideo from '../../components/common/LazyVideo'
 
-const getProjectImage = (item) => {
-  if (!item) return null
-  return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
-}
-
-const getMediaType = (item) => {
-  if (!item) return 'image'
-  return item.mediaType || item.type || 'image'
-}
-
 const VirtualDesignCard = ({ item }) => (
   <article className="group cursor-pointer bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
     <Link
@@ -106,10 +96,10 @@ export const VirtualDesignPage = () => {
       <section className="py-16 md:py-24 px-6 md:px-12 lg:px-20">
         <div className="container-wide text-center">
           <div className="mb-12 md:mb-16 flex flex-col items-center">
-            <div className="relative w-32 h-32 md:w-36 md:h-36 mx-auto mb-8">
+            <div className="relative w-[150px] h-[150px] mx-auto mb-8">
               {items.length > 0 && items[0]?.imageUrl ? (
                 <img
-                  src={getOptimizedUrl(items[0].imageUrl, { width: 280, height: 280, crop: 'fill' })}
+                  src={getOptimizedUrl(items[0].imageUrl, { width: 300, height: 300, crop: 'fill' })}
                   alt="Profile"
                   className="w-full h-full rounded-full object-cover shadow-lg border-4 border-white"
                 />
