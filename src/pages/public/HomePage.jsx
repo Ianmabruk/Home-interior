@@ -246,8 +246,12 @@ export const HomePage = () => {
 
   useEffect(() => {
     const loadContact = async () => {
-      const res = await api.get('/contact')
-      setContactInfo(res.data)
+      try {
+        const res = await api.get('/contact')
+        setContactInfo(res.data)
+      } catch {
+        setContactInfo({})
+      }
     }
     loadContact()
   }, [])
