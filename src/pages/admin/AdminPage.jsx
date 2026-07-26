@@ -23,15 +23,16 @@ import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { Sidebar } from '../../components/admin/Sidebar'
 import { DashboardOverview } from '../../components/admin/DashboardOverview'
+import { ContactsDashboard } from '../../components/admin/ContactsDashboard'
+import { HeroImagesDashboard } from '../../components/admin/HeroImagesDashboard'
 import { PortfolioDashboard } from '../../components/admin/PortfolioDashboard'
 import { ShopDashboard } from '../../components/admin/ShopDashboard'
+import { OrderDashboard } from '../../components/admin/OrderDashboard'
+import { ServicesDashboard } from '../../components/admin/ServicesDashboard'
 import { VirtualDesignDashboard } from '../../components/admin/VirtualDesignDashboard'
 import { AboutDashboard } from '../../components/admin/AboutDashboard'
-import { ConsultationDashboard } from '../../components/admin/ConsultationDashboard'
 import { TestimonialDashboard } from '../../components/admin/TestimonialDashboard'
-import { ServicesDashboard } from '../../components/admin/ServicesDashboard'
-import { HeroImagesDashboard } from '../../components/admin/HeroImagesDashboard'
-import { OrderDashboard } from '../../components/admin/OrderDashboard'
+import { ConsultationDashboard } from '../../components/admin/ConsultationDashboard'
 import { PageMeta } from '../../hooks/usePageMeta'
 
 const tabs = [
@@ -45,6 +46,7 @@ const tabs = [
   { id: 'about', label: 'About', icon: Info },
   { id: 'testimonials', label: 'Testimonials', icon: Star },
   { id: 'consultations', label: 'Consultations', icon: MessageSquare },
+  { id: 'contacts', label: 'Contacts', icon: Mail },
   { id: 'settings', label: 'Settings', icon: Settings2 },
 ]
 
@@ -405,6 +407,7 @@ export const AdminPage = () => {
               {activeTab === 'about' && <AboutDashboard />}
               {activeTab === 'testimonials' && <TestimonialDashboard />}
               {activeTab === 'consultations' && <ConsultationDashboard />}
+              {activeTab === 'contacts' && <ContactsDashboard />}
               {activeTab === 'settings' && (
                 <div className="space-y-6 max-w-2xl">
                   <motion.form

@@ -24,4 +24,14 @@ export const messageController = {
     const item = await messageService.replyToMessage(id, req.body.reply)
     res.json({ success: true, data: item })
   }),
+
+  markRead: asyncHandler(async (req, res) => {
+    const item = await messageService.markMessageRead(req.params.id)
+    res.json({ success: true, data: item })
+  }),
+
+  delete: asyncHandler(async (req, res) => {
+    await messageService.deleteMessage(req.params.id)
+    res.json({ success: true, data: { message: 'Deleted' } })
+  }),
 }
