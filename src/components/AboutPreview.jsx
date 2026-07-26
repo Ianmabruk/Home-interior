@@ -56,17 +56,32 @@ export const AboutPreview = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-            className="relative overflow-hidden shadow-[0_24px_80px_rgba(42,36,31,0.1)] aspect-[4/5] md:aspect-[3/4] rounded-3xl"
+            className="relative"
           >
-            <img
-              src={getOptimizedUrl(imageUrl, { width: 960, crop: 'limit' })}
-              alt="Luxury interior design studio"
-              className="h-full w-full object-cover transition duration-[1.2s] hover:scale-105"
-              loading="lazy"
-              decoding="async"
-              fetchPriority="high"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-luxury-text/10 to-transparent" />
+            {/* Premium Framed Container */}
+            <div className="relative overflow-hidden shadow-[0_32px_100px_rgba(42,36,31,0.12),_0_0_0_1px_rgba(232,154,67,0.15),_0_0_0_4px_rgba(250,248,244,0.8),_inset_0_1px_0_rgba(255,255,255,0.1)] aspect-[4/5] md:aspect-[3/4] rounded-3xl bg-[var(--bg)]">
+              {/* Outer gold accent border */}
+              <div className="absolute inset-0 border-2 border-[var(--accent)]/20 rounded-3xl pointer-events-none" />
+              {/* Inner subtle highlight */}
+              <div className="absolute inset-[2px] border border-white/30 rounded-[22px] pointer-events-none" />
+              {/* Bottom accent bar */}
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-1 bg-gradient-to-r from-[var(--accent)] via-[var(--secondary)] to-[var(--accent)] rounded-t-full" />
+              {/* Corner accents */}
+              <div className="absolute -top-2 -left-2 w-8 h-8 border-t-2 border-l-2 border-[var(--accent)]/40 rounded-tl-3xl pointer-events-none" />
+              <div className="absolute -top-2 -right-2 w-8 h-8 border-t-2 border-r-2 border-[var(--accent)]/40 rounded-tr-3xl pointer-events-none" />
+              <div className="absolute -bottom-2 -left-2 w-8 h-8 border-b-2 border-l-2 border-[var(--accent)]/40 rounded-bl-3xl pointer-events-none" />
+              <div className="absolute -bottom-2 -right-2 w-8 h-8 border-b-2 border-r-2 border-[var(--accent)]/40 rounded-br-3xl pointer-events-none" />
+              
+              <img
+                src={getOptimizedUrl(imageUrl, { width: 960, crop: 'limit' })}
+                alt="Luxury interior design studio"
+                className="relative z-10 h-full w-full object-cover transition duration-[1.2s] hover:scale-105 rounded-3xl"
+                loading="lazy"
+                decoding="async"
+                fetchPriority="high"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-luxury-text/10 to-transparent pointer-events-none rounded-3xl" />
+            </div>
           </motion.div>
 
           <motion.div

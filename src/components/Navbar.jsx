@@ -16,8 +16,6 @@ import {
   Mail,
   Sparkles,
   Home,
-  Truck,
-  Divide,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
@@ -125,7 +123,7 @@ export const Navbar = () => {
       >
 {/* DESKTOP HEADER - EXACTLY PRESERVED */}
           <div className="container-wide mx-auto px-4 md:px-8 lg:px-12">
-            <div className="hidden md:flex items-center justify-between h-[88px] md:h-[96px] gap-4 md:gap-8 relative">
+            <div className="hidden md:flex items-center justify-between h-[104px] md:h-[112px] gap-4 md:gap-8 relative">
               <Link
                 to="/"
                 className="flex-shrink-0 leading-tight group -ml-2 md:-ml-4 flex items-center"
@@ -135,10 +133,10 @@ export const Navbar = () => {
                   <img
                     src={hokLogoWebP}
                     alt="HOK Interiors"
-                    className="h-[80px] sm:h-[90px] md:h-[110px] lg:h-[120px] w-auto object-contain transition-all duration-300 group-hover:scale-102"
+                    className="h-[100px] sm:h-[115px] md:h-[140px] lg:h-[155px] w-auto object-contain transition-all duration-300 group-hover:scale-102"
                     loading="eager"
-                    width={450}
-                    height={120}
+                    width={520}
+                    height={145}
                   />
                 </picture>
               </Link>
@@ -434,28 +432,28 @@ export const Navbar = () => {
           <div className="flex md:hidden items-center justify-between h-16 px-4 relative">
             <Link
               to="/"
-              className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center leading-none group z-10"
+              className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex flex-col items-center leading-none group z-10"
               aria-label="HOK Interiors - Home"
             >
               <picture>
                 <img
                   src={hokLogoWebP}
                   alt="HOK Interiors"
-                  className="h-22 w-auto object-contain transition-all duration-300 group-hover:scale-102"
+                  className="h-28 w-auto object-contain transition-all duration-300 group-hover:scale-102"
                   loading="eager"
-                  width={160}
-                  height={64}
+                  width={180}
+                  height={72}
                 />
               </picture>
             </Link>
 
             <button
-              className="fixed top-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full text-[#8B5E3C] bg-white/90 backdrop-blur-sm shadow-lg transition-all duration-300 hover:bg-[#E6D8C9]/50 active:scale-95"
+              className="fixed top-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full text-[#8B5E3C] bg-white/95 backdrop-blur-sm shadow-xl transition-all duration-300 hover:bg-[#E6D8C9]/60 active:scale-95"
               onClick={() => setMobileOpen((p) => !p)}
               aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileOpen}
             >
-              {mobileOpen ? <X size={24} strokeWidth={2.5} /> : <Menu size={24} strokeWidth={2.5} />}
+              {mobileOpen ? <X size={26} strokeWidth={2.5} /> : <Menu size={26} strokeWidth={2.5} />}
             </button>
           </div>
         </div>

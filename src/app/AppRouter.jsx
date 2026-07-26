@@ -9,14 +9,14 @@ const VirtualDesignDetailPage = lazy(() => import('../pages/public/VirtualDesign
 
 const RouteFallback = () => (
   <div className="flex min-h-[60vh] items-center justify-center">
-    <div className="h-10 w-10 animate-spin rounded-full border-2 border-borderSubtle border-t-accent" />
+    <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
   </div>
 )
 
 const ErrorFallback = () => (
   <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
-    <p className="font-display text-2xl text-charcoal">Failed to load page</p>
-    <button onClick={() => window.location.reload()} className="mt-4 rounded-full bg-forest px-4 py-2 text-xs font-medium uppercase tracking-widest text-white transition hover:bg-forestDark">
+    <p className="font-display text-2xl text-[var(--primary)]">Failed to load page</p>
+    <button onClick={() => window.location.reload()} className="mt-4 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-medium uppercase tracking-widest text-white transition hover:bg-[var(--accent)]/90">
       Reload Page
     </button>
   </div>
@@ -30,16 +30,30 @@ const ScrollToTop = () => {
   return null
 }
 
-const prefetchRoutes = [
-  () => import('../pages/public/ShopPage'),
-  () => import('../pages/public/PortfolioPage'),
-  () => import('../pages/public/ServicesPage'),
-  () => import('../pages/public/VirtualDesignPage'),
-  () => import('../pages/public/AboutPage'),
-]
+// Route modules cache for instant navigation
+const routeCache = new Map()
+
+const lazyWithCache = (importFn, cacheKey) => {
+  return lazy(async () => {
+    if (routeCache.has(cacheKey)) {
+      return routeCache.get(cacheKey)
+    }
+    const module = await importFn()
+    routeCache.set(cacheKey, module)
+    return module
+  })
+}
 
 const PrefetchOnIdle = () => {
   useEffect(() => {
+    const prefetchRoutes = [
+      () => import('../pages/public/ShopPage'),
+      () => import('../pages/public/PortfolioPage'),
+      () => import('../pages/public/ServicesPage'),
+      () => import('../pages/public/VirtualDesignPage'),
+      () => import('../pages/public/AboutPage'),
+    ]
+    
     if ('requestIdleCallback' in window) {
       window.requestIdleCallback(() => {
         prefetchRoutes.forEach((prefetch) => {
@@ -54,8 +68,7 @@ const PrefetchOnIdle = () => {
       }, 1000)
     }
   }, [])
-  return null
-}
+  return null}
 
 const AuthShell = lazy(() => import('../pages/auth/AuthShell').then((m) => ({ default: m.AuthShell })))
 const AccountPage = lazy(() => import('../pages/account/AccountPage').then((m) => ({ default: m.AccountPage })))
@@ -65,20 +78,20 @@ const ForgotPasswordPage = lazy(() => import('../pages/auth/ForgotPasswordPage')
 const LoginPage = lazy(() => import('../pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })))
 const RegisterPage = lazy(() => import('../pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })))
 const ResetPasswordPage = lazy(() => import('../pages/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })))
-const AboutPage = lazy(() => import('../pages/public/AboutPage').then((m) => ({ default: m.AboutPage })))
+const AboutPage = lazyWithCache(() => import('../pages/public/AboutPage'), 'about')
 const CartPage = lazy(() => import('../pages/account/CartPage').then((m) => ({ default: m.CartPage })))
 const WishlistPage = lazy(() => import('../pages/account/WishlistPage').then((m) => ({ default: m.WishlistPage })))
 const ChatPage = lazy(() => import('../pages/public/ChatPage').then((m) => ({ default: m.ChatPage })))
 const AdminChatPage = lazy(() => import('../pages/admin/AdminChatPage').then((m) => ({ default: m.AdminChatPage })))
-const HomePage = lazy(() => import('../pages/public/HomePage').then((m) => ({ default: m.HomePage })))
+const HomePage = lazyWithCache(() => import('../pages/public/HomePage'), 'home')
 const ProductDetailPage = lazy(() => import('../pages/public/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage })))
-const PortfolioPage = lazy(() => import('../pages/public/PortfolioPage').then((m) => ({ default: m.PortfolioPage })))
-const ShopPage = lazy(() => import('../pages/public/ShopPage').then((m) => ({ default: m.ShopPage })))
-const ServicesPage = lazy(() => import('../pages/public/ServicesPage').then((m) => ({ default: m.ServicesPage })))
-const SocialsPage = lazy(() => import('../pages/public/SocialsPage').then((m) => ({ default: m.SocialsPage })))
-const VirtualDesignPage = lazy(() => import('../pages/public/VirtualDesignPage').then((m) => ({ default: m.VirtualDesignPage })))
+const PortfolioPage = lazyWithCache(() => import('../pages/public/PortfolioPage'), 'portfolio')
+const ShopPage = lazyWithCache(() => import('../pages/public/ShopPage'), 'shop')
+const ServicesPage = lazyWithCache(() => import('../pages/public/ServicesPage'), 'services')
+const SocialsPage = lazyWithCache(() => import('../pages/public/SocialsPage'), 'socials')
+const VirtualDesignPage = lazyWithCache(() => import('../pages/public/VirtualDesignPage'), 'virtual-design')
 const NotFoundPage = lazy(() => import('../pages/public/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
-const ContactPage = lazy(() => import('../pages/public/ContactPage').then((m) => ({ default: m.ContactPage })))
+const ContactPage = lazyWithCache(() => import('../pages/public/ContactPage'), 'contact')
 
 const ErrorBoundaryRoute = ({ element }) => (
   <ErrorBoundary fallback={<ErrorFallback />}>

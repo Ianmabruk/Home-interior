@@ -1,13 +1,15 @@
 import { Link } from 'react-router-dom'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
-export const CircularNavCard = ({ to, label, imageUrl, alt, size = 300, priority = false }) => {
+const CIRCULAR_CARD_SIZE = 300
+
+export const CircularNavCard = ({ to, label, imageUrl, alt, size = CIRCULAR_CARD_SIZE, priority = false }) => {
   const displayUrl = typeof imageUrl === 'string' ? imageUrl : null
   const clampedSize = Math.min(size, 320)
 
   return (
     <div className="flex flex-col items-center w-full animate-fade-up">
-      <div className="relative flex justify-center items-start w-full" style={{ height: clampedSize + 40 }}>
+      <div className="relative flex justify-center items-center w-full" style={{ height: clampedSize + 60 }}>
         <Link
           to={to}
           className="relative flex flex-col items-center group focus:outline-none"
@@ -44,10 +46,13 @@ export const CircularNavCard = ({ to, label, imageUrl, alt, size = 300, priority
             )}
           </div>
 
-          <div className="mt-6 w-full max-w-xs">
+          <div
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-full max-w-xs px-4"
+            style={{ zIndex: 10 }}
+          >
             <Link
               to={to}
-              className="block w-full py-4 px-8 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full whitespace-nowrap text-center shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+              className="block w-full py-3 px-6 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
               aria-label={`View ${label}`}
             >
               {label}

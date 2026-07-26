@@ -3,6 +3,12 @@ import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { getOptimizedUrl } from '../utils/cloudinaryHelpers'
 
+const CIRCULAR_CARD_SIZE = {
+  base: 300,
+  md: 400,
+  lg: 500,
+}
+
 export const CircularPortfolioShowcase = ({ portfolio = [], getProjectImage }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -67,65 +73,72 @@ export const CircularPortfolioShowcase = ({ portfolio = [], getProjectImage }) =
           </div>
         ) : (
           <div className="relative flex flex-col items-center">
-            <div
-              ref={elementRef}
-              className="relative w-[320px] md:w-[420px] lg:w-[520px] h-[320px] md:h-[420px] lg:h-[520px]"
-              style={{
-                perspective: '1000px',
-                transform: `rotateY(${rotateDeg}deg)`,
-                transition: isAnimating ? 'transform 1.5s cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
-              }}
-            >
-              <div className="relative w-full h-full">
-                <div
-                  className="absolute inset-0 rounded-full overflow-hidden"
-                  style={{
-                    boxShadow: '0 25px 80px rgba(42,36,31,0.12), 0 0 0 3px rgba(232,154,67,0.3)',
-                    border: '3px solid #E89A43',
-                    background: '#F5EFE8',
-                  }}
-                >
-                  {currentItem?.imageUrl ? (
-                    <img
-                      key={currentItem.id}
-                      src={getOptimizedUrl(currentItem.imageUrl, { width: 1200, crop: 'limit' })}
-                      alt={currentItem.title}
-                      className="h-full w-full object-cover animate-fade-in"
-                      loading={currentIndex === 0 ? 'eager' : 'lazy'}
-                      decoding="async"
-                      fetchPriority={currentIndex === 0 ? 'high' : undefined}
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-[var(--primary)]/30">
-                      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
-                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                        <circle cx="9" cy="9" r="2" />
-                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                      </svg>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/30 via-transparent to-transparent pointer-events-none" />
-                </div>
-
-                <div
-                  className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-3 bg-[var(--accent)] text-white rounded-[16px] shadow-[0_8px_32px_rgba(232,154,67,0.4)] whitespace-nowrap hover:scale-105 active:scale-95 transition-transform duration-200"
-                >
-                  <Link
-                    to={`/portfolio/${currentItem?.slug}`}
-                    className="group flex items-center gap-2 text-sm font-semibold uppercase tracking-wide"
-                    onClick={(e) => {
-                      if (totalImages > 1) {
-                        e.preventDefault()
-                        e.stopPropagation()
-                      }
+            <div className="relative flex-shrink-0" style={{ width: '100%', maxWidth: '100%' }}>
+              <div
+                ref={elementRef}
+                className="relative mx-auto"
+                style={{
+                  width: CIRCULAR_CARD_SIZE.base,
+                  height: CIRCULAR_CARD_SIZE.base,
+                  perspective: '1000px',
+                  transform: `rotateY(${rotateDeg}deg)`,
+                  transition: isAnimating ? 'transform 1.5s cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
+                }}
+              >
+                <div className="relative w-full h-full">
+                  <div
+                    className="absolute inset-0 rounded-full overflow-hidden"
+                    style={{
+                      boxShadow: '0 25px 80px rgba(42,36,31,0.12), 0 0 0 3px rgba(232,154,67,0.3)',
+                      border: '3px solid #E89A43',
+                      background: '#F5EFE8',
                     }}
                   >
-                    View Project
-                    <ArrowRight size={16} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-                  </Link>
+                    {currentItem?.imageUrl ? (
+                      <img
+                        key={currentItem.id}
+                        src={getOptimizedUrl(currentItem.imageUrl, { width: 1200, crop: 'limit' })}
+                        alt={currentItem.title}
+                        className="h-full w-full object-cover animate-fade-in"
+                        loading={currentIndex === 0 ? 'eager' : 'lazy'}
+                        decoding="async"
+                        fetchPriority={currentIndex === 0 ? 'high' : undefined}
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-[var(--primary)]/30">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
+                          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                          <circle cx="9" cy="9" r="2" />
+                          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                        </svg>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/30 via-transparent to-transparent pointer-events-none" />
+                  </div>
+
+                  <div
+                    className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 flex items-center gap-3 px-6 py-3 bg-[var(--accent)] text-white rounded-[16px] shadow-[0_8px_32px_rgba(232,154,67,0.4)] whitespace-nowrap hover:scale-105 active:scale-95 transition-transform duration-200"
+                    style={{ zIndex: 10 }}
+                  >
+                    <Link
+                      to={`/portfolio/${currentItem?.slug}`}
+                      className="group flex items-center gap-2 text-sm font-semibold uppercase tracking-wide"
+                      onClick={(e) => {
+                        if (totalImages > 1) {
+                          e.preventDefault()
+                          e.stopPropagation()
+                        }
+                      }}
+                    >
+                      View Project
+                      <ArrowRight size={16} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
+
+            <div className="mt-10 h-12 flex-shrink-0" aria-hidden="true" />
 
             {totalImages > 1 && (
               <div className="mt-12 flex items-center gap-6">

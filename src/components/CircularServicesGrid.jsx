@@ -18,7 +18,9 @@ const ICON_MAP = {
   Sparkles: () => <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v2.2"/><path d="M16.38 4.74l1.06 1.06"/><path d="M18 12h2.2"/><path d="M21 16.38l-1.06 1.06"/><path d="M12 21v-2.2"/><path d="M7.64 19.34l1.06-1.06"/><path d="M3 12h-2.2"/><path d="M4.74 4.74l-1.06 1.06"/></svg>,
 }
 
-export const CircularServiceCard = ({ service, imageUrl, size = 280, index = 0 }) => {
+const CIRCULAR_CARD_SIZE = 300
+
+export const CircularServiceCard = ({ service, imageUrl, size = CIRCULAR_CARD_SIZE, index = 0 }) => {
   const config = SERVICES_CONFIG.find(s => s.key === service.key) || SERVICES_CONFIG[0]
   const Icon = ICON_MAP[config.icon] || ICON_MAP.Brush
   const displayUrl = typeof imageUrl === 'string' ? imageUrl : null
@@ -29,7 +31,7 @@ export const CircularServiceCard = ({ service, imageUrl, size = 280, index = 0 }
       className="animate-fade-up flex flex-col items-center"
       style={{ transitionDelay: `${index * 100}ms` }}
     >
-      <div className="relative flex justify-center items-start w-full" style={{ height: clampedSize + 20 }}>
+      <div className="relative flex justify-center items-center w-full" style={{ height: clampedSize + 60 }}>
         <div className="relative flex flex-col items-center group focus:outline-none">
           <div
             className="relative rounded-full hover-scale hover:shadow-[0_20px_60px_rgba(42,36,31,0.15)] active:scale-[0.98]"
@@ -58,10 +60,17 @@ export const CircularServiceCard = ({ service, imageUrl, size = 280, index = 0 }
             <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/20 via-transparent to-transparent pointer-events-none" />
           </div>
 
-          <div className="mt-5 text-center">
-            <h3 className="font-display text-xl md:text-2xl font-medium text-[var(--primary)] leading-tight">
+          <div
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-full max-w-xs px-4"
+            style={{ zIndex: 10 }}
+          >
+            <a
+              href="/services"
+              className="block w-full py-3 px-6 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+              aria-label={`View ${service.title || config.label}`}
+            >
               {service.title || config.label}
-            </h3>
+            </a>
           </div>
         </div>
       </div>
@@ -69,7 +78,7 @@ export const CircularServiceCard = ({ service, imageUrl, size = 280, index = 0 }
   )
 }
 
-export const CircularServicesGrid = ({ services = [], images = {}, size = 280 }) => {
+export const CircularServicesGrid = ({ services = [], images = {}, size = CIRCULAR_CARD_SIZE }) => {
   const serviceItems = services.slice(0, 6).map((service, index) => ({
     ...service,
     imageUrl: images[service.key] || images[service.id] || null,

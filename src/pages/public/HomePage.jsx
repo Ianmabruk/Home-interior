@@ -1,16 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Play } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { Hero } from '../../components/Hero'
 import { AboutPreview } from '../../components/AboutPreview'
 import { ConsultationModal } from '../../components/ConsultationModal'
 import { CircularPortfolioShowcase } from '../../components/CircularPortfolioShowcase'
 import { CircularServicesGrid } from '../../components/CircularServicesGrid'
 import { api } from '../../services/api'
-import { getOptimizedUrl, getOptimizedVideoUrl, getVideoPosterUrl } from '../../utils/cloudinaryHelpers'
+import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import { ScrollReveal } from '../../utils/scrollReveal'
-import LazyVideo from '../../components/common/LazyVideo'
 import { CircularNavCard } from '../../components/mobile/CircularNavCard'
 
 const getProjectImage = (item) => {
@@ -23,63 +22,6 @@ const getProjectImage = (item) => {
     null
   )
 }
-
-const VirtualDesignCard = ({ item }) => (
-  <article className="group cursor-pointer bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
-    <Link
-      to={`/virtual-design/project/${item.id}`}
-      className="block"
-      aria-label={`View ${item.title} project`}
-    >
-      <div className="relative aspect-square overflow-hidden">
-        {item.mediaType === 'video' && item.mediaUrl ? (
-          <>
-            <LazyVideo
-              src={getOptimizedVideoUrl(item.mediaUrl, { width: 1200 })}
-              poster={getVideoPosterUrl(item.mediaUrl, { width: 1200 })}
-              className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <button
-              className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110"
-              aria-label="Play video"
-            >
-              <Play size={20} strokeWidth={1.5} className="ml-1" />
-            </button>
-          </>
-        ) : item.imageUrl ? (
-          <img
-            src={getOptimizedUrl(item.imageUrl, { width: 1200, crop: 'limit' })}
-            alt={item.title}
-            className="h-full w-full object-cover bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <div className="h-full w-full bg-[var(--secondary)]/30" />
-        )}
-        {item.featured && (
-          <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-white text-[10px] font-semibold uppercase tracking-widest rounded-full shadow-lg">
-            Featured
-          </span>
-        )}
-      </div>
-
-      <div className="p-6 md:p-8 border-t border-[var(--border)]/40 bg-white text-center">
-        <h3 className="font-display text-2xl md:text-3xl font-normal text-[var(--primary)] leading-tight mb-6">
-          {item.title}
-        </h3>
-        <button
-          type="button"
-          className="btn-luxury-primary group inline-flex items-center gap-2 text-[11px] px-8 py-3 rounded-full whitespace-nowrap hover:scale-105 active:scale-95"
-        >
-          View Project
-          <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-        </button>
-      </div>
-    </Link>
-  </article>
-)
 
 const ContactSection = ({ contactInfo }) => {
   const phoneNumbers = contactInfo?.phoneNumbers || ['+254 700 000 000', '+254 711 111 111']
@@ -298,6 +240,16 @@ export const HomePage = () => {
     )
   }
 
+  // Prepare service images mapping
+  const serviceImages = {}
+  services.forEach((service) => {
+    const img = service.imageUrl || service.mediaUrl || service.image || service.galleryImages?.[0]
+    if (img) {
+      serviceImages[service.key] = img
+      serviceImages[service.id] = img
+    }
+  })
+
   return (
     <main>
       {/* HERO - Mobile */}
@@ -388,41 +340,8 @@ export const HomePage = () => {
 
       {/* DESKTOP: Full sections */}
       <div className="hidden md:block">
-        {/* Portfolio Section */}
-        <section id="portfolio" className="bg-[var(--secondary)]/30 py-20 md:py-32">
-          <div className="container-wide md:px-12 lg:px-20">
-            <div className="mb-16 md:mb-24 text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Portfolio</p>
-              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
-                Featured Projects
-              </h2>
-            </div>
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
-              {portfolio.slice(0, 6).map((item, index) => (
-                <div key={item.id || index} className="group flex flex-col items-center">
-                  <div className="relative w-full max-w-sm mx-auto mb-6">
-                    <div className="relative rounded-full overflow-hidden">
-                      <img
-                        src={getOptimizedUrl(getProjectImage(item), { width: 600, crop: 'limit' })}
-                        alt={item.title}
-                        className="h-[320px] w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/20 via-transparent to-transparent pointer-events-none" />
-                    </div>
-                  </div>
-                  <Link
-                    to={`/portfolio/${item.id}`}
-                    className="w-full max-w-xs px-8 py-4 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-                  >
-                    {item.title}
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        {/* Portfolio Section - Using CircularPortfolioShowcase */}
+        <CircularPortfolioShowcase portfolio={portfolio} getProjectImage={getProjectImage} />
 
         {/* Virtual Designs Section */}
         <section id="virtual-designs" className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 py-20 md:py-32">
@@ -471,58 +390,8 @@ export const HomePage = () => {
           </div>
         </section>
 
-        {/* Services Section */}
-        <section id="services" className="bg-soft-cream py-20 md:py-32">
-          <div className="container-wide md:px-12 lg:px-20">
-            <div className="mb-16 md:mb-24 text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Services</p>
-              <h2 className="font-display text-4xl font-medium leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
-                What We Do
-              </h2>
-              <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
-                Comprehensive interior design services tailored to elevate your space with timeless elegance.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
-              {services.slice(0, 6).map((service, index) => {
-                const img = service.imageUrl || service.mediaUrl || service.image || service.galleryImages?.[0]
-                return (
-                  <div key={service.id || service.key || index} className="group flex flex-col items-center">
-                    <div className="relative w-full max-w-sm mx-auto mb-6">
-                      <div className="relative rounded-full overflow-hidden">
-                        {img ? (
-                          <img
-                            src={getOptimizedUrl(img, { width: 600, crop: 'limit' })}
-                            alt={service.title}
-                            className="h-[320px] w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        ) : (
-                          <div className="h-[320px] w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
-                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                              <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                              <circle cx="9" cy="9" r="2" />
-                              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                            </svg>
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/20 via-transparent to-transparent pointer-events-none" />
-                      </div>
-                    </div>
-                    <Link
-                      to="/services"
-                      className="w-full max-w-xs px-8 py-4 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-                    >
-                      {service.title}
-                    </Link>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </section>
+        {/* Services Section - Using CircularServicesGrid */}
+        <CircularServicesGrid services={services} images={serviceImages} />
 
         {/* Shop Section */}
         <section id="shop" className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 py-20 md:py-32">
@@ -542,7 +411,7 @@ export const HomePage = () => {
                 { label: 'Mirrors', category: 'mirror' },
                 { label: 'Artwork', category: 'artwork' },
                 { label: 'Throw Pillows', category: 'throw-pillows' },
-              ].map((cat, index) => (
+              ].map((cat) => (
                 <div key={cat.category} className="group flex flex-col items-center">
                   <div className="relative w-full max-w-sm mx-auto mb-6">
                     <div className="relative rounded-full overflow-hidden bg-[var(--secondary)]/30">
@@ -574,7 +443,7 @@ export const HomePage = () => {
           </div>
         </section>
 
-        {/* About Us Section */}
+        {/* About Us Section - Using premium AboutPreview */}
         <section id="about" className="bg-soft-cream py-20 md:py-32">
           <div className="container-wide md:px-12 lg:px-20">
             <AboutPreview />
@@ -599,7 +468,7 @@ export const HomePage = () => {
                 { label: 'Instagram', icon: 'instagram' },
                 { label: 'Pinterest', icon: 'pinterest' },
                 { label: 'LinkedIn', icon: 'linkedin' },
-              ].map((social, index) => (
+              ].map((social) => (
                 <div key={social.label} className="group flex flex-col items-center">
                   <div className="relative w-full max-w-sm mx-auto mb-6">
                     <div className="relative rounded-full overflow-hidden bg-[var(--secondary)]/30">
@@ -630,6 +499,9 @@ export const HomePage = () => {
             </div>
           </div>
         </section>
+
+        {/* Contact Section */}
+        <ContactSection contactInfo={contactInfo} />
       </div>
 
       <ConsultationModal isOpen={showModal} onClose={() => setShowModal(false)} />

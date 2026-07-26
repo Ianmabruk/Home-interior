@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Upload, X, Send, LayoutGrid, Brush, MonitorSmartphone, Armchair, Search, Sparkles, ArrowUpDown, Hammer, Palette, Home, Truck, Gem, Wrench } from 'lucide-react'
+import { Upload, X, Send, Brush, MonitorSmartphone, Armchair, Search, Sparkles, Hammer, Palette, Wrench } from 'lucide-react'
 import { api } from '../../services/api'
 import { toast } from 'react-hot-toast'
 
@@ -213,7 +213,7 @@ export const ServicesPage = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 max-w-6xl mx-auto mb-20">
-            {SERVICE_CARDS.map((service, index) => (
+            {SERVICE_CARDS.map((service) => (
               <div key={service.title} className="group bg-white rounded-3xl p-6 md:p-8 border border-[var(--border)]/40 hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] mb-6 transition-all duration-300 group-hover:bg-[var(--accent)] group-hover:text-white">
                   <service.icon size={28} strokeWidth={1.5} aria-hidden="true" />

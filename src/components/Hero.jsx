@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { getOptimizedUrl, buildSrcSet } from '../utils/cloudinaryHelpers'
 
 export const Hero = ({ heroImages = [], className = '' }) => {
@@ -9,6 +9,10 @@ export const Hero = ({ heroImages = [], className = '' }) => {
   const [nextImage, setNextImage] = useState(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [kenBurnsKey, setKenBurnsKey] = useState(0)
+  const firstImageLoadedRef = useRef(false)
+  const transitionTimeoutRef = useRef(null)
+  const kenBurnsIntervalRef = useRef(null)
+  const kenBurnsStartedRef = useRef(false)
 
   const images = useMemo(() => {
     if (!heroImages || heroImages.length === 0) return []
@@ -22,8 +26,10 @@ export const Hero = ({ heroImages = [], className = '' }) => {
 
   const firstImageUrl = images[0]?.url
 
+  // Preload first image immediately
   useEffect(() => {
-    if (!firstImageUrl) return
+    if (!firstImageUrl || firstImageLoadedRef.current) return
+    firstImageLoadedRef.current = true
     const link = document.createElement('link')
     link.rel = 'preload'
     link.as = 'image'
@@ -36,6 +42,7 @@ export const Hero = ({ heroImages = [], className = '' }) => {
     }
   }, [firstImageUrl])
 
+  // Auto-advance carousel
   useEffect(() => {
     if (images.length <= 1) return
     const timer = setInterval(() => {
@@ -44,39 +51,60 @@ export const Hero = ({ heroImages = [], className = '' }) => {
     return () => clearInterval(timer)
   }, [images.length])
 
+  // Crossfade transition
+  /* eslint-disable react-hooks/set-state-in-effect -- Crossfade animation requires synchronous state updates for smooth transitions */
   useEffect(() => {
     if (currentIndex === displayIndex) return
-    /* eslint-disable react-hooks/set-state-in-effect -- Carousel crossfade requires synchronous state updates */
     setNextImage(images[currentIndex])
     setOpacityA(0)
     setOpacityB(1)
-    const timeout = setTimeout(() => {
+    
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current)
+    }
+    transitionTimeoutRef.current = setTimeout(() => {
       setDisplayIndex(currentIndex)
       setOpacityA(1)
       setOpacityB(0)
       setNextImage(null)
     }, 1200)
-    return () => clearTimeout(timeout)
+
+    return () => {
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current)
+      }
+    }
   }, [currentIndex, displayIndex, images])
 
   const currentImage = images[displayIndex]
   const activeImage = currentImage?.url
   const activeAlt = currentImage?.alt || 'Luxury interior design'
 
-  const handleImageLoad = () => {
-    setIsLoaded(true)
-  }
+  const handleImageLoad = useCallback(() => {
+    if (!isLoaded) setIsLoaded(true)
+  }, [isLoaded])
 
   const startKenBurns = useCallback(() => {
     if (images.length <= 1) return
     setKenBurnsKey(prev => prev + 1)
   }, [images.length])
 
+  // Ken Burns effect - only start after first image loads
   useEffect(() => {
-    if (!isLoaded || images.length <= 1) return
+    if (!isLoaded || images.length <= 1 || kenBurnsStartedRef.current) return
+    
+    kenBurnsStartedRef.current = true
     startKenBurns()
-    const interval = setInterval(startKenBurns, 10000)
-    return () => clearInterval(interval)
+    if (kenBurnsIntervalRef.current) {
+      clearInterval(kenBurnsIntervalRef.current)
+    }
+    kenBurnsIntervalRef.current = setInterval(startKenBurns, 10000)
+    
+    return () => {
+      if (kenBurnsIntervalRef.current) {
+        clearInterval(kenBurnsIntervalRef.current)
+      }
+    }
   }, [isLoaded, images.length, startKenBurns])
 
   if (!images.length) {
@@ -85,6 +113,7 @@ export const Hero = ({ heroImages = [], className = '' }) => {
         className={`relative w-full h-screen min-h-[700px] overflow-hidden bg-primary ${className}`}
         role="region"
         aria-label="Hero image"
+        style={{ contain: 'layout paint' }}
       >
         <div className="absolute inset-0 bg-[var(--primary)]" />
       </section>
@@ -96,6 +125,7 @@ export const Hero = ({ heroImages = [], className = '' }) => {
       className={`relative w-full h-screen min-h-[700px] overflow-hidden ${className}`}
       role="region"
       aria-label="Hero image"
+      style={{ contain: 'layout paint' }}
     >
       <div
         className="absolute inset-0 will-change-transform animate-ken-burns"
@@ -113,6 +143,8 @@ export const Hero = ({ heroImages = [], className = '' }) => {
           loading="eager"
           decoding="async"
           onLoad={handleImageLoad}
+          width={1920}
+          height={1080}
         />
         {nextImage && (
           <img
@@ -124,6 +156,8 @@ export const Hero = ({ heroImages = [], className = '' }) => {
             style={{ opacity: opacityB }}
             loading="lazy"
             decoding="async"
+            width={1920}
+            height={1080}
           />
         )}
       </div>
