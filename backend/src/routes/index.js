@@ -10,6 +10,7 @@ import serviceRoutes from './serviceRoutes.js'
 import testRoutes from './testimonialRoutes.js'
 import heroRoutes from './heroMediaRoutes.js'
 import aboutRoutes from './aboutRoutes.js'
+import contactRoutes from './contactRoutes.js'
 import consultationRoutes from './consultationRoutes.js'
 import adminConsultationRoutes from './adminConsultationRoutes.js'
 import { portfolioRoutes as adminPortfolioRoutes, virtualDesignRoutes as adminVDRoutes } from './adminContentRoutes.js'
@@ -28,6 +29,7 @@ router.use('/content/portfolio', contentPortfolioRoutes)
 router.use('/content/virtual-design', contentVDRoutes)
 router.use('/content/services', serviceRoutes)
 router.use('/content/about', aboutRoutes)
+router.use('/contact', contactRoutes)
 router.use('/content/hero-media', heroRoutes)
 router.use('/content/consultations', consultationRoutes)
 router.use('/content/media', mediaRoutes)
