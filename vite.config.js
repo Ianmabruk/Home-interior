@@ -29,16 +29,19 @@ export default defineConfig({
         runtimeCaching: [
           {
             // App shell navigations (index.html) — always fetch from the network
-            // first so a redeploy is reflected immediately. Falls back to cache
-            // only when offline. This was the root cause of stale production.
+            // first so a redeploy is reflected immediately. Do NOT cache the HTML
+            // to avoid hydration mismatches when a new SW serves cached HTML with
+            // new JS. Falls back to cache only when offline (opaque responses).
             urlPattern: ({ request, url }) =>
               request.mode === 'navigate' && url.origin === self.location.origin,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'pages',
               networkTimeoutSeconds: 10,
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
-              cacheableResponse: { statuses: [0, 200] },
+              // Do not cache HTML responses — prevents hydration mismatch when
+              // a new SW serves stale HTML with new JS. Only opaque responses
+              // (offline fallback) are cached.
+              cacheableResponse: { statuses: [0] },
             },
           },
           {
