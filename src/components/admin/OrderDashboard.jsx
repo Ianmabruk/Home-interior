@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Package, Eye, X, Search, ChevronDown } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
+import { emitAdminDataChanged } from '../../utils/adminEvents'
 
 const STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
 
@@ -37,6 +39,12 @@ export const OrderDashboard = () => {
     loadOrders()
   }, [])
 
+  useEffect(() => {
+    const handler = () => { loadOrders() }
+    window.addEventListener('admin:data-changed', handler)
+    return () => window.removeEventListener('admin:data-changed', handler)
+  }, [loadOrders])
+
   const updateStatus = async (orderId, newStatus) => {
     try {
       await api.patch(`/orders/${orderId}/status`, { status: newStatus })
@@ -44,8 +52,10 @@ export const OrderDashboard = () => {
       if (viewOrder && (viewOrder._id === orderId || viewOrder.id === orderId)) {
         setViewOrder((prev) => ({ ...prev, status: newStatus }))
       }
+      emitAdminDataChanged({ type: 'orders-changed' })
+      toast.success('Order status updated.')
     } catch (err) {
-      window.alert(err?.message || 'Failed to update status')
+      toast.error(err?.message || 'Failed to update status.')
     }
   }
 

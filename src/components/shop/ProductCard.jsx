@@ -92,7 +92,7 @@ export const ProductCard = memo(({ product, onQuickView }) => {
           <div className="mt-3 flex items-center gap-1.5">
             {variants.map((v) => (
               <span
-                key={v.color}
+                 key={v.id || v.color}
                 className="h-3 w-3 rounded-full border border-[var(--border)]"
                 style={{ backgroundColor: v.colorHex || '#ccc' }}
                 title={v.color}
