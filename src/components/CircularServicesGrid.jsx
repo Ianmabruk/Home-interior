@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { getOptimizedUrl } from '../utils/cloudinaryHelpers'
 
 const SERVICES_CONFIG = [
@@ -64,13 +65,13 @@ export const CircularServiceCard = ({ service, imageUrl, size = CIRCULAR_CARD_SI
             className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-full max-w-xs px-4"
             style={{ zIndex: 10 }}
           >
-            <a
-              href="/services"
+            <Link
+              to="/services"
               className="block w-full py-3 px-6 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
               aria-label={`View ${service.title || config.label}`}
             >
               {service.title || config.label}
-            </a>
+            </Link>
           </div>
         </div>
       </div>
