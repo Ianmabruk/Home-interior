@@ -88,6 +88,18 @@ export const ProductCard = memo(({ product, onQuickView }) => {
             <span className="text-sm text-[var(--primary)]/35 line-through">{formatPrice(product.price)}</span>
           )}
         </div>
+        {variants.length > 1 && (
+          <div className="mt-3 flex items-center gap-1.5">
+            {variants.map((v) => (
+              <span
+                key={v.color}
+                className="h-3 w-3 rounded-full border border-[var(--border)]"
+                style={{ backgroundColor: v.colorHex || '#ccc' }}
+                title={v.color}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </article>
   )

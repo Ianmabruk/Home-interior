@@ -68,34 +68,28 @@ async function createVirtualDesign(data, file, galleryFiles) {
 }
 
 async function updateVirtualDesign(id, data, file, galleryFiles) {
-  try {
-    const existing = await prisma.virtualDesign.findUnique({ where: { id } })
-    if (!existing) throw failure(404, 'Virtual design not found')
+  const existing = await prisma.virtualDesign.findUnique({ where: { id } })
+  if (!existing) throw failure(404, 'Virtual design not found')
 
-    const updateData = { ...data }
-    const mediaUrls = [...(existing.mediaUrls || [])]
+  const updateData = { ...data }
 
+  if (file) {
+    if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
+    const uploaded = await uploadFile(file.buffer, file.mimetype, 'virtual-designs')
+    updateData.imageUrl = uploaded.url
+    updateData.cloudinaryId = uploaded.path
+  }
+
+  const mediaUrls = []
+  if (galleryFiles.length > 0) {
     for (const f of galleryFiles) {
       const uploaded = await uploadFile(f.buffer, f.mimetype, 'virtual-designs')
       mediaUrls.push(uploaded.url)
     }
-    if (galleryFiles.length > 0) updateData.mediaUrls = mediaUrls
-
-    if (file) {
-      if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
-      const uploaded = await uploadFile(file.buffer, file.mimetype, 'virtual-designs')
-      updateData.imageUrl = uploaded.url
-      updateData.cloudinaryId = uploaded.path
-    } else if (!updateData.imageUrl && mediaUrls.length > 0) {
-      updateData.imageUrl = mediaUrls[0]
-    }
-
-    const item = await prisma.virtualDesign.update({ where: { id }, data: updateData })
-    return mapVD(item)
-  } catch (err) {
-    if (err?.status === 404) throw err
-    throw failure(500, 'Failed to update virtual design')
+    updateData.mediaUrls = mediaUrls
   }
+  const item = await prisma.virtualDesign.update({ where: { id }, data: updateData })
+  return mapVD(item)
 }
 
 async function deleteVirtualDesign(id) {

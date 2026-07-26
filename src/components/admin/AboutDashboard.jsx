@@ -1,12 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { X, Plus, Image as ImageIcon } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
 
 const INITIAL_FORM = {
-  heading: '',
-  heroSubtitle: '',
   story: '',
   mission: '',
   vision: '',
@@ -18,8 +17,8 @@ const INITIAL_FORM = {
   socialLinks: '',
   whyChooseHok: '',
   areasServed: '',
-  team: '',
-  process: '',
+  team: '[]',
+  process: '[]',
 }
 
 export const AboutDashboard = () => {
@@ -33,61 +32,38 @@ export const AboutDashboard = () => {
   const loadAbout = useCallback(async () => {
     try {
       const res = await api.get('/about')
-      setForm({
-        heading: res.data?.heading || '',
-        heroSubtitle: res.data?.heroSubtitle || '',
-        story: res.data?.story || '',
-        mission: res.data?.mission || '',
-        vision: res.data?.vision || '',
-        values: res.data?.values || '',
-        companyDescription: res.data?.companyDescription || '',
-        location: res.data?.location || '',
-        contactEmail: res.data?.contactEmail || '',
-        statistics: res.data?.statistics || '',
-        socialLinks: JSON.stringify(res.data?.socials || {}, null, 2),
-        whyChooseHok: res.data?.whyChooseHok || '',
-        areasServed: res.data?.areasServed || '',
-        team: JSON.stringify(res.data?.team || [], null, 2),
-        process: JSON.stringify(res.data?.process || [], null, 2),
-      })
-      setAboutImagePreview(res.data?.aboutImageUrl || null)
+      if (res.data) {
+        setForm({
+          story: res.data?.story || '',
+          mission: res.data?.mission || '',
+          vision: res.data?.vision || '',
+          values: res.data?.values || '',
+          companyDescription: res.data?.companyDescription || '',
+          location: res.data?.location || '',
+          contactEmail: res.data?.contactEmail || '',
+          statistics: res.data?.statistics || '',
+          socialLinks: JSON.stringify(res.data?.socials || {}, null, 2),
+          whyChooseHok: res.data?.whyChooseHok || '',
+          areasServed: res.data?.areasServed || '',
+          team: JSON.stringify(res.data?.team || [], null, 2),
+          process: JSON.stringify(res.data?.process || [], null, 2),
+        })
+        setAboutImagePreview(res.data?.aboutImageUrl || null)
+      }
     } catch {
       setForm(INITIAL_FORM)
     }
   }, [])
 
   useEffect(() => {
-    let cancelled = false
-    const run = async () => {
-      try {
-        const res = await api.get('/about')
-        if (!cancelled) {
-          setForm({
-            heading: res.data?.heading || '',
-            heroSubtitle: res.data?.heroSubtitle || '',
-            story: res.data?.story || '',
-            mission: res.data?.mission || '',
-            vision: res.data?.vision || '',
-            values: res.data?.values || '',
-            companyDescription: res.data?.companyDescription || '',
-            location: res.data?.location || '',
-            contactEmail: res.data?.contactEmail || '',
-            statistics: res.data?.statistics || '',
-            socialLinks: JSON.stringify(res.data?.socials || {}, null, 2),
-            whyChooseHok: res.data?.whyChooseHok || '',
-            areasServed: res.data?.areasServed || '',
-            team: JSON.stringify(res.data?.team || [], null, 2),
-            process: JSON.stringify(res.data?.process || [], null, 2),
-          })
-          setAboutImagePreview(res.data?.aboutImageUrl || null)
-        }
-      } catch {
-        if (!cancelled) setForm(INITIAL_FORM)
-      }
-    }
-    run()
-    return () => { cancelled = true }
-  }, [])
+    loadAbout()
+  }, [loadAbout])
+
+  useEffect(() => {
+    const handler = () => { loadAbout() }
+    window.addEventListener('admin:data-changed', handler)
+    return () => window.removeEventListener('admin:data-changed', handler)
+  }, [loadAbout])
 
   const handleAboutImage = (e) => {
     const f = e.target.files?.[0] || null
@@ -111,8 +87,6 @@ export const AboutDashboard = () => {
     setSubmitting(true)
     try {
       const payload = new FormData()
-      payload.append('heading', form.heading || '')
-      payload.append('heroSubtitle', form.heroSubtitle || '')
       payload.append('story', form.story || '')
       payload.append('companyDescription', form.companyDescription || '')
       payload.append('mission', form.mission || '')
@@ -130,6 +104,7 @@ export const AboutDashboard = () => {
       await api.put('/about', payload)
       await loadAbout()
       emitAdminDataChanged({ type: 'about-changed' })
+      toast.success('About page saved successfully.')
     } catch (err) {
       setError(err?.message || 'Failed to save about page. Please try again.')
     } finally {
@@ -161,27 +136,6 @@ export const AboutDashboard = () => {
           <div>
             <h3 className="font-display text-xl text-[var(--primary)]">Hero Section</h3>
             <p className="text-[10px] text-[var(--primary)]/50 mt-1">Main heading and subtitle</p>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Page Heading</label>
-            <input
-              value={form.heading}
-              onChange={(e) => setForm((f) => ({ ...f, heading: e.target.value }))}
-              className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-              placeholder="About HOK"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Hero Subtitle</label>
-            <textarea
-              value={form.heroSubtitle}
-              onChange={(e) => setForm((f) => ({ ...f, heroSubtitle: e.target.value }))}
-              className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
-              placeholder="Redefining luxury interiors with timeless elegance..."
-              rows={2}
-            />
           </div>
 
           <div className="border-t border-[var(--border)] pt-5 space-y-5">
@@ -366,10 +320,7 @@ export const AboutDashboard = () => {
               whileHover={{ scale: 1.01 }}
               onClick={() => aboutImageRef.current?.click()}
               className="relative border-2 border-dashed rounded-2xl transition-all duration-300"
-              style={{
-                borderColor: 'var(--border)',
-                backgroundColor: 'var(--bg)',
-              }}
+              style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg)' }}
             >
               {aboutImagePreview ? (
                 <div className="relative rounded-xl overflow-hidden">

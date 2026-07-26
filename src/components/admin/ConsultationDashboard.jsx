@@ -6,8 +6,6 @@ import {
   Eye,
   CheckCircle2,
   Download,
-  ChevronLeft,
-  ChevronRight,
   X,
   Clock,
   User,
@@ -15,17 +13,39 @@ import {
   Phone,
   Calendar,
   MessageSquare,
+  Image,
 } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
 
-const STATUSES = ['new', 'read', 'replied', 'closed']
+function parseConsultationMessage(message) {
+  if (!message) return { images: [], extraData: {}, text: '' }
+  const firstNewline = message.indexOf('\n\n')
+  if (firstNewline === -1) return { images: [], extraData: {}, text: message }
+  const headerStr = message.substring(0, firstNewline)
+  const text = message.substring(firstNewline + 2)
+  try {
+    const header = JSON.parse(headerStr)
+    return {
+      images: header.images || [],
+      extraData: { ...header, images: undefined },
+      text,
+    }
+  } catch {
+    return { images: [], extraData: {}, text: message }
+  }
+}
+
+const STATUSES = ['new', 'in review', 'quoted', 'approved', 'completed', 'archived']
 
 const STATUS_CONFIG = {
-  new: { label: 'New', class: 'badge-neutral', color: 'text-[var(--primary)]/50 bg-[var(--primary)]/5 border-[var(--primary)]/10' },
-  read: { label: 'Read', class: 'badge-warning', color: 'text-[var(--accent)] bg-[var(--accent)]/5 border-[var(--accent)]/10' },
-  replied: { label: 'Replied', class: 'badge-success', color: 'text-[var(--success)] bg-[var(--success)]/5 border-[var(--success)]/10' },
-  closed: { label: 'Closed', class: 'badge-error', color: 'text-[var(--error)] bg-[var(--error)]/5 border-[var(--error)]/10' },
+  new: { label: 'New', color: 'text-[var(--primary)]/70 bg-[var(--primary)]/5 border-[var(--primary)]/10' },
+  'in review': { label: 'In Review', color: 'text-bronze bg-bronze/5 border-bronze/10' },
+  quoted: { label: 'Quoted', color: 'text-[var(--accent)] bg-[var(--accent)]/5 border-[var(--accent)]/10' },
+  approved: { label: 'Approved', color: 'text-success bg-success/5 border-success/10' },
+  completed: { label: 'Completed', color: 'text-[var(--success)] bg-[var(--success)]/5 border-[var(--success)]/10' },
+  archived: { label: 'Archived', color: 'text-[var(--primary)]/50 bg-[var(--primary)]/5 border-[var(--primary)]/10' },
 }
 
 export const ConsultationDashboard = () => {
@@ -34,7 +54,6 @@ export const ConsultationDashboard = () => {
   const [search, setSearch] = useState('')
   const [deleteId, setDeleteId] = useState(null)
   const [viewItem, setViewItem] = useState(null)
-  const [replyText, setReplyText] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
@@ -59,6 +78,26 @@ export const ConsultationDashboard = () => {
     loadData()
   }, [filter, search, page])
 
+  useEffect(() => {
+    const handler = () => {
+      const params = {
+        status: filter === 'all' ? undefined : filter,
+        search: search || undefined,
+        page,
+        pageSize: 10,
+      }
+      api.get('/admin/consultations', { params })
+        .then((res) => {
+          setConsultations(res.data?.items || [])
+          setTotal(res.data?.total || 0)
+          setTotalPages(res.data?.totalPages || 1)
+        })
+        .catch(() => {})
+    }
+    window.addEventListener('admin:data-changed', handler)
+    return () => window.removeEventListener('admin:data-changed', handler)
+  }, [filter, search, page])
+
   const refresh = async () => {
     try {
       const params = {
@@ -81,8 +120,9 @@ export const ConsultationDashboard = () => {
       await api.patch(`/admin/consultations/${id}/status`, { status })
       refresh()
       emitAdminDataChanged({ type: 'consultations-changed' })
-    } catch {
-      // handle error
+      toast.success(`Status updated to ${status}.`)
+    } catch (err) {
+      toast.error(err?.message || 'Failed to update status.')
     }
   }
 
@@ -93,23 +133,9 @@ export const ConsultationDashboard = () => {
       setDeleteId(null)
       refresh()
       emitAdminDataChanged({ type: 'consultations-changed' })
-    } catch {
-      // handle error
-    }
-  }
-
-  const handleReply = async () => {
-    if (!viewItem || !replyText.trim()) return
-    try {
-      await api.patch(`/admin/consultations/${viewItem._id || viewItem.id}/status`, {
-        status: 'replied',
-      })
-      setViewItem(null)
-      setReplyText('')
-      refresh()
-      emitAdminDataChanged({ type: 'consultations-changed' })
-    } catch {
-      // handle error
+      toast.success('Consultation deleted successfully.')
+    } catch (err) {
+      toast.error(err?.message || 'Failed to delete consultation.')
     }
   }
 
@@ -137,6 +163,117 @@ export const ConsultationDashboard = () => {
     )
   }
 
+  const ViewModal = () => {
+    if (!viewItem) return null
+    const parsed = viewItem.message ? parseConsultationMessage(viewItem.message) : { images: [], extraData: {}, text: '' }
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      >
+        <div
+          className="absolute inset-0 bg-[var(--primary)]/40 backdrop-blur-sm"
+          onClick={() => setViewItem(null)}
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="relative bg-white rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-[0_30px_80px_rgba(0,0,0,0.2)]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex justify-between items-start mb-5">
+            <h3 className="font-display text-2xl text-[var(--primary)]">Consultation Details</h3>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setViewItem(null)}
+              className="p-2 rounded-full hover:bg-[var(--bg)] transition-colors"
+            >
+              <X size={18} />
+            </motion.button>
+          </div>
+          <div className="space-y-3">
+            {[
+              { icon: User, label: 'Name', value: viewItem.name },
+              { icon: Mail, label: 'Email', value: viewItem.email },
+              { icon: Phone, label: 'Phone', value: viewItem.phone || '—' },
+              { icon: Calendar, label: 'Date', value: viewItem.preferredDate ? new Date(viewItem.preferredDate).toLocaleDateString() : '—' },
+              { icon: Clock, label: 'Time', value: viewItem.preferredTime || '—' },
+              { icon: CheckCircle2, label: 'Status', value: viewItem.status || 'new' },
+            ].map((field, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/10 rounded-xl p-3"
+              >
+                <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] flex-shrink-0">
+                  <field.icon size={14} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">{field.label}</p>
+                  <p className="text-sm text-[var(--primary)] mt-0.5 font-medium">{field.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          {parsed.extraData && Object.keys(parsed.extraData).length > 0 && (
+            <div className="mt-4 bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/10 rounded-xl p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 mb-2">Project Details</p>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {parsed.extraData.projectType && (
+                  <div><span className="text-[var(--primary)]/50">Type:</span> <span className="font-medium">{parsed.extraData.projectType}</span></div>
+                )}
+                {parsed.extraData.budget && (
+                  <div><span className="text-[var(--primary)]/50">Budget:</span> <span className="font-medium">{parsed.extraData.budget}</span></div>
+                )}
+                {parsed.extraData.timeline && (
+                  <div><span className="text-[var(--primary)]/50">Timeline:</span> <span className="font-medium">{parsed.extraData.timeline}</span></div>
+                )}
+              </div>
+            </div>
+          )}
+          {parsed.images.length > 0 && (
+            <div className="border-t border-[var(--border)] pt-4 mt-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 mb-2 flex items-center gap-1.5">
+                <Image size={12} />
+                Uploaded Images
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {parsed.images.map((img, i) => (
+                  <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="rounded-xl overflow-hidden border border-[var(--border)]">
+                    <img src={img} alt={`Upload ${i + 1}`} className="h-20 w-full object-cover" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="border-t border-[var(--border)] pt-4 mt-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 mb-2 flex items-center gap-1.5">
+              <MessageSquare size={12} />
+              Message
+            </p>
+            <p className="text-sm leading-relaxed text-[var(--primary)] bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/10 rounded-xl p-4">
+              {parsed.text}
+            </p>
+          </div>
+          <div className="mt-6 flex justify-end gap-3">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setViewItem(null)}
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            >
+              Close
+            </motion.button>
+          </div>
+        </motion.div>
+      </motion.div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <motion.div
@@ -152,7 +289,7 @@ export const ConsultationDashboard = () => {
           <motion.div whileHover={{ scale: 1.02 }} className="relative">
             <Search
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--primary)]/50"
+              className="absolute left-3 top-1/2 -translate-x-1/2 text-[var(--primary)]/50"
             />
             <input
               value={search}
@@ -239,7 +376,6 @@ export const ConsultationDashboard = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3.5 text-[var(--primary)]/50">{c.email}</td>
-                    <td className="px-4 py-3.5 text-[var(--primary)]/50">{c.phone || '—'}</td>
                     <td className="px-4 py-3.5 text-[var(--primary)]/50 max-w-xs truncate">{c.message}</td>
                     <td className="px-4 py-3.5 text-[var(--primary)]/50">
                       {c.preferredDate
@@ -264,7 +400,7 @@ export const ConsultationDashboard = () => {
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => updateStatus(c._id || c.id, 'replied')}
+                          onClick={() => updateStatus(c._id || c.id, 'completed')}
                           className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-medium text-[var(--success)] hover:bg-[var(--success)]/10 transition"
                         >
                           <CheckCircle2 size={12} />
@@ -289,124 +425,8 @@ export const ConsultationDashboard = () => {
         )}
       </motion.div>
 
-      {totalPages > 1 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-center gap-3 pt-4"
-        >
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-30"
-          >
-            <ChevronLeft size={16} />
-          </motion.button>
-          <span className="text-sm text-[var(--primary)]/50 font-medium">Page {page} of {totalPages}</span>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-30"
-          >
-            <ChevronRight size={16} />
-          </motion.button>
-        </motion.div>
-      )}
-
       <AnimatePresence>
-        {viewItem && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          >
-            <div
-              className="absolute inset-0 bg-[var(--primary)]/40 backdrop-blur-sm"
-              onClick={() => {
-                setViewItem(null)
-                setReplyText('')
-              }}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white rounded-3xl p-8 max-w-lg w-full shadow-[0_30px_80px_rgba(0,0,0,0.2)]"
-            >
-              <div className="flex justify-between items-start mb-5">
-                <h3 className="font-display text-2xl text-[var(--primary)]">Consultation Details</h3>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => {
-                    setViewItem(null)
-                    setReplyText('')
-                  }}
-                  className="p-2 rounded-full hover:bg-[var(--bg)] transition-colors"
-                >
-                  <X size={18} />
-                </motion.button>
-              </div>
-
-              <div className="space-y-3">
-                {[
-                  { icon: User, label: 'Name', value: viewItem.name },
-                  { icon: Mail, label: 'Email', value: viewItem.email },
-                  { icon: Phone, label: 'Phone', value: viewItem.phone || '—' },
-                  { icon: Calendar, label: 'Date', value: viewItem.preferredDate ? new Date(viewItem.preferredDate).toLocaleDateString() : '—' },
-                  { icon: Clock, label: 'Time', value: viewItem.preferredTime || '—' },
-                  { icon: CheckCircle2, label: 'Status', value: viewItem.status || 'new' },
-                ].map((field, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-3 bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/10 rounded-xl p-3"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] flex-shrink-0">
-                      <field.icon size={14} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">{field.label}</p>
-                      <p className="text-sm text-[var(--primary)] mt-0.5 font-medium">{field.value}</p>
-                    </div>
-                  </div>
-                ))}
-                <div className="border-t border-[var(--border)] pt-4 mt-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 mb-2 flex items-center gap-1.5">
-                    <MessageSquare size={12} />
-                    Message
-                  </p>
-                  <p className="text-sm leading-relaxed text-[var(--primary)] bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/10 rounded-xl p-4">
-                    {viewItem.message}
-                  </p>
-                </div>
-                <div className="border-t border-[var(--border)] pt-4 mt-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 mb-2">Reply</p>
-                  <textarea
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
-                    placeholder="Type your reply..."
-                    rows={3}
-                  />
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleReply}
-                    className="mt-3 rounded-full bg-[var(--primary)] text-white py-3 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--primary)]/90 hover:shadow-lg"
-                    disabled={!replyText.trim()}
-                  >
-                    Send Reply
-                  </motion.button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
+        {viewItem && <ViewModal key="view-modal" />}
       </AnimatePresence>
 
       <AnimatePresence>
@@ -430,8 +450,8 @@ export const ConsultationDashboard = () => {
               <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[var(--error)]/10 flex items-center justify-center text-[var(--error)]">
                 <Trash2 size={24} />
               </div>
-              <h3 className="font-display text-xl text-[var(--primary)] text-center mb-2">Confirm Delete</h3>
-              <p className="text-sm text-[var(--primary)]/50 text-center mb-6">Are you sure? This action cannot be undone.</p>
+              <h3 className="font-display text-xl text-[var(--primary)] text-center mb-2">Delete this consultation?</h3>
+              <p className="text-sm text-[var(--primary)]/50 text-center mb-6">This action cannot be undone.</p>
               <div className="flex gap-3 justify-end">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -457,3 +477,5 @@ export const ConsultationDashboard = () => {
     </div>
   )
 }
+
+export default ConsultationDashboard

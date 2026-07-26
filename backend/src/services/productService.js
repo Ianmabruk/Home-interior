@@ -155,10 +155,14 @@ async function updateProduct(id, data, files, variantFiles = []) {
   if (!existing) throw failure(404, 'Product not found')
 
   const updateData = { ...data }
-  const images = [...(existing.images || [])]
-  const storagePaths = [...(existing.storagePaths || [])]
 
   if (Array.isArray(files) && files.length > 0) {
+    const oldPaths = (existing.storagePaths || []).filter(Boolean)
+    if (oldPaths.length > 0) {
+      try { await deleteFiles(oldPaths) } catch {}
+    }
+    const images = []
+    const storagePaths = []
     for (const f of files) {
       const uploaded = await uploadFile(f.buffer, f.mimetype, 'products')
       images.push(uploaded.url)
@@ -168,8 +172,9 @@ async function updateProduct(id, data, files, variantFiles = []) {
     updateData.storagePaths = storagePaths
   }
 
-  if (!updateData.mainImage && images.length > 0) {
-    updateData.mainImage = images[0]
+  if (!updateData.mainImage && (existing.images || []).length > 0) {
+    const first = existing.images[0]
+    updateData.mainImage = typeof first === 'string' ? first : first?.url || null
   }
 
   if (updateData.tags && typeof updateData.tags === 'string') {

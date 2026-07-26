@@ -45,6 +45,7 @@ async function getHomepage() {
         where: { featured: true },
         orderBy: { createdAt: 'desc' },
         take: 8,
+        include: { variants: true },
       }),
     ])
 

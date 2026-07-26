@@ -8,8 +8,8 @@ const router = Router()
 
 router.get('/', optionalAuth, cacheHeaders(120, 60), testimonialController.list)
 router.get('/:id', optionalAuth, cacheHeaders(120, 60), testimonialController.get)
-router.post('/', uploadSingle('photo', ['image/jpeg', 'image/png', 'image/webp']), testimonialController.create)
-router.patch('/:id', uploadSingle('photo', ['image/jpeg', 'image/png', 'image/webp']), testimonialController.update)
-router.delete('/:id', testimonialController.delete)
+router.post('/', authenticate, uploadSingle('photo', ['image/jpeg', 'image/png', 'image/webp']), testimonialController.create)
+router.patch('/:id', authenticate, uploadSingle('photo', ['image/jpeg', 'image/png', 'image/webp']), testimonialController.update)
+router.delete('/:id', authenticate, testimonialController.delete)
 
 export default router

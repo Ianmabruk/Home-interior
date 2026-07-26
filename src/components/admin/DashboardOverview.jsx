@@ -120,6 +120,22 @@ export const DashboardOverview = ({ overview, onNavigate }) => {
       .finally(() => setIsLoading(false))
   }, [])
 
+  useEffect(() => {
+    const handler = () => {
+      Promise.all([
+        api.get('/portfolio', { params: { sort: '-createdAt', limit: 6 } }),
+        api.get('/orders').catch(() => ({ data: [] })),
+      ])
+        .then(([portfolioRes, ordersRes]) => {
+          setRecentUploads(Array.isArray(portfolioRes.data) ? portfolioRes.data : portfolioRes.data?.items || [])
+          setRecentOrders(Array.isArray(ordersRes.data) ? ordersRes.data : ordersRes.data?.items || [])
+        })
+        .catch(() => {})
+    }
+    window.addEventListener('admin:data-changed', handler)
+    return () => window.removeEventListener('admin:data-changed', handler)
+  }, [])
+
   return (
     <div className="space-y-8">
       <motion.div

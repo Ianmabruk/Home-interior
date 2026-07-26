@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { api } from '../services/api'
 import { ProductCard } from './shop/ProductCard'
+import { ADMIN_DATA_CHANGED_EVENT } from '../utils/adminEvents'
 
 const containerVariants = {
   hidden: {},
@@ -24,7 +25,7 @@ export const ShopCollection = () => {
     const load = async () => {
       try {
         const res = await api.get('/products', { params: { sort: '-createdAt', limit: 20 } })
-        setAllProducts(res.data?.items || [])
+        setAllProducts(Array.isArray(res.data) ? res.data : [])
       } catch {
         setAllProducts([])
       } finally {
@@ -33,6 +34,12 @@ export const ShopCollection = () => {
     }
     load()
   }, [])
+
+  useEffect(() => {
+    const handler = () => { load() }
+    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+    return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+  }, [load])
 
   const displayed = useMemo(() => {
     const items = allProducts

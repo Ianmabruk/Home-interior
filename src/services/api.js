@@ -65,6 +65,7 @@ api.interceptors.response.use(
     }
 
     if (refreshFailed) {
+      refreshFailed = false
       const message = error?.response?.data?.message || error?.message || 'Session expired'
       return Promise.reject(new Error(message))
     }

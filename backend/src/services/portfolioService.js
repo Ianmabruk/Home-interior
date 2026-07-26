@@ -81,21 +81,21 @@ async function updatePortfolio(id, data, file, galleryFiles = []) {
   if (!existing) throw failure(404, 'Portfolio item not found')
 
   const updateData = { ...data }
-  const mediaUrls = [...(existing.mediaUrls || [])]
-
-  for (const f of galleryFiles) {
-    const uploaded = await uploadFile(f.buffer, f.mimetype, 'portfolio')
-    mediaUrls.push(uploaded.url)
-  }
-  if (galleryFiles.length > 0) updateData.mediaUrls = mediaUrls
 
   if (file) {
     if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
     const uploaded = await uploadFile(file.buffer, file.mimetype, 'portfolio')
     updateData.imageUrl = uploaded.url
     updateData.cloudinaryId = uploaded.path
-  } else if (!updateData.imageUrl && mediaUrls.length > 0) {
-    updateData.imageUrl = mediaUrls[0]
+  }
+
+  const mediaUrls = []
+  if (galleryFiles.length > 0) {
+    for (const f of galleryFiles) {
+      const uploaded = await uploadFile(f.buffer, file.mimetype, 'portfolio')
+      mediaUrls.push(uploaded.url)
+    }
+    updateData.mediaUrls = mediaUrls
   }
   const item = await prisma.portfolioProject.update({ where: { id }, data: updateData })
   return mapPortfolio(item)

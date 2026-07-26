@@ -11,7 +11,9 @@ import {
   Eye,
   EyeOff,
   GripVertical,
+  Loader2,
 } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
 
@@ -25,8 +27,6 @@ export const TestimonialDashboard = () => {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({
     clientName: '',
-    position: '',
-    company: '',
     testimonial: '',
     rating: 5,
     displayOrder: 0,
@@ -57,11 +57,19 @@ export const TestimonialDashboard = () => {
     fetchData()
   }, [])
 
+  useEffect(() => {
+    const handler = () => {
+      api.get('/admin/testimonials')
+        .then((res) => setTestimonials(res.data || []))
+        .catch(() => {})
+    }
+    window.addEventListener('admin:data-changed', handler)
+    return () => window.removeEventListener('admin:data-changed', handler)
+  }, [])
+
   const resetForm = () => {
     setForm({
       clientName: '',
-      position: '',
-      company: '',
       testimonial: '',
       rating: 5,
       displayOrder: 0,
@@ -80,7 +88,7 @@ export const TestimonialDashboard = () => {
     try {
       const formData = new FormData()
       Object.entries(form).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
+        if (value !== null && value !== undefined && key !== 'photoPreview') {
           if (key === 'photo' && value instanceof File) {
             formData.append('photo', value)
           } else {
@@ -104,6 +112,7 @@ export const TestimonialDashboard = () => {
       emitAdminDataChanged({ type: 'testimonials-changed' })
     } catch {
       setStatus('Failed to save testimonial. Please try again.')
+      toast.error('Failed to save testimonial.')
     } finally {
       setLoading(false)
     }
@@ -132,8 +141,9 @@ export const TestimonialDashboard = () => {
       setDeleteId(null)
       load()
       emitAdminDataChanged({ type: 'testimonials-changed' })
+      toast.success('Testimonial deleted successfully.')
     } catch {
-      // handle error
+      toast.error('Failed to delete testimonial.')
     }
   }
 
@@ -255,8 +265,6 @@ export const TestimonialDashboard = () => {
                     </td>
                     <td className="px-4 py-3.5 text-[var(--primary)]">
                       <div className="font-medium">{t.clientName}</div>
-                      {t.position && <div className="text-xs text-[var(--primary)]/50">{t.position}</div>}
-                      {t.company && <div className="text-xs text-[var(--primary)]/40">{t.company}</div>}
                     </td>
                     <td className="px-4 py-3.5 text-[var(--primary)]/70 max-w-md">
                       <p className="line-clamp-2 text-sm leading-relaxed">\"{t.testimonial}\"</p>
@@ -348,47 +356,25 @@ export const TestimonialDashboard = () => {
               </div>
 
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Client Name *</label>
-                    <input
-                      value={form.clientName}
-                      onChange={(e) => setForm((f) => ({ ...f, clientName: e.target.value }))}
-                      className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                      placeholder="Client name"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Position</label>
-                    <input
-                      value={form.position}
-                      onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
-                      className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                      placeholder="e.g., Creative Director"
-                    />
-                  </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Client Name *</label>
+                  <input
+                    value={form.clientName}
+                    onChange={(e) => setForm((f) => ({ ...f, clientName: e.target.value }))}
+                    className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                    placeholder="Client name"
+                    required
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Company</label>
-                    <input
-                      value={form.company}
-                      onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
-                      className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                      placeholder="Company name"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Display Order</label>
-                    <input
-                      type="number"
-                      value={form.displayOrder}
-                      onChange={(e) => setForm((f) => ({ ...f, displayOrder: Number(e.target.value) }))}
-                      className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                    />
-                  </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Display Order</label>
+                  <input
+                    type="number"
+                    value={form.displayOrder}
+                    onChange={(e) => setForm((f) => ({ ...f, displayOrder: Number(e.target.value) }))}
+                    className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                  />
                 </div>
 
                 <div className="space-y-1">
@@ -514,8 +500,8 @@ export const TestimonialDashboard = () => {
               <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[var(--error)]/10 flex items-center justify-center text-[var(--error)]">
                 <Trash2 size={24} />
               </div>
-              <h3 className="font-display text-xl text-[var(--primary)] text-center mb-2">Confirm Delete</h3>
-              <p className="text-sm text-[var(--primary)]/50 text-center mb-6">Are you sure? This action cannot be undone.</p>
+              <h3 className="font-display text-xl text-[var(--primary)] text-center mb-2">Delete this testimonial?</h3>
+              <p className="text-sm text-[var(--primary)]/50 text-center mb-6">This action cannot be undone.</p>
               <div className="flex gap-3 justify-end">
                 <motion.button
                   whileHover={{ scale: 1.02 }}

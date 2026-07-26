@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { api } from '../services/api'
 import { getOptimizedUrl } from '../utils/cloudinaryHelpers'
+import { ADMIN_DATA_CHANGED_EVENT } from '../utils/adminEvents'
 
 const containerVariants = {
   hidden: {},
@@ -34,6 +35,12 @@ export const FeaturedProjects = () => {
     }
     load()
   }, [])
+
+  useEffect(() => {
+    const handler = () => { load() }
+    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+    return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+  }, [load])
 
   if (loading) {
     return (
@@ -148,14 +155,10 @@ export const FeaturedProjects = () => {
               {/* Information Card Below Image */}
               <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
                 <div className="flex items-center justify-between gap-4">
-                  <motion.button
-                    initial={{ opacity: 0, x: 20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={(e) => { e.preventDefault(); window.location.href = `/portfolio/${item.id}` }}
+                  <Link
+                    to={`/portfolio/${item.id}`}
                     className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     View Project
                     <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />

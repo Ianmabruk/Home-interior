@@ -1,14 +1,68 @@
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import { consultationService } from '../services/consultationService.js'
 import { failure } from '../utils/response.js'
+import { uploadFile } from '../uploads/uploadService.js'
+
+function buildMessageWithImages(originalMessage, imageUrls, extraData = {}) {
+  const header = {
+    ...extraData,
+    images: imageUrls,
+  }
+  const headerJson = JSON.stringify(header)
+  return headerJson + '\n\n' + (originalMessage || '')
+}
+
+function parseConsultationMessage(message) {
+  if (!message) return { images: [], extraData: {}, text: '' }
+  const firstNewline = message.indexOf('\n\n')
+  if (firstNewline === -1) return { images: [], extraData: {}, text: message }
+  const headerStr = message.substring(0, firstNewline)
+  const text = message.substring(firstNewline + 2)
+  try {
+    const header = JSON.parse(headerStr)
+    return {
+      images: header.images || [],
+      extraData: { ...header, images: undefined },
+      text,
+    }
+  } catch {
+    return { images: [], extraData: {}, text: message }
+  }
+}
 
 export const consultationController = {
   publicCreate: asyncHandler(async (req, res) => {
+    const file = req.file
+    const files = Array.isArray(req.files) ? req.files : []
+    const originalMessage = req.body.message || ''
+    const name = req.body.name || ''
+    const email = req.body.email || ''
+    const phone = req.body.phone || ''
+    const budget = req.body.budget || ''
+    const timeline = req.body.timeline || ''
+    const projectType = req.body.projectType || ''
+
+    const imageUrls = []
+    if (file) {
+      const uploaded = await uploadFile(file.buffer, file.mimetype, 'consultations')
+      imageUrls.push(uploaded.url)
+    }
+    for (const f of files) {
+      const uploaded = await uploadFile(f.buffer, f.mimetype, 'consultations')
+      imageUrls.push(uploaded.url)
+    }
+
+    const enrichedMessage = buildMessageWithImages(
+      originalMessage,
+      imageUrls,
+      { budget, timeline, projectType, name, email, phone }
+    )
+
     const data = {
-      name: req.body.name || '',
-      email: req.body.email || '',
-      phone: req.body.phone || '',
-      message: req.body.message || '',
+      name,
+      email,
+      phone,
+      message: enrichedMessage,
       status: 'new',
     }
     const consultation = await consultationService.createConsultation(data)
@@ -35,11 +89,12 @@ export const consultationController = {
     const { status, search } = req.query
     const result = await consultationService.listConsultations({ status, search, page: 1, pageSize: 10000 })
 
-    const headers = 'Name,Email,Phone,Message,Status,Date\n'
+    const headers = 'Name,Email,Phone,Budget,Timeline,Project Type,Message,Status,Date\n'
     const rows = result.items
-      .map((c) =>
-        `"${(c.name || '').replace(/"/g, '""')}","${(c.email || '').replace(/"/g, '""')}","${(c.phone || '').replace(/"/g, '""')}","${(c.message || '').replace(/"/g, '""')}","${c.status}","${new Date(c.createdAt).toISOString()}"`,
-      )
+      .map((c) => {
+        const parsed = parseConsultationMessage(c.message || '')
+        return `"${(c.name || '').replace(/"/g, '""')}","${(c.email || '').replace(/"/g, '""')}","${(c.phone || '').replace(/"/g, '""')}","${parsed.extraData.budget || ''}","${parsed.extraData.timeline || ''}","${parsed.extraData.projectType || ''}","${(parsed.text || '').replace(/"/g, '""')}","${c.status}","${new Date(c.createdAt).toISOString()}"`
+      })
       .join('\n')
 
     res.setHeader('Content-Type', 'text/csv')

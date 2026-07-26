@@ -11,6 +11,7 @@ import {
   Images,
   Loader2,
 } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
 import { getOptimizedVideoUrl, getVideoPosterUrl, getOptimizedUrl } from '../../utils/cloudinaryHelpers'
@@ -180,6 +181,7 @@ export const VirtualDesignDashboard = () => {
       resetForm()
       load()
       emitAdminDataChanged({ type: 'virtual-changed' })
+      toast.success(editingId ? 'Virtual design updated successfully.' : 'Virtual design uploaded successfully.')
     } catch (err) {
       console.error('Submit error:', err)
       const message = err?.response?.data?.message || err?.message || 'Failed to save virtual design'
@@ -213,14 +215,16 @@ export const VirtualDesignDashboard = () => {
         next.delete(id)
         return next
       })
-      load()
       const message = err?.response?.data?.message || err?.message || 'Failed to delete virtual design'
       setError(message)
+      toast.error(message)
     }
-  }
+   }
 
   const isVideoType = useCallback((file) => {
-    if (file && typeof file === 'object' && file.type) return file.type.startsWith('video/')
+    if (!file || typeof file !== 'object') return false
+    if (file.type && file.type.startsWith('video/')) return true
+    if (file.type === 'video') return true
     return false
   }, [])
 
@@ -656,8 +660,8 @@ export const VirtualDesignDashboard = () => {
               <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[var(--error)]/10 flex items-center justify-center text-[var(--error)]">
                 <Trash2 size={24} />
               </div>
-              <h3 className="font-display text-xl text-[var(--primary)] text-center mb-2">Confirm Delete</h3>
-              <p className="text-sm text-[var(--primary)]/50 text-center mb-6">Are you sure? This action cannot be undone.</p>
+              <h3 className="font-display text-xl text-[var(--primary)] text-center mb-2">Delete this virtual design?</h3>
+              <p className="text-sm text-[var(--primary)]/50 text-center mb-6">This action cannot be undone.</p>
               <div className="flex gap-3 justify-end">
                 <motion.button
                   whileHover={{ scale: 1.02 }}

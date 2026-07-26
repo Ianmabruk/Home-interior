@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Star, Image, Loader2 } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
+import { Link } from 'react-router-dom'
 
 const INITIAL_FORM = {
   title: '',
@@ -160,8 +162,10 @@ export const PortfolioDashboard = () => {
       resetForm()
       load()
       emitAdminDataChanged({ type: 'portfolio-changed' })
+      toast.success(editingId ? 'Portfolio project updated successfully.' : 'Portfolio project uploaded successfully.')
     } catch (err) {
       console.error('Submit error:', err)
+      toast.error(err?.message || 'Failed to save portfolio project. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -172,7 +176,6 @@ export const PortfolioDashboard = () => {
     const id = deleteId
     setDeleteId(null)
 
-    // Optimistic update
     setPortfolio(prev => prev.filter(item => item.id !== id))
     setOptimisticUpdates(prev => new Set(prev).add(id))
 
@@ -185,15 +188,16 @@ export const PortfolioDashboard = () => {
       })
       load()
       emitAdminDataChanged({ type: 'portfolio-changed' })
+      toast.success('Portfolio project deleted successfully.')
     } catch (err) {
       console.error('Delete error:', err)
-      // Rollback on error
       setOptimisticUpdates(prev => {
         const next = new Set(prev)
         next.delete(id)
         return next
       })
       load()
+      toast.error(err?.message || 'Failed to delete portfolio project.')
     }
   }
 
@@ -531,15 +535,13 @@ export const PortfolioDashboard = () => {
                 )}
 
                 {/* View Project Button - Bottom Center */}
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => window.location.href = `/portfolio/${item.id}`}
+                <Link
+                  to={`/portfolio/${item._id || item.id}`}
                   className="absolute bottom-6 left-1/2 -translate-x-1/2 btn-luxury-primary group flex items-center gap-2 text-[10px] px-5 py-2.5 rounded-full opacity-0 translate-y-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0"
                 >
                   View Project
                   <Eye size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
-                </motion.button>
+                </Link>
 
                 {/* Quick Actions - Top Right */}
                 <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -628,8 +630,8 @@ export const PortfolioDashboard = () => {
               <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[var(--error)]/10 flex items-center justify-center text-[var(--error)]">
                 <Trash2 size={24} />
               </div>
-              <h3 className="font-display text-xl text-[var(--primary)] text-center mb-2">Confirm Delete</h3>
-              <p className="text-sm text-[var(--primary)]/50 text-center mb-6">Are you sure? This action cannot be undone.</p>
+              <h3 className="font-display text-xl text-[var(--primary)] text-center mb-2">Delete this portfolio project?</h3>
+              <p className="text-sm text-[var(--primary)]/50 text-center mb-6">This action cannot be undone.</p>
               <div className="flex gap-3 justify-end">
                 <motion.button
                   whileHover={{ scale: 1.02 }}

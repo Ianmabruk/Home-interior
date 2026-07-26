@@ -15,7 +15,9 @@ import {
   Palette,
   Tag,
   Box,
+  Loader2,
 } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
 
@@ -61,6 +63,16 @@ export const ShopDashboard = () => {
       .get('/products/admin/all', { params: { sort: '-createdAt', limit: 500 } })
       .then((res) => setAllProducts(res.data?.items || []))
       .catch(() => setAllProducts([]))
+  }, [])
+
+  useEffect(() => {
+    const handler = () => {
+      api.get('/products/admin/all', { params: { sort: '-createdAt', limit: 500 } })
+        .then((res) => setAllProducts(res.data?.items || []))
+        .catch(() => {})
+    }
+    window.addEventListener('admin:data-changed', handler)
+    return () => window.removeEventListener('admin:data-changed', handler)
   }, [])
 
   const showError = (msg) => setError(msg)
@@ -125,6 +137,7 @@ export const ShopDashboard = () => {
       const res = await api.get('/products/admin/all', { params: { sort: '-createdAt', limit: 500 } })
       setAllProducts(res.data?.items || [])
       emitAdminDataChanged({ type: 'products-changed' })
+      toast.success(editingId ? 'Product updated successfully.' : 'Product uploaded successfully.')
     } catch (err) {
       showError(err?.message || 'Failed to save product. Please try again.')
     } finally {
@@ -176,8 +189,8 @@ export const ShopDashboard = () => {
       stock: item.stock || 0,
       sku: item.sku || '',
       tags: (item.tags || []).join(', '),
-      isFeatured: item.isFeatured || false,
-      isPublished: item.isPublished ?? true,
+      isFeatured: item.featured || false,
+      isPublished: item.isPublished ?? item.published ?? true,
       variants: (item.variants || []).map((v) => ({
         color: v.color || '',
         image: v.image || '',
@@ -200,7 +213,7 @@ export const ShopDashboard = () => {
       setAllProducts(res.data?.items || [])
       emitAdminDataChanged({ type: 'products-changed' })
     } catch (err) {
-      window.alert(err?.message || 'Failed to delete product. Please try again.')
+      toast.error(err?.message || 'Failed to delete product. Please try again.')
     }
   }
 
@@ -716,6 +729,9 @@ export const ShopDashboard = () => {
                 </div>
                 <p className="text-[10px] text-[var(--primary)]/50 mt-1.5">
                   SKU: {item.sku} | Stock: {item.stock}
+                  {item.variants && item.variants.length > 0 && (
+                    <span className="ml-2">| Colors: {item.variants.map((v) => v.color).join(', ')}</span>
+                  )}
                 </p>
               </div>
             </motion.div>
@@ -788,12 +804,10 @@ export const ShopDashboard = () => {
               <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[var(--error)]/10 flex items-center justify-center text-[var(--error)]">
                 <Trash2 size={24} />
               </div>
-              <h3 className="font-display text-xl text-[var(--primary)] text-center mb-2">
-                Confirm Delete
-              </h3>
-              <p className="text-sm text-[var(--primary)]/50 text-center mb-6">
-                Are you sure? This action cannot be undone.
-              </p>
+                <h3 className="font-display text-xl text-[var(--primary)] text-center mb-2">
+                  Delete this product?
+                </h3>
+                <p className="text-sm text-[var(--primary)]/50 text-center mb-6">This action cannot be undone.</p>
               <div className="flex gap-3 justify-end">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -875,6 +889,26 @@ export const ShopDashboard = () => {
                   </div>
                 ))}
               </div>
+              {viewItem.variants && viewItem.variants.length > 0 && (
+                <div className="mt-4 bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/10 rounded-xl p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 mb-2">
+                    Variants
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {viewItem.variants.map((v, vi) => (
+                      <div key={vi} className="flex items-center gap-2 rounded-lg bg-white/60 p-2 border border-[var(--border)]/50">
+                        {v.image && (
+                          <img src={v.image} alt={v.color} className="h-8 w-8 rounded object-cover" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-[var(--primary)] truncate">{v.color}</p>
+                          <p className="text-[10px] text-[var(--primary)]/50">Stock: {v.stock}{v.price ? ` | Price: $${v.price}` : ''}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="mt-4 bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/10 rounded-xl p-4">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 mb-1">
                   Description

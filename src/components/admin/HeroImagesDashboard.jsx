@@ -296,7 +296,7 @@ export const HeroImagesDashboard = () => {
         {heroImages.map((item, i) => (
           <motion.article
             layout
-            key={item.id}
+            key={item._id || item.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -381,8 +381,8 @@ export const HeroImagesDashboard = () => {
               <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[var(--error)]/10 flex items-center justify-center text-[var(--error)]">
                 <Trash2 size={24} />
               </div>
-              <h3 className="font-display text-xl text-[var(--primary)] text-center mb-2">Confirm Delete</h3>
-              <p className="text-sm text-[var(--primary)]/50 text-center mb-6">Are you sure? This action cannot be undone.</p>
+              <h3 className="font-display text-xl text-[var(--primary)] text-center mb-2">Delete this hero image?</h3>
+              <p className="text-sm text-[var(--primary)]/50 text-center mb-6">This action cannot be undone.</p>
               <div className="flex gap-3 justify-end">
                 <motion.button
                   whileHover={{ scale: 1.02 }}

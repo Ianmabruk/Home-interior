@@ -208,23 +208,32 @@ export const VirtualDesignDetailPage = () => {
                 >
                   <div className="relative overflow-hidden rounded-3xl bg-white border border-[var(--border)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
                     <div className="relative aspect-[4/3] overflow-hidden">
-                      <img
-                        src={media.url}
-                        alt={`${project.title} gallery ${idx + 1}`}
-                        className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                        loading="lazy"
-                      />
+                      {media.type === 'video' ? (
+                        <video
+                          src={media.url}
+                          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          preload="metadata"
+                        />
+                      ) : (
+                        <img
+                          src={media.url}
+                          alt={`${project.title} gallery ${idx + 1}`}
+                          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      )}
                       {media.type === 'video' && (
-                        <>
-                          <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setVideoFullscreen({ videoUrl: media.url, title: `${project.title} - Gallery ${idx + 1}`, category: media.type }) }}
-                            className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110"
-                            aria-label="Play video"
-                          >
-                            <Play size={20} strokeWidth={1.5} className="ml-1" />
-                          </button>
-                        </>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setVideoFullscreen({ videoUrl: media.url, title: `${project.title} - Gallery ${idx + 1}`, category: media.type }) }}
+                          className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110"
+                          aria-label="Play video fullscreen"
+                        >
+                          <Play size={20} strokeWidth={1.5} className="ml-1" />
+                        </button>
                       )}
                     </div>
                   </div>

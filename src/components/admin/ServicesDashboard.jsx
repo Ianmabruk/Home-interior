@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UploadCloud, X, Edit, Trash2, Eye, Plus, Sparkles, LayoutGrid, Brush, MonitorSmartphone, Armchair, Search, Star, ArrowUp, ArrowDown, ToggleLeft } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { emitAdminDataChanged } from '../../utils/adminEvents'
 
@@ -44,6 +45,16 @@ export const ServicesDashboard = () => {
       }
     }
     load()
+  }, [])
+
+  useEffect(() => {
+    const handler = () => {
+      api.get('/services')
+        .then((res) => setServices(Array.isArray(res.data) ? res.data : res.data?.items || []))
+        .catch(() => {})
+    }
+    window.addEventListener('admin:data-changed', handler)
+    return () => window.removeEventListener('admin:data-changed', handler)
   }, [])
 
   const handleFiles = (files) => {
@@ -124,6 +135,7 @@ export const ServicesDashboard = () => {
       emitAdminDataChanged({ type: 'services-changed' })
     } catch (err) {
       console.error('Submit error:', err)
+      toast.error(err?.message || 'Failed to save service. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -137,8 +149,10 @@ export const ServicesDashboard = () => {
       const res = await api.get('/services')
       setServices(Array.isArray(res.data) ? res.data : res.data?.items || [])
       emitAdminDataChanged({ type: 'services-changed' })
+      toast.success('Service deleted successfully.')
     } catch (err) {
       console.error('Delete error:', err)
+      toast.error(err?.message || 'Failed to delete service.')
     }
   }
 
@@ -156,6 +170,7 @@ export const ServicesDashboard = () => {
       emitAdminDataChanged({ type: 'services-changed' })
     } catch (err) {
       console.error('Reorder error:', err)
+      toast.error(err?.message || 'Failed to reorder services.')
     }
   }
 
@@ -166,6 +181,7 @@ export const ServicesDashboard = () => {
       emitAdminDataChanged({ type: 'services-changed' })
     } catch (err) {
       console.error('Toggle active error:', err)
+      toast.error(err?.message || 'Failed to update service status.')
     }
   }
 
@@ -579,8 +595,8 @@ export const ServicesDashboard = () => {
               <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[var(--error)]/10 flex items-center justify-center text-[var(--error)]">
                 <Trash2 size={24} />
               </div>
-              <h3 className="font-display text-xl text-[var(--primary)] text-center mb-2">Confirm Delete</h3>
-              <p className="text-sm text-[var(--primary)]/50 text-center mb-6">Are you sure? This action cannot be undone.</p>
+              <h3 className="font-display text-xl text-[var(--primary)] text-center mb-2">Delete this service?</h3>
+              <p className="text-sm text-[var(--primary)]/50 text-center mb-6">This action cannot be undone.</p>
               <div className="flex gap-3 justify-end">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
