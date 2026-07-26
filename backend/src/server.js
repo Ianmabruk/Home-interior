@@ -2,8 +2,16 @@ import 'dotenv/config'
 import { app } from './app.js'
 import { validateEnv } from './config/env.js'
 import { prisma } from './config/database.js'
+import fs from 'fs'
+import path from 'path'
 
 validateEnv()
+
+const uploadsDir = path.join(process.cwd(), 'uploads')
+const subDirs = ['portfolio', 'products', 'services', 'virtual-designs', 'testimonials', 'about', 'consultations']
+for (const dir of subDirs) {
+  fs.mkdirSync(path.join(uploadsDir, dir), { recursive: true })
+}
 
 const PORT = process.env.PORT || 5000
 

@@ -34,12 +34,14 @@ async function listConsultations({ status, search, page = 1, pageSize = 10 } = {
       ]
     }
 
+    const safePage = Number(page) || 1
+    const safePageSize = Number(pageSize) || 10
     const [items, total] = await Promise.all([
       prisma.consultation.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+        skip: (safePage - 1) * safePageSize,
+        take: safePageSize,
       }),
       prisma.consultation.count({ where }),
     ])
@@ -47,7 +49,7 @@ async function listConsultations({ status, search, page = 1, pageSize = 10 } = {
     return {
       items: items.map(mapConsultation),
       total,
-      totalPages: Math.ceil(total / pageSize),
+      totalPages: Math.ceil(total / safePageSize),
     }
   } catch {
     return { items: [], total: 0, totalPages: 0 }
