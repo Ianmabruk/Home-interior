@@ -152,3 +152,5 @@ export const VirtualDesignPage = () => {
     </div>
   )
 }
+
+export default VirtualDesignPage

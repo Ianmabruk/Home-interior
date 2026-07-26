@@ -415,3 +415,5 @@ export const ShopPage = ({ category: initialCategory }) => {
     </div>
   )
 }
+
+export default ShopPage
