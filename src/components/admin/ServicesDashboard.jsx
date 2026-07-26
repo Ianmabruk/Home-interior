@@ -86,7 +86,7 @@ export const ServicesDashboard = () => {
   }
 
   const startEdit = (item) => {
-    setEditingId(item.id)
+    setEditingId(item._id || item.id)
     setForm({
       title: item.title,
       description: item.description || '',
@@ -511,7 +511,7 @@ export const ServicesDashboard = () => {
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => setDeleteId(item.id)}
+                  onClick={() => setDeleteId(item._id || item.id)}
                   className="p-2 bg-[var(--error)]/90 backdrop-blur-sm rounded-xl text-white hover:bg-[var(--error)] shadow-lg"
                   aria-label="Delete service"
                 >

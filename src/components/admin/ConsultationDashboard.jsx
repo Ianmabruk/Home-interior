@@ -37,10 +37,10 @@ function parseConsultationMessage(message) {
   }
 }
 
-const STATUSES = ['new', 'in review', 'quoted', 'approved', 'completed', 'archived']
+const STATUSES = ['pending', 'in review', 'quoted', 'approved', 'completed', 'archived']
 
 const STATUS_CONFIG = {
-  new: { label: 'New', color: 'text-[var(--primary)]/70 bg-[var(--primary)]/5 border-[var(--primary)]/10' },
+  pending: { label: 'New', color: 'text-[var(--primary)]/70 bg-[var(--primary)]/5 border-[var(--primary)]/10' },
   'in review': { label: 'In Review', color: 'text-bronze bg-bronze/5 border-bronze/10' },
   quoted: { label: 'Quoted', color: 'text-[var(--accent)] bg-[var(--accent)]/5 border-[var(--accent)]/10' },
   approved: { label: 'Approved', color: 'text-success bg-success/5 border-success/10' },
@@ -385,7 +385,7 @@ export const ConsultationDashboard = () => {
                         : '—'}
                     </td>
                     <td className="px-4 py-3.5 text-[var(--primary)]/50">{c.preferredTime || '—'}</td>
-                    <td className="px-4 py-3.5">{statusBadge(c.status || 'new')}</td>
+                    <td className="px-4 py-3.5">{statusBadge(c.status || 'pending')}</td>
                     <td className="px-4 py-3.5">
                       <div className="flex gap-1.5">
                         <motion.button

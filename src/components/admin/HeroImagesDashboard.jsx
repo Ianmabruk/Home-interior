@@ -329,7 +329,7 @@ export const HeroImagesDashboard = () => {
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => setDeleteId(item.id)}
+                  onClick={() => setDeleteId(item._id || item.id)}
                   className="p-2 bg-[var(--error)]/90 backdrop-blur-sm rounded-xl text-white hover:bg-[var(--error)] shadow-lg"
                   aria-label="Delete hero image"
                 >

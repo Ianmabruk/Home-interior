@@ -39,7 +39,7 @@ async function createOrUpdateAbout(data, file) {
     createData.imageUrl = uploaded.url
     createData.cloudinaryId = uploaded.path
   } else if (!existing?.imageUrl) {
-    createData.imageUrl = ''
+    createData.imageUrl = null
   }
 
   if (existing) {

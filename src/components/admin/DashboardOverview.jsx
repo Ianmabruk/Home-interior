@@ -169,7 +169,7 @@ export const DashboardOverview = ({ overview, onNavigate }) => {
         />
         <StatCard
           title="Consultations"
-          value={overview?.ordersCount ?? 0}
+          value={overview?.consultationCount ?? 0}
           icon={FileText}
           delay={0.2}
           color="gold"

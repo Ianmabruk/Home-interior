@@ -92,7 +92,7 @@ async function updatePortfolio(id, data, file, galleryFiles = []) {
   const mediaUrls = []
   if (galleryFiles.length > 0) {
     for (const f of galleryFiles) {
-      const uploaded = await uploadFile(f.buffer, file.mimetype, 'portfolio')
+      const uploaded = await uploadFile(f.buffer, f.mimetype, 'portfolio')
       mediaUrls.push(uploaded.url)
     }
     updateData.mediaUrls = mediaUrls

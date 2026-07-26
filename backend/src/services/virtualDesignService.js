@@ -1,5 +1,5 @@
 import { prisma } from '../config/database.js'
-import { uploadFile, deleteFile } from '../uploads/uploadService.js'
+import { uploadFile, deleteFile, deleteFiles } from '../uploads/uploadService.js'
 import { failure } from '../utils/response.js'
 
 function mapVD(item) {
@@ -80,8 +80,12 @@ async function updateVirtualDesign(id, data, file, galleryFiles) {
     updateData.cloudinaryId = uploaded.path
   }
 
-  const mediaUrls = []
   if (galleryFiles.length > 0) {
+    const oldUrls = existing.mediaUrls || []
+    if (oldUrls.length > 0) {
+      try { await deleteFiles(oldUrls) } catch {}
+    }
+    const mediaUrls = []
     for (const f of galleryFiles) {
       const uploaded = await uploadFile(f.buffer, f.mimetype, 'virtual-designs')
       mediaUrls.push(uploaded.url)

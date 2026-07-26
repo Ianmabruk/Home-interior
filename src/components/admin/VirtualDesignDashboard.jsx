@@ -91,7 +91,7 @@ export const VirtualDesignDashboard = () => {
   }, [])
 
   const startEdit = useCallback((item) => {
-    setEditingId(item.id)
+    setEditingId(item._id || item.id)
     setForm({
       title: item.title,
       description: item.description || '',
@@ -197,7 +197,7 @@ export const VirtualDesignDashboard = () => {
     setDeleteId(null)
 
     setOptimisticDeletes(prev => new Set(prev).add(id))
-    setItems(prev => prev.filter(item => item.id !== id))
+    setItems(prev => prev.filter(item => (item._id || item.id) !== id))
 
     try {
       await api.delete(`/virtual-design/${id}`)
@@ -528,11 +528,11 @@ export const VirtualDesignDashboard = () => {
         className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
       >
         {items.map((item, i) => {
-          const isOptimistic = optimisticDeletes.has(item.id)
+          const isOptimistic = optimisticDeletes.has(item._id || item.id)
           return (
             <motion.div
               layout
-              key={item.id}
+              key={item._id || item.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: isOptimistic ? 0.4 : 1, y: 0 }}
               transition={{ delay: i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -594,7 +594,7 @@ export const VirtualDesignDashboard = () => {
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => setDeleteId(item.id)}
+                    onClick={() => setDeleteId(item._id || item.id)}
                     className="p-2 bg-[var(--error)]/90 backdrop-blur-sm rounded-xl text-white hover:bg-[var(--error)] shadow-lg"
                     aria-label="Delete project"
                   >

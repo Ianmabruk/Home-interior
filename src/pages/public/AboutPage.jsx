@@ -78,7 +78,7 @@ export const AboutPage = () => {
   })) : []
 
   const areasServed = about.areasServed ? about.areasServed.split('\n').filter(v => v.trim()) : []
-  const team = about.team ? (typeof about.team === 'string' ? JSON.parse(about.team) : about.team) : []
+  const team = about.team ? (typeof about.team === 'string' ? (() => { try { return JSON.parse(about.team) } catch { return [] } })() : about.team) : []
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">

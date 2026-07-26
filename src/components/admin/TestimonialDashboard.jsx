@@ -27,6 +27,8 @@ export const TestimonialDashboard = () => {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({
     clientName: '',
+    position: '',
+    company: '',
     testimonial: '',
     rating: 5,
     displayOrder: 0,
@@ -70,6 +72,8 @@ export const TestimonialDashboard = () => {
   const resetForm = () => {
     setForm({
       clientName: '',
+      position: '',
+      company: '',
       testimonial: '',
       rating: 5,
       displayOrder: 0,
@@ -77,8 +81,6 @@ export const TestimonialDashboard = () => {
       photo: null,
       photoPreview: null,
     })
-    setEditing(null)
-    setShowForm(false)
   }
 
   const handleSubmit = async (e) => {

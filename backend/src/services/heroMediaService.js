@@ -1,5 +1,5 @@
 import { prisma } from '../config/database.js'
-import { uploadFile, deleteFile } from '../uploads/uploadService.js'
+import { uploadFile, deleteFile, deleteFiles } from '../uploads/uploadService.js'
 import { failure } from '../utils/response.js'
 
 function mapHero(item) {
@@ -68,14 +68,17 @@ async function updateHeroMedia(id, data, files = []) {
   if (!existing) throw failure(404, 'Hero media not found')
 
   const updateData = { ...data }
-  const mediaUrls = [...(existing.mediaUrls || [])]
-
-  for (const f of files) {
-    const uploaded = await uploadFile(f.buffer, f.mimetype, 'homepage/hero')
-    mediaUrls.push(uploaded.url)
-  }
 
   if (files.length > 0) {
+    const oldUrls = existing.mediaUrls || []
+    if (oldUrls.length > 0) {
+      try { await deleteFiles(oldUrls) } catch {}
+    }
+    const mediaUrls = []
+    for (const f of files) {
+      const uploaded = await uploadFile(f.buffer, f.mimetype, 'homepage/hero')
+      mediaUrls.push(uploaded.url)
+    }
     updateData.mediaUrls = mediaUrls
     updateData.imageUrl = mediaUrls[0]
   }

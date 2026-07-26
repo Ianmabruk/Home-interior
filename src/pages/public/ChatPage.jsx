@@ -82,7 +82,7 @@ export const ChatPage = () => {
         <div className="rounded-[2rem] border border-champagne/30 bg-white shadow-soft overflow-hidden">
           {/* Messages Area */}
           <div className="h-[420px] overflow-y-auto bg-gradient-to-b from-primary-bg/30 to-primary-bg p-6 scroll-smooth">
-            {!hasInteracted && messages.length === 1 && (
+            {messages.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}

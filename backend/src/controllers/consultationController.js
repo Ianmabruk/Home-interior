@@ -63,7 +63,6 @@ export const consultationController = {
       email,
       phone,
       message: enrichedMessage,
-      status: 'new',
     }
     const consultation = await consultationService.createConsultation(data)
     res.status(201).json({ success: true, data: consultation })

@@ -106,7 +106,7 @@ export const PortfolioDashboard = () => {
   }
 
   const startEdit = (item) => {
-    setEditingId(item.id)
+    setEditingId(item._id || item.id)
     setForm({
       title: item.title,
       description: item.description || '',
@@ -176,7 +176,7 @@ export const PortfolioDashboard = () => {
     const id = deleteId
     setDeleteId(null)
 
-    setPortfolio(prev => prev.filter(item => item.id !== id))
+    setPortfolio(prev => prev.filter(item => (item._id || item.id) !== id))
     setOptimisticUpdates(prev => new Set(prev).add(id))
 
     try {
@@ -481,11 +481,11 @@ export const PortfolioDashboard = () => {
         className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
         {portfolio.map((item, i) => {
-          const isOptimistic = optimisticUpdates.has(item.id)
+          const isOptimistic = optimisticUpdates.has(item._id || item.id)
           return (
             <motion.article
               layout
-              key={item.id}
+              key={item._id || item.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: isOptimistic ? 0.5 : 1, y: 0 }}
               transition={{ delay: i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -557,7 +557,7 @@ export const PortfolioDashboard = () => {
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => setDeleteId(item.id)}
+                    onClick={() => setDeleteId(item._id || item.id)}
                     className="p-2 bg-[var(--error)]/90 backdrop-blur-sm rounded-xl text-white hover:bg-[var(--error)] shadow-lg"
                     aria-label="Delete project"
                   >
