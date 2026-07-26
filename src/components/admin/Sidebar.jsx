@@ -104,9 +104,9 @@ export const Sidebar = ({ activeTab, onTabChange, mobileOpen, onCloseMobile, isC
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">
           {tabs.map((item, idx) => {
-            const Icon = item.icon
             const isActive = activeTab === item.id
             const isHovered = hoveredItem === item.id
+            const Icon = item.icon
             return (
               <motion.button
                 key={item.id}
@@ -138,7 +138,7 @@ export const Sidebar = ({ activeTab, onTabChange, mobileOpen, onCloseMobile, isC
                   />
                 )}
                 <span className={`relative z-10 flex-shrink-0 ${isActive ? 'text-[var(--accent)]' : ''}`}>
-                  <Icon size={18} className="flex-shrink-0" />
+                  {Icon ? <Icon size={18} className="flex-shrink-0" /> : <span className="inline-block h-[18px] w-[18px] rounded-full bg-white/10" />}
                 </span>
                 <AnimatePresence>
                   {(sidebarOpen && !isCollapsed && !isMobile) && (
