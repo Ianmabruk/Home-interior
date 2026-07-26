@@ -4,6 +4,7 @@ import { ArrowRight, Award, Leaf, Users, Target, PenTool, Layers, Shield, Heart,
 import { api } from '../../services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import PositionedImage from '../../components/common/PositionedImage'
+import { PageMeta } from '../../hooks/usePageMeta'
 
 export const AboutPage = () => {
   const [about, setAbout] = useState(null)
@@ -81,6 +82,7 @@ export const AboutPage = () => {
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
+      <PageMeta title="About Us — HOK Interior Designs" description="Learn about HOK Interior Designs — our story, philosophy, and design team." />
       {/* Hero Header */}
       <section className="relative h-[70vh] min-h-[500px] overflow-hidden bg-[var(--primary)]">
         <div className="absolute inset-0">

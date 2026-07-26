@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Phone, Mail, MapPin, Clock, Send } from 'lucide-react'
 import { api } from '../../services/api'
 import { toast } from 'react-hot-toast'
+import { PageMeta } from '../../hooks/usePageMeta'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -96,6 +97,7 @@ export const ContactPage = () => {
 
   return (
     <main className="min-h-screen bg-[var(--bg)]">
+      <PageMeta title="Contact Us — HOK Interior Designs" description="Get in touch with HOK Interior Designs for your next project." />
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] overflow-hidden bg-[var(--primary)]">
         <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)] via-[var(--primary)]/80 to-[var(--primary)]/60" />

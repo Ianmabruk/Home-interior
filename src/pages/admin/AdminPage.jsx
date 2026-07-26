@@ -32,6 +32,7 @@ import { TestimonialDashboard } from '../../components/admin/TestimonialDashboar
 import { ServicesDashboard } from '../../components/admin/ServicesDashboard'
 import { HeroImagesDashboard } from '../../components/admin/HeroImagesDashboard'
 import { OrderDashboard } from '../../components/admin/OrderDashboard'
+import { PageMeta } from '../../hooks/usePageMeta'
 
 const tabs = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -212,6 +213,7 @@ export const AdminPage = () => {
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
+      <PageMeta title="Admin Dashboard — HOK Interior Designs" description="Manage your HOK Interior Designs store." />
       <Sidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}

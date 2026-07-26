@@ -19,6 +19,7 @@ import {
   LogOut,
 } from 'lucide-react'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
+import { PageMeta } from '../../hooks/usePageMeta';
 
 const formatDate = (dateStr) => {
   if (!dateStr) return 'N/A'
@@ -362,6 +363,7 @@ export const AccountPage = () => {
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
+      <PageMeta title="My Account — HOK Interior Designs" description="Manage your HOK Interior Designs account settings and orders." />
       <section className="section-pad bg-[var(--bg)]">
         <div className="container-wide px-6 md:px-12 lg:px-20">
           {/* Tab Navigation */}

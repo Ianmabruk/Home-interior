@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { Suspense, memo } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Footer } from '../Footer'
 import { Navbar } from '../Navbar'
@@ -10,7 +10,7 @@ const PageLoader = () => (
   </div>
 )
 
-export const Layout = () => {
+export const Layout = memo(() => {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-cream text-espresso flex flex-col">
@@ -26,4 +26,6 @@ export const Layout = () => {
       </div>
     </ErrorBoundary>
   )
-}
+})
+
+export default Layout

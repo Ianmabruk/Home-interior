@@ -1,54 +1,57 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, memo } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { api } from '../../services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 import { ScrollReveal } from '../../utils/scrollReveal'
+import { PageMeta } from '../../hooks/usePageMeta'
 
-const ProjectCard = ({ item }) => (
-  <article className="group cursor-pointer bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
-    <Link
-      to={`/portfolio/${item.id}`}
-      className="block"
-      aria-label={`View ${item.title} project`}
-    >
-      <div className="relative aspect-square overflow-hidden">
-        {item.imageUrl ? (
-          <img
-            src={getOptimizedUrl(item.imageUrl, { width: 800, crop: 'limit' })}
-            srcSet={buildSrcSet(item.imageUrl) || undefined}
-            sizes={buildSrcSet(item.imageUrl) ? '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw' : undefined}
-            alt={item.title}
-            className="h-full w-full object-cover transition duration-[1.2s] ease-out group-hover:scale-105"
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <div className="h-full w-full bg-[var(--secondary)]/30" />
-        )}
-        {item.featured && (
-          <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-white text-[10px] font-semibold uppercase tracking-widest rounded-full shadow-lg">
-            Featured
-          </span>
-        )}
-      </div>
+function ProjectCard({ item }) {
+  return (
+    <article className="group cursor-pointer bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
+      <Link
+        to={`/portfolio/${item.id}`}
+        className="block"
+        aria-label={`View ${item.title} project`}
+      >
+        <div className="relative aspect-square overflow-hidden">
+          {item.imageUrl ? (
+            <img
+              src={getOptimizedUrl(item.imageUrl, { width: 800, crop: 'limit' })}
+              srcSet={buildSrcSet(item.imageUrl) || undefined}
+              sizes={buildSrcSet(item.imageUrl) ? '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw' : undefined}
+              alt={item.title}
+              className="h-full w-full object-cover transition duration-[1.2s] ease-out group-hover:scale-105"
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <div className="h-full w-full bg-[var(--secondary)]/30" />
+          )}
+          {item.featured && (
+            <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-white text-[10px] font-semibold uppercase tracking-widest rounded-full shadow-lg">
+              Featured
+            </span>
+          )}
+        </div>
 
-      <div className="p-6 md:p-8 border-t border-[var(--border)]/40 bg-white text-center">
-        <h3 className="font-display text-2xl md:text-3xl font-normal text-[var(--primary)] leading-tight mb-6">
-          {item.title}
-        </h3>
-        <button
-          type="button"
-          className="btn-luxury-primary group inline-flex items-center gap-2 text-[11px] px-8 py-3 rounded-full whitespace-nowrap hover:scale-105 active:scale-95"
-        >
-          View Project
-          <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-        </button>
-      </div>
-    </Link>
-  </article>
-)
+        <div className="p-6 md:p-8 border-t border-[var(--border)]/40 bg-white text-center">
+          <h3 className="font-display text-2xl md:text-3xl font-normal text-[var(--primary)] leading-tight mb-6">
+            {item.title}
+          </h3>
+          <button
+            type="button"
+            className="btn-luxury-primary group inline-flex items-center gap-2 text-[11px] px-8 py-3 rounded-full whitespace-nowrap hover:scale-105 active:scale-95"
+          >
+            View Project
+            <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+          </button>
+        </div>
+      </Link>
+    </article>
+  )
+}
 
 export const PortfolioPage = () => {
   const [items, setItems] = useState([])
@@ -77,6 +80,7 @@ export const PortfolioPage = () => {
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
+      <PageMeta title="Portfolio — HOK Interior Designs" description="Explore our curated portfolio of luxury interior design projects." />
       <section className="py-16 md:py-24 px-6 md:px-12 lg:px-20">
         <div className="container-wide text-center">
           <div className="mb-12 md:mb-16 flex flex-col items-center">
@@ -128,7 +132,7 @@ export const PortfolioPage = () => {
           <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {items.map((item) => (
               <ScrollReveal key={item.id}>
-                <ProjectCard item={item} />
+                <MemoizedProjectCard item={item} />
               </ScrollReveal>
             ))}
           </div>
@@ -137,5 +141,7 @@ export const PortfolioPage = () => {
     </div>
   )
 }
+
+export const MemoizedProjectCard = memo(ProjectCard)
 
 export default PortfolioPage

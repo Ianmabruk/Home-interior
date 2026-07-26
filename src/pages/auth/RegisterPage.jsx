@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { PageMeta } from '../../hooks/usePageMeta';
 import { motion } from 'framer-motion'
 
 export const RegisterPage = () => {
@@ -36,6 +37,7 @@ export const RegisterPage = () => {
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       className="space-y-8"
     >
+      <PageMeta title="Register — HOK Interior Designs" description="Create your HOK Interior Designs account." />
       <div>
          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-3">Join HOK</p>
         <h1 className="font-display text-5xl font-normal text-[var(--primary)]">Create Account</h1>

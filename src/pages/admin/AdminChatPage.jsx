@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../services/api'
+import { PageMeta } from '../../hooks/usePageMeta'
 
 export const AdminChatPage = () => {
   const [messages, setMessages] = useState([])
@@ -48,6 +49,7 @@ export const AdminChatPage = () => {
 
   return (
     <div className="p-6 md:p-8">
+      <PageMeta title="Admin Chat — HOK Interior Designs" description="Manage customer chat conversations." />
       <div className="mb-8">
         <h1 className="font-display text-4xl font-medium">Messages</h1>
         <p className="text-sm text-ink/60 mt-1">View and respond to customer inquiries</p>

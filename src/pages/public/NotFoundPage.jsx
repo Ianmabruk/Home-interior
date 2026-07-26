@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, Home, Compass } from 'lucide-react'
+import { PageMeta } from '../../hooks/usePageMeta'
 
 export const NotFoundPage = () => {
   return (
     <div className="flex min-h-[85vh] items-center justify-center bg-[var(--bg)] relative overflow-hidden">
+      <PageMeta title="Page Not Found — HOK Interior Designs" description="The page you are looking for does not exist." />
       {/* Background decoration */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(232,154,67,0.1),transparent_50%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(230,216,201,0.05),transparent_60%)]" />

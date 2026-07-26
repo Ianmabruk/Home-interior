@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { Instagram, Facebook } from 'lucide-react'
 import { FaTiktok, FaPinterest } from 'react-icons/fa'
 import { api } from '../services/api'
 
-export const Footer = () => {
+export const Footer = memo(() => {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState('')
 
@@ -115,6 +115,6 @@ export const Footer = () => {
       </div>
     </footer>
   )
-}
+})
 
 export default Footer

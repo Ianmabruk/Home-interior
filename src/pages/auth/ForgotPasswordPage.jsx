@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { api } from '../../services/api'
+import { PageMeta } from '../../hooks/usePageMeta';
 import { motion } from 'framer-motion'
 
 export const ForgotPasswordPage = () => {
@@ -30,6 +31,7 @@ export const ForgotPasswordPage = () => {
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       className="space-y-8"
     >
+      <PageMeta title="Forgot Password — HOK Interior Designs" description="Reset your HOK Interior Designs account password." />
       <div className="flex items-center gap-2 mb-4">
         <Link to="/login" className="p-2 text-[var(--primary)]/40 hover:text-[var(--primary)] transition-colors" aria-label="Back to login">
           <ArrowLeft size={20} strokeWidth={1.5} />

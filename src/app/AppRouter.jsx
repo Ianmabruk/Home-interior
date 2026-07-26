@@ -1,8 +1,9 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, memo } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { ProtectedRoute } from './ProtectedRoute'
 import { ErrorBoundary } from '../components/common/ErrorBoundary'
+import { usePrefetchOnIdle } from '../hooks/useRoutePrefetch'
 
 const PortfolioDetailPage = lazy(() => import('../pages/public/PortfolioDetailPage').then((m) => ({ default: m.PortfolioDetailPage })))
 const VirtualDesignDetailPage = lazy(() => import('../pages/public/VirtualDesignDetailPage').then((m) => ({ default: m.VirtualDesignDetailPage })))
@@ -30,7 +31,6 @@ const ScrollToTop = () => {
   return null
 }
 
-// Route modules cache for instant navigation
 const routeCache = new Map()
 
 const lazyWithCache = (importFn, cacheKey) => {
@@ -45,6 +45,8 @@ const lazyWithCache = (importFn, cacheKey) => {
 }
 
 const PrefetchOnIdle = () => {
+  const { prefetch } = usePrefetchOnIdle()
+
   useEffect(() => {
     const prefetchRoutes = [
       () => import('../pages/public/ShopPage'),
@@ -53,22 +55,16 @@ const PrefetchOnIdle = () => {
       () => import('../pages/public/VirtualDesignPage'),
       () => import('../pages/public/AboutPage'),
     ]
-    
-    if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(() => {
-        prefetchRoutes.forEach((prefetch) => {
-          prefetch().catch(() => {})
-        })
-      })
-    } else {
-      setTimeout(() => {
-        prefetchRoutes.forEach((prefetch) => {
-          prefetch().catch(() => {})
-        })
-      }, 1000)
-    }
-  }, [])
-  return null}
+
+    const timer = setTimeout(() => {
+      prefetchRoutes.forEach((p) => prefetch(p))
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [prefetch])
+
+  return null
+}
 
 const AuthShell = lazy(() => import('../pages/auth/AuthShell').then((m) => ({ default: m.AuthShell })))
 const AccountPage = lazy(() => import('../pages/account/AccountPage').then((m) => ({ default: m.AccountPage })))
@@ -93,56 +89,56 @@ const VirtualDesignPage = lazyWithCache(() => import('../pages/public/VirtualDes
 const NotFoundPage = lazy(() => import('../pages/public/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 const ContactPage = lazyWithCache(() => import('../pages/public/ContactPage'), 'contact')
 
-const ErrorBoundaryRoute = ({ element }) => (
+const ErrorBoundaryRoute = memo(({ element }) => (
   <ErrorBoundary fallback={<ErrorFallback />}>
     {element}
   </ErrorBoundary>
-)
+))
 
 export const AppRouter = () => {
   return (
     <Suspense fallback={<RouteFallback />}>
       <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={<ErrorBoundaryRoute element={<HomePage />} />} />
-        <Route path="/shop" element={<ErrorBoundaryRoute element={<ShopPage />} />} />
-        <Route path="/shop/mirror" element={<ErrorBoundaryRoute element={<ShopPage category="mirror" />} />} />
-        <Route path="/shop/artwork" element={<ErrorBoundaryRoute element={<ShopPage category="artwork" />} />} />
-        <Route path="/shop/throw-pillows" element={<ErrorBoundaryRoute element={<ShopPage category="throw-pillows" />} />} />
-        <Route path="/shop/:id" element={<ErrorBoundaryRoute element={<ProductDetailPage />} />} />
-        <Route path="/portfolio" element={<ErrorBoundaryRoute element={<PortfolioPage />} />} />
-        <Route path="/portfolio/:id" element={<ErrorBoundaryRoute element={<PortfolioDetailPage />} />} />
-        <Route path="/about" element={<ErrorBoundaryRoute element={<AboutPage />} />} />
-        <Route path="/services" element={<ErrorBoundaryRoute element={<ServicesPage />} />} />
-        <Route path="/services/:id" element={<ErrorBoundaryRoute element={<ServicesPage />} />} />
-        <Route path="/virtual-design" element={<ErrorBoundaryRoute element={<VirtualDesignPage />} />} />
-        <Route path="/virtual-design/project/:id" element={<ErrorBoundaryRoute element={<VirtualDesignDetailPage />} />} />
-        <Route path="/socials" element={<ErrorBoundaryRoute element={<SocialsPage />} />} />
-        <Route path="/contact" element={<ErrorBoundaryRoute element={<ContactPage />} />} />
-        <Route path="/chat" element={<ErrorBoundaryRoute element={<ChatPage />} />} />
+        <Route element={<Layout />}>
+          <Route path="/" element={<ErrorBoundaryRoute element={<HomePage />} />} />
+          <Route path="/shop" element={<ErrorBoundaryRoute element={<ShopPage />} />} />
+          <Route path="/shop/mirror" element={<ErrorBoundaryRoute element={<ShopPage category="mirror" />} />} />
+          <Route path="/shop/artwork" element={<ErrorBoundaryRoute element={<ShopPage category="artwork" />} />} />
+          <Route path="/shop/throw-pillows" element={<ErrorBoundaryRoute element={<ShopPage category="throw-pillows" />} />} />
+          <Route path="/shop/:id" element={<ErrorBoundaryRoute element={<ProductDetailPage />} />} />
+          <Route path="/portfolio" element={<ErrorBoundaryRoute element={<PortfolioPage />} />} />
+          <Route path="/portfolio/:id" element={<ErrorBoundaryRoute element={<PortfolioDetailPage />} />} />
+          <Route path="/about" element={<ErrorBoundaryRoute element={<AboutPage />} />} />
+          <Route path="/services" element={<ErrorBoundaryRoute element={<ServicesPage />} />} />
+          <Route path="/services/:id" element={<ErrorBoundaryRoute element={<ServicesPage />} />} />
+          <Route path="/virtual-design" element={<ErrorBoundaryRoute element={<VirtualDesignPage />} />} />
+          <Route path="/virtual-design/project/:id" element={<ErrorBoundaryRoute element={<VirtualDesignDetailPage />} />} />
+          <Route path="/socials" element={<ErrorBoundaryRoute element={<SocialsPage />} />} />
+          <Route path="/contact" element={<ErrorBoundaryRoute element={<ContactPage />} />} />
+          <Route path="/chat" element={<ErrorBoundaryRoute element={<ChatPage />} />} />
 
-        <Route element={<ProtectedRoute />}>
-          <Route path="/account" element={<ErrorBoundaryRoute element={<AccountPage />} />} />
-          <Route path="/wishlist" element={<ErrorBoundaryRoute element={<WishlistPage />} />} />
-          <Route path="/cart" element={<ErrorBoundaryRoute element={<CartPage />} />} />
-          <Route path="/checkout" element={<ErrorBoundaryRoute element={<CheckoutPage />} />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/account" element={<ErrorBoundaryRoute element={<AccountPage />} />} />
+            <Route path="/wishlist" element={<ErrorBoundaryRoute element={<WishlistPage />} />} />
+            <Route path="/cart" element={<ErrorBoundaryRoute element={<CartPage />} />} />
+            <Route path="/checkout" element={<ErrorBoundaryRoute element={<CheckoutPage />} />} />
+          </Route>
+
+          <Route element={<ProtectedRoute adminOnly />}>
+            <Route path="/admin" element={<ErrorBoundaryRoute element={<AdminPage />} />} />
+            <Route path="/admin-dashboard" element={<ErrorBoundaryRoute element={<AdminPage />} />} />
+            <Route path="/admin/chat" element={<ErrorBoundaryRoute element={<AdminChatPage />} />} />
+          </Route>
         </Route>
 
-        <Route element={<ProtectedRoute adminOnly />}>
-          <Route path="/admin" element={<ErrorBoundaryRoute element={<AdminPage />} />} />
-          <Route path="/admin-dashboard" element={<ErrorBoundaryRoute element={<AdminPage />} />} />
-          <Route path="/admin/chat" element={<ErrorBoundaryRoute element={<AdminChatPage />} />} />
+        <Route element={<AuthShell />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         </Route>
-      </Route>
 
-      <Route element={<AuthShell />}>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-      </Route>
-
-      <Route path="*" element={<NotFoundPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
       <ScrollToTop />
       <PrefetchOnIdle />

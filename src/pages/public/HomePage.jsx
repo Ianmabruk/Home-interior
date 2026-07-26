@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, memo, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { Hero } from '../../components/Hero'
@@ -11,6 +11,7 @@ import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import { ScrollReveal } from '../../utils/scrollReveal'
 import { CircularNavCard } from '../../components/mobile/CircularNavCard'
+import { PageMeta } from '../../hooks/usePageMeta'
 
 const getProjectImage = (item) => {
   if (!item) return null
@@ -23,7 +24,7 @@ const getProjectImage = (item) => {
   )
 }
 
-const ContactSection = ({ contactInfo }) => {
+const ContactSection = memo(({ contactInfo }) => {
   const phoneNumbers = contactInfo?.phoneNumbers || ['+254 700 000 000', '+254 711 111 111']
   const emails = contactInfo?.emails || ['info@hokinteriors.com', 'projects@hokinteriors.com']
   const addresses = contactInfo?.addresses || ['Westlands, Nairobi, Kenya']
@@ -99,7 +100,102 @@ const ContactSection = ({ contactInfo }) => {
       </div>
     </section>
   )
-}
+})
+
+ContactSection.displayName = 'ContactSection'
+
+const SkeletonPortfolio = memo(() => (
+  <section className="bg-[var(--secondary)]/30 px-6 md:px-12 lg:px-20 py-20 md:py-32">
+    <div className="container-wide">
+      <div className="mb-16 text-center">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Portfolio</p>
+        <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
+          Featured Projects
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="group relative bg-white border border-[var(--border)]/40 overflow-hidden rounded-3xl">
+            <div className="aspect-[3/4] skeleton" />
+            <div className="p-5 border-t border-[var(--border)]/40">
+              <div className="skeleton h-3 w-20 mb-3" />
+              <div className="skeleton h-8 w-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+))
+
+const SkeletonServices = memo(() => (
+  <section className="bg-soft-cream px-6 md:px-12 lg:px-20 py-20 md:py-32">
+    <div className="container-wide">
+      <div className="mb-16 text-center">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Services</p>
+        <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
+          What We Do
+        </h2>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="group flex flex-col items-center text-center">
+            <div className="mb-8 inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-champagne-beige/60 text-espresso skeleton" />
+            <h3 className="font-display text-xl md:text-2xl font-medium text-espresso leading-tight skeleton" />
+            <p className="mt-2 text-sm text-espresso/60 leading-relaxed skeleton" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+))
+
+const SkeletonVirtualDesigns = memo(() => (
+  <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--secondary)]/20 via-[var(--bg)] to-[var(--accent)]/5 px-6 md:px-12 lg:px-20 py-20 md:py-32">
+    <div className="container-wide">
+      <div className="mb-16 text-center">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Virtual Designs</p>
+        <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
+          Virtual Interior Designs
+        </h2>
+      </div>
+      <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="group">
+            <div className="skeleton aspect-[4/3] w-full rounded-3xl" />
+            <div className="mt-4 space-y-2">
+              <div className="skeleton h-3 w-24" />
+              <div className="skeleton h-6 w-3/4" />
+              <div className="skeleton h-4 w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+))
+
+const SkeletonContact = memo(() => (
+  <section className="bg-soft-cream px-6 md:px-12 lg:px-20 py-20 md:py-32">
+    <div className="container-wide">
+      <div className="mb-16 text-center">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Contact Us</p>
+        <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+          Get In Touch
+        </h2>
+      </div>
+      <div className="grid gap-8 md:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="space-y-3">
+            <div className="skeleton h-10 w-10 rounded-xl" />
+            <div className="skeleton h-4 w-24" />
+            <div className="skeleton h-4 w-32" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+))
 
 export const HomePage = () => {
   const [showModal, setShowModal] = useState(false)
@@ -110,23 +206,28 @@ export const HomePage = () => {
   const [heroImages, setHeroImages] = useState([])
   const [contactInfo, setContactInfo] = useState(null)
 
-  const loadData = useCallback(async () => {
-    try {
-      const homepageRes = await api.get('/homepage')
-      const homepageData = homepageRes.data || {}
-      setPortfolio(homepageData.portfolio || [])
-      setServices(homepageData.services || [])
-      setVirtualDesigns(homepageData.virtualInteriorDesign || homepageData.virtualDesigns || [])
-      setHeroImages(homepageData.heroImages || [])
-    } catch (err) {
-      console.warn('[HOME] Failed to load data:', err?.message)
-    } finally {
-      setLoading(false)
-    }
+  const loadData = useCallback(() => {
+    let cancelled = false
+    api.get('/homepage')
+      .then((res) => {
+        if (!cancelled) {
+          const data = res.data || {}
+          setPortfolio(data.portfolio || [])
+          setServices(data.services || [])
+          setVirtualDesigns(data.virtualInteriorDesign || data.virtualDesigns || [])
+          setHeroImages(data.heroImages || [])
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) console.warn('[HOME] Failed to load data:', err?.message)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial data load is a standard pattern
     loadData()
   }, [loadData])
 
@@ -149,109 +250,38 @@ export const HomePage = () => {
     loadContact()
   }, [])
 
+  const serviceImages = useMemo(() => {
+    const images = {}
+    services.forEach((service) => {
+      const img = service.imageUrl || service.mediaUrl || service.image || service.galleryImages?.[0]
+      if (img) {
+        images[service.key] = img
+        images[service.id] = img
+      }
+    })
+    return images
+  }, [services])
+
   if (loading) {
     return (
       <main>
         <Hero onBookConsultation={() => setShowModal(true)} heroImages={[]} />
-        <section className="bg-[var(--secondary)]/30 px-6 md:px-12 lg:px-20 py-20 md:py-32">
-          <div className="container-wide">
-            <div className="mb-16 text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Portfolio</p>
-              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
-                Featured Projects
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="group relative bg-white border border-[var(--border)]/40 overflow-hidden rounded-3xl">
-                  <div className="aspect-[3/4] skeleton" />
-                  <div className="p-5 border-t border-[var(--border)]/40">
-                    <div className="skeleton h-3 w-20 mb-3" />
-                    <div className="skeleton h-8 w-full" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-        <section className="bg-soft-cream px-6 md:px-12 lg:px-20 py-20 md:py-32">
-          <div className="container-wide">
-            <div className="mb-16 text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Services</p>
-              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
-                What We Do
-              </h2>
-            </div>
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="group flex flex-col items-center text-center">
-                  <div className="mb-8 inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-champagne-beige/60 text-espresso skeleton" />
-                  <h3 className="font-display text-xl md:text-2xl font-medium text-espresso leading-tight skeleton" />
-                  <p className="mt-2 text-sm text-espresso/60 leading-relaxed skeleton" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-        <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--secondary)]/20 via-[var(--bg)] to-[var(--accent)]/5 px-6 md:px-12 lg:px-20 py-20 md:py-32">
-          <div className="container-wide">
-            <div className="mb-16 text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Virtual Designs</p>
-              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
-                Virtual Interior Designs
-              </h2>
-            </div>
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="group">
-                  <div className="skeleton aspect-[4/3] w-full rounded-3xl" />
-                  <div className="mt-4 space-y-2">
-                    <div className="skeleton h-3 w-24" />
-                    <div className="skeleton h-6 w-3/4" />
-                    <div className="skeleton h-4 w-1/2" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-        <section className="bg-soft-cream px-6 md:px-12 lg:px-20 py-20 md:py-32">
-          <div className="container-wide">
-            <div className="mb-16 text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Contact Us</p>
-              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
-                Get In Touch
-              </h2>
-            </div>
-            <div className="grid gap-8 md:grid-cols-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="space-y-3">
-                  <div className="skeleton h-10 w-10 rounded-xl" />
-                  <div className="skeleton h-4 w-24" />
-                  <div className="skeleton h-4 w-32" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <SkeletonPortfolio />
+        <SkeletonServices />
+        <SkeletonVirtualDesigns />
+        <SkeletonContact />
         <AboutPreview />
         <ConsultationModal isOpen={showModal} onClose={() => setShowModal(false)} />
       </main>
     )
   }
 
-  // Prepare service images mapping
-  const serviceImages = {}
-  services.forEach((service) => {
-    const img = service.imageUrl || service.mediaUrl || service.image || service.galleryImages?.[0]
-    if (img) {
-      serviceImages[service.key] = img
-      serviceImages[service.id] = img
-    }
-  })
-
   return (
     <main>
+      <PageMeta
+        title="HOK INTERIOR DESIGNS — Timeless Interiors, Designed for a Life Well Lived"
+        description="Luxury interior design, curated furniture, and premium virtual design services."
+      />
       {/* HERO - Mobile */}
       <div className="md:hidden">
         <Hero onBookConsultation={() => setShowModal(true)} heroImages={heroImages} />

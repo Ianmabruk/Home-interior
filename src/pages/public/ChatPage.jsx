@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../../services/api'
 import { Send, MessageCircle, Sparkles, Clock, Mail } from 'lucide-react'
+import { PageMeta } from '../../hooks/usePageMeta'
 
 export const ChatPage = () => {
   const [messages, setMessages] = useState([])
@@ -58,6 +59,7 @@ export const ChatPage = () => {
 
   return (
     <div className="min-h-screen bg-primary-bg flex items-center justify-center px-4 py-12">
+      <PageMeta title="Chat — HOK Interior Designs" description="Chat with HOK Interior Designs design experts." />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

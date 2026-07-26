@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, memo } from 'react'
 import { getOptimizedUrl } from '../utils/cloudinaryHelpers'
 
 const SERVICES_CONFIG = [
@@ -21,7 +21,7 @@ const ICON_MAP = {
 
 const CIRCULAR_CARD_SIZE = 300
 
-export const CircularServiceCard = ({ service, imageUrl, size = CIRCULAR_CARD_SIZE, index = 0 }) => {
+const CircularServiceCard = memo(({ service, imageUrl, size = CIRCULAR_CARD_SIZE, index = 0 }) => {
   const config = SERVICES_CONFIG.find(s => s.key === service.key) || SERVICES_CONFIG[0]
   const Icon = ICON_MAP[config.icon] || ICON_MAP.Brush
   const displayUrl = typeof imageUrl === 'string' ? imageUrl : null
@@ -77,9 +77,11 @@ export const CircularServiceCard = ({ service, imageUrl, size = CIRCULAR_CARD_SI
       </div>
     </div>
   )
-}
+})
 
-export const CircularServicesGrid = ({ services = [], images = {}, size = CIRCULAR_CARD_SIZE }) => {
+CircularServiceCard.displayName = 'CircularServiceCard'
+
+export const CircularServicesGrid = memo(({ services = [], images = {}, size = CIRCULAR_CARD_SIZE }) => {
   const serviceItems = services.slice(0, 6).map((service, index) => ({
     ...service,
     imageUrl: images[service.key] || images[service.id] || null,
@@ -109,6 +111,8 @@ export const CircularServicesGrid = ({ services = [], images = {}, size = CIRCUL
       </div>
     </section>
   )
-}
+})
+
+CircularServicesGrid.displayName = 'CircularServicesGrid'
 
 export default CircularServicesGrid

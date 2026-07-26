@@ -5,6 +5,7 @@ import { api } from '../../services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import { getOptimizedUrl, getOptimizedVideoUrl, getVideoPosterUrl } from '../../utils/cloudinaryHelpers'
 import LazyVideo from '../../components/common/LazyVideo'
+import { PageMeta } from '../../hooks/usePageMeta'
 
 const VirtualDesignCard = ({ item }) => (
   <article className="group cursor-pointer bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
@@ -93,6 +94,7 @@ export const VirtualDesignPage = () => {
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
+      <PageMeta title="Virtual Design — HOK Interior Designs" description="Experience your dream space with immersive 3D virtual design services." />
       <section className="py-16 md:py-24 px-6 md:px-12 lg:px-20">
         <div className="container-wide text-center">
           <div className="mb-12 md:mb-16 flex flex-col items-center">

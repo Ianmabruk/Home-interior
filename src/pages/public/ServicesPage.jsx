@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { Upload, X, Send, Brush, MonitorSmartphone, Armchair, Search, Sparkles, Hammer, Palette, Wrench } from 'lucide-react'
 import { api } from '../../services/api'
 import { toast } from 'react-hot-toast'
+import { PageMeta } from '../../hooks/usePageMeta'
 
 const ImageUpload = ({ index, onRemove, previews, setPreviews }) => {
   const [isDragging, setIsDragging] = useState(false)
@@ -176,6 +177,7 @@ export const ServicesPage = () => {
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
+      <PageMeta title="Services — HOK Interior Designs" description="Comprehensive interior design services from concept to completion." />
       <section className="py-16 md:py-24 px-6 md:px-12 lg:px-20">
         <div className="container-wide text-center">
           <div className="mb-12 md:mb-16 flex flex-col items-center">

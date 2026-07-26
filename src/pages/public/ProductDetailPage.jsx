@@ -6,6 +6,7 @@ import { useCurrency } from '../../context/CurrencyContext'
 import { api } from '../../services/api'
 import { Heart, ShoppingBag, Truck, Shield, ArrowLeft, ChevronRight, Check, Package, Ruler, Palette, Sparkles, AlertCircle, RefreshCw, CreditCard } from 'lucide-react'
 import PositionedImage from '../../components/common/PositionedImage'
+import { PageMeta } from '../../hooks/usePageMeta'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -174,6 +175,7 @@ export const ProductDetailPage = () => {
       animate="show"
       variants={fadeUp}
     >
+      <PageMeta title="Product — HOK Interior Designs" description="View product details and add to cart." />
       {/* Breadcrumb */}
       <div className="border-b border-[var(--border)] bg-[var(--bg)]/60">
         <div className="container-wide px-4 py-3 md:px-12 lg:px-20">

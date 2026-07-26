@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useShop } from '../../context/ShopContext'
 import { useCurrency } from '../../context/CurrencyContext'
 import { api } from '../../services/api'
+import { PageMeta } from '../../hooks/usePageMeta';
 
 export const CheckoutPage = () => {
   const navigate = useNavigate()
@@ -175,6 +176,7 @@ export const CheckoutPage = () => {
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
+      <PageMeta title="Checkout — HOK Interior Designs" description="Complete your purchase from HOK Interior Designs." />
       <div className="section-pad bg-[var(--secondary)]/50 pb-8">
         <div className="container-wide px-6 md:px-12 lg:px-20">
           <div className="flex items-center gap-3">

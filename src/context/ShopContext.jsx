@@ -1,11 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useCallback, useState, useRef } from 'react'
+import { createContext, useContext, useEffect, useMemo, useCallback, useState, useRef, memo } from 'react'
 import { api } from '../services/api'
 import { useAuth } from './AuthContext'
 
 const ShopContext = createContext(null)
 
-export const ShopProvider = ({ children }) => {
+export const ShopProvider = memo(({ children }) => {
   const { isAuthenticated } = useAuth()
   const [cart, setCart] = useState([])
   const [wishlist, setWishlist] = useState([])
@@ -13,15 +13,18 @@ export const ShopProvider = ({ children }) => {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCart([])
-      setWishlist([])
+      if (prevAuthRef.current) {
+        setCart([])
+        setWishlist([])
+      }
       prevAuthRef.current = false
       return
     }
     if (!prevAuthRef.current && isAuthenticated) {
+      let cancelled = false
       Promise.all([api.get('/users/wishlist'), api.get('/users/cart')])
         .then(([wishlistRes, cartRes]) => {
+          if (cancelled) return
           setWishlist(wishlistRes.data?.products || [])
           const mappedCart = (cartRes.data?.items || []).map((entry) => ({
             ...entry,
@@ -31,9 +34,13 @@ export const ShopProvider = ({ children }) => {
           setCart(mappedCart)
         })
         .catch(() => {
-          setWishlist([])
-          setCart([])
+          if (!cancelled) {
+            setWishlist([])
+            setCart([])
+          }
         })
+      prevAuthRef.current = true
+      return () => { cancelled = true }
     }
 
     prevAuthRef.current = true
@@ -126,9 +133,11 @@ export const ShopProvider = ({ children }) => {
   )
 
   return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>
-}
+})
 
-export const useShop = () => {
+ShopProvider.displayName = 'ShopProvider'
+
+export function useShop() {
   const ctx = useContext(ShopContext)
   if (!ctx) {
     throw new Error('useShop must be used within ShopProvider')

@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
 import { getOptimizedUrl, buildSrcSet } from '../utils/cloudinaryHelpers'
 
-export const Hero = ({ heroImages = [], className = '' }) => {
+export const Hero = memo(({ heroImages = [], className = '' }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [displayIndex, setDisplayIndex] = useState(0)
   const [opacityA, setOpacityA] = useState(1)
@@ -26,7 +26,6 @@ export const Hero = ({ heroImages = [], className = '' }) => {
 
   const firstImageUrl = images[0]?.url
 
-  // Preload first image immediately
   useEffect(() => {
     if (!firstImageUrl || firstImageLoadedRef.current) return
     firstImageLoadedRef.current = true
@@ -42,7 +41,6 @@ export const Hero = ({ heroImages = [], className = '' }) => {
     }
   }, [firstImageUrl])
 
-  // Auto-advance carousel
   useEffect(() => {
     if (images.length <= 1) return
     const timer = setInterval(() => {
@@ -51,8 +49,6 @@ export const Hero = ({ heroImages = [], className = '' }) => {
     return () => clearInterval(timer)
   }, [images.length])
 
-  // Crossfade transition
-  /* eslint-disable react-hooks/set-state-in-effect -- Crossfade animation requires synchronous state updates for smooth transitions */
   useEffect(() => {
     if (currentIndex === displayIndex) return
     setNextImage(images[currentIndex])
@@ -89,7 +85,6 @@ export const Hero = ({ heroImages = [], className = '' }) => {
     setKenBurnsKey(prev => prev + 1)
   }, [images.length])
 
-  // Ken Burns effect - only start after first image loads
   useEffect(() => {
     if (!isLoaded || images.length <= 1 || kenBurnsStartedRef.current) return
     
@@ -163,6 +158,6 @@ export const Hero = ({ heroImages = [], className = '' }) => {
       </div>
     </section>
   )
-}
+})
 
 export default Hero

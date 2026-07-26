@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { Instagram, Facebook } from 'lucide-react'
 import { FaTiktok, FaPinterest } from 'react-icons/fa'
 import { ArrowRight } from 'lucide-react'
+import { PageMeta } from '../../hooks/usePageMeta'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -38,6 +39,7 @@ const socialLinks = [
 export const SocialsPage = () => {
   return (
     <div className="min-h-screen bg-[var(--bg)]">
+      <PageMeta title="Socials — HOK Interior Designs" description="Follow HOK Interior Designs on social media." />
       <section className="section-pad bg-soft-cream">
         <div className="container-wide px-6 md:px-12 lg:px-20">
           <motion.div

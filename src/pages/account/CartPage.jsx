@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ShoppingBag, X, Plus, Minus, ArrowRight, Truck, Shield, Sparkles } from 'lucide-react'
 import { useShop } from '../../context/ShopContext'
 import { useCurrency } from '../../context/CurrencyContext'
+import { PageMeta } from '../../hooks/usePageMeta';
 
 export const CartPage = () => {
   const navigate = useNavigate()
@@ -11,6 +12,7 @@ export const CartPage = () => {
 
   return (
     <div className="section-pad bg-[var(--bg)] pt-12">
+      <PageMeta title="Shopping Cart — HOK Interior Designs" description="Review your shopping cart before checkout." />
       <div className="container-wide px-6 md:px-12 lg:px-20">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-3">Checkout</p>

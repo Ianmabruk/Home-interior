@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { getOptimizedUrl } from '../utils/cloudinaryHelpers'
@@ -9,7 +9,7 @@ const CIRCULAR_CARD_SIZE = {
   lg: 500,
 }
 
-export const CircularPortfolioShowcase = ({ portfolio = [], getProjectImage }) => {
+export const CircularPortfolioShowcase = memo(({ portfolio = [], getProjectImage }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [rotateDeg, setRotateDeg] = useState(0)
@@ -83,6 +83,7 @@ export const CircularPortfolioShowcase = ({ portfolio = [], getProjectImage }) =
                   perspective: '1000px',
                   transform: `rotateY(${rotateDeg}deg)`,
                   transition: isAnimating ? 'transform 1.5s cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
+                  willChange: 'transform',
                 }}
               >
                 <div className="relative w-full h-full">
@@ -198,6 +199,6 @@ export const CircularPortfolioShowcase = ({ portfolio = [], getProjectImage }) =
       </div>
     </section>
   )
-}
+})
 
 export default CircularPortfolioShowcase

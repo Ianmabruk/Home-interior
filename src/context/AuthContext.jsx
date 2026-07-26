@@ -1,31 +1,37 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, useCallback, memo } from 'react'
 import { api } from '../services/api'
 
 const AuthContext = createContext(null)
 
-export const AuthProvider = ({ children }) => {
+export const AuthProvider = memo(({ children }) => {
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(() => !!localStorage.getItem('hok_access_token'))
+  const [loading, setLoading] = useState(() => {
+    const token = localStorage.getItem('hok_access_token')
+    if (!token) return false
+    return true
+  })
 
   useEffect(() => {
     const token = localStorage.getItem('hok_access_token')
     if (!token) {
       return
     }
+    let cancelled = false
     api.get('/auth/me')
       .then((res) => {
-        setUser(res.data || null)
+        if (!cancelled) setUser(res.data || null)
       })
       .catch(() => {
-        localStorage.removeItem('hok_access_token')
+        if (!cancelled) localStorage.removeItem('hok_access_token')
       })
       .finally(() => {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       })
+    return () => { cancelled = true }
   }, [])
 
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     const res = await api.post('/auth/login', { email, password })
     const accessToken = res.data?.accessToken
     if (accessToken) {
@@ -33,14 +39,14 @@ export const AuthProvider = ({ children }) => {
       setUser(res.data?.user || null)
     }
     return res.data
-  }
+  }, [])
 
-  const register = async (fullName, email, password) => {
+  const register = useCallback(async (fullName, email, password) => {
     const res = await api.post('/auth/register', { fullName, email, password })
     return res.data
-  }
+  }, [])
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await api.post('/auth/logout')
     } catch {
@@ -48,13 +54,13 @@ export const AuthProvider = ({ children }) => {
     }
     localStorage.removeItem('hok_access_token')
     setUser(null)
-  }
+  }, [])
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     const res = await api.get('/auth/me')
     setUser(res.data || null)
     return res.data
-  }
+  }, [])
 
   const value = useMemo(
     () => ({
@@ -70,13 +76,15 @@ export const AuthProvider = ({ children }) => {
       },
       refreshUser,
     }),
-    [user, loading],
+    [user, loading, login, register, logout, refreshUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
+})
 
-export const useAuth = () => {
+AuthProvider.displayName = 'AuthProvider'
+
+export function useAuth() {
   const ctx = useContext(AuthContext)
   if (!ctx) {
     throw new Error('useAuth must be used within AuthProvider')

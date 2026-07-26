@@ -4,6 +4,7 @@ import { Heart, ShoppingBag, X } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useShop } from '../../context/ShopContext'
 import { useCurrency } from '../../context/CurrencyContext'
+import { PageMeta } from '../../hooks/usePageMeta';
 
 export const WishlistPage = () => {
   const { wishlist, toggleWishlist, addToCart } = useShop()
@@ -12,6 +13,7 @@ export const WishlistPage = () => {
 
   return (
     <div className="section-pad bg-[var(--bg)] pt-12">
+      <PageMeta title="Wishlist — HOK Interior Designs" description="View your saved HOK Interior Designs wishlist items." />
       <div className="container-wide px-6 md:px-12 lg:px-20">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-3">Your Collection</p>
