@@ -210,7 +210,7 @@ export const ConsultationDashboard = () => {
                 className="flex items-start gap-3 bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/10 rounded-xl p-3"
               >
                 <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] flex-shrink-0">
-                  <field.icon size={14} />
+                  {field.icon ? <field.icon size={14} /> : <span className="inline-block h-3 w-3 rounded-full bg-white/10" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">{field.label}</p>
