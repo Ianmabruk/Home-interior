@@ -17,6 +17,7 @@ import { portfolioRoutes as adminPortfolioRoutes, virtualDesignRoutes as adminVD
 import { portfolioRoutes as contentPortfolioRoutes, virtualDesignRoutes as contentVDRoutes, default: contentRoutes } from './contentRoutes.js'
 import messageRoutes from './messageRoutes.js'
 import socialsRoutes from './socialsRoutes.js'
+import adminSocialRoutes from './adminSocialRoutes.js'
 import { uploadSingle } from '../middleware/upload.js'
 import { uploadFile } from '../uploads/uploadService.js'
 import { authenticate } from '../middleware/auth.js'
@@ -42,6 +43,7 @@ router.use('/admin/virtual-designs', adminVDRoutes)
 router.use('/admin/services', serviceRoutes)
 router.use('/admin/testimonials', testRoutes)
 router.use('/admin/consultations', adminConsultationRoutes)
+router.use('/admin/socials', adminSocialRoutes)
 
 router.use('/portfolio', contentPortfolioRoutes)
 router.use('/virtual-design', contentVDRoutes)
@@ -52,7 +54,6 @@ router.use('/users', userRoutes)
 router.use('/media', mediaRoutes)
 router.use('/testimonials', testRoutes)
 router.use('/messages', messageRoutes)
-router.use('/socials', socialsRoutes)
 router.use('/chat', chatRoutes)
 router.use('/socials', socialsRoutes)
 

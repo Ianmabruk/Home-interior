@@ -73,6 +73,7 @@ const CheckoutPage = lazyWithCache(() => import('@pages/account/CheckoutPage').t
 // Admin pages
 const AdminPage = lazyWithCache(() => import('@pages/admin/AdminPage').then(m => ({ default: m.AdminPage })), 'admin')
 const AdminChatPage = lazyWithCache(() => import('@pages/admin/AdminChatPage').then(m => ({ default: m.AdminChatPage })), 'admin-chat')
+const SocialLinksDashboard = lazyWithCache(() => import('@components/admin/SocialLinksDashboard').then(m => ({ default: m.default })), 'social-links-dashboard')
 
 const ErrorBoundaryRoute = memo(({ element }) => (
   <ErrorBoundary fallback={<ErrorFallback />}>
@@ -134,6 +135,7 @@ export const AppRouter = () => {
             <Route path="/admin" element={<ErrorBoundaryRoute element={<AdminPage />} />} />
             <Route path="/admin-dashboard" element={<ErrorBoundaryRoute element={<AdminPage />} />} />
             <Route path="/admin/chat" element={<ErrorBoundaryRoute element={<AdminChatPage />} />} />
+            <Route path="/admin/social-links" element={<ErrorBoundaryRoute element={<SocialLinksDashboard />} />} />
           </Route>
         </Route>
 

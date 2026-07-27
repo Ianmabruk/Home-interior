@@ -2,42 +2,43 @@ import { useState, useEffect, useCallback, memo } from 'react'
 import { api } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { Link } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, ExternalLink } from 'lucide-react'
 
-const SOCIAL_PLATFORMS = [
-  { label: 'Instagram', icon: 'instagram', color: '#E4405F' },
-  { label: 'Pinterest', icon: 'pinterest', color: '#BD081C' },
-  { label: 'LinkedIn', icon: 'linkedin', color: '#0A66C2' },
-  { label: 'TikTok', icon: 'tiktok', color: '#000000' },
-]
+const PLATFORM_CONFIG = {
+  tiktok: { label: 'TikTok', color: '#000000', icon: 'tiktok' },
+  instagram: { label: 'Instagram', color: '#E4405F', icon: 'instagram' },
+  facebook: { label: 'Facebook', color: '#1877F2', icon: 'facebook' },
+  pinterest: { label: 'Pinterest', color: '#BD081C', icon: 'pinterest' },
+}
 
 const SocialIcons = ({ platform, size = 28 }) => {
   const icons = {
+    tiktok: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M15 8.5c0-2.5-2-4.5-4.5-4.5C8 4 6 6 6 8.5c0 2.7 3.5 6 6 8.1 2.6-2.2 6-5.4 6-8.1z" />
+        <path d="M12 16h.01" />
+      </svg>
+    ),
     instagram: (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+        <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+        <circle cx="9" cy="9" r="2" />
+        <path d="M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+      </svg>
+    ),
+    facebook: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
       </svg>
     ),
     pinterest: (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
         <line x1="12" y1="17" x2="12" y2="12" />
-        <path d="M5 17h14v-1.26a2.5 2.5 0 0 0-1.17-2.17l-1.78-.9A2 2 0 0 1 14 7h.01a2 2 0 0 1 2 2v1.26c0 .69.31 1.3.82 1.68L17 17l-5 5" />
-      </svg>
-    ),
-    linkedin: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
-        <rect width="4" height="12" x="2" y="9" />
-        <circle cx="4" cy="4" r="2" />
-      </svg>
-    ),
-    tiktok: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M15 3c5.5 0 7 4 7 4 0 3-4 4-6 2-2-2-2-5 0-7 3 4 5 4 5 4" />
-        <path d="M6 14a6 6 0 0 0 12 0" />
-        <path d="M9 18a4 4 0 0 1-4-4" />
+        <line x1="12" y1="7" x2="12" y2="3" />
+        <line x1="4.5" y1="9.5" x2="4.5" y2="5.5" />
+        <line x1="19.5" y1="9.5" x2="19.5" y2="5.5" />
+        <path d="M6 20c0-3.3 2.7-6 6-6s6 2.7 6 6-2.7 6-6 6" />
+        <circle cx="12" cy="14" r="4" />
       </svg>
     ),
   }
@@ -53,8 +54,8 @@ const SkeletonSocials = memo(() => (
           Follow Our Journey
         </h2>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
-        {[1, 2, 3].map((i) => (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 lg:gap-12">
+        {[1, 2, 3, 4].map((i) => (
           <div key={i} className="group flex flex-col items-center">
             <div className="relative w-full max-w-sm mx-auto mb-6">
               <div className="relative rounded-full overflow-hidden bg-[var(--secondary)]/30 skeleton aspect-square" />
@@ -86,7 +87,7 @@ const ErrorSocials = memo(({ onRetry }) => (
 ErrorSocials.displayName = 'ErrorSocials'
 
 export const SocialSection = memo(() => {
-  const [socials, setSocials] = useState([])
+  const [socialLinks, setSocialLinks] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -95,7 +96,7 @@ export const SocialSection = memo(() => {
       setLoading(true)
       setError(null)
       const res = await api.get('/socials')
-      setSocials(res.data || [])
+      setSocialLinks(res.data || {})
     } catch (err) {
       setError(err?.message || 'Failed to load socials')
       console.warn('[SOCIAL SECTION] Failed to load:', err?.message)
@@ -120,6 +121,13 @@ export const SocialSection = memo(() => {
   if (loading) return <SkeletonSocials />
   if (error) return <ErrorSocials onRetry={loadData} />
 
+  const platforms = [
+    { key: 'tiktok', ...PLATFORM_CONFIG.tiktok },
+    { key: 'instagram', ...PLATFORM_CONFIG.instagram },
+    { key: 'facebook', ...PLATFORM_CONFIG.facebook },
+    { key: 'pinterest', ...PLATFORM_CONFIG.pinterest },
+  ]
+
   return (
     <section id="socials" className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 py-20 md:py-32">
       <div className="container-wide md:px-12 lg:px-20">
@@ -133,24 +141,47 @@ export const SocialSection = memo(() => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
-          {SOCIAL_PLATFORMS.map((social) => (
-            <div key={social.label} className="group flex flex-col items-center">
-              <div className="relative w-full max-w-sm mx-auto mb-6">
-                <div className="relative rounded-full overflow-hidden bg-[var(--secondary)]/30">
-                  <div className="h-[320px] w-full flex items-center justify-center text-[var(--primary)]/30">
-                    <SocialIcons platform={social.icon} size={64} style={{ color: social.color }} />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 lg:gap-12">
+          {platforms.map((platform) => {
+            const url = socialLinks[platform.key]
+            const hasLink = url && url.trim() !== ''
+            return (
+              <div key={platform.key} className="group flex flex-col items-center">
+                <div className="relative w-full max-w-sm mx-auto mb-6">
+                  <div className="relative rounded-full overflow-hidden bg-[var(--secondary)]/30">
+                    <div className="h-[320px] w-full flex items-center justify-center" style={{ color: platform.color }}>
+                      <SocialIcons platform={platform.icon} size={64} />
+                    </div>
                   </div>
                 </div>
+                <div className="text-center mb-4">
+                  <h3 className="font-display text-xl font-medium text-[var(--primary)] group-hover:text-[var(--accent)] transition-colors">
+                    {platform.label}
+                  </h3>
+                </div>
+                <div className="w-full max-w-xs">
+                  {hasLink ? (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full py-4 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                    >
+                      Give Us a Follow
+                      <ExternalLink size={14} strokeWidth={1.5} />
+                    </a>
+                  ) : (
+                    <button
+                      className="w-full py-4 bg-[var(--border)] text-[var(--primary)]/40 text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap cursor-not-allowed"
+                      disabled
+                    >
+                      Link Not Configured
+                    </button>
+                  )}
+                </div>
               </div>
-              <Link
-                to="/socials"
-                className="w-full max-w-xs px-8 py-4 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-              >
-                {social.label}
-              </Link>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         <div className="mt-12 text-center">

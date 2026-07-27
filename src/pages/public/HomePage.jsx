@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
 import { HeroSection } from '@components/home/HeroSection'
 import { PortfolioSection } from '@components/home/PortfolioSection'
 import { ServicesSection } from '@components/home/ServicesSection'
@@ -73,8 +72,8 @@ export const HomePage = () => {
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
   }, [loadData])
 
-  const serviceImages = services.reduce((acc, service) => {
-    const img = service.imageUrl || service.mediaUrl || service.image || service.galleryImages?.[0]
+  const serviceImages = (Array.isArray(services) ? services : []).reduce((acc, service) => {
+    const img = service?.imageUrl || service?.mediaUrl || service?.image || service?.galleryImages?.[0]
     if (img) {
       acc[service.key] = img
       acc[service.id] = img
@@ -85,8 +84,9 @@ export const HomePage = () => {
   if (loading) {
     return (
       <main>
-        <HeroSection onBookConsultation={() => setShowModal(true)} />
-        <SkeletonHero />
+        <SectionErrorBoundary sectionName="Hero" fallback={<SkeletonHero />}>
+          <HeroSection onBookConsultation={() => setShowModal(true)} heroImages={[]} />
+        </SectionErrorBoundary>
         <SectionErrorBoundary sectionName="Portfolio" fallback={<EmptySection />}>
           <PortfolioSection portfolio={[]} />
         </SectionErrorBoundary>
@@ -134,8 +134,9 @@ export const HomePage = () => {
         </SectionErrorBoundary>
       </div>
 
-      {/* MOBILE: Vertical stack of CircularNavCard */}
+      {/* MOBILE: Navigation cards - Hero, Portfolio, Services, Virtual Designs, Shop, Socials, About */}
       <div className="md:hidden">
+        {/* Portfolio Navigation Card */}
         <SectionErrorBoundary sectionName="Portfolio" fallback={<EmptySection />}>
           <section className="bg-[var(--secondary)]/30 px-6 py-16">
             <div className="container-wide">
@@ -193,6 +194,7 @@ export const HomePage = () => {
           </section>
         </SectionErrorBoundary>
 
+        {/* Services Navigation Card */}
         <SectionErrorBoundary sectionName="Services" fallback={<EmptySection />}>
           <section className="bg-[var(--bg)] px-6 py-16">
             <div className="container-wide">
@@ -249,6 +251,7 @@ export const HomePage = () => {
           </section>
         </SectionErrorBoundary>
 
+        {/* Virtual Designs Navigation Card */}
         <SectionErrorBoundary sectionName="Virtual Designs" fallback={<EmptySection />}>
           <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 py-16">
             <div className="container-wide">
@@ -305,6 +308,7 @@ export const HomePage = () => {
           </section>
         </SectionErrorBoundary>
 
+        {/* Shop Navigation Card */}
         <SectionErrorBoundary sectionName="Shop" fallback={<EmptySection />}>
           <section className="bg-[var(--bg)] px-6 py-16">
             <div className="container-wide">
@@ -324,7 +328,7 @@ export const HomePage = () => {
                     overflow: 'hidden',
                   }}
                 >
-                  {(products || []).length > 0 && (
+                  {Array.isArray(products) && products.length > 0 && (
                     typeof products[0]?.images?.[0] === 'string'
                       ? products[0].images[0]
                       : typeof products[0]?.images?.[0]?.url === 'string'
@@ -374,6 +378,7 @@ export const HomePage = () => {
           </section>
         </SectionErrorBoundary>
 
+        {/* Socials Navigation Card */}
         <SectionErrorBoundary sectionName="Socials" fallback={<EmptySection />}>
           <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 px-6 py-16">
             <div className="container-wide">
@@ -430,6 +435,7 @@ export const HomePage = () => {
           </section>
         </SectionErrorBoundary>
 
+        {/* About Navigation Card */}
         <SectionErrorBoundary sectionName="About" fallback={<EmptySection />}>
           <section className="bg-[var(--bg)] px-6 py-16 pb-24">
             <div className="container-wide">

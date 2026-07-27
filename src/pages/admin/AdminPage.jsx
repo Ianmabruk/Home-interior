@@ -12,6 +12,7 @@ import {
   LogOut,
   ChevronDown,
   ChevronUp,
+  Share2,
 } from 'lucide-react'
 import { useAuth } from '@context/AuthContext'
 import { Sidebar } from '@components/admin/Sidebar'
@@ -27,6 +28,7 @@ const ADMIN_NAV = [
   { id: 'consultations', label: 'Consultations', icon: MessageSquare, to: '/admin/consultations' },
   { id: 'testimonials', label: 'Testimonials', icon: MessageSquare, to: '/admin/testimonials' },
   { id: 'chat', label: 'Chat', icon: MessageSquare, to: '/admin/chat' },
+  { id: 'social-links', label: 'Social Links', icon: Share2, to: '/admin/social-links' },
   { id: 'settings', label: 'Settings', icon: Settings, to: '/admin/settings' },
 ]
 
@@ -93,14 +95,14 @@ export const AdminPage = () => {
         <main className="flex-1 pt-16 lg:pt-20 lg:ml-0 px-4 md:px-8 py-8">
           <Outlet />
         </main>
-      </div>
 
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-[var(--primary)]/50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-50 bg-[var(--primary)]/50 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </div>
     </div>
   )
 }

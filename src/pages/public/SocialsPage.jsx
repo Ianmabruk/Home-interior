@@ -1,28 +1,33 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { api } from '@services/api'
-import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
-import { SOCIAL_LINKS } from '@constants/socialLinks'
 
 const SkeletonSocials = () => (
   <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 md:px-12 lg:px-20 py-20 md:py-32">
     <div className="container-wide">
-      <div className="mb-16 text-center">
+      <div className="mb-16 md:mb-24 text-center">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Socials</p>
         <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
           Follow Our Journey
         </h2>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="group flex flex-col items-center">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 lg:gap-12">
+        {[1, 2, 3, 4].map((i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="group flex flex-col items-center"
+          >
             <div className="relative w-full max-w-sm mx-auto mb-6">
               <div className="relative rounded-full overflow-hidden bg-[var(--secondary)]/30 skeleton aspect-square" />
             </div>
-            <div className="skeleton h-6 w-24" />
-          </div>
+            <div className="skeleton h-6 w-3/4 mb-2" />
+            <div className="skeleton h-10 w-full" />
+          </motion.div>
         ))}
       </div>
     </div>
@@ -30,33 +35,74 @@ const SkeletonSocials = () => (
 )
 
 export const SocialsPage = () => {
-  const [feed, setFeed] = useState([])
+  const [socialLinks, setSocialLinks] = useState({})
   const [loading, setLoading] = useState(true)
 
-  const loadFeed = useCallback(async () => {
+  const loadSocials = useCallback(async () => {
     try {
       const res = await api.get('/socials')
-      setFeed(res.data || [])
+      setSocialLinks(res.data || {})
     } catch (err) {
       console.warn('[SOCIALS] Failed to load:', err?.message)
-      setFeed([])
+      setSocialLinks({})
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    loadFeed()
-  }, [loadFeed])
+    loadSocials()
+  }, [loadSocials])
 
   useEffect(() => {
     const handler = (event) => {
       const payload = getAdminDataChangedPayload(event)
-      if (payload?.type === 'socials-changed') loadFeed()
+      if (payload?.type === 'socials-changed') loadSocials()
     }
     window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-  }, [loadFeed])
+  }, [loadSocials])
+
+  const platforms = [
+    { key: 'tiktok', label: 'TikTok', color: '#000000', icon: 'tiktok' },
+    { key: 'instagram', label: 'Instagram', color: '#E4405F', icon: 'instagram' },
+    { key: 'facebook', label: 'Facebook', color: '#1877F2', icon: 'facebook' },
+    { key: 'pinterest', label: 'Pinterest', color: '#BD081C', icon: 'pinterest' },
+  ]
+
+  const getIcon = (platform) => {
+    const icons = {
+      tiktok: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 8.5c0-2.5-2-4.5-4.5-4.5C8 4 6 6 6 8.5c0 2.7 3.5 6 6 8.1 2.6-2.2 6-5.4 6-8.1z" />
+          <path d="M12 16h.01" />
+        </svg>
+      ),
+      instagram: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+          <circle cx="9" cy="9" r="2" />
+          <path d="M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+        </svg>
+      ),
+      facebook: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+        </svg>
+      ),
+      pinterest: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="17" x2="12" y2="12" />
+          <line x1="12" y1="7" x2="12" y2="3" />
+          <line x1="4.5" y1="9.5" x2="4.5" y2="5.5" />
+          <line x1="19.5" y1="9.5" x2="19.5" y2="5.5" />
+          <path d="M6 20c0-3.3 2.7-6 6-6s6 2.7 6 6-2.7 6-6 6" />
+          <circle cx="12" cy="14" r="4" />
+        </svg>
+      ),
+    }
+    return icons[platform] || icons.instagram
+  }
 
   if (loading) {
     return <main><SkeletonSocials /></main>
@@ -102,98 +148,53 @@ export const SocialsPage = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 lg:gap-12 mb-16">
-            {SOCIAL_LINKS.map((social, index) => (
-              <motion.a
-                key={social.label}
-                href={social.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
-                className="group flex flex-col items-center text-center p-6 bg-white rounded-3xl border border-[var(--border)]/40 hover:border-[var(--accent)]/40 hover:shadow-[0_20px_40px_rgba(42,36,31,0.1)] transition-all duration-500"
-              >
-                <div className="relative w-20 h-20 mx-auto mb-6 flex items-center justify-center rounded-full bg-[var(--secondary)]/30 group-hover:bg-[var(--accent)]/10 transition-all duration-500">
-                  {social.icon === 'TikTok' && (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="text-[var(--primary)] group-hover:text-[var(--accent)] transition-colors">
-                      <path d="M15 8.5c0-2.5-2-4.5-4.5-4.5C8 4 6 6 6 8.5c0 2.7 3.5 6 6 8.1 2.6-2.2 6-5.4 6-8.1z" />
-                      <path d="M12 16h.01" />
-                    </svg>
-                  )}
-                  {social.icon === 'Instagram' && (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="text-[var(--primary)] group-hover:text-[var(--accent)] transition-colors">
-                      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                      <circle cx="9" cy="9" r="2" />
-                      <path d="M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                    </svg>
-                  )}
-                  {social.icon === 'Facebook' && (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="text-[var(--primary)] group-hover:text-[var(--accent)] transition-colors">
-                      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-                    </svg>
-                  )}
-                  {social.icon === 'Pinterest' && (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="text-[var(--primary)] group-hover:text-[var(--accent)] transition-colors">
-                      <line x1="12" y1="17" x2="12" y2="12" />
-                      <line x1="12" y1="7" x2="12" y2="3" />
-                      <line x1="4.5" y1="9.5" x2="4.5" y2="5.5" />
-                      <line x1="19.5" y1="9.5" x2="19.5" y2="5.5" />
-                      <path d="M6 20c0-3.3 2.7-6 6-6s6 2.7 6 6-2.7 6-6 6" />
-                      <circle cx="12" cy="14" r="4" />
-                    </svg>
-                  )}
-                </div>
-                <h3 className="font-display text-xl font-medium text-[var(--primary)] group-hover:text-[var(--accent)] transition-colors">
-                  {social.label}
-                </h3>
-                <p className="mt-1 text-sm text-[var(--primary)]/60">Follow us</p>
-              </motion.a>
-            ))}
-          </div>
-
-          {feed.length > 0 && (
-            <div>
-              <h3 className="font-display text-2xl md:text-3xl font-medium text-[var(--primary)] mb-8 text-center">Latest Posts</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
-                {feed.slice(0, 6).map((post, index) => (
-                  <motion.div
-                    key={post.id || index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                    className="group bg-white rounded-3xl overflow-hidden border border-[var(--border)]/40 hover:shadow-[0_20px_40px_rgba(42,36,31,0.1)] transition-all duration-500"
-                  >
-                    {post.imageUrl && (
-                      <div className="relative aspect-[4/3] overflow-hidden">
-                        <img
-                          src={getOptimizedUrl(post.imageUrl, { width: 600, crop: 'limit' })}
-                          alt={post.caption || post.title || 'Social post'}
-                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </div>
-                    )}
-                    <div className="p-6">
-                      <p className="text-sm text-[var(--primary)]/60 line-clamp-3">{post.caption || post.content || 'Follow us for more design inspiration.'}</p>
-                      <div className="mt-4 flex items-center gap-2 text-xs text-[var(--primary)]/40">
-                        <span>{post.platform || 'Instagram'}</span>
-                        <span>·</span>
-                        <span>{post.createdAt ? new Date(post.createdAt).toLocaleDateString() : 'Recently'}</span>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 lg:gap-12">
+            {platforms.map((platform, index) => {
+              const url = socialLinks[platform.key]
+              const hasLink = url && url.trim() !== ''
+              return (
+                <motion.div
+                  key={platform.key}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+                  className="group flex flex-col items-center"
+                >
+                  <div className="relative w-full max-w-sm mx-auto mb-6">
+                    <div className="relative rounded-full overflow-hidden bg-[var(--secondary)]/30">
+                      <div className="h-[320px] w-full flex items-center justify-center" style={{ color: platform.color }}>
+                        {getIcon(platform.icon)}
                       </div>
                     </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {feed.length === 0 && (
-            <div className="text-center py-20">
-              <p className="font-display text-xl text-[var(--primary)]/60">No social posts available at the moment.</p>
-            </div>
-          )}
+                  </div>
+                  <div className="text-center mb-4">
+                    <h3 className="font-display text-xl font-medium text-[var(--primary)] group-hover:text-[var(--accent)] transition-colors">
+                      {platform.label}
+                    </h3>
+                  </div>
+                  <div className="w-full max-w-xs">
+                    {hasLink ? (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full py-4 bg-[var(--primary)] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(42,36,31,0.2)] hover:bg-[var(--primary)]/90 hover:shadow-[0_8px_24px_rgba(42,36,31,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                      >
+                        Give Us a Follow
+                      </a>
+                    ) : (
+                      <button
+                        disabled
+                        className="block w-full py-4 bg-[var(--primary)]/20 text-[var(--primary)]/40 text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap cursor-not-allowed"
+                      >
+                        Link Not Configured
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              )
+            })}
+          </div>
         </div>
       </section>
     </main>

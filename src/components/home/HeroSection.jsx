@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 
-const HeroSection = memo(({ onBookConsultation }) => {
-  const [heroImages, setHeroImages] = useState([])
+const HeroSection = memo(({ heroImages = [] }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [displayIndex, setDisplayIndex] = useState(0)
   const [opacityA, setOpacityA] = useState(1)
@@ -14,21 +13,6 @@ const HeroSection = memo(({ onBookConsultation }) => {
   const transitionTimeoutRef = useRef(null)
   const kenBurnsIntervalRef = useRef(null)
   const kenBurnsStartedRef = useRef(false)
-
-  const loadHeroImages = useCallback(async () => {
-    try {
-      const res = await fetch('/api/homepage')
-      if (!res.ok) throw new Error('Failed to fetch')
-      const data = await res.json()
-      setHeroImages(data.heroImages || [])
-    } catch (err) {
-      console.warn('[HeroSection] Failed to load hero images:', err?.message)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadHeroImages()
-  }, [loadHeroImages])
 
   const images = useMemo(() => {
     if (!heroImages || heroImages.length === 0) return []

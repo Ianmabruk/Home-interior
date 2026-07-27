@@ -37,11 +37,11 @@ export const VirtualDesignDetailPage = () => {
   useEffect(() => {
     const handler = (event) => {
       const payload = getAdminDataChangedPayload(event)
-      if (payload?.type === 'virtual-changed' && !initialData) loadDesign()
+      if (payload?.type === 'virtual-changed') loadDesign()
     }
     window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-  }, [loadDesign, initialData])
+  }, [loadDesign])
 
   const images = useMemo(() => {
     if (!design) return []

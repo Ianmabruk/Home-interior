@@ -17,6 +17,7 @@ export const CircularPortfolioShowcase = memo(({ portfolio = [], getProjectImage
   const intervalRef = useRef(null)
 
   const portfolioImages = useMemo(() => {
+    if (!Array.isArray(portfolio)) return []
     return portfolio
       .filter(item => item && getProjectImage(item))
       .map(item => ({

@@ -7,4 +7,11 @@ export const socialsController = {
     const socials = about?.socials ? (typeof about.socials === 'string' ? JSON.parse(about.socials) : about.socials) : {}
     res.json({ success: true, data: socials })
   }),
+
+  update: asyncHandler(async (req, res) => {
+    const { tiktok, instagram, facebook, pinterest } = req.body
+    const socials = { tiktok, instagram, facebook, pinterest }
+    const about = await aboutService.createOrUpdateAbout({ socials: JSON.stringify(socials) })
+    res.json({ success: true, data: socials })
+  }),
 }

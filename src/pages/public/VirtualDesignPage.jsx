@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { api } from '@services/api'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
@@ -83,14 +82,6 @@ export const VirtualDesignPage = () => {
           >
             Virtual Designs
           </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-6 text-lg md:text-xl text-white/70 max-w-3xl mx-auto"
-          >
-            Experience your dream space before it's built. Our virtual design service brings your vision to life with immersive 3D renderings and virtual walkthroughs.
-          </motion.p>
         </div>
       </section>
 
@@ -101,9 +92,6 @@ export const VirtualDesignPage = () => {
             <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
               Virtual Interior Designs
             </h2>
-            <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
-              Experience your dream space before it&apos;s built. Our virtual design service brings your vision to life with immersive 3D renderings and virtual walkthroughs.
-            </p>
           </div>
 
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -132,9 +120,6 @@ export const VirtualDesignPage = () => {
                     <h3 className="font-display text-xl font-medium text-[var(--primary)] leading-tight group-hover:text-[var(--accent)] transition-colors">
                       {item.title}
                     </h3>
-                    {item.description && (
-                      <p className="mt-1 text-sm text-[var(--primary)]/60 line-clamp-2">{item.description}</p>
-                    )}
                   </div>
                 </Link>
               </motion.div>
@@ -146,13 +131,6 @@ export const VirtualDesignPage = () => {
               <p className="font-display text-xl text-[var(--primary)]/60">No virtual designs available at the moment.</p>
             </div>
           )}
-
-          <div className="mt-12 text-center">
-            <Link to="/virtual-design" className="btn-luxury-primary group inline-flex items-center gap-2">
-              View All Virtual Designs
-              <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
-          </div>
         </div>
       </section>
     </main>

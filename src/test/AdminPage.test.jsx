@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from '../context/AuthContext'
 import { ShopProvider } from '../context/ShopContext'
@@ -61,6 +61,7 @@ vi.mock('lucide-react', () => ({
   MonitorSmartphone: () => <span data-testid="monitor-smartphone">Monitor</span>,
   Image: () => <span data-testid="image">Image</span>,
   Home: () => <span data-testid="home">Home</span>,
+  Share2: () => <span data-testid="share2">Share</span>,
 }))
 
 vi.mock('react-router-dom', async () => {
