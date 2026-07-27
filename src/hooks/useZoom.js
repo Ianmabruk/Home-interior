@@ -120,5 +120,6 @@ export function useZoom() {
     handleWheel,
     handleMouseDown,
     handleTouchStart,
+    handleTouchEnd,
   }
 }

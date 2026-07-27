@@ -14,7 +14,7 @@ export const PortfolioDetailPage = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
 
-  const { zoomStyle, handleWheel, handleMouseDown, handleTouchStart, reset, handleTouchEnd } = useZoom()
+  const { style: zoomStyle, handleWheel, handleMouseDown, handleTouchStart, reset, handleTouchEnd } = useZoom()
 
   const loadProject = useCallback(async () => {
     try {

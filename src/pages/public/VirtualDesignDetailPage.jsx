@@ -14,7 +14,7 @@ export const VirtualDesignDetailPage = ({ initialData }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
 
-  const { zoomStyle, handleWheel, handleMouseDown, handleTouchStart, handleTouchEnd } = useZoom()
+  const { style: zoomStyle, handleWheel, handleMouseDown, handleTouchStart, handleTouchEnd } = useZoom()
 
   const loadDesign = useCallback(async () => {
     try {
