@@ -72,14 +72,16 @@ export const AboutPreview = () => {
               <div className="absolute -bottom-2 -left-2 w-8 h-8 border-b-2 border-l-2 border-[var(--accent)]/40 rounded-bl-3xl pointer-events-none" />
               <div className="absolute -bottom-2 -right-2 w-8 h-8 border-b-2 border-r-2 border-[var(--accent)]/40 rounded-br-3xl pointer-events-none" />
               
-              <img
-                src={getOptimizedUrl(imageUrl, { width: 960, crop: 'limit' })}
-                alt="Luxury interior design studio"
-                className="relative z-10 h-full w-full object-cover transition duration-[1.2s] hover:scale-105 rounded-3xl"
-                loading="lazy"
-                decoding="async"
-                fetchPriority="high"
-              />
+              {imageUrl && (
+                <img
+                  src={getOptimizedUrl(imageUrl, { width: 960, crop: 'limit' })}
+                  alt="Luxury interior design studio"
+                  className="relative z-10 h-full w-full object-cover transition duration-[1.2s] hover:scale-105 rounded-3xl"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="high"
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-luxury-text/10 to-transparent pointer-events-none rounded-3xl" />
             </div>
           </motion.div>
