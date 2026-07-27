@@ -218,6 +218,7 @@ export const HomePage = () => {
           setVirtualDesigns(data.virtualInteriorDesign || data.virtualDesigns || [])
           setHeroImages(data.heroImages || [])
           setProducts(data.products || [])
+          setContactInfo(data.contact || null)
         }
       })
       .catch((err) => {
@@ -243,18 +244,6 @@ export const HomePage = () => {
     window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
   }, [loadData])
-
-  useEffect(() => {
-    const loadContact = async () => {
-      try {
-        const res = await api.get('/contact')
-        setContactInfo(res.data)
-      } catch {
-        setContactInfo({})
-      }
-    }
-    loadContact()
-  }, [])
 
   const serviceImages = useMemo(() => {
     const images = {}
