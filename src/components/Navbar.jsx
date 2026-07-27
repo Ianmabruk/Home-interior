@@ -522,8 +522,8 @@ export const Navbar = memo(() => {
                           >
                             <span className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors duration-300 ${
                               isActive ? 'bg-[#E89A43]/15 text-[#E89A43]' : 'bg-[#E6D8C9]/40 text-[#2A241F]/70'
-                            }`}>
-                              <Icon size={20} strokeWidth={1.5} aria-hidden="true" />
+                             }`}>
+                              {Icon ? <Icon size={20} strokeWidth={1.5} aria-hidden="true" /> : <span className="inline-block h-5 w-5 rounded-full bg-white/10" />}
                             </span>
                             <span className="font-display text-lg md:text-xl font-normal tracking-wide">
                               {item.label}

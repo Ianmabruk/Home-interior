@@ -20,7 +20,7 @@ const CircularServiceCard = ({ service, index }) => {
       <div
         className="relative mb-8 inline-flex h-20 w-20 items-center justify-center rounded-full bg-champagne-beige/60 text-espresso transition-all duration-500 group-hover:bg-espresso group-hover:text-cream group-hover:scale-105"
       >
-        <Icon size={28} strokeWidth={1.5} />
+        {Icon ? <Icon size={28} strokeWidth={1.5} /> : <span className="inline-block h-7 w-7 rounded-full bg-white/10" />}
       </div>
       <h3 className="font-display text-xl md:text-2xl font-medium text-espresso leading-tight">
         {service.title}

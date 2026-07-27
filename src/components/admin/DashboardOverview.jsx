@@ -71,7 +71,7 @@ const StatCard = ({ title, value, icon: Icon, delay, trend, trendUp, color, onCl
             : 'bg-gradient-to-br from-[var(--primary)]/10 to-[var(--accent)]/10 text-[var(--primary)]'
         }`}
       >
-        <Icon size={24} />
+        {Icon ? <Icon size={24} /> : <span className="inline-block h-6 w-6 rounded-full bg-white/10" />}
       </motion.div>
     </div>
     <motion.div
@@ -94,7 +94,7 @@ const QuickActionCard = ({ label, icon: Icon, color, onClick }) => (
       whileHover={{ rotate: 10, scale: 1.1 }}
       className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center text-white shadow-lg`}
     >
-      <Icon size={22} />
+      {Icon ? <Icon size={22} /> : <span className="inline-block h-5 w-5 rounded-full bg-white/10" />}
     </motion.div>
     <span className="text-xs font-medium text-[var(--primary)] group-hover:text-[var(--accent)] transition-colors">
       {label}

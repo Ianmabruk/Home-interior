@@ -74,7 +74,7 @@ export const SocialsPage = () => {
                   className="group flex flex-col items-center text-center rounded-3xl border border-[var(--border)] bg-white p-8 transition-all duration-500 hover:border-[var(--accent)]/60 hover:shadow-[0_25px_80px_rgba(42,36,31,0.12)] hover:-translate-y-1"
                 >
                   <span className="flex h-20 w-20 items-center justify-center rounded-full bg-[#E6D8C9]/60 text-[#2A241F] transition-all duration-500 group-hover:bg-[#E89A43] group-hover:text-white group-hover:scale-105 mb-6">
-                    <Icon size={32} strokeWidth={1.5} aria-hidden="true" />
+                    {Icon ? <Icon size={32} strokeWidth={1.5} aria-hidden="true" /> : <span className="inline-block h-8 w-8 rounded-full bg-white/10" />}
                   </span>
                   <h3 className="font-display text-xl md:text-2xl font-normal text-[#2A241F] leading-tight mb-2 group-hover:text-[#E89A43] transition-colors">
                     {item.label}

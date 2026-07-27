@@ -54,7 +54,7 @@ const StatusBadge = ({ status, className = '' }) => {
   const Icon = config.icon
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider border ${config.color} ${className}`}>
-      <Icon size={10} strokeWidth={2} />
+      {Icon ? <Icon size={10} strokeWidth={2} /> : <span className="inline-block h-2.5 w-2.5 rounded-full bg-white/10" />}
       {config.label}
     </span>
   )

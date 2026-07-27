@@ -320,7 +320,7 @@ export const ProductDetailPage = () => {
                             className="flex items-start gap-3 rounded-xl bg-white p-4 border border-[var(--border)] shadow-sm"
                           >
                             <div className="flex-shrink-0 mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
-                              <Icon size={18} strokeWidth={1.5} />
+                              {Icon ? <Icon size={18} strokeWidth={1.5} /> : <span className="inline-block h-4 w-4 rounded-full bg-white/10" />}
                             </div>
                             <div>
                               <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--accent)]">{field.label}</p>

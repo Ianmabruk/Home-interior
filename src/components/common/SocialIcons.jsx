@@ -42,7 +42,7 @@ export const SocialIcons = ({ className = '', socials = {}, dark = false }) => {
                 : 'border-white/20 bg-white/5 text-white hover:bg-bronze hover:border-bronze hover:text-charcoal'
             } ${item.isDefault ? 'opacity-40 cursor-default' : ''}`}
           >
-            <Icon size={16} />
+            {Icon ? <Icon size={16} /> : <span className="inline-block h-4 w-4 rounded-full bg-white/10" />}
           </a>
         )
       })}

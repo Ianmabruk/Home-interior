@@ -108,7 +108,7 @@ export function ImagePositionPreview({ src, settings, className = '' }) {
         return (
           <div key={d.label} className="flex flex-col items-center gap-2">
             <div className="flex items-center gap-1.5 text-2xs uppercase tracking-widest text-ink/40">
-              <Icon size={12} /> {d.label}
+              {Icon ? <Icon size={12} /> : <span className="inline-block h-3 w-3 rounded-full bg-white/10" />} {d.label}
             </div>
             <div
               className="overflow-hidden rounded-xl border border-sand bg-linen"
