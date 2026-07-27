@@ -128,17 +128,7 @@ export default defineConfig({
         // initial app chunk stays small and unchanged vendors are served from
         // cache on repeat visits. This directly cuts main-thread parse/exec
         // time on mobile.
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return
-          if (id.includes('framer-motion') || id.includes('motion-')) return 'vendor-motion'
-          if (id.includes('react-router') || id.includes('@remix-run')) return 'vendor-router'
-          if (id.includes('lucide-react') || id.includes('react-icons')) return 'vendor-icons'
-          if (id.includes('axios')) return 'vendor-axios'
-          // Keep react, react-dom, scheduler together to avoid hook import issues
-          if (id.includes('react') || id.includes('scheduler')) return 'vendor-react'
-          return 'vendor'
-        },
-        // Preload critical chunks - vendor-react is needed for initial render
+        // Keep the default chunking strategy to avoid vendor bundle issues
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
