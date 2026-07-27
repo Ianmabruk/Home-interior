@@ -1,10 +1,16 @@
 import { PrismaClient } from '@prisma/client'
-import dotenv from 'dotenv'
 
-dotenv.config()
+const globalForPrisma = globalThis
 
-const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-})
+export const prisma =
+  globalForPrisma.prisma ||
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL + (process.env.DATABASE_URL?.includes('?') ? '&' : '?') + 'connection_limit=5&pool_timeout=20',
+      },
+    },
+  })
 
-export { prisma }
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
