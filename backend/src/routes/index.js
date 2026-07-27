@@ -3,7 +3,6 @@ import authRoutes from './authRoutes.js'
 import adminRoutes from './adminRoutes.js'
 import productRoutes from './productRoutes.js'
 import orderRoutes from './orderRoutes.js'
-import messageRoutes from './messageRoutes.js'
 import userRoutes from './userRoutes.js'
 import mediaRoutes from './mediaRoutes.js'
 import serviceRoutes from './serviceRoutes.js'
@@ -46,7 +45,6 @@ router.use('/virtual-design', contentVDRoutes)
 router.use('/services', serviceRoutes)
 router.use('/products', productRoutes)
 router.use('/orders', orderRoutes)
-router.use('/messages', messageRoutes)
 router.use('/users', userRoutes)
 router.use('/media', mediaRoutes)
 router.use('/testimonials', testRoutes)

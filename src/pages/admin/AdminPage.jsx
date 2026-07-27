@@ -23,7 +23,6 @@ import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { Sidebar } from '../../components/admin/Sidebar'
 import { DashboardOverview } from '../../components/admin/DashboardOverview'
-import { ContactsDashboard } from '../../components/admin/ContactsDashboard'
 import { HeroImagesDashboard } from '../../components/admin/HeroImagesDashboard'
 import { PortfolioDashboard } from '../../components/admin/PortfolioDashboard'
 import { ShopDashboard } from '../../components/admin/ShopDashboard'
@@ -46,7 +45,6 @@ const tabs = [
   { id: 'about', label: 'About', icon: Info },
   { id: 'testimonials', label: 'Testimonials', icon: Star },
   { id: 'consultations', label: 'Consultations', icon: MessageSquare },
-  { id: 'contacts', label: 'Contacts', icon: Mail },
   { id: 'settings', label: 'Settings', icon: Settings2 },
 ]
 
@@ -407,7 +405,6 @@ export const AdminPage = () => {
               {activeTab === 'about' && <AboutDashboard />}
               {activeTab === 'testimonials' && <TestimonialDashboard />}
               {activeTab === 'consultations' && <ConsultationDashboard />}
-              {activeTab === 'contacts' && <ContactsDashboard />}
               {activeTab === 'settings' && (
                 <div className="space-y-6 max-w-2xl">
                   <motion.form

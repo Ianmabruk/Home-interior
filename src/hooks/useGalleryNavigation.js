@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 
 export function useGalleryNavigation({
   isOpen,
@@ -73,74 +73,4 @@ export function useGalleryNavigation({
   }, [isOpen, handleKeyDown])
 
   return { handleTouchStart, handleTouchEnd }
-}
-
-export function useZoom() {
-  const [scale, setScale] = useState(1)
-  const [position, setPosition] = useState({ x: 0, y: 0 })
-  const isDragging = useRef(false)
-  const dragStart = useRef({ x: 0, y: 0 })
-  const imageRef = useRef(null)
-
-  const resetZoom = useCallback(() => {
-    setScale(1)
-    setPosition({ x: 0, y: 0 })
-  }, [])
-
-  const handleWheel = useCallback(
-    (e) => {
-      e.preventDefault()
-      if (e.ctrlKey || e.metaKey) {
-        setScale((prev) => {
-          const newScale = Math.min(Math.max(prev - e.deltaY * 0.001, 1), 4)
-          return newScale
-        })
-      }
-    },
-    []
-  )
-
-  const handleMouseDown = useCallback(
-    (e) => {
-      if (scale <= 1) return
-      isDragging.current = true
-      dragStart.current = { x: e.clientX - position.x, y: e.clientY - position.y }
-      e.target.style.cursor = 'grabbing'
-    },
-    [scale, position]
-  )
-
-  const handleMouseMove = useCallback(
-    (e) => {
-      if (!isDragging.current || scale <= 1) return
-      setPosition({
-        x: e.clientX - dragStart.current.x,
-        y: e.clientY - dragStart.current.y,
-      })
-    },
-    [scale]
-  )
-
-  const handleMouseUp = useCallback(() => {
-    isDragging.current = false
-    if (imageRef.current) {
-      imageRef.current.style.cursor = 'grab'
-    }
-  }, [])
-
-  const handleDoubleClick = useCallback(() => {
-    setScale((prev) => (prev > 1 ? 1 : 2))
-  }, [])
-
-  return {
-    scale,
-    position,
-    resetZoom,
-    handleWheel,
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-    handleDoubleClick,
-    imageRef,
-  }
 }

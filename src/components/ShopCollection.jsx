@@ -22,24 +22,38 @@ export const ShopCollection = () => {
   const [tab, setTab] = useState('featured')
 
   useEffect(() => {
-    const load = async () => {
+    let cancelled = false
+    const loadData = async () => {
       try {
         const res = await api.get('/products', { params: { sort: '-createdAt', limit: 20 } })
-        setAllProducts(Array.isArray(res.data) ? res.data : [])
+        if (!cancelled) setAllProducts(Array.isArray(res.data) ? res.data : [])
       } catch {
-        setAllProducts([])
+        if (!cancelled) setAllProducts([])
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
-    load()
+    loadData()
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
-    const handler = () => { load() }
+    const handler = () => {
+      let cancelled = false
+      const loadData = async () => {
+        try {
+          const res = await api.get('/products', { params: { sort: '-createdAt', limit: 20 } })
+          if (!cancelled) setAllProducts(Array.isArray(res.data) ? res.data : [])
+        } catch {
+          if (!cancelled) setAllProducts([])
+        }
+      }
+      loadData()
+      return () => { cancelled = true }
+    }
     window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-  }, [load])
+  }, [])
 
   const displayed = useMemo(() => {
     const items = allProducts

@@ -22,28 +22,43 @@ export const OrderDashboard = () => {
   const [statusFilter, setStatusFilter] = useState('')
   const [viewOrder, setViewOrder] = useState(null)
 
-  const loadOrders = async () => {
-    setLoading(true)
-    try {
-      const res = await api.get('/orders', { params: { sort: '-createdAt', limit: 100 } })
-      setOrders(res.data || [])
-    } catch {
-      setOrders([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial data load is a standard pattern
+    let cancelled = false
+    const loadOrders = async () => {
+      setLoading(true)
+      try {
+        const res = await api.get('/orders', { params: { sort: '-createdAt', limit: 100 } })
+        if (!cancelled) setOrders(res.data || [])
+      } catch {
+        if (!cancelled) setOrders([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
     loadOrders()
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
-    const handler = () => { loadOrders() }
+    const handler = () => {
+      let cancelled = false
+      const loadOrders = async () => {
+        setLoading(true)
+        try {
+          const res = await api.get('/orders', { params: { sort: '-createdAt', limit: 100 } })
+          if (!cancelled) setOrders(res.data || [])
+        } catch {
+          if (!cancelled) setOrders([])
+        } finally {
+          if (!cancelled) setLoading(false)
+        }
+      }
+      loadOrders()
+      return () => { cancelled = true }
+    }
     window.addEventListener('admin:data-changed', handler)
     return () => window.removeEventListener('admin:data-changed', handler)
-  }, [loadOrders])
+  }, [])
 
   const updateStatus = async (orderId, newStatus) => {
     try {

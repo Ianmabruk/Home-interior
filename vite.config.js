@@ -2,9 +2,24 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { compression } from 'vite-plugin-compression2'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      '@components': path.resolve(__dirname, './src/components'),
+      '@hooks': path.resolve(__dirname, './src/hooks'),
+      '@context': path.resolve(__dirname, './src/context'),
+      '@pages': path.resolve(__dirname, './src/pages'),
+      '@utils': path.resolve(__dirname, './src/utils'),
+      '@services': path.resolve(__dirname, './src/services'),
+    },
+  },
   plugins: [
     react(),
     VitePWA({

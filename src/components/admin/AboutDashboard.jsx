@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { X, Plus, Image as ImageIcon } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
@@ -56,6 +56,7 @@ export const AboutDashboard = () => {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadAbout()
   }, [loadAbout])
 

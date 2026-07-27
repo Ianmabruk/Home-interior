@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { X, UploadCloud, Image as ImageIcon, Plus, Trash2 } from 'lucide-react'
+import { X, UploadCloud, Image as ImageIcon, Trash2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '../services/api'
 import { toast } from 'react-hot-toast'

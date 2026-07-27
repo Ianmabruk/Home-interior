@@ -211,3 +211,5 @@ export function createDragDropHandlers(onFiles, options = {}) {
     }
   }
 }
+
+export default { uploadFiles, revokePreviews, validateFiles, createDragDropHandlers }

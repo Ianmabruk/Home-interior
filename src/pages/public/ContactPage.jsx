@@ -1,14 +1,10 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Phone, Mail, MapPin, Clock, Send } from 'lucide-react'
+import { Send } from 'lucide-react'
 import { api } from '../../services/api'
 import { toast } from 'react-hot-toast'
 import { PageMeta } from '../../hooks/usePageMeta'
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.7, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] } }),
-}
+import ContactSection from '../../components/common/ContactSection'
 
 export const ContactPage = () => {
   const [contactInfo, setContactInfo] = useState(null)
@@ -90,10 +86,11 @@ export const ContactPage = () => {
     )
   }
 
-  const phoneNumbers = contactInfo?.phoneNumbers || ['+254 700 000 000', '+254 711 111 111']
-  const emails = contactInfo?.emails || ['info@hokinteriors.com', 'projects@hokinteriors.com']
-  const addresses = contactInfo?.addresses || ['Westlands, Nairobi, Kenya']
-  const businessHours = contactInfo?.businessHours || 'Mon - Fri: 8:00 AM - 6:00 PM\nSat: 9:00 AM - 4:00 PM\nSun: Closed'
+  const renderContactInfo = () => (
+    <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="mb-16 md:mb-24">
+      <ContactSection contactInfo={contactInfo} />
+    </motion.div>
+  )
 
   return (
     <main className="min-h-screen bg-[var(--bg)]">
@@ -120,63 +117,9 @@ export const ContactPage = () => {
       </section>
 
       {/* Contact Information */}
-      <section className="section-pad bg-[var(--bg)] pt-12">
-        <div className="container-wide px-6 md:px-12 lg:px-20">
-          <div className="grid gap-12 md:grid-cols-3 mb-16">
-            <motion.div variants={fadeUp} custom={0} className="text-center md:text-left">
-              <div className="mx-auto md:mx-0 mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
-                <Phone size={24} strokeWidth={1.5} />
-              </div>
-              <h3 className="font-display text-xl font-normal text-[var(--primary)] mb-2">Phone Numbers</h3>
-              <div className="space-y-1 text-[var(--primary)]/60 leading-relaxed">
-                {phoneNumbers.map((phone, i) => (
-                  <p key={i}>{phone}</p>
-                ))}
-              </div>
-            </motion.div>
+      {renderContactInfo()}
 
-            <motion.div variants={fadeUp} custom={1} className="text-center md:text-left">
-              <div className="mx-auto md:mx-0 mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
-                <Mail size={24} strokeWidth={1.5} />
-              </div>
-              <h3 className="font-display text-xl font-normal text-[var(--primary)] mb-2">Email Addresses</h3>
-              <div className="space-y-1 text-[var(--primary)]/60 leading-relaxed">
-                {emails.map((email, i) => (
-                  <p key={i}>{email}</p>
-                ))}
-              </div>
-            </motion.div>
-
-            <motion.div variants={fadeUp} custom={2} className="text-center md:text-left">
-              <div className="mx-auto md:mx-0 mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
-                <MapPin size={24} strokeWidth={1.5} />
-              </div>
-              <h3 className="font-display text-xl font-normal text-[var(--primary)] mb-2">Office Location</h3>
-              <div className="space-y-1 text-[var(--primary)]/60 leading-relaxed">
-                {addresses.map((address, i) => (
-                  <p key={i}>{address}</p>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Business Hours */}
-          <motion.div variants={fadeUp} custom={3} className="mb-16 md:mb-24">
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[var(--primary)] via-[var(--primary)]/90 to-[var(--primary)]/70 p-8 md:p-12 text-center">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(232,154,67,0.2),transparent_60%)]" />
-              <div className="relative z-10">
-                <div className="mx-auto md:mx-0 mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm text-white border border-white/20">
-                  <Clock size={24} strokeWidth={1.5} />
-                </div>
-                <h3 className="font-display text-2xl md:text-3xl font-normal text-white mb-4">Business Hours</h3>
-                <pre className="text-white/70 leading-relaxed whitespace-pre-wrap text-left max-w-md mx-auto">
-                  {businessHours}
-                </pre>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Contact Form */}
+      {/* Contact Form */}
           <div className="max-w-2xl mx-auto">
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }} className="mb-12 text-center">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Send a Message</p>
@@ -306,8 +249,6 @@ export const ContactPage = () => {
               </button>
             </form>
           </div>
-        </div>
-      </section>
     </main>
   )
 }

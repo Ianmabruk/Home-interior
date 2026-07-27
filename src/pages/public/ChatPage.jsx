@@ -8,7 +8,6 @@ export const ChatPage = () => {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [hasInteracted, setHasInteracted] = useState(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
 
@@ -34,7 +33,6 @@ export const ChatPage = () => {
     setMessages((prev) => [...prev, userMessage])
     setInput('')
     setLoading(true)
-    setHasInteracted(true)
 
     try {
       await api.post('/messages', {

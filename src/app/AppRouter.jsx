@@ -5,7 +5,6 @@ import { ProtectedRoute } from './ProtectedRoute'
 import { ErrorBoundary } from '../components/common/ErrorBoundary'
 import { usePrefetchOnIdle } from '../hooks/useRoutePrefetch'
 
-const PortfolioDetailPage = lazy(() => import('../pages/public/PortfolioDetailPage').then((m) => ({ default: m.PortfolioDetailPage })))
 const VirtualDesignDetailPage = lazy(() => import('../pages/public/VirtualDesignDetailPage').then((m) => ({ default: m.VirtualDesignDetailPage })))
 
 const RouteFallback = () => (
@@ -107,10 +106,8 @@ export const AppRouter = () => {
           <Route path="/shop/throw-pillows" element={<ErrorBoundaryRoute element={<ShopPage category="throw-pillows" />} />} />
           <Route path="/shop/:id" element={<ErrorBoundaryRoute element={<ProductDetailPage />} />} />
           <Route path="/portfolio" element={<ErrorBoundaryRoute element={<PortfolioPage />} />} />
-          <Route path="/portfolio/:id" element={<ErrorBoundaryRoute element={<PortfolioDetailPage />} />} />
           <Route path="/about" element={<ErrorBoundaryRoute element={<AboutPage />} />} />
           <Route path="/services" element={<ErrorBoundaryRoute element={<ServicesPage />} />} />
-          <Route path="/services/:id" element={<ErrorBoundaryRoute element={<ServicesPage />} />} />
           <Route path="/virtual-design" element={<ErrorBoundaryRoute element={<VirtualDesignPage />} />} />
           <Route path="/virtual-design/project/:id" element={<ErrorBoundaryRoute element={<VirtualDesignDetailPage />} />} />
           <Route path="/socials" element={<ErrorBoundaryRoute element={<SocialsPage />} />} />

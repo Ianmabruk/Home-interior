@@ -37,6 +37,117 @@ function parseConsultationMessage(message) {
   }
 }
 
+function ContactViewModal({ viewItem, onClose }) {
+  if (!viewItem) return null
+  const parsed = viewItem.message ? parseConsultationMessage(viewItem.message) : { images: [], extraData: {}, text: '' }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    >
+      <div
+        className="absolute inset-0 bg-[var(--primary)]/40 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative bg-white rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-[0_30px_80px_rgba(0,0,0,0.2)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-start mb-5">
+          <h3 className="font-display text-2xl text-[var(--primary)]">Consultation Details</h3>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-[var(--bg)] transition-colors"
+          >
+            <X size={18} />
+          </motion.button>
+        </div>
+        <div className="space-y-3">
+          {[
+            { icon: User, label: 'Name', value: viewItem.name },
+            { icon: Mail, label: 'Email', value: viewItem.email },
+            { icon: Phone, label: 'Phone', value: viewItem.phone || '—' },
+            { icon: Calendar, label: 'Date', value: viewItem.preferredDate ? new Date(viewItem.preferredDate).toLocaleDateString() : '—' },
+            { icon: Clock, label: 'Time', value: viewItem.preferredTime || '—' },
+            { icon: CheckCircle2, label: 'Status', value: viewItem.status || 'new' },
+          ].map((field, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-3 bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/10 rounded-xl p-3"
+            >
+              <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] flex-shrink-0">
+                {field.icon ? <field.icon size={14} /> : <span className="inline-block h-3 w-3 rounded-full bg-white/10" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">{field.label}</p>
+                <p className="text-sm text-[var(--primary)] mt-0.5 font-medium">{field.value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        {parsed.extraData && Object.keys(parsed.extraData).length > 0 && (
+          <div className="mt-4 bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/10 rounded-xl p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 mb-2">Project Details</p>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              {parsed.extraData.projectType && (
+                <div><span className="text-[var(--primary)]/50">Type:</span> <span className="font-medium">{parsed.extraData.projectType}</span></div>
+              )}
+              {parsed.extraData.budget && (
+                <div><span className="text-[var(--primary)]/50">Budget:</span> <span className="font-medium">{parsed.extraData.budget}</span></div>
+              )}
+              {parsed.extraData.timeline && (
+                <div><span className="text-[var(--primary)]/50">Timeline:</span> <span className="font-medium">{parsed.extraData.timeline}</span></div>
+              )}
+            </div>
+          </div>
+        )}
+        {parsed.images.length > 0 && (
+          <div className="border-t border-[var(--border)] pt-4 mt-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 mb-2 flex items-center gap-1.5">
+              <Image size={12} />
+              Uploaded Images
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {parsed.images.map((img, i) => (
+                <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="rounded-xl overflow-hidden border border-[var(--border)]">
+                  <img src={img} alt={`Upload ${i + 1}`} className="h-20 w-full object-cover" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="border-t border-[var(--border)] pt-4 mt-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 mb-2 flex items-center gap-1.5">
+            <MessageSquare size={12} />
+            Message
+          </p>
+          <p className="text-sm leading-relaxed text-[var(--primary)] bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/10 rounded-xl p-4">
+            {parsed.text}
+          </p>
+        </div>
+        <div className="mt-6 flex justify-end gap-3">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onClose}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          >
+            Close
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 const STATUSES = ['pending', 'in review', 'quoted', 'approved', 'completed', 'archived']
 
 const STATUS_CONFIG = {
@@ -55,7 +166,6 @@ export const ConsultationDashboard = () => {
   const [deleteId, setDeleteId] = useState(null)
   const [viewItem, setViewItem] = useState(null)
   const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
 
   useEffect(() => {
@@ -70,7 +180,6 @@ export const ConsultationDashboard = () => {
         const res = await api.get('/admin/consultations', { params })
         setConsultations(res.data?.items || [])
         setTotal(res.data?.total || 0)
-        setTotalPages(res.data?.totalPages || 1)
       } catch {
         setConsultations([])
       }
@@ -90,7 +199,6 @@ export const ConsultationDashboard = () => {
         .then((res) => {
           setConsultations(res.data?.items || [])
           setTotal(res.data?.total || 0)
-          setTotalPages(res.data?.totalPages || 1)
         })
         .catch(() => {})
     }
@@ -109,7 +217,6 @@ export const ConsultationDashboard = () => {
       const res = await api.get('/admin/consultations', { params })
       setConsultations(res.data?.items || [])
       setTotal(res.data?.total || 0)
-      setTotalPages(res.data?.totalPages || 1)
     } catch {
       setConsultations([])
     }
@@ -160,117 +267,6 @@ export const ConsultationDashboard = () => {
       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${config.color}`}>
         {config.label}
       </span>
-    )
-  }
-
-  const ViewModal = () => {
-    if (!viewItem) return null
-    const parsed = viewItem.message ? parseConsultationMessage(viewItem.message) : { images: [], extraData: {}, text: '' }
-
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      >
-        <div
-          className="absolute inset-0 bg-[var(--primary)]/40 backdrop-blur-sm"
-          onClick={() => setViewItem(null)}
-        />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative bg-white rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-[0_30px_80px_rgba(0,0,0,0.2)]"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex justify-between items-start mb-5">
-            <h3 className="font-display text-2xl text-[var(--primary)]">Consultation Details</h3>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setViewItem(null)}
-              className="p-2 rounded-full hover:bg-[var(--bg)] transition-colors"
-            >
-              <X size={18} />
-            </motion.button>
-          </div>
-          <div className="space-y-3">
-            {[
-              { icon: User, label: 'Name', value: viewItem.name },
-              { icon: Mail, label: 'Email', value: viewItem.email },
-              { icon: Phone, label: 'Phone', value: viewItem.phone || '—' },
-              { icon: Calendar, label: 'Date', value: viewItem.preferredDate ? new Date(viewItem.preferredDate).toLocaleDateString() : '—' },
-              { icon: Clock, label: 'Time', value: viewItem.preferredTime || '—' },
-              { icon: CheckCircle2, label: 'Status', value: viewItem.status || 'new' },
-            ].map((field, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-3 bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/10 rounded-xl p-3"
-              >
-                <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] flex-shrink-0">
-                  {field.icon ? <field.icon size={14} /> : <span className="inline-block h-3 w-3 rounded-full bg-white/10" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">{field.label}</p>
-                  <p className="text-sm text-[var(--primary)] mt-0.5 font-medium">{field.value}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          {parsed.extraData && Object.keys(parsed.extraData).length > 0 && (
-            <div className="mt-4 bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/10 rounded-xl p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 mb-2">Project Details</p>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                {parsed.extraData.projectType && (
-                  <div><span className="text-[var(--primary)]/50">Type:</span> <span className="font-medium">{parsed.extraData.projectType}</span></div>
-                )}
-                {parsed.extraData.budget && (
-                  <div><span className="text-[var(--primary)]/50">Budget:</span> <span className="font-medium">{parsed.extraData.budget}</span></div>
-                )}
-                {parsed.extraData.timeline && (
-                  <div><span className="text-[var(--primary)]/50">Timeline:</span> <span className="font-medium">{parsed.extraData.timeline}</span></div>
-                )}
-              </div>
-            </div>
-          )}
-          {parsed.images.length > 0 && (
-            <div className="border-t border-[var(--border)] pt-4 mt-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 mb-2 flex items-center gap-1.5">
-                <Image size={12} />
-                Uploaded Images
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {parsed.images.map((img, i) => (
-                  <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="rounded-xl overflow-hidden border border-[var(--border)]">
-                    <img src={img} alt={`Upload ${i + 1}`} className="h-20 w-full object-cover" />
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="border-t border-[var(--border)] pt-4 mt-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 mb-2 flex items-center gap-1.5">
-              <MessageSquare size={12} />
-              Message
-            </p>
-            <p className="text-sm leading-relaxed text-[var(--primary)] bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/10 rounded-xl p-4">
-              {parsed.text}
-            </p>
-          </div>
-          <div className="mt-6 flex justify-end gap-3">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setViewItem(null)}
-              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-            >
-              Close
-            </motion.button>
-          </div>
-        </motion.div>
-      </motion.div>
     )
   }
 
@@ -426,7 +422,7 @@ export const ConsultationDashboard = () => {
       </motion.div>
 
       <AnimatePresence>
-        {viewItem && <ViewModal key="view-modal" />}
+        {viewItem && <ContactViewModal viewItem={viewItem} onClose={() => setViewItem(null)} />}
       </AnimatePresence>
 
       <AnimatePresence>

@@ -21,26 +21,42 @@ export const FeaturedProjects = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const load = async () => {
+    let cancelled = false
+    const loadData = async () => {
       try {
         const res = await api.get('/portfolio')
         const sorted = [...(res.data || [])].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
-        setProjects(sorted.slice(0, 8))
+        if (!cancelled) setProjects(sorted.slice(0, 8))
       } catch (err) {
         console.warn('[FEATURED] Failed to load projects:', err?.message)
-        setProjects([])
+        if (!cancelled) setProjects([])
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
-    load()
+    loadData()
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
-    const handler = () => { load() }
+    const handler = () => {
+      let cancelled = false
+      const loadData = async () => {
+        try {
+          const res = await api.get('/portfolio')
+          const sorted = [...(res.data || [])].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
+          if (!cancelled) setProjects(sorted.slice(0, 8))
+        } catch (err) {
+          console.warn('[FEATURED] Failed to load projects:', err?.message)
+          if (!cancelled) setProjects([])
+        }
+      }
+      loadData()
+      return () => { cancelled = true }
+    }
     window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-  }, [load])
+  }, [])
 
   if (loading) {
     return (
