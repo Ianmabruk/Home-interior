@@ -241,7 +241,15 @@ export const HomePage = () => {
             <CircularNavCard
               to="/shop"
               label="Shop"
-              imageUrl={(products || []).length > 0 ? (typeof (products && products[0])?.images?.[0] === 'string' ? (products && products[0])?.images[0] : (products && products[0])?.images?.[0]?.url) : null}
+              imageUrl={
+                (products || []).length > 0
+                  ? typeof products[0]?.images?.[0] === 'string'
+                    ? products[0].images[0]
+                    : typeof products[0]?.images?.[0]?.url === 'string'
+                    ? products[0].images[0].url
+                    : null
+                  : null
+              }
               alt="HOK Interiors Shop"
               size={300}
             />
@@ -343,7 +351,12 @@ export const HomePage = () => {
 
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
               {(products || []).slice(0, 3).map((product, index) => {
-                const firstImage = typeof product.images?.[0] === 'string' ? product.images[0] : product.images?.[0]?.url || null
+                const firstImage =
+                  typeof product.images?.[0] === 'string'
+                    ? product.images[0]
+                    : typeof product.images?.[0]?.url === 'string'
+                    ? product.images[0].url
+                    : null
                 return (
                   <div key={product._id || product.id || index} className="group flex flex-col items-center">
                     <div className="relative w-full max-w-sm mx-auto mb-6">

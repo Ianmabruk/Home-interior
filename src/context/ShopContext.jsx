@@ -10,7 +10,7 @@ export function ShopProvider({ children }) {
 
   const fetchCart = useCallback(async () => {
     try {
-      const res = await api.get('/cart')
+      const res = await api.get('/users/cart')
       setCart(res.data || [])
     } catch {
       setCart([])
@@ -19,7 +19,7 @@ export function ShopProvider({ children }) {
 
   const fetchWishlist = useCallback(async () => {
     try {
-      const res = await api.get('/wishlist')
+      const res = await api.get('/users/wishlist')
       setWishlist(res.data || [])
     } catch {
       setWishlist([])
@@ -32,36 +32,36 @@ export function ShopProvider({ children }) {
   }, [fetchCart, fetchWishlist])
 
   const addToCart = useCallback(async (product, variant, quantity = 1) => {
-    const res = await api.post('/cart', { productId: product._id, variantId: variant?._id, quantity })
+    const res = await api.post('/users/cart', { productId: product._id, variantId: variant?._id, quantity })
     setCart(res.data || [])
     return res.data
   }, [])
 
   const removeFromCart = useCallback(async (productId, variantId) => {
-    const res = await api.delete(`/cart/${productId}`, { data: { variantId } })
+    const res = await api.delete(`/users/cart/${productId}`, { data: { variantId } })
     setCart(res.data || [])
     return res.data
   }, [])
 
   const setCartQuantity = useCallback(async (productId, quantity, variantId) => {
-    const res = await api.patch(`/cart/${productId}`, { quantity, variantId })
+    const res = await api.patch(`/users/cart/${productId}`, { quantity, variantId })
     setCart(res.data || [])
     return res.data
   }, [])
 
   const clearCart = useCallback(async () => {
-    await api.delete('/cart')
+    await api.delete('/users/cart')
     setCart([])
   }, [])
 
   const addToWishlist = useCallback(async (productId) => {
-    const res = await api.post('/wishlist', { productId })
+    const res = await api.post('/users/wishlist', { productId })
     setWishlist(res.data || [])
     return res.data
   }, [])
 
   const removeFromWishlist = useCallback(async (productId) => {
-    const res = await api.delete(`/wishlist/${productId}`)
+    const res = await api.delete(`/users/wishlist/${productId}`)
     setWishlist(res.data || [])
     return res.data
   }, [])

@@ -20,7 +20,7 @@ const isCloudinaryVideo = (url) =>
   typeof url === 'string' && url.includes(CLOUDINARY_VIDEO_SEGMENT)
 
 export const getOptimizedUrl = (url, options = {}) => {
-  if (!isCloudinaryImage(url)) return url
+  if (!isCloudinaryImage(url)) return typeof url === 'string' ? url : null
   const transform = buildTransformString(options)
   if (!transform) return url
   return url.replace(CLOUDINARY_IMAGE_SEGMENT, `${CLOUDINARY_IMAGE_SEGMENT}${transform}/`)
@@ -29,14 +29,14 @@ export const getOptimizedUrl = (url, options = {}) => {
 export const RESPONSIVE_WIDTHS = [320, 480, 640, 960, 1280]
 
 export const buildSrcSet = (url, widths = RESPONSIVE_WIDTHS) => {
-  if (!isCloudinaryImage(url)) return ''
+  if (!isCloudinaryImage(url) || typeof url !== 'string') return ''
   return widths
     .map((w) => `${getOptimizedUrl(url, { width: w, crop: 'limit' })} ${w}w`)
     .join(', ')
 }
 
 export const getOptimizedVideoUrl = (url, options = {}) => {
-  if (!isCloudinaryVideo(url)) return url
+  if (!isCloudinaryVideo(url) || typeof url !== 'string') return typeof url === 'string' ? url : null
   const { width, quality = 'auto', format = 'auto' } = options
   const parts = []
   if (width) parts.push(`w_${width}`, 'c_limit')
@@ -45,7 +45,7 @@ export const getOptimizedVideoUrl = (url, options = {}) => {
 }
 
 export const getVideoPosterUrl = (url, options = {}) => {
-  if (!isCloudinaryVideo(url)) return undefined
+  if (!isCloudinaryVideo(url) || typeof url !== 'string') return undefined
   const { width = 1280 } = options
   const transformed = url.replace(
     CLOUDINARY_VIDEO_SEGMENT,
