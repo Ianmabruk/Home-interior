@@ -72,4 +72,31 @@ export const authController = {
     })
     res.status(201).json({ success: true, data: admin })
   }),
+
+  forgotPassword: asyncHandler(async (req, res) => {
+    const { email } = req.body
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' })
+    }
+    const result = await authService.requestPasswordReset(email)
+    res.json({ success: true, data: result })
+  }),
+
+  verifyResetToken: asyncHandler(async (req, res) => {
+    const { token } = req.body
+    if (!token) {
+      return res.status(400).json({ success: false, message: 'Token is required' })
+    }
+    await authService.verifyResetToken(token)
+    res.json({ success: true, data: { valid: true } })
+  }),
+
+  resetPassword: asyncHandler(async (req, res) => {
+    const { token, password } = req.body
+    if (!token || !password) {
+      return res.status(400).json({ success: false, message: 'Token and password are required' })
+    }
+    const result = await authService.resetPassword(token, password)
+    res.json({ success: true, data: result })
+  }),
 }

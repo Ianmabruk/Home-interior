@@ -12,8 +12,11 @@ import aboutRoutes from './aboutRoutes.js'
 import contactRoutes from './contactRoutes.js'
 import consultationRoutes from './consultationRoutes.js'
 import adminConsultationRoutes from './adminConsultationRoutes.js'
+import chatRoutes from './chatRoutes.js'
 import { portfolioRoutes as adminPortfolioRoutes, virtualDesignRoutes as adminVDRoutes } from './adminContentRoutes.js'
-import { portfolioRoutes as contentPortfolioRoutes, virtualDesignRoutes as contentVDRoutes, default as contentRoutes } from './contentRoutes.js'
+import { portfolioRoutes as contentPortfolioRoutes, virtualDesignRoutes as contentVDRoutes, default: contentRoutes } from './contentRoutes.js'
+import messageRoutes from './messageRoutes.js'
+import socialsRoutes from './socialsRoutes.js'
 import { uploadSingle } from '../middleware/upload.js'
 import { uploadFile } from '../uploads/uploadService.js'
 import { authenticate } from '../middleware/auth.js'
@@ -48,6 +51,10 @@ router.use('/orders', orderRoutes)
 router.use('/users', userRoutes)
 router.use('/media', mediaRoutes)
 router.use('/testimonials', testRoutes)
+router.use('/messages', messageRoutes)
+router.use('/socials', socialsRoutes)
+router.use('/chat', chatRoutes)
+router.use('/socials', socialsRoutes)
 
 router.post('/test-upload', uploadSingle('media'), async (req, res) => {
   if (!req.file) {

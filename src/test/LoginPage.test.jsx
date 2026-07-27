@@ -8,6 +8,12 @@ vi.mock('lucide-react', () => ({
   ArrowRight: () => <span data-testid="arrow-right">→</span>,
   Mail: () => <span data-testid="mail">Mail</span>,
   Lock: () => <span data-testid="lock">Lock</span>,
+  Eye: () => <span data-testid="eye">Eye</span>,
+  EyeOff: () => <span data-testid="eye-off">EyeOff</span>,
+  Loader2: () => <span data-testid="loader">Loader</span>,
+  AlertCircle: () => <span data-testid="alert-circle">Alert</span>,
+  CheckCircle: () => <span data-testid="check-circle">Check</span>,
+  UserPlus: () => <span data-testid="user-plus">UserPlus</span>,
 }))
 
 vi.mock('react-router-dom', async () => {
@@ -18,6 +24,13 @@ vi.mock('react-router-dom', async () => {
     useNavigate: () => vi.fn(),
   }
 })
+
+vi.mock('@services/api', () => ({
+  api: {
+    post: vi.fn(),
+    get: vi.fn(),
+  },
+}))
 
 import { LoginPage } from '../pages/auth/LoginPage'
 

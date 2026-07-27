@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, ArrowUpRight, ArrowRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '@services/api'
@@ -8,17 +8,19 @@ import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adm
 import { PageMeta } from '@hooks/usePageMeta'
 import { useZoom } from '@hooks/useZoom'
 
-export const VirtualDesignDetailPage = ({ initialData }) => {
-  const [design, setDesign] = useState(initialData || null)
-  const [loading, setLoading] = useState(!initialData)
+export const VirtualDesignDetailPage = () => {
+  const { id } = useParams()
+  const [design, setDesign] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
 
   const { style: zoomStyle, handleWheel, handleMouseDown, handleTouchStart, handleTouchEnd } = useZoom()
 
   const loadDesign = useCallback(async () => {
+    if (!id) return
     try {
-      const res = await api.get('/virtual-design/project/' + (new URLSearchParams(window.location.search)).get('id') || '')
+      const res = await api.get(`/virtual-design/${id}`)
       setDesign(res.data || null)
     } catch (err) {
       console.warn('[VIRTUAL DESIGN DETAIL] Failed to load:', err?.message)
@@ -26,11 +28,11 @@ export const VirtualDesignDetailPage = ({ initialData }) => {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [id])
 
   useEffect(() => {
-    if (!initialData) loadDesign()
-  }, [initialData, loadDesign])
+    loadDesign()
+  }, [loadDesign])
 
   useEffect(() => {
     const handler = (event) => {

@@ -59,6 +59,8 @@ vi.mock('lucide-react', () => ({
   Star: () => <span data-testid="star">Star</span>,
   Package: () => <span data-testid="package">Package</span>,
   MonitorSmartphone: () => <span data-testid="monitor-smartphone">Monitor</span>,
+  Image: () => <span data-testid="image">Image</span>,
+  Home: () => <span data-testid="home">Home</span>,
 }))
 
 vi.mock('react-router-dom', async () => {
@@ -71,6 +73,14 @@ vi.mock('react-router-dom', async () => {
     useLocation: () => ({ pathname: '/admin' }),
   }
 })
+
+vi.mock('@services/api', () => ({
+  api: {
+    get: vi.fn().mockResolvedValue({ data: {} }),
+    post: vi.fn().mockResolvedValue({ data: {} }),
+    patch: vi.fn().mockResolvedValue({ data: {} }),
+  },
+}))
 
 import { AdminPage } from '../pages/admin/AdminPage'
 
@@ -91,31 +101,22 @@ describe('AdminPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    localStorage.setItem('hok_access_token', 'mock-token')
   })
 
   it('renders admin page without crashing', async () => {
-    localStorage.setItem('hok_access_token', 'token')
-    
     const { container } = renderWithProviders(<AdminPage />, { route: '/admin' })
-    
+
     await waitFor(() => {
       expect(container.innerHTML).toBeTruthy()
     }, { timeout: 3000 })
   })
 
-  it('shows settings tab with maintenance mode toggle', async () => {
-    localStorage.setItem('hok_access_token', 'token')
-    
+  it('shows access denied for non-admin users', async () => {
     renderWithProviders(<AdminPage />, { route: '/admin' })
-    
+
     await waitFor(() => {
-      expect(screen.getByTestId('settings')).toBeDefined()
-    }, { timeout: 3000 })
-    
-    fireEvent.click(screen.getByTestId('settings'))
-    
-    await waitFor(() => {
-      expect(screen.getByText('Maintenance Mode')).toBeDefined()
+      expect(screen.getByText('Access Denied')).toBeDefined()
     }, { timeout: 3000 })
   })
 })

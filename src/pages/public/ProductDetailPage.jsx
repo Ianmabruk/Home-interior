@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { Heart, ShoppingBag, ChevronLeft, ChevronRight, Minus, Plus, AlertTriangle, ArrowLeft, Loader2, CheckCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '@services/api'
@@ -11,6 +11,7 @@ import { useCurrency } from '@context/CurrencyContext'
 import { useZoom } from '@hooks/useZoom'
 
 export const ProductDetailPage = () => {
+  const { id } = useParams()
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -25,8 +26,9 @@ export const ProductDetailPage = () => {
   const { style: zoomStyle, handleWheel, handleMouseDown, handleTouchStart, handleTouchEnd, reset } = useZoom()
 
   const loadProduct = useCallback(async () => {
+    if (!id) return
     try {
-      const res = await api.get('/products/slug')
+      const res = await api.get(`/products/${id}`)
       setProduct(res.data || null)
       if (res.data?.variants?.[0]) {
         setSelectedVariant(res.data.variants[0])
@@ -36,7 +38,7 @@ export const ProductDetailPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [id])
 
   useEffect(() => {
     loadProduct()

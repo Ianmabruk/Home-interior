@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, ArrowUpRight, ArrowRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '@services/api'
@@ -9,6 +9,7 @@ import { PageMeta } from '@hooks/usePageMeta'
 import { useZoom } from '@hooks/useZoom'
 
 export const PortfolioDetailPage = () => {
+  const { id } = useParams()
   const [project, setProject] = useState(null)
   const [loading, setLoading] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -17,9 +18,8 @@ export const PortfolioDetailPage = () => {
   const { style: zoomStyle, handleWheel, handleMouseDown, handleTouchStart, reset, handleTouchEnd } = useZoom()
 
   const loadProject = useCallback(async () => {
+    if (!id) return
     try {
-      const path = window.location.pathname
-      const id = path.split('/').pop()
       const res = await api.get(`/portfolio/${id}`)
       setProject(res.data || null)
     } catch (err) {
@@ -28,7 +28,7 @@ export const PortfolioDetailPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [id])
 
   useEffect(() => {
     loadProject()

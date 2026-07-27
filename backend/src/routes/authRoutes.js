@@ -10,5 +10,8 @@ router.post('/refresh', authController.refresh)
 router.post('/logout', authController.logout)
 router.get('/me', authenticate, authController.me)
 router.patch('/me', authenticate, authController.updateProfile)
+router.post('/forgot-password', authController.forgotPassword)
+router.post('/verify-reset-token', authController.verifyResetToken)
+router.post('/reset-password', authController.resetPassword)
 
 export default router

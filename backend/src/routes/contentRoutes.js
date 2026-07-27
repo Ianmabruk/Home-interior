@@ -14,9 +14,11 @@ import { cacheHeaders } from '../middleware/cacheHeaders.js'
 const router = Router()
 
 router.get('/homepage', cacheHeaders(60, 30), contentController.homepage)
+router.post('/newsletter', contentController.newsletter)
 router.get('/services', optionalAuth, cacheHeaders(120, 60), serviceController.list)
 router.get('/services/:id', optionalAuth, cacheHeaders(120, 60), serviceController.get)
 router.get('/about', optionalAuth, cacheHeaders(300, 120), aboutController.get)
+router.get('/about/team', optionalAuth, cacheHeaders(300, 120), aboutController.get)
 router.get('/hero-media', optionalAuth, cacheHeaders(60, 30), heroMediaController.list)
 router.get('/hero-media/:id', optionalAuth, cacheHeaders(60, 30), heroMediaController.get)
 router.post('/consultations', consultationController.publicCreate)
