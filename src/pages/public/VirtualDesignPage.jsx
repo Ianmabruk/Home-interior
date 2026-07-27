@@ -1,157 +1,161 @@
-import { useEffect, useState } from 'react'
-import { ArrowRight, Play } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { api } from '../../services/api'
-import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
-import { getOptimizedUrl, getOptimizedVideoUrl, getVideoPosterUrl } from '../../utils/cloudinaryHelpers'
-import LazyVideo from '../../components/common/LazyVideo'
-import { PageMeta } from '../../hooks/usePageMeta'
+import { ArrowRight } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { api } from '@services/api'
+import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
+import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
+import { PageMeta } from '@hooks/usePageMeta'
+import { getProjectImage } from '@utils/homepageHelpers'
 
-const VirtualDesignCard = ({ item }) => (
-  <article className="group cursor-pointer bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
-    <Link
-      to={`/virtual-design/project/${item.id}`}
-      className="block"
-      aria-label={`View ${item.title} project`}
-    >
-      <div className="relative aspect-square overflow-hidden">
-        {item.mediaType === 'video' && item.mediaUrl ? (
-          <>
-            <LazyVideo
-              src={getOptimizedVideoUrl(item.mediaUrl, { width: 1200 })}
-              poster={getVideoPosterUrl(item.mediaUrl, { width: 1200 })}
-              className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <button
-              className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110"
-              aria-label="Play video"
-            >
-              <Play size={20} strokeWidth={1.5} className="ml-1" />
-            </button>
-          </>
-        ) : item.imageUrl ? (
-          <img
-            src={getOptimizedUrl(item.imageUrl, { width: 1200, crop: 'limit' })}
-            alt={item.title}
-            className="h-full w-full object-cover bg-[var(--bg)] transition duration-700 group-hover:scale-105"
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <div className="h-full w-full bg-[var(--secondary)]/30" />
-        )}
-        {item.featured && (
-          <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-white text-[10px] font-semibold uppercase tracking-widest rounded-full shadow-lg">
-            Featured
-          </span>
-        )}
+const SkeletonVirtualDesign = () => (
+  <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--secondary)]/20 via-[var(--bg)] to-[var(--accent)]/5 px-6 md:px-12 lg:px-20 py-20 md:py-32">
+    <div className="container-wide">
+      <div className="mb-16 text-center">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Virtual Designs</p>
+        <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
+          Virtual Interior Designs
+        </h2>
       </div>
-
-      <div className="p-6 md:p-8 border-t border-[var(--border)]/40 bg-white text-center">
-        <h3 className="font-display text-2xl md:text-3xl font-normal text-[var(--primary)] leading-tight mb-6">
-          {item.title}
-        </h3>
-        <button
-          type="button"
-          className="btn-luxury-primary group inline-flex items-center gap-2 text-[11px] px-8 py-3 rounded-full whitespace-nowrap hover:scale-105 active:scale-95"
-        >
-          View Project
-          <ArrowRight size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-        </button>
+      <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="group">
+            <div className="skeleton aspect-[4/3] w-full rounded-3xl" />
+            <div className="mt-4 space-y-2">
+              <div className="skeleton h-3 w-24" />
+              <div className="skeleton h-6 w-3/4" />
+              <div className="skeleton h-4 w-1/2" />
+            </div>
+          </div>
+        ))}
       </div>
-    </Link>
-  </article>
+    </div>
+  </section>
 )
 
 export const VirtualDesignPage = () => {
-  const [items, setItems] = useState([])
+  const [designs, setDesigns] = useState([])
   const [loading, setLoading] = useState(true)
 
-  const loadVirtualDesigns = () => {
-    api.get('/virtual-design')
-      .then((res) => {
-        const data = Array.isArray(res.data) ? res.data : res.data?.items || []
-        setItems(data)
-      })
-      .catch((err) => {
-        console.warn('[VIRTUAL] Failed to load projects:', err?.message)
-        setItems([])
-      })
-      .finally(() => setLoading(false))
-  }
+  const loadDesigns = useCallback(async () => {
+    try {
+      const res = await api.get('/virtual-design')
+      setDesigns(res.data || [])
+    } catch (err) {
+      console.warn('[VIRTUAL DESIGN] Failed to load:', err?.message)
+      setDesigns([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  useEffect(() => { loadVirtualDesigns() }, [])
+  useEffect(() => {
+    loadDesigns()
+  }, [loadDesigns])
 
   useEffect(() => {
     const handler = (event) => {
       const payload = getAdminDataChangedPayload(event)
-      if (payload?.type === 'virtual-changed') loadVirtualDesigns()
+      if (payload?.type === 'virtual-changed') loadDesigns()
     }
     window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-  }, [])
+  }, [loadDesigns])
+
+  if (loading) {
+    return <main><SkeletonVirtualDesign /></main>
+  }
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
-      <PageMeta title="Virtual Design — HOK Interior Designs" description="Experience your dream space with immersive 3D virtual design services." />
-      <section className="py-16 md:py-24 px-6 md:px-12 lg:px-20">
-        <div className="container-wide text-center">
-          <div className="mb-12 md:mb-16 flex flex-col items-center">
-            <div className="relative w-[150px] h-[150px] mx-auto mb-8">
-              {items.length > 0 && items[0]?.imageUrl ? (
-                <img
-                  src={getOptimizedUrl(items[0].imageUrl, { width: 300, height: 300, crop: 'fill' })}
-                  alt="Profile"
-                  className="w-full h-full rounded-full object-cover shadow-lg border-4 border-white"
-                />
-              ) : (
-                <div className="w-full h-full rounded-full bg-[var(--secondary)]/30 border-4 border-white flex items-center justify-center">
-                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-[var(--primary)]/30" aria-hidden="true">
-                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                    <line x1="3" y1="9" x2="21" y2="9" />
-                    <line x1="9" y1="21" x2="9" y2="9" />
-                  </svg>
-                </div>
-              )}
-            </div>
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-normal text-[var(--primary)] leading-tight">
-              Virtual Design Projects
-            </h1>
-          </div>
+    <main>
+      <PageMeta
+        title="Virtual Design — HOK Interior Designs"
+        description="Experience your dream space with immersive 3D virtual design services."
+      />
+      <section className="relative min-h-[50vh] md:min-h-[60vh] flex items-center justify-center">
+        <div className="absolute inset-0 bg-gradient-to-b from-[var(--primary)] via-[var(--primary)]/80 to-[var(--bg)]" />
+        <div className="relative z-10 container-wide px-6 md:px-12 lg:px-20 text-center">
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            className="font-display text-5xl md:text-7xl lg:text-8xl font-semibold text-white leading-tight"
+          >
+            Virtual Designs
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-6 text-lg md:text-xl text-white/70 max-w-3xl mx-auto"
+          >
+            Experience your dream space before it's built. Our virtual design service brings your vision to life with immersive 3D renderings and virtual walkthroughs.
+          </motion.p>
         </div>
       </section>
 
-      <section className="section-pad bg-[var(--bg)] pt-8">
-        <div className="container-wide px-6 md:px-12 lg:px-20">
-          {loading && (
-            <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <div key={i} className="group">
-                  <div className="skeleton aspect-square w-full rounded-3xl" />
-                  <div className="mt-6 space-y-2 text-center">
-                    <div className="skeleton h-8 w-48 mx-auto" />
-                    <div className="skeleton h-10 w-32 mx-auto" />
+      <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 md:px-12 lg:px-20 py-20 md:py-32">
+        <div className="container-wide">
+          <div className="mb-16 md:mb-24 text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Virtual Designs</p>
+            <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
+              Virtual Interior Designs
+            </h2>
+            <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
+              Experience your dream space before it&apos;s built. Our virtual design service brings your vision to life with immersive 3D renderings and virtual walkthroughs.
+            </p>
+          </div>
+
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {designs.map((item, index) => (
+              <motion.div
+                key={item.id || index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                className="group"
+              >
+                <Link to={`/virtual-design/project/${item.id}`} className="block">
+                  <div className="relative w-full mb-4">
+                    <div className="relative rounded-3xl overflow-hidden bg-[var(--secondary)]/30">
+                      <img
+                        src={getOptimizedUrl(getProjectImage(item), { width: 600, crop: 'limit' })}
+                        alt={item.title}
+                        className="aspect-[4/3] w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/40 via-transparent to-transparent pointer-events-none" />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {!loading && items.length === 0 && (
-            <div className="py-24 text-center">
-              <p className="font-display text-3xl text-[var(--primary)]/30">No projects found</p>
-            </div>
-          )}
-
-          <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {items.map((item) => (
-              <VirtualDesignCard key={item.id} item={item} />
+                  <div className="text-center">
+                    <h3 className="font-display text-xl font-medium text-[var(--primary)] leading-tight group-hover:text-[var(--accent)] transition-colors">
+                      {item.title}
+                    </h3>
+                    {item.description && (
+                      <p className="mt-1 text-sm text-[var(--primary)]/60 line-clamp-2">{item.description}</p>
+                    )}
+                  </div>
+                </Link>
+              </motion.div>
             ))}
           </div>
+
+          {designs.length === 0 && (
+            <div className="text-center py-20">
+              <p className="font-display text-xl text-[var(--primary)]/60">No virtual designs available at the moment.</p>
+            </div>
+          )}
+
+          <div className="mt-12 text-center">
+            <Link to="/virtual-design" className="btn-luxury-primary group inline-flex items-center gap-2">
+              View All Virtual Designs
+              <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+            </Link>
+          </div>
         </div>
       </section>
-    </div>
+    </main>
   )
 }
 

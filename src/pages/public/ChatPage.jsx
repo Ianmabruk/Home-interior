@@ -1,166 +1,203 @@
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { useState, useEffect, useRef } from 'react'
-import { api } from '../../services/api'
-import { Send, MessageCircle, Sparkles, Clock, Mail } from 'lucide-react'
-import { PageMeta } from '../../hooks/usePageMeta'
+import { Send, Loader2, User, Bot } from 'lucide-react'
+import { api } from '@services/api'
+import { PageMeta } from '@hooks/usePageMeta'
+import { useAuth } from '@context/AuthContext'
 
 export const ChatPage = () => {
+  const { isAuthenticated, loading: authLoading } = useAuth()
   const [messages, setMessages] = useState([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [newMessage, setNewMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [loading, setLoading] = useState(true)
   const messagesEndRef = useRef(null)
-  const inputRef = useRef(null)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  const sendMessage = async (event) => {
-    event.preventDefault()
-    if (!input.trim()) return
-
-    const userMessage = {
-      id: String(Date.now()),
-      role: 'user',
-      text: input.trim(),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    }
-
-    setMessages((prev) => [...prev, userMessage])
-    setInput('')
-    setLoading(true)
-
+  const loadMessages = useCallback(async () => {
+    if (!isAuthenticated) return
     try {
-      await api.post('/messages', {
-        name: 'Website Visitor',
-        email: '',
-        subject: 'Chat Support',
-        content: input.trim(),
-      })
+      const res = await api.get('/chat')
+      setMessages(res.data || [])
     } catch (err) {
-      console.error('Failed to send message:', err)
-      setMessages((prev) => [...prev, {
-        id: String(Date.now() + 1),
-        role: 'agent',
-        text: 'Thank you for your message. Our team will get back to you within 24 hours.',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      }])
+      console.warn('[CHAT] Failed to load messages:', err?.message)
+      setMessages([])
     } finally {
       setLoading(false)
-      inputRef.current?.focus()
     }
+  }, [isAuthenticated])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadMessages()
+    } else {
+      setLoading(false)
+    }
+  }, [isAuthenticated, loadMessages])
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const handleSend = async (e) => {
+    e.preventDefault()
+    if (!newMessage.trim() || sending) return
+    const message = newMessage.trim()
+    setNewMessage('')
+    setSending(true)
+
+    try {
+      const optimisticMessage = {
+        id: `temp-${Date.now()}`,
+        content: message,
+        sender: 'user',
+        createdAt: new Date().toISOString(),
+        status: 'sending',
+      }
+      setMessages((prev) => [...prev, optimisticMessage])
+
+      const res = await api.post('/chat', { message })
+      setMessages((prev) => [
+        ...prev.filter((m) => m.id !== optimisticMessage.id),
+        res.data,
+      ])
+    } catch (err) {
+      console.error('[CHAT] Failed to send:', err)
+      setMessages((prev) => prev.filter((m) => m.id !== `temp-${Date.now()}`))
+    } finally {
+      setSending(false)
+    }
+  }
+
+  if (authLoading) {
+    return (
+      <main className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
+      </main>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <main className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-[var(--secondary)]/30 text-[var(--accent)]"
+          >
+            <Bot size={48} strokeWidth={1.5} />
+          </motion.div>
+          <h1 className="font-display text-3xl font-semibold text-[var(--primary)] mb-3">Sign In to Chat</h1>
+          <p className="text-[var(--primary)]/60 mb-6">You need to be logged in to access the chat. Please sign in or create an account.</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="/login" className="btn-luxury-primary inline-flex items-center gap-2">
+              <User size={14} strokeWidth={1.5} />
+              Sign In
+            </a>
+            <a href="/register" className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg)] px-8 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--primary)] transition-all duration-300 hover:border-[var(--accent)] hover:text-[var(--accent)]">
+              <User size={14} strokeWidth={1.5} />
+              Sign Up
+            </a>
+          </div>
+        </div>
+      </main>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-primary-bg flex items-center justify-center px-4 py-12">
-      <PageMeta title="Chat — HOK Interior Designs" description="Chat with HOK Interior Designs design experts." />
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-2xl"
-      >
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-warm-gold/20 to-champagne/30 mb-4">
-            <MessageCircle size={24} strokeWidth={1.5} className="text-warm-gold" />
-          </div>
-          <p className="eyebrow mb-2 text-warm-gold">Customer Support</p>
-          <h1 className="font-display text-4xl font-medium text-ink md:text-5xl">Let's Chat</h1>
-          <p className="mt-3 text-sm text-ink/50 max-w-md mx-auto">
-            Our design consultants are here to help. Send us a message and we'll respond within 24 hours.
-          </p>
+    <main className="min-h-screen bg-[var(--bg)] flex flex-col">
+      <PageMeta
+        title="Chat — HOK Interior Designs"
+        description="Chat with our design team for personalized assistance."
+      />
+      <section className="relative min-h-[30vh] md:min-h-[40vh] flex items-center justify-center">
+        <div className="absolute inset-0 bg-gradient-to-b from-[var(--primary)] via-[var(--primary)]/80 to-[var(--bg)]" />
+        <div className="relative z-10 container-wide px-6 md:px-12 lg:px-20 text-center">
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            className="font-display text-5xl md:text-7xl lg:text-8xl font-semibold text-white leading-tight"
+          >
+            Chat
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-6 text-lg md:text-xl text-white/70 max-w-3xl mx-auto"
+          >
+            Connect with our design team for personalized assistance, project inquiries, and design consultations.
+          </motion.p>
         </div>
+      </section>
 
-        {/* Chat Card */}
-        <div className="rounded-[2rem] border border-champagne/30 bg-white shadow-soft overflow-hidden">
-          {/* Messages Area */}
-          <div className="h-[420px] overflow-y-auto bg-gradient-to-b from-primary-bg/30 to-primary-bg p-6 scroll-smooth">
-            {messages.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-                className="flex h-full flex-col items-center justify-center text-center"
-              >
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-warm-gold/15 to-champagne/25 mb-4">
-                  <Sparkles size={28} strokeWidth={1.2} className="text-warm-gold" />
+      <section className="flex-1 flex flex-col px-6 md:px-12 lg:px-20 py-8 md:py-12">
+        <div className="container-wide flex-1 flex flex-col max-w-4xl mx-auto w-full">
+          <div className="flex-1 flex flex-col bg-white rounded-3xl border border-[var(--border)]/40 shadow-[0_10px_40px_rgba(42,36,31,0.06)] overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {loading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
                 </div>
-                <p className="font-display text-xl font-medium text-ink mb-2">How can we help you today?</p>
-                <p className="text-sm text-ink/45 max-w-xs">
-                  Whether you need design advice, product information, or a consultation — we're here for you.
-                </p>
-              </motion.div>
-            )}
-
-            <div className="space-y-4">
-              {messages.map((message, i) => (
-                <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-[75%] rounded-2xl px-5 py-3 ${
-                    message.role === 'user'
-                      ? 'bg-dark-luxury text-white rounded-br-md'
-                      : 'bg-white border border-champagne/30 text-ink rounded-bl-md shadow-soft'
-                  }`}>
-                    <p className="text-sm leading-relaxed">{message.text}</p>
-                    <p className={`mt-1.5 text-2xs ${message.role === 'user' ? 'text-white/60' : 'text-ink/35'}`}>
-                      {message.time}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
+              ) : messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <Bot className="h-16 w-16 text-[var(--primary)]/30 mb-4" />
+                  <h3 className="font-display text-xl text-[var(--primary)] mb-2">No messages yet</h3>
+                  <p className="text-[var(--primary)]/60 max-w-md">Start a conversation with our design team. We&apos;re here to help!</p>
+                </div>
+              ) : (
+                messages.map((msg, index) => (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    className={`flex gap-3 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}
+                  >
+                    <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${msg.sender === 'user' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--secondary)]/30 text-[var(--primary)]'}`}>
+                      {msg.sender === 'user' ? <User size={20} strokeWidth={1.5} /> : <Bot size={20} strokeWidth={1.5} />}
+                    </div>
+                    <div className={`max-w-[75%] ${msg.sender === 'user' ? 'text-right' : ''}`}>
+                      <div className={`inline-block px-4 py-3 rounded-2xl ${msg.sender === 'user' ? 'bg-[var(--primary)] text-white' : 'bg-[var(--secondary)]/30 text-[var(--primary)]'}`}>
+                        <p className="text-sm leading-relaxed">{msg.content}</p>
+                      </div>
+                      <p className={`mt-1 text-xs ${msg.sender === 'user' ? 'text-[var(--primary)]/40' : 'text-[var(--primary)]/40'} text-right`}>
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))
+              )}
               <div ref={messagesEndRef} />
             </div>
-          </div>
 
-          {/* Input Area */}
-          <div className="border-t border-champagne/20 bg-white p-4">
-            <form onSubmit={sendMessage} className="flex items-end gap-3">
-              <div className="relative flex-1">
+            <form onSubmit={handleSend} className="p-6 border-t border-[var(--border)]/40">
+              <div className="flex gap-3">
                 <input
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type your message..."
-                  disabled={loading}
-                  className="w-full rounded-2xl border border-champagne/40 bg-linen px-4 py-3 pr-10 text-sm outline-none placeholder:text-ink/35 focus:border-warm-gold focus:ring-2 focus:ring-warm-gold/20 transition"
+                  className="flex-1 input-luxury"
+                  disabled={sending}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e); } }}
                 />
+                <button
+                  type="submit"
+                  disabled={sending || !newMessage.trim()}
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--primary)] text-white transition-colors hover:bg-[var(--accent)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Send message"
+                >
+                  {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send size={20} strokeWidth={1.5} />}
+                </button>
               </div>
-              <button
-                type="submit"
-                disabled={loading || !input.trim()}
-                className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-warm-gold to-warm-gold/80 text-white shadow-lg transition hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                aria-label="Send message"
-              >
-                {loading ? (
-                  <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <Send size={18} strokeWidth={1.5} className="ml-0.5" />
-                )}
-              </button>
             </form>
-            <div className="mt-3 flex items-center gap-4 text-2xs text-ink/35">
-              <div className="flex items-center gap-1.5">
-                <Clock size={12} strokeWidth={1.5} />
-                <span>Typically replies within 24 hours</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Mail size={12} strokeWidth={1.5} />
-                <span>Or email us directly</span>
-              </div>
-            </div>
           </div>
         </div>
-      </motion.div>
-    </div>
+      </section>
+    </main>
   )
 }
+
+export default ChatPage

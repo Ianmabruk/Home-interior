@@ -1,406 +1,378 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Link } from 'react-router-dom'
+import { ChevronLeft, ChevronRight, ArrowUpRight, ArrowRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useParams, Link } from 'react-router-dom'
-import { X, Play, CalendarCheck, ArrowRight } from 'lucide-react'
-import { api } from '../../services/api'
-import { getOptimizedUrl, getOptimizedVideoUrl, getVideoPosterUrl } from '../../utils/cloudinaryHelpers'
+import { api } from '@services/api'
+import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
+import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
+import { PageMeta } from '@hooks/usePageMeta'
+import { useZoom } from '@hooks/useZoom'
 
-export const VirtualDesignDetailPage = () => {
-  const { id } = useParams()
-  const [project, setProject] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [galleryIndex, setGalleryIndex] = useState(0)
-  const [imageFullscreen, setImageFullscreen] = useState(null)
-  const [videoFullscreen, setVideoFullscreen] = useState(null)
+export const VirtualDesignDetailPage = ({ initialData }) => {
+  const [design, setDesign] = useState(initialData || null)
+  const [loading, setLoading] = useState(!initialData)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
-  const [zoomScale, setZoomScale] = useState(1)
-  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 })
-  const isDragging = useRef(false)
-  const dragStart = useRef({ x: 0, y: 0 })
-  const imageRef = useRef(null)
+  const { zoomStyle, handleWheel, handleMouseDown, handleTouchStart, handleTouchEnd } = useZoom()
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await api.get(`/virtual-design/${id}`)
-        setProject(res.data)
-      } catch (err) {
-        console.warn('[VIRTUAL DETAIL] Failed to load:', err?.message)
-        setProject(null)
-      } finally {
-        setLoading(false)
-      }
+  const loadDesign = useCallback(async () => {
+    try {
+      const res = await api.get('/virtual-design/project/' + (new URLSearchParams(window.location.search)).get('id') || '')
+      setDesign(res.data || null)
+    } catch (err) {
+      console.warn('[VIRTUAL DESIGN DETAIL] Failed to load:', err?.message)
+      setDesign(null)
+    } finally {
+      setLoading(false)
     }
-    load()
-  }, [id])
-
-  useEffect(() => {
-    if (project) document.body.style.overflow = ''
-    else document.body.style.overflow = ''
-    return () => { document.body.style.overflow = '' }
-  }, [project])
-
-  useEffect(() => {
-    setTimeout(() => {
-      setGalleryIndex(0)
-    }, 0)
-  }, [project])
-
-  const closeImageModal = useCallback(() => {
-    setImageFullscreen(null)
-    setGalleryIndex(0)
-    setZoomScale(1)
-    setZoomPosition({ x: 0, y: 0 })
   }, [])
 
-  const closeVideoModal = () => { setVideoFullscreen(null) }
+  useEffect(() => {
+    if (!initialData) loadDesign()
+  }, [initialData, loadDesign])
 
   useEffect(() => {
-    setTimeout(() => {
-      setZoomScale(1)
-      setZoomPosition({ x: 0, y: 0 })
-      isDragging.current = false
-    }, 0)
-  }, [galleryIndex])
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (!imageFullscreen) return
-      switch (e.key) {
-        case 'Escape':
-          e.preventDefault()
-          closeImageModal()
-          break
-        case 'ArrowLeft':
-          e.preventDefault()
-          setGalleryIndex((prev) => (prev === 0 ? 0 : prev - 1))
-          break
-        case 'ArrowRight':
-          e.preventDefault()
-          setGalleryIndex((prev) => (prev === 0 ? 0 : prev + 1))
-          break
-      }
+    const handler = (event) => {
+      const payload = getAdminDataChangedPayload(event)
+      if (payload?.type === 'virtual-changed' && !initialData) loadDesign()
     }
-    if (imageFullscreen) {
-      window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+    return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+  }, [loadDesign, initialData])
+
+  const images = useMemo(() => {
+    if (!design) return []
+    const imgArray = []
+    if (design.imageUrl || design.mediaUrl) imgArray.push(design.imageUrl || design.mediaUrl)
+    if (design.galleryImages && design.galleryImages.length > 0) {
+      design.galleryImages.forEach((img) => imgArray.push(typeof img === 'string' ? img : img.url))
     }
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [imageFullscreen, closeImageModal])
+    return [...new Set(imgArray.filter(Boolean))]
+  }, [design])
 
-  const touchStartX = useRef(null)
-  const touchStartY = useRef(null)
-
-  const handleTouchStart = (e) => {
-    if (!imageFullscreen) return
-    touchStartX.current = e.touches[0].clientX
-    touchStartY.current = e.touches[0].clientY
+  const handleLightboxNext = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length)
   }
 
-  const handleTouchEnd = (e) => {
-    if (!imageFullscreen || touchStartX.current === null) return
-    const touchEndX = e.changedTouches[0].clientX
-    const touchEndY = e.changedTouches[0].clientY
-    const diffX = touchStartX.current - touchEndX
-    const diffY = touchStartY.current - touchEndY
-    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
-      if (diffX > 0) {
-        setGalleryIndex((prev) => (prev === 0 ? 0 : prev - 1))
-      } else {
-        setGalleryIndex((prev) => (prev === 0 ? 0 : prev + 1))
-      }
-    }
-    touchStartX.current = null
-    touchStartY.current = null
-  }
-
-  const handleWheel = (e) => {
-    if (!imageFullscreen) return
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault()
-      setZoomScale((prev) => {
-        const newScale = Math.min(Math.max(prev - e.deltaY * 0.001, 1), 4)
-        return newScale
-      })
-    }
-  }
-
-  const handleMouseDown = (e) => {
-    if (zoomScale <= 1) return
-    isDragging.current = true
-    dragStart.current = { x: e.clientX - zoomPosition.x, y: e.clientY - zoomPosition.y }
-    if (imageRef.current) imageRef.current.style.cursor = 'grabbing'
-  }
-
-  const handleMouseMove = (e) => {
-    if (!isDragging.current || zoomScale <= 1) return
-    setZoomPosition({
-      x: e.clientX - dragStart.current.x,
-      y: e.clientY - dragStart.current.y,
-    })
-  }
-
-  const handleMouseUp = () => {
-    isDragging.current = false
-    if (imageRef.current) imageRef.current.style.cursor = 'grab'
-  }
-
-  const handleDoubleClick = () => {
-    setZoomScale((prev) => (prev > 1 ? 1 : 2))
+  const handleLightboxPrev = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[var(--bg)]">
-        <section className="py-16 md:py-24 px-6 md:px-12 lg:px-20">
-          <div className="container-wide text-center">
-            <div className="mb-12 md:mb-16 flex flex-col items-center">
-              <div className="relative w-[150px] h-[150px] mx-auto mb-8">
-                <div className="w-full h-full rounded-full bg-[var(--secondary)]/30 border-4 border-white flex items-center justify-center">
-                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-[var(--primary)]/30" aria-hidden="true">
-                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                    <line x1="3" y1="9" x2="21" y2="9" />
-                    <line x1="9" y1="21" x2="9" y2="9" />
-                  </svg>
-                </div>
-              </div>
-              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-normal text-[var(--primary)] leading-tight">
-                Loading...
-              </h1>
-            </div>
-          </div>
-        </section>
+      <main className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
       </main>
     )
   }
 
-  if (!project) {
+  if (!design) {
     return (
-      <main className="min-h-screen bg-[var(--bg)]">
-        <div className="container-wide px-6 md:px-12 lg:px-20 py-20 text-center">
-          <h1 className="font-display text-4xl text-[var(--primary)]">Project Not Found</h1>
-          <p className="mt-4 text-sm text-[var(--primary)]/55">The virtual design you are looking for does not exist.</p>
-          <Link to="/virtual-design" className="btn-luxury-primary mt-6 inline-block">Back to Virtual Designs</Link>
+      <main className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <h1 className="font-display text-3xl font-semibold text-[var(--primary)] mb-3">Project Not Found</h1>
+          <p className="text-[var(--primary)]/60 mb-6">The virtual design project you&apos;re looking for doesn&apos;t exist or has been removed.</p>
+          <Link to="/virtual-design" className="btn-luxury-primary inline-flex items-center gap-2">
+            Back to Virtual Designs
+            <ArrowRight size={14} strokeWidth={1.5} />
+          </Link>
         </div>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-[var(--bg)]">
-      {/* Gallery Section - Vertical Stack */}
-      {project.galleryMedia && project.galleryMedia.length > 0 && (
-        <section className="section-pad bg-[var(--bg)] pt-8">
-          <div className="container-wide px-6 md:px-12 lg:px-20">
-            <motion.div
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true }}
-              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
-              className="grid gap-8 grid-cols-1"
+    <main>
+      <PageMeta
+        title={`${design.title} — HOK Interior Designs`}
+        description={design.description || `Explore ${design.title} virtual design project.`}
+        image={images[0]}
+      />
+      <div className="min-h-screen bg-[var(--bg)]">
+        {/* Hero Gallery */}
+        <section className="relative">
+          <div className="relative aspect-[16/10] md:aspect-[3/2] overflow-hidden">
+            <div
+              className="absolute inset-0"
+              style={zoomStyle}
+              onWheel={handleWheel}
+              onMouseDown={handleMouseDown}
+              onTouchStart={handleTouchStart}
+              onTouchMove={(e) => e.preventDefault()}
+              onTouchEnd={handleTouchEnd}
+              onMouseUp={handleTouchEnd}
+              onMouseLeave={handleTouchEnd}
             >
-              {project.galleryMedia.map((media, idx) => (
-                <motion.div
-                  key={idx}
-                  variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } } }}
-                  className="group cursor-pointer"
-                >
-                  <div className="relative overflow-hidden rounded-3xl bg-white border border-[var(--border)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      {media.type === 'video' ? (
-                        <video
-                          src={media.url}
-                          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                          autoPlay
-                          muted
-                          loop
-                          playsInline
-                          preload="metadata"
-                        />
-                      ) : (
-                        <img
-                          src={media.url}
-                          alt={`${project.title} gallery ${idx + 1}`}
-                          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                          loading="lazy"
-                        />
-                      )}
-                      {media.type === 'video' && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setVideoFullscreen({ videoUrl: media.url, title: `${project.title} - Gallery ${idx + 1}`, category: media.type }) }}
-                          className="absolute right-3 bottom-3 flex h-11 w-11 items-center justify-center bg-white/90 text-[var(--primary)] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white shadow-lg hover:scale-110"
-                          aria-label="Play video fullscreen"
-                        >
-                          <Play size={20} strokeWidth={1.5} className="ml-1" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-        </section>
-      )}
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={currentImageIndex}
+                  src={getOptimizedUrl(images[currentImageIndex], { width: 1920, crop: 'limit' })}
+                  alt={`${design.title} - Image ${currentImageIndex + 1}`}
+                  className="h-full w-full object-cover"
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                />
+              </AnimatePresence>
+            </div>
 
-      {/* Project Details */}
-      <section className="section-pad bg-[var(--bg)]">
-        <div className="container-wide px-6 md:px-12 lg:px-20">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-            className="mt-16 md:mt-24 max-w-3xl mx-auto text-center"
-          >
-            {project.description && (
-              <div className="mb-12">
-                <h2 className="font-display text-3xl md:text-4xl font-normal text-[var(--primary)] mb-4">Description</h2>
-                <p className="text-base leading-relaxed text-[var(--primary)]/70">{project.description}</p>
-              </div>
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={handleLightboxPrev}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-[var(--primary)] shadow-lg hover:bg-white transition-colors md:left-8"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft size={24} strokeWidth={1.5} />
+                </button>
+                <button
+                  onClick={handleLightboxNext}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-[var(--primary)] shadow-lg hover:bg-white transition-colors md:right-8"
+                  aria-label="Next image"
+                >
+                  <ChevronRight size={24} strokeWidth={1.5} />
+                </button>
+
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 md:bottom-8">
+                  {images.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`h-2 w-2 rounded-full transition-all duration-300 ${
+                        index === currentImageIndex ? 'bg-white w-8' : 'bg-white/50 hover:bg-white/75'
+                      }`}
+                      aria-label={`Go to image ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              </>
             )}
 
-            {/* Media Type Badge */}
-            <div className="mb-12">
-              <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
-                project.mediaType === 'video'
-                  ? 'bg-blue-100 text-blue-800'
-                  : 'bg-green-100 text-green-800'
-              }`}>
-                {project.mediaType === 'video' ? 'Video' : 'Image'}
-              </span>
-            </div>
-
-            {/* Conversion CTA */}
-            <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button
-                onClick={() => window.dispatchEvent(new CustomEvent('open-consultation'))}
-                className="group btn-luxury-primary px-8 py-4 text-[11px] rounded-xl"
-              >
-                Book Consultation
-                <CalendarCheck size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
-              </button>
-              <Link
-                to="/contact"
-                className="group btn-luxury-secondary px-8 py-4 text-[11px] rounded-xl"
-              >
-                Contact Us
-                <ArrowRight size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
-              </Link>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Image Fullscreen Modal */}
-      <AnimatePresence>
-        {imageFullscreen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8 bg-[var(--primary)]/98 backdrop-blur-sm"
-              onClick={closeImageModal}
-              aria-hidden="true"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed inset-4 md:inset-10 lg:inset-20 z-50 bg-white rounded-3xl overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.3)]"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="image-fullscreen-title"
+            <button
+              onClick={() => { setLightboxOpen(true); setCurrentImageIndex(0) }}
+              className="absolute bottom-4 right-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-[var(--primary)] shadow-lg hover:bg-white transition-colors md:bottom-8 md:right-8"
+              aria-label="Open fullscreen gallery"
             >
-              <button
-                onClick={closeImageModal}
-                className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/90 backdrop-blur text-[var(--primary)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-all duration-300"
-                aria-label="Close"
-              >
-                <X size={20} strokeWidth={2} />
-              </button>
+              <ArrowUpRight size={24} strokeWidth={1.5} />
+            </button>
+          </div>
 
-              <div className="relative h-full w-full flex items-center justify-center p-4" onWheel={handleWheel}>
-                <img
-                  ref={imageRef}
-                  src={getOptimizedUrl(imageFullscreen.mediaUrl, { width: 1920 })}
-                  alt={imageFullscreen.title}
-                  className="max-h-[80vh] max-w-full object-contain cursor-grab"
-                  style={{
-                    transform: `translate(${zoomPosition.x}px, ${zoomPosition.y}px) scale(${zoomScale})`,
-                    transformOrigin: 'center center',
-                    transition: zoomScale > 1 ? 'none' : 'transform 0.1s ease-out',
-                  }}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
-                  onDoubleClick={handleDoubleClick}
-                  onTouchStart={handleTouchStart}
-                  onTouchEnd={handleTouchEnd}
-                />
+          {images.length > 1 && (
+            <div className="mt-6 px-6 md:px-12 lg:px-20">
+              <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+                {images.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`flex-shrink-0 h-20 w-28 md:h-24 md:w-32 rounded-xl overflow-hidden border-2 transition-all duration-300 ${
+                      index === currentImageIndex ? 'border-[var(--accent)] shadow-[0_0_0_2px_rgba(232,154,67,0.3)]' : 'border-transparent hover:border-[var(--accent)]/40'
+                    }`}
+                    aria-label={`View image ${index + 1}`}
+                    aria-current={index === currentImageIndex ? 'true' : 'false'}
+                  >
+                    <img
+                      src={getOptimizedUrl(img, { width: 200, crop: 'fill' })}
+                      alt={`${design.title} - Image ${index + 1}`}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  </button>
+                ))}
               </div>
+            </div>
+          )}
+        </section>
 
-              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 bg-gradient-to-t from-[var(--primary)]/90 to-transparent text-white">
-                <h2 id="image-fullscreen-title" className="font-display text-3xl md:text-4xl font-normal leading-tight">{imageFullscreen.title}</h2>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+        {/* Project Details */}
+        <section className="px-6 md:px-12 lg:px-20 py-16 md:py-24">
+          <div className="container-wide">
+            <div className="grid gap-12 lg:grid-cols-3">
+              <div className="lg:col-span-2 space-y-10">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-2">{design.category || 'Virtual Design'}</p>
+                  <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold text-[var(--primary)] leading-tight">
+                    {design.title}
+                  </h1>
+                  {design.location && (
+                    <p className="mt-3 text-base md:text-lg text-[var(--primary)]/60 flex items-center gap-2">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      {design.location}
+                    </p>
+                  )}
+                </div>
 
-      {/* Video Fullscreen Modal */}
-      <AnimatePresence>
-        {videoFullscreen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8 bg-[var(--primary)]/98 backdrop-blur-sm"
-              onClick={closeVideoModal}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed inset-4 md:inset-10 lg:inset-20 z-50 bg-white rounded-3xl overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.3)] max-w-6xl"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="video-fullscreen-title"
-            >
-              <button
-                onClick={closeVideoModal}
-                className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/90 backdrop-blur text-[var(--primary)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-all duration-300"
-                aria-label="Close"
-              >
-                <X size={20} strokeWidth={2} />
-              </button>
-              <div className="relative h-[70vh] w-full">
-                <video
-                  src={getOptimizedVideoUrl(videoFullscreen.videoUrl, { width: 1280 })}
-                  poster={getVideoPosterUrl(videoFullscreen.videoUrl, { width: 1280 })}
-                  controls
-                  autoPlay
-                  loop
-                  playsInline
-                  preload="metadata"
-                  className="h-full w-full object-contain rounded-2xl shadow-2xl"
-                />
-              </div>
-              <div className="p-6 md:p-8 bg-[var(--bg)]/95 backdrop-blur-sm">
-                <h2 id="video-fullscreen-title" className="font-display text-3xl font-normal text-[var(--primary)]">{videoFullscreen.title}</h2>
-                {videoFullscreen.description && (
-                  <p className="mt-3 text-sm text-[var(--primary)]/60 leading-relaxed">{videoFullscreen.description}</p>
+                {design.description && (
+                  <div className="prose prose-lg max-w-none text-[var(--primary)]/70">
+                    <p className="leading-relaxed">{design.description}</p>
+                  </div>
+                )}
+
+                {design.features && design.features.length > 0 && (
+                  <div>
+                    <h3 className="font-display text-2xl md:text-3xl font-medium text-[var(--primary)] mb-6">Key Features</h3>
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {design.features.map((feature, index) => (
+                        <li key={index} className="flex items-start gap-3 p-4 bg-white rounded-2xl border border-[var(--border)]/40">
+                          <div className="flex-shrink-0 h-10 w-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)]">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </div>
+                          <span className="text-[var(--primary)]/80">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {design.specifications && Object.keys(design.specifications).length > 0 && (
+                  <div>
+                    <h3 className="font-display text-2xl md:text-3xl font-medium text-[var(--primary)] mb-6">Specifications</h3>
+                    <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {Object.entries(design.specifications).map(([key, value]) => (
+                        <div key={key} className="p-4 bg-white rounded-2xl border border-[var(--border)]/40">
+                          <dt className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-1">{key}</dt>
+                          <dd className="text-[var(--primary)]/80">{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
                 )}
               </div>
-            </motion.div>
-          </>
+
+              <div className="space-y-6">
+                <div className="sticky top-24 bg-white rounded-3xl border border-[var(--border)]/40 p-6 md:p-8 shadow-[0_10px_40px_rgba(42,36,31,0.06)]">
+                  <h3 className="font-display text-xl font-medium text-[var(--primary)] mb-6">Project Inquiry</h3>
+                  <p className="text-[var(--primary)]/60 mb-6">Interested in this virtual design? Get in touch to discuss your project.</p>
+                  <Link
+                    to="/contact"
+                    className="btn-luxury-primary w-full inline-flex items-center justify-center gap-2"
+                  >
+                    Contact Us
+                    <ArrowRight size={14} strokeWidth={1.5} />
+                  </Link>
+                </div>
+
+                {design.relatedProjects && design.relatedProjects.length > 0 && (
+                  <div>
+                    <h3 className="font-display text-xl font-medium text-[var(--primary)] mb-4">Related Projects</h3>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {design.relatedProjects.slice(0, 2).map((related, index) => (
+                        <Link
+                          key={related.id || index}
+                          to={`/virtual-design/project/${related.id}`}
+                          className="group relative aspect-[4/3] rounded-2xl overflow-hidden bg-[var(--secondary)]/30"
+                        >
+                          {related.imageUrl && (
+                            <img
+                              src={getOptimizedUrl(related.imageUrl, { width: 400, crop: 'limit' })}
+                              alt={related.title}
+                              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/70 via-transparent to-transparent flex items-end p-4">
+                            <h4 className="font-display text-lg font-medium text-white w-full">
+                              {related.title}
+                            </h4>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* Fullscreen Lightbox */}
+      <AnimatePresence>
+        {lightboxOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-[var(--primary)]/95 backdrop-blur-sm flex items-center justify-center"
+            onClick={() => setLightboxOpen(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Fullscreen gallery"
+          >
+            <button
+              onClick={() => setLightboxOpen(false)}
+              className="absolute top-6 right-6 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+              aria-label="Close gallery"
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
+            <button
+              onClick={(e) => { e.stopPropagation(); handleLightboxPrev() }}
+              className="absolute left-6 z-10 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors hidden md:block"
+              aria-label="Previous image"
+            >
+              <ChevronLeft size={28} strokeWidth={1.5} />
+            </button>
+
+            <button
+              onClick={(e) => { e.stopPropagation(); handleLightboxNext() }}
+              className="absolute right-6 z-10 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors hidden md:block"
+              aria-label="Next image"
+            >
+              <ChevronRight size={28} strokeWidth={1.5} />
+            </button>
+
+            <div
+              style={zoomStyle}
+              onWheel={handleWheel}
+              onMouseDown={handleMouseDown}
+              onTouchStart={handleTouchStart}
+              onTouchMove={(e) => e.preventDefault()}
+              onTouchEnd={handleTouchEnd}
+              onMouseUp={handleTouchEnd}
+              onMouseLeave={handleTouchEnd}
+              className="relative max-h-[90vh] max-w-[90vw]"
+            >
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={currentImageIndex}
+                  src={getOptimizedUrl(images[currentImageIndex], { width: 2560, crop: 'limit' })}
+                  alt={`${design.title} - Image ${currentImageIndex + 1}`}
+                  className="max-h-[90vh] max-w-[90vw] object-contain"
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                />
+              </AnimatePresence>
+            </div>
+
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2">
+              {images.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(index) }}
+                  className={`h-2 w-2 rounded-full transition-all duration-300 ${
+                    index === currentImageIndex ? 'bg-white w-8' : 'bg-white/50 hover:bg-white/75'
+                  }`}
+                  aria-label={`Go to image ${index + 1}`}
+                />
+              ))}
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </main>
   )
 }
+
+export default VirtualDesignDetailPage

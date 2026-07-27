@@ -1,9 +1,10 @@
+import { memo } from 'react'
 import { Link } from 'react-router-dom'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
 const CIRCULAR_CARD_SIZE = 300
 
-export const CircularNavCard = ({ to, label, imageUrl, alt, size = CIRCULAR_CARD_SIZE, priority = false }) => {
+export const CircularNavCard = memo(({ to, label, imageUrl, alt, size = CIRCULAR_CARD_SIZE, priority = false }) => {
   const displayUrl = typeof imageUrl === 'string' ? imageUrl : null
   const clampedSize = Math.min(size, 320)
 
@@ -36,7 +37,7 @@ export const CircularNavCard = ({ to, label, imageUrl, alt, size = CIRCULAR_CARD
                 fetchPriority={priority ? 'high' : undefined}
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-espresso/20">
+              <div className="flex h-full w-full items-center justify-center text-[var(--primary)]/20">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
                   <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
                   <circle cx="9" cy="9" r="2" />
@@ -63,6 +64,6 @@ export const CircularNavCard = ({ to, label, imageUrl, alt, size = CIRCULAR_CARD
       </div>
     </div>
   )
-}
+})
 
 export default CircularNavCard

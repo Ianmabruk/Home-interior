@@ -1,141 +1,100 @@
-/* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useCallback, useState, useRef, memo } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react'
 import { api } from '../services/api'
-import { useAuth } from './AuthContext'
 
 const ShopContext = createContext(null)
 
-export const ShopProvider = memo(({ children }) => {
-  const { isAuthenticated } = useAuth()
+export function ShopProvider({ children }) {
   const [cart, setCart] = useState([])
   const [wishlist, setWishlist] = useState([])
-  const prevAuthRef = useRef(isAuthenticated)
+  const [loading] = useState(false)
+
+  const fetchCart = useCallback(async () => {
+    try {
+      const res = await api.get('/cart')
+      setCart(res.data || [])
+    } catch {
+      setCart([])
+    }
+  }, [])
+
+  const fetchWishlist = useCallback(async () => {
+    try {
+      const res = await api.get('/wishlist')
+      setWishlist(res.data || [])
+    } catch {
+      setWishlist([])
+    }
+  }, [])
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      if (prevAuthRef.current) {
-        setCart([])
-        setWishlist([])
-      }
-      prevAuthRef.current = false
-      return
+    fetchCart()
+    fetchWishlist()
+  }, [fetchCart, fetchWishlist])
+
+  const addToCart = useCallback(async (product, variant, quantity = 1) => {
+    const res = await api.post('/cart', { productId: product._id, variantId: variant?._id, quantity })
+    setCart(res.data || [])
+    return res.data
+  }, [])
+
+  const removeFromCart = useCallback(async (productId, variantId) => {
+    const res = await api.delete(`/cart/${productId}`, { data: { variantId } })
+    setCart(res.data || [])
+    return res.data
+  }, [])
+
+  const setCartQuantity = useCallback(async (productId, quantity, variantId) => {
+    const res = await api.patch(`/cart/${productId}`, { quantity, variantId })
+    setCart(res.data || [])
+    return res.data
+  }, [])
+
+  const clearCart = useCallback(async () => {
+    await api.delete('/cart')
+    setCart([])
+  }, [])
+
+  const addToWishlist = useCallback(async (productId) => {
+    const res = await api.post('/wishlist', { productId })
+    setWishlist(res.data || [])
+    return res.data
+  }, [])
+
+  const removeFromWishlist = useCallback(async (productId) => {
+    const res = await api.delete(`/wishlist/${productId}`)
+    setWishlist(res.data || [])
+    return res.data
+  }, [])
+
+  const toggleWishlist = useCallback(async (product) => {
+    const isInWishlist = wishlist.some((item) => item._id === product._id)
+    if (isInWishlist) {
+      await removeFromWishlist(product._id)
+    } else {
+      await addToWishlist(product._id)
     }
-    if (!prevAuthRef.current && isAuthenticated) {
-      let cancelled = false
-      Promise.all([api.get('/users/wishlist'), api.get('/users/cart')])
-        .then(([wishlistRes, cartRes]) => {
-          if (cancelled) return
-          setWishlist(wishlistRes.data?.products || [])
-          const mappedCart = (cartRes.data?.items || []).map((entry) => ({
-            ...entry,
-            quantity: entry.quantity,
-            selectedVariant: entry.selectedVariant || null,
-          }))
-          setCart(mappedCart)
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setWishlist([])
-            setCart([])
-          }
-        })
-      prevAuthRef.current = true
-      return () => { cancelled = true }
-    }
+  }, [wishlist, addToWishlist, removeFromWishlist])
 
-    prevAuthRef.current = true
-  }, [isAuthenticated])
-
-  const addToCart = useCallback((product, quantity = 1, variant = null) => {
-    const selectedVariant = variant ? { color: variant.color, colorHex: variant.colorHex, image: variant.image } : null
-
-    if (isAuthenticated) {
-      api.post('/users/cart', { productId: product._id, quantity, variant: selectedVariant }).then((res) => {
-        const mapped = (res.data?.items || []).map((entry) => ({ ...entry, quantity: entry.quantity, selectedVariant: entry.selectedVariant || null }))
-        setCart(mapped)
-      }).catch(() => {})
-    }
-
-    setCart((prev) => {
-      const existing = prev.find((item) => item._id === product._id && item.selectedVariant?.color === selectedVariant?.color)
-      if (existing) {
-        return prev.map((item) =>
-          item._id === product._id && item.selectedVariant?.color === selectedVariant?.color
-            ? { ...item, quantity: item.quantity + quantity }
-            : item,
-        )
-      }
-      return [...prev, { ...product, quantity, selectedVariant }]
-    })
-  }, [isAuthenticated])
-
-  const removeFromCart = useCallback((productId, variant = null) => {
-    const selectedVariant = variant ? { color: variant.color } : null
-
-    if (isAuthenticated) {
-      const params = selectedVariant?.color ? `?color=${encodeURIComponent(selectedVariant.color)}` : ''
-      api.delete(`/users/cart/${productId}${params}`).then((res) => {
-        const mapped = (res.data?.items || []).map((entry) => ({ ...entry, quantity: entry.quantity, selectedVariant: entry.selectedVariant || null }))
-        setCart(mapped)
-      }).catch(() => {})
-    }
-
-    setCart((prev) => prev.filter((item) => !(item._id === productId && item.selectedVariant?.color === selectedVariant?.color)))
-  }, [isAuthenticated])
-
-  const setCartQuantity = useCallback((productId, quantity, variant = null) => {
-    if (quantity <= 0) {
-      removeFromCart(productId, variant)
-      return
-    }
-
-    const selectedVariant = variant ? { color: variant.color } : null
-
-    if (isAuthenticated) {
-      api.patch('/users/cart', { productId, quantity, variant: selectedVariant }).then((res) => {
-        const mapped = (res.data?.items || []).map((entry) => ({ ...entry, quantity: entry.quantity, selectedVariant: entry.selectedVariant || null }))
-        setCart(mapped)
-      }).catch(() => {})
-    }
-
-    setCart((prev) => prev.map((item) => (item._id === productId && item.selectedVariant?.color === selectedVariant?.color ? { ...item, quantity } : item)))
-  }, [isAuthenticated, removeFromCart])
-
-  const toggleWishlist = useCallback((product) => {
-    if (isAuthenticated) {
-      api.post('/users/wishlist/toggle', { productId: product._id }).then((res) => {
-        setWishlist(res.data?.products || [])
-      }).catch(() => {})
-    }
-
-    setWishlist((prev) => {
-      const exists = prev.find((item) => item._id === product._id)
-      return exists ? prev.filter((item) => item._id !== product._id) : [...prev, product]
-    })
-  }, [isAuthenticated])
-
-  const clearCart = useCallback(() => setCart([]), [])
   const value = useMemo(
     () => ({
       cart,
       wishlist,
+      loading,
       addToCart,
       removeFromCart,
       setCartQuantity,
-      toggleWishlist,
       clearCart,
-      cartTotal: cart.reduce((sum, item) => {
-        const price = item.selectedVariant?.price || item.price
-        return sum + price * item.quantity
-      }, 0),
+      addToWishlist,
+      removeFromWishlist,
+      toggleWishlist,
+      fetchCart,
+      fetchWishlist,
     }),
-    [cart, wishlist, addToCart, removeFromCart, setCartQuantity, toggleWishlist, clearCart],
+    [cart, wishlist, loading, addToCart, removeFromCart, setCartQuantity, clearCart, addToWishlist, removeFromWishlist, toggleWishlist, fetchCart, fetchWishlist],
   )
 
   return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>
-})
-
-ShopProvider.displayName = 'ShopProvider'
+}
 
 export function useShop() {
   const ctx = useContext(ShopContext)

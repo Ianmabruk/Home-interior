@@ -1,11 +1,9 @@
-import { lazy, Suspense, useEffect, memo } from 'react'
+import { lazy, Suspense, memo, useEffect } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
-import { Layout } from '../components/layout/Layout'
+import { Layout } from '@components/layout/Layout'
 import { ProtectedRoute } from './ProtectedRoute'
-import { ErrorBoundary } from '../components/common/ErrorBoundary'
-import { usePrefetchOnIdle } from '../hooks/useRoutePrefetch'
-
-const VirtualDesignDetailPage = lazy(() => import('../pages/public/VirtualDesignDetailPage').then((m) => ({ default: m.VirtualDesignDetailPage })))
+import { ErrorBoundary } from '@components/common/ErrorBoundary'
+import { usePrefetchOnIdle } from '@hooks/useRoutePrefetch'
 
 const RouteFallback = () => (
   <div className="flex min-h-[60vh] items-center justify-center">
@@ -30,6 +28,7 @@ const ScrollToTop = () => {
   return null
 }
 
+// Lazy-loaded page components with caching
 const routeCache = new Map()
 
 const lazyWithCache = (importFn, cacheKey) => {
@@ -43,16 +42,54 @@ const lazyWithCache = (importFn, cacheKey) => {
   })
 }
 
+// Public pages
+const HomePage = lazyWithCache(() => import('@pages/public/HomePage'), 'home')
+const PortfolioPage = lazyWithCache(() => import('@pages/public/PortfolioPage'), 'portfolio')
+const PortfolioDetailPage = lazyWithCache(() => import('@pages/public/PortfolioDetailPage').then(m => ({ default: m.PortfolioDetailPage })), 'portfolio-detail')
+const ShopPage = lazyWithCache(() => import('@pages/public/ShopPage'), 'shop')
+const ProductDetailPage = lazyWithCache(() => import('@pages/public/ProductDetailPage').then(m => ({ default: m.ProductDetailPage })), 'product-detail')
+const ServicesPage = lazyWithCache(() => import('@pages/public/ServicesPage'), 'services')
+const VirtualDesignPage = lazyWithCache(() => import('@pages/public/VirtualDesignPage'), 'virtual-design')
+const VirtualDesignDetailPage = lazyWithCache(() => import('@pages/public/VirtualDesignDetailPage').then(m => ({ default: m.VirtualDesignDetailPage })), 'virtual-design-detail')
+const AboutPage = lazyWithCache(() => import('@pages/public/AboutPage'), 'about')
+const ContactPage = lazyWithCache(() => import('@pages/public/ContactPage'), 'contact')
+const SocialsPage = lazyWithCache(() => import('@pages/public/SocialsPage'), 'socials')
+const ChatPage = lazyWithCache(() => import('@pages/public/ChatPage').then(m => ({ default: m.ChatPage })), 'chat')
+const NotFoundPage = lazyWithCache(() => import('@pages/public/NotFoundPage').then(m => ({ default: m.NotFoundPage })), 'not-found')
+
+// Auth pages
+const AuthShell = lazyWithCache(() => import('@pages/auth/AuthShell').then(m => ({ default: m.AuthShell })), 'auth-shell')
+const LoginPage = lazyWithCache(() => import('@pages/auth/LoginPage').then(m => ({ default: m.LoginPage })), 'login')
+const RegisterPage = lazyWithCache(() => import('@pages/auth/RegisterPage').then(m => ({ default: m.RegisterPage })), 'register')
+const ForgotPasswordPage = lazyWithCache(() => import('@pages/auth/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage })), 'forgot-password')
+const ResetPasswordPage = lazyWithCache(() => import('@pages/auth/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage })), 'reset-password')
+
+// Account pages
+const AccountPage = lazyWithCache(() => import('@pages/account/AccountPage').then(m => ({ default: m.AccountPage })), 'account')
+const CartPage = lazyWithCache(() => import('@pages/account/CartPage').then(m => ({ default: m.CartPage })), 'cart')
+const WishlistPage = lazyWithCache(() => import('@pages/account/WishlistPage').then(m => ({ default: m.WishlistPage })), 'wishlist')
+const CheckoutPage = lazyWithCache(() => import('@pages/account/CheckoutPage').then(m => ({ default: m.CheckoutPage })), 'checkout')
+
+// Admin pages
+const AdminPage = lazyWithCache(() => import('@pages/admin/AdminPage').then(m => ({ default: m.AdminPage })), 'admin')
+const AdminChatPage = lazyWithCache(() => import('@pages/admin/AdminChatPage').then(m => ({ default: m.AdminChatPage })), 'admin-chat')
+
+const ErrorBoundaryRoute = memo(({ element }) => (
+  <ErrorBoundary fallback={<ErrorFallback />}>
+    {element}
+  </ErrorBoundary>
+))
+
 const PrefetchOnIdle = () => {
   const { prefetch } = usePrefetchOnIdle()
 
   useEffect(() => {
     const prefetchRoutes = [
-      () => import('../pages/public/ShopPage'),
-      () => import('../pages/public/PortfolioPage'),
-      () => import('../pages/public/ServicesPage'),
-      () => import('../pages/public/VirtualDesignPage'),
-      () => import('../pages/public/AboutPage'),
+      () => import('@pages/public/ShopPage'),
+      () => import('@pages/public/PortfolioPage'),
+      () => import('@pages/public/ServicesPage'),
+      () => import('@pages/public/VirtualDesignPage'),
+      () => import('@pages/public/AboutPage'),
     ]
 
     const timer = setTimeout(() => {
@@ -64,35 +101,6 @@ const PrefetchOnIdle = () => {
 
   return null
 }
-
-const AuthShell = lazy(() => import('../pages/auth/AuthShell').then((m) => ({ default: m.AuthShell })))
-const AccountPage = lazy(() => import('../pages/account/AccountPage').then((m) => ({ default: m.AccountPage })))
-const AdminPage = lazy(() => import('../pages/admin/AdminPage').then((m) => ({ default: m.AdminPage })))
-const CheckoutPage = lazy(() => import('../pages/account/CheckoutPage').then((m) => ({ default: m.CheckoutPage })))
-const ForgotPasswordPage = lazy(() => import('../pages/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })))
-const LoginPage = lazy(() => import('../pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })))
-const RegisterPage = lazy(() => import('../pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })))
-const ResetPasswordPage = lazy(() => import('../pages/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })))
-const AboutPage = lazyWithCache(() => import('../pages/public/AboutPage'), 'about')
-const CartPage = lazy(() => import('../pages/account/CartPage').then((m) => ({ default: m.CartPage })))
-const WishlistPage = lazy(() => import('../pages/account/WishlistPage').then((m) => ({ default: m.WishlistPage })))
-const ChatPage = lazy(() => import('../pages/public/ChatPage').then((m) => ({ default: m.ChatPage })))
-const AdminChatPage = lazy(() => import('../pages/admin/AdminChatPage').then((m) => ({ default: m.AdminChatPage })))
-const HomePage = lazyWithCache(() => import('../pages/public/HomePage'), 'home')
-const ProductDetailPage = lazy(() => import('../pages/public/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage })))
-const PortfolioPage = lazyWithCache(() => import('../pages/public/PortfolioPage'), 'portfolio')
-const ShopPage = lazyWithCache(() => import('../pages/public/ShopPage'), 'shop')
-const ServicesPage = lazyWithCache(() => import('../pages/public/ServicesPage'), 'services')
-const SocialsPage = lazyWithCache(() => import('../pages/public/SocialsPage'), 'socials')
-const VirtualDesignPage = lazyWithCache(() => import('../pages/public/VirtualDesignPage'), 'virtual-design')
-const NotFoundPage = lazy(() => import('../pages/public/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
-const ContactPage = lazyWithCache(() => import('../pages/public/ContactPage'), 'contact')
-
-const ErrorBoundaryRoute = memo(({ element }) => (
-  <ErrorBoundary fallback={<ErrorFallback />}>
-    {element}
-  </ErrorBoundary>
-))
 
 export const AppRouter = () => {
   return (
@@ -106,6 +114,7 @@ export const AppRouter = () => {
           <Route path="/shop/throw-pillows" element={<ErrorBoundaryRoute element={<ShopPage category="throw-pillows" />} />} />
           <Route path="/shop/:id" element={<ErrorBoundaryRoute element={<ProductDetailPage />} />} />
           <Route path="/portfolio" element={<ErrorBoundaryRoute element={<PortfolioPage />} />} />
+          <Route path="/portfolio/:id" element={<ErrorBoundaryRoute element={<PortfolioDetailPage />} />} />
           <Route path="/about" element={<ErrorBoundaryRoute element={<AboutPage />} />} />
           <Route path="/services" element={<ErrorBoundaryRoute element={<ServicesPage />} />} />
           <Route path="/virtual-design" element={<ErrorBoundaryRoute element={<VirtualDesignPage />} />} />

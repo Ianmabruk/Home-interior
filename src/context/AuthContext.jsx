@@ -1,35 +1,36 @@
-/* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useState, useCallback, memo } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { api } from '../services/api'
 
 const AuthContext = createContext(null)
 
-export const AuthProvider = memo(({ children }) => {
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(() => {
     const token = localStorage.getItem('hok_access_token')
-    if (!token) return false
-    return true
+    return !!token
   })
 
-  useEffect(() => {
+  const fetchUser = useCallback(async () => {
     const token = localStorage.getItem('hok_access_token')
     if (!token) {
+      setLoading(false)
       return
     }
     let cancelled = false
-    api.get('/auth/me')
-      .then((res) => {
-        if (!cancelled) setUser(res.data || null)
-      })
-      .catch(() => {
-        if (!cancelled) localStorage.removeItem('hok_access_token')
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
+    try {
+      const res = await api.get('/auth/me')
+      if (!cancelled) setUser(res.data || null)
+    } catch {
+      if (!cancelled) localStorage.removeItem('hok_access_token')
+    } finally {
+      if (!cancelled) setLoading(false)
+    }
     return () => { cancelled = true }
   }, [])
+
+  useEffect(() => {
+    fetchUser()
+  }, [fetchUser])
 
   const login = useCallback(async (email, password) => {
     const res = await api.post('/auth/login', { email, password })
@@ -80,9 +81,7 @@ export const AuthProvider = memo(({ children }) => {
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-})
-
-AuthProvider.displayName = 'AuthProvider'
+}
 
 export function useAuth() {
   const ctx = useContext(AuthContext)

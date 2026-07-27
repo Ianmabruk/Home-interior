@@ -2,18 +2,6 @@ import { memo, useState } from 'react'
 import { normalizeMediaSettings, positionToObjectPosition } from '../../utils/mediaSettings'
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 
-// Renders an image exactly as configured in the admin media controls:
-// object-fit, object-position, and a scale transform for zoom. The image
-// fills its parent container, so callers should wrap it in a sized,
-// overflow-hidden element (e.g. <div className="h-44 w-full overflow-hidden">).
-//
-// For Cloudinary sources it also emits a responsive `srcset` (f_auto,q_auto
-// width variants) so mobile devices download a small image instead of the
-// full-resolution master. `sizes` defaults to full viewport width; pass a
-// tighter value (e.g. "(min-width:1024px) 33vw, 50vw") for grid tiles.
-//
-// Supports blur placeholder: shows a tiny blurred version while loading.
-// Supports fetchpriority for above-fold images to improve LCP.
 function PositionedImage({
   src,
   alt = '',
@@ -31,7 +19,7 @@ function PositionedImage({
 
   if (!src) {
     return (
-      <div className={`${className} bg-sand`} style={style} role="img" aria-label={alt || 'Image placeholder'} />
+      <div className={`${className} bg-[var(--secondary)]/30`} style={style} role="img" aria-label={alt || 'Image placeholder'} />
     )
   }
 

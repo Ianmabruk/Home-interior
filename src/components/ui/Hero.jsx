@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
-import { getOptimizedUrl, buildSrcSet } from '../utils/cloudinaryHelpers'
+import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 
 export const Hero = memo(({ heroImages = [], className = '' }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -106,7 +106,7 @@ export const Hero = memo(({ heroImages = [], className = '' }) => {
   if (!images.length) {
     return (
       <section
-        className={`relative w-full h-screen min-h-[700px] overflow-hidden bg-primary ${className}`}
+        className={`relative w-full h-screen min-h-[700px] overflow-hidden bg-[var(--primary)] ${className}`}
         role="region"
         aria-label="Hero image"
         style={{ contain: 'layout paint' }}

@@ -1,51 +1,41 @@
-/* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, memo } from 'react'
-import { CURRENCIES, EXCHANGE_RATES } from '../utils/constants'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 
 const CurrencyContext = createContext(null)
 
-export const CurrencyProvider = memo(({ children }) => {
+const SUPPORTED_CURRENCIES = [
+  { code: 'USD', symbol: '$', name: 'US Dollar' },
+  { code: 'KES', symbol: 'KSh', name: 'Kenyan Shilling' },
+  { code: 'EUR', symbol: '€', name: 'Euro' },
+  { code: 'GBP', symbol: '£', name: 'British Pound' },
+]
+
+export function CurrencyProvider({ children }) {
   const [currency, setCurrency] = useState(() => {
     const saved = localStorage.getItem('hok_currency')
-    if (saved && CURRENCIES.some((c) => c.code === saved)) {
-      return saved
-    }
-    return 'USD'
+    return saved || 'USD'
   })
 
   useEffect(() => {
     localStorage.setItem('hok_currency', currency)
   }, [currency])
 
-  const changeCurrency = useCallback((newCurrency) => {
-    setCurrency(newCurrency)
-  }, [])
-
-  const formatPrice = useCallback((amount) => {
-    const rate = EXCHANGE_RATES[currency] || 1
-    const converted = Math.round(amount * rate)
-    const currencyObj = CURRENCIES.find((c) => c.code === currency) || CURRENCIES[0]
-
-    if (currency === 'KES') {
-      return `${currencyObj.symbol} ${converted.toLocaleString()}`
-    }
-    return `${currencyObj.symbol}${converted.toLocaleString()}`
+  const formatPrice = useCallback((amount, currencyCode = currency) => {
+    const curr = SUPPORTED_CURRENCIES.find((c) => c.code === currencyCode) || SUPPORTED_CURRENCIES[0]
+    return `${curr.symbol}${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }, [currency])
 
   const value = useMemo(
     () => ({
       currency,
-      currencies: CURRENCIES,
-      changeCurrency,
+      setCurrency,
       formatPrice,
+      supportedCurrencies: SUPPORTED_CURRENCIES,
     }),
-    [currency, changeCurrency, formatPrice],
+    [currency, formatPrice],
   )
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>
-})
-
-CurrencyProvider.displayName = 'CurrencyProvider'
+}
 
 export function useCurrency() {
   const ctx = useContext(CurrencyContext)

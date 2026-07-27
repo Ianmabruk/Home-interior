@@ -1,474 +1,463 @@
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Link } from 'react-router-dom'
+import { Heart, ShoppingBag, ChevronLeft, ChevronRight, Minus, Plus, AlertTriangle, ArrowLeft, Loader2, CheckCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useState, useMemo, useCallback } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useShop } from '../../context/ShopContext'
-import { useCurrency } from '../../context/CurrencyContext'
-import { api } from '../../services/api'
-import { Heart, ShoppingBag, Truck, Shield, ArrowLeft, ChevronRight, Check, Package, Ruler, Palette, Sparkles, AlertCircle, RefreshCw, CreditCard } from 'lucide-react'
-import PositionedImage from '../../components/common/PositionedImage'
-import { PageMeta } from '../../hooks/usePageMeta'
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.7, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] } }),
-}
-
-const SPECIFICATION_FIELDS = [
-  { key: 'materials', label: 'Materials', icon: Package },
-  { key: 'dimensions', label: 'Dimensions', icon: Ruler },
-  { key: 'colors', label: 'Available Colors', icon: Palette },
-  { key: 'styles', label: 'Available Styles', icon: Sparkles },
-]
+import { api } from '@services/api'
+import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
+import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
+import { PageMeta } from '@hooks/usePageMeta'
+import { useShop } from '@context/ShopContext'
+import { useCurrency } from '@context/CurrencyContext'
+import { useZoom } from '@hooks/useZoom'
 
 export const ProductDetailPage = () => {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const { formatPrice } = useCurrency()
-  const { addToCart, toggleWishlist, wishlist } = useShop()
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [activeColor, setActiveColor] = useState(null)
-  const [viewImage, setViewImage] = useState(null)
-  const [relatedProducts, setRelatedProducts] = useState([])
-  const [addedToCart, setAddedToCart] = useState(false)
+  const [selectedVariant, setSelectedVariant] = useState(null)
+  const [quantity, setQuantity] = useState(1)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [addingToCart, setAddingToCart] = useState(false)
+  const { addToCart, addToWishlist, wishlist, cart } = useShop()
+  const { formatPrice } = useCurrency()
 
-  const fetchProduct = useCallback(async () => {
-    if (!id) {
-      setError('Product ID is required')
-      setLoading(false)
-      return
-    }
-    setLoading(true)
-    setError(null)
+  const { style: zoomStyle, handleWheel, handleMouseDown, handleTouchStart, handleTouchEnd, reset } = useZoom()
+
+  const loadProduct = useCallback(async () => {
     try {
-      const res = await api.get(`/products/${id}`)
-      const productData = res.data
-      
-      if (!productData || !(productData._id || productData.id)) {
-        throw new Error('Invalid product data received')
-      }
-
-      setProduct(productData)
-
-      const variants = productData?.variants || []
-      if (variants.length) {
-        const def = variants[0]
-        setActiveColor(def.color)
-        setViewImage(null)
-      }
-
-      if (productData?.category) {
-        try {
-          const r = await api.get('/products', { 
-            params: { category: productData.category, limit: 4, sort: '-createdAt' } 
-          })
-          setRelatedProducts(
-            (r.data?.items || [])
-              .filter((p) => (p._id || p.id) !== (productData._id || productData.id))
-              .slice(0, 4)
-          )
-        } catch {
-          setRelatedProducts([])
-        }
+      const res = await api.get('/products/slug')
+      setProduct(res.data || null)
+      if (res.data?.variants?.[0]) {
+        setSelectedVariant(res.data.variants[0])
       }
     } catch (err) {
-      console.error('[ProductDetailPage] Error fetching product:', err)
-      setError(err?.response?.data?.message || err?.message || 'Failed to load product')
-      setProduct(null)
+      setError(err?.message || 'Product not found')
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchProduct()
-  }, [fetchProduct])
+    loadProduct()
+  }, [loadProduct])
 
-  const retry = () => {
-    fetchProduct()
+  useEffect(() => {
+    const handler = (event) => {
+      const payload = getAdminDataChangedPayload(event)
+      if (payload?.type === 'products-changed') loadProduct()
+    }
+    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+    return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+  }, [loadProduct])
+
+  const images = useMemo(() => {
+    if (!product) return []
+    const imgs = product.images || []
+    if (product.featuredImage && !imgs.includes(product.featuredImage)) {
+      return [product.featuredImage, ...imgs]
+    }
+    return imgs
+  }, [product])
+
+  const handleAddToCart = async () => {
+    if (!product) return
+    setAddingToCart(true)
+    try {
+      await addToCart(product, selectedVariant, quantity)
+    } finally {
+      setAddingToCart(false)
+    }
   }
 
-  const goBack = () => navigate(-1)
+  const handleAddToWishlist = async () => {
+    if (!product) return
+    await addToWishlist(product._id)
+  }
 
-  const activeVariant = product?.variants?.find((v) => v.color === activeColor)
-  const galleryImages = useMemo(() => {
-    if (activeVariant?.image) {
-      return [activeVariant.image, ...(product?.images || []).map((i) => typeof i === 'string' ? i : i.url).filter(Boolean)]
-    }
-    return (product?.images || []).map((i) => typeof i === 'string' ? i : i.url).filter(Boolean)
-  }, [activeVariant, product])
-
-  const displayImage = viewImage || activeVariant?.image || (typeof product?.images?.[0] === 'string' ? product.images[0] : product?.images?.[0]?.url) || null
-
-  const salePercent = product?.price > 0 && product?.discountPrice
-    ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
-    : null
-
-  const price = activeVariant?.price ?? product?.discountPrice ?? product?.price
-  const inStock =
-    activeVariant?.stock !== undefined ? activeVariant.stock > 0 : (product?.stock ?? 0) > 0
-
-  const isWishlisted = wishlist?.some((w) => w._id === product?._id)
+  const isInWishlist = product?. _id && wishlist.some((item) => item._id === product._id)
+  const isInCart = product?. _id && cart.some((item) => item._id === product._id && (!selectedVariant || item.selectedVariant?._id === selectedVariant._id))
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--bg)]">
-        <div className="mx-auto max-w-7xl grid gap-10 px-4 py-12 md:grid-cols-2 md:px-8">
-          <div className="skeleton aspect-[4/5] w-full rounded-3xl" />
-          <div className="space-y-5">
-            <div className="skeleton h-5 w-32" />
-            <div className="skeleton h-12 w-72" />
-            <div className="skeleton h-24 w-full" />
-            <div className="skeleton h-16 w-48" />
-            <div className="skeleton h-12 w-64" />
+      <main>
+        <section className="px-6 md:px-12 lg:px-20 py-16">
+          <div className="container-wide">
+            <div className="grid gap-12 lg:grid-cols-2">
+              <div className="aspect-[4/3] skeleton rounded-3xl" />
+              <div className="space-y-6">
+                <div className="skeleton h-3 w-24 mb-4" />
+                <div className="skeleton h-8 w-3/4 mb-6" />
+                <div className="skeleton h-6 w-24 mb-6" />
+                <div className="skeleton h-4 w-full mb-6" />
+                <div className="skeleton h-12 w-full max-w-xs" />
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     )
   }
 
   if (error || !product) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center bg-[var(--bg)] px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-md"
-        >
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)]/10">
-            <AlertCircle size={28} strokeWidth={1.5} className="text-[var(--accent)]" />
-          </div>
-          <h2 className="font-display text-2xl font-medium text-[var(--primary)] mb-3">
-            {error ? 'Unable to Load Product' : 'Product Not Found'}
-          </h2>
-          <p className="text-sm text-[var(--primary)]/50 mb-6">
-            {error || 'This product doesn\'t exist or has been removed.'}
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <button
-              onClick={retry}
-              className="group inline-flex items-center gap-2 rounded-full bg-[var(--primary)] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bg)] transition-all duration-300 hover:bg-[var(--accent)] hover:shadow-[0_8px_30px_rgba(232,154,67,0.15)] hover:-translate-y-0.5"
-            >
-              <RefreshCw size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:rotate-12" />
-              Try Again
-            </button>
-            <Link
-              to="/shop"
-              onClick={goBack}
-              className="group inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg)] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--primary)] transition-all duration-300 hover:border-[var(--accent)] hover:text-[var(--accent)]"
-            >
+      <main>
+        <section className="flex min-h-[70vh] items-center justify-center px-4">
+          <div className="text-center max-w-md">
+            <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-[var(--error)]/10 text-[var(--error)]">
+              <AlertTriangle size={32} strokeWidth={1.5} />
+            </div>
+            <h1 className="font-display text-3xl font-semibold text-[var(--primary)] mb-3">Product Not Found</h1>
+            <p className="text-sm text-[var(--primary)]/55 mb-6">The product you&apos;re looking for doesn&apos;t exist or has been removed.</p>
+            <Link to="/shop" className="btn-luxury-primary inline-flex items-center gap-2">
               <ArrowLeft size={14} strokeWidth={1.5} />
               Back to Shop
             </Link>
           </div>
-        </motion.div>
-      </div>
+        </section>
+      </main>
     )
   }
 
-  return (
-    <motion.div
-      className="min-h-screen bg-[var(--bg)]"
-      initial="hidden"
-      animate="show"
-      variants={fadeUp}
-    >
-      <PageMeta title="Product — HOK Interior Designs" description="View product details and add to cart." />
-      {/* Breadcrumb */}
-      <div className="border-b border-[var(--border)] bg-[var(--bg)]/60">
-        <div className="container-wide px-4 py-3 md:px-12 lg:px-20">
-          <nav className="flex items-center gap-2 text-2xs text-[var(--primary)]/50" aria-label="Breadcrumb">
-            <Link to="/shop" className="hover:text-[var(--accent)] transition-colors">Shop</Link>
-            <ChevronRight size={12} strokeWidth={1.5} />
-            <Link to={`/shop?category=${product.category}`} className="hover:text-[var(--accent)] transition-colors">
-              {product.category}
-            </Link>
-            <ChevronRight size={12} strokeWidth={1.5} />
-            <span className="text-[var(--primary)] truncate max-w-[200px] block">{product.name}</span>
-          </nav>
-        </div>
-      </div>
+  const categoryLabels = {
+    mirror: 'Mirror',
+    artwork: 'Artwork',
+    'throw-pillows': 'Throw Pillows',
+  }
 
-      {/* Product Section */}
-      <section className="section-pad bg-[var(--bg)]">
-        <div className="container-wide px-4 md:px-12 lg:px-20">
-          <div className="mx-auto max-w-7xl grid gap-10 lg:gap-16 lg:grid-cols-2">
-            {/* Image Gallery */}
-            <motion.div variants={fadeUp} custom={0} className="space-y-4">
-              <div className="relative aspect-[4/5] overflow-hidden rounded-[32px] bg-[var(--secondary)] shadow-[0_2px_16px_rgba(42,36,31,0.04)]">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={displayImage || 'placeholder'}
-                    initial={{ opacity: 0, scale: 1.03 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                    className="h-full w-full"
-                  >
-                    <PositionedImage
-                      src={displayImage}
-                      alt={product.name}
-                      settings={{ fit: 'contain', position: 'center', zoom: 100 }}
-                      className="h-full w-full"
-                      sizes="(min-width:1024px) 50vw, 100vw"
-                      loading="eager"
-                    />
-                  </motion.div>
-                </AnimatePresence>
-                {salePercent && (
-                  <span className="absolute left-4 top-4 rounded-full bg-[var(--accent)] px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-white shadow-lg">
-                    -{salePercent}% Off
-                  </span>
-                )}
-                {!inStock && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-[var(--primary)]/40 backdrop-blur-sm">
-                    <span className="rounded-full bg-[var(--bg)] px-6 py-2 text-sm font-semibold uppercase tracking-widest text-[var(--primary)]">Sold Out</span>
+  return (
+    <main>
+      <PageMeta
+        title={`${product.name} — HOK Interior Designs`}
+        description={product.description || `Discover ${product.name} at HOK Interior Designs.`}
+        image={images[0] ? getOptimizedUrl(images[0], { width: 1200 }) : undefined}
+      />
+      <section className="px-6 md:px-12 lg:px-20 py-8 md:py-12">
+        <div className="container-wide">
+          <nav className="mb-8" aria-label="Breadcrumb">
+            <ol className="flex items-center gap-2 text-sm text-[var(--primary)]/50">
+              <li><Link to="/" className="hover:text-[var(--accent)] transition-colors">Home</Link></li>
+              <li className="text-[var(--primary)]/30">/</li>
+              <li><Link to="/shop" className="hover:text-[var(--accent)] transition-colors">Shop</Link></li>
+              <li className="text-[var(--primary)]/30">/</li>
+              <li><Link to={`/shop/${product.category}`} className="hover:text-[var(--accent)] transition-colors">{categoryLabels[product.category] || product.category}</Link></li>
+              <li className="text-[var(--primary)]/30">/</li>
+              <li className="text-[var(--primary)] truncate max-w-[200px]" aria-current="page">{product.name}</li>
+            </ol>
+          </nav>
+
+          <div className="grid gap-12 lg:grid-cols-2">
+            <div className="relative">
+              <div className="aspect-[4/3] rounded-3xl overflow-hidden bg-[var(--secondary)]/30">
+                {images.length > 0 ? (
+                  <img
+                    src={getOptimizedUrl(images[currentImageIndex], { width: 1200, crop: 'limit' })}
+                    alt={`${product.name} - Image ${currentImageIndex + 1}`}
+                    className="h-full w-full object-cover"
+                    loading="eager"
+                    decoding="async"
+                  />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-[var(--primary)]/30">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                      <circle cx="9" cy="9" r="2" />
+                      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                    </svg>
                   </div>
                 )}
               </div>
 
-              {/* Thumbnails */}
-              {galleryImages.length > 1 && (
-                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                  {galleryImages.map((url, i) => (
+              {images.length > 1 && (
+                <div className="mt-4 flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+                  {images.map((img, index) => (
                     <button
-                      key={url + i}
-                      onClick={() => setViewImage((prev) => (prev === url ? null : url))}
-                      className={`h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border-2 transition-all duration-300 ${
-                        (viewImage || displayImage) === url
-                          ? 'border-[var(--accent)] shadow-md scale-105'
-                          : 'border-transparent hover:border-[var(--accent)]/60'
-                      }`}
-                      aria-label={`View image ${i + 1}`}
-                    >
-                      <PositionedImage
-                        src={url}
-                        alt={`${product.name} ${i + 1}`}
-                        settings={{ fit: 'contain', position: 'center', zoom: 100 }}
-                        className="h-full w-full object-cover bg-[var(--bg)]"
+                      key={index}
+                      onClick={() => { setCurrentImageIndex(index); reset() }}
+                      className={`flex-shrink-0 h-20 w-24 md:h-24 md:w-28 rounded-xl overflow-hidden border-2 transition-all duration-300 ${
+                        index === currentImageIndex ? 'border-[var(--accent)] shadow-[0_0_0_2px_rgba(232,154,67,0.3)]' : 'border-transparent hover:border-[var(--accent)]/40'
+                      }`}>
+                      <img
+                        src={getOptimizedUrl(img, { width: 150, crop: 'fill' })}
+                        alt={`${product.name} - Thumbnail ${index + 1}`}
+                        className="h-full w-full object-cover"
                         loading="lazy"
                       />
                     </button>
                   ))}
                 </div>
               )}
-            </motion.div>
 
-            {/* Details */}
-            <motion.div variants={fadeUp} custom={1} className="flex flex-col">
-              <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--accent)]">{product.category}</p>
-              <h1 className="mt-3 font-display text-4xl font-medium leading-tight text-[var(--primary)] md:text-5xl">
-                {product.name}
-              </h1>
+              <button
+                onClick={() => { setLightboxOpen(true); reset() }}
+                className="absolute bottom-4 right-4 z-10 p-2 rounded-full bg-white/90 backdrop-blur-sm text-[var(--primary)] shadow-lg hover:bg-white transition-colors"
+                aria-label="Open fullscreen gallery"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                  <line x1="12" y1="22.08" x2="12" y2="12" />
+                </svg>
+              </button>
+            </div>
 
-              <div className="mt-6 flex items-baseline gap-4">
-                <p className="font-display text-3xl font-medium text-[var(--primary)]">
-                  {formatPrice(price)}
-                </p>
-                {product.discountPrice && !activeVariant?.price && (
-                  <p className="text-lg text-[var(--primary)]/35 line-through">{formatPrice(product.price)}</p>
+            <div className="lg:col-span-1">
+              <div className="sticky top-24 space-y-8">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-2">{categoryLabels[product.category] || product.category}</p>
+                  <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-medium text-[var(--primary)] leading-tight">{product.name}</h1>
+                  {product.sku && <p className="mt-2 text-sm text-[var(--primary)]/50">SKU: {product.sku}</p>}
+                </div>
+
+                <div className="border-t border-b border-[var(--border)]/40 py-6">
+                  <p className="text-3xl md:text-4xl font-semibold text-[var(--primary)]">{formatPrice(product.discountPrice || product.price || 0)}</p>
+                  {product.discountPrice && product.price && product.price > product.discountPrice && (
+                    <p className="mt-1 text-lg text-[var(--primary)]/40 line-through">{formatPrice(product.price)}</p>
+                  )}
+                </div>
+
+                {product.description && (
+                  <div className="prose prose-lg max-w-none text-[var(--primary)]/70">
+                    <p className="leading-relaxed">{product.description}</p>
+                  </div>
+                )}
+
+                {product.variants && product.variants.length > 1 && (
+                  <div>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Select Variant</h3>
+                    <div className="flex flex-wrap gap-3">
+                      {product.variants.map((variant) => (
+                        <button
+                          key={variant._id || variant.id}
+                          onClick={() => { setSelectedVariant(variant); reset() }}
+                          className={`px-5 py-3 rounded-full border transition-all duration-300 ${
+                            selectedVariant?._id === variant._id
+                              ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                              : 'border-[var(--border)] text-[var(--primary)] hover:border-[var(--accent)] hover:text-[var(--accent)]'
+                          }`}
+                        >
+                          {variant.color} {variant.size && `/ ${variant.size}`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Quantity</h3>
+                  <div className="flex items-center rounded-full border border-[var(--border)]/40 bg-white overflow-hidden">
+                    <button
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      disabled={quantity <= 1}
+                      className="flex h-12 w-12 items-center justify-center text-[var(--primary)]/50 transition hover:text-[var(--primary)] disabled:opacity-30 disabled:cursor-not-allowed"
+                      aria-label="Decrease quantity"
+                    >
+                      <Minus size={18} strokeWidth={1.5} />
+                    </button>
+                    <span className="min-w-[60px] text-center text-lg font-medium text-[var(--primary)]">{quantity}</span>
+                    <button
+                      onClick={() => setQuantity((q) => q + 1)}
+                      className="flex h-12 w-12 items-center justify-center text-[var(--primary)]/50 transition hover:text-[var(--primary)]"
+                      aria-label="Increase quantity"
+                    >
+                      <Plus size={18} strokeWidth={1.5} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={addingToCart}
+                    className="flex-1 btn-luxury-primary inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {addingToCart ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Adding...
+                      </>
+                    ) : isInCart ? (
+                      <>
+                        <CheckCircle size={18} strokeWidth={2} />
+                        In Cart
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingBag size={18} strokeWidth={1.5} />
+                        Add to Cart
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleAddToWishlist}
+                    className={`flex-1 inline-flex items-center justify-center gap-2 rounded-full px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.08em] transition-all duration-300 ${isInWishlist ? 'bg-[var(--error)]/10 text-[var(--error)] border border-[var(--error)]/20' : 'bg-white border border-[var(--border)] text-[var(--primary)]/60 hover:border-[var(--accent)] hover:text-[var(--accent)]'}`}
+                    aria-label={isInWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+                  >
+                    <Heart size={16} strokeWidth={isInWishlist ? 0 : 1.5} className={isInWishlist ? 'fill-current' : ''} />
+                    {isInWishlist ? 'Saved' : 'Save'}
+                  </button>
+                </div>
+
+                {product.features && product.features.length > 0 && (
+                  <div className="pt-6 border-t border-[var(--border)]/40">
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Features</h3>
+                    <ul className="space-y-3">
+                      {product.features.map((feature, index) => (
+                        <li key={index} className="flex items-start gap-3 text-[var(--primary)]/70">
+                          <svg className="flex-shrink-0 mt-1 h-5 w-5 text-[var(--accent)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {product.dimensions && (
+                  <div className="pt-6 border-t border-[var(--border)]/40">
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Dimensions</h3>
+                    <p className="text-[var(--primary)]/70">{product.dimensions}</p>
+                  </div>
+                )}
+
+                {product.materials && (
+                  <div className="pt-6 border-t border-[var(--border)]/40">
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Materials</h3>
+                    <p className="text-[var(--primary)]/70">{product.materials}</p>
+                  </div>
                 )}
               </div>
-
-              <p className="mt-1 text-2xs font-semibold uppercase tracking-widest text-[var(--accent)]">
-                {salePercent ? `You save ${salePercent}%` : 'Best Price Guaranteed'}
-              </p>
-
-              {/* Stock Status */}
-              <div className="mt-4 flex items-center gap-2">
-                <div className={`h-2.5 w-2.5 rounded-full ${inStock ? 'bg-[var(--success)]' : 'bg-[var(--error)]'}`} />
-                <p className={`text-sm font-medium ${inStock ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-                  {activeVariant?.stock !== undefined
-                    ? `${activeVariant.stock} in stock`
-                    : product?.stock > 0
-                    ? `In Stock (${product.stock} available)`
-                    : 'Out of Stock'}
-                </p>
-              </div>
-
-              {activeVariant?.sku && (
-                <p className="mt-2 text-xs font-medium uppercase tracking-widest text-[var(--primary)]/45">SKU: {activeVariant.sku}</p>
-              )}
-
-              {/* Description */}
-              {product.description && (
-                <div className="mt-6">
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-3">Description</h3>
-                  <p className="text-sm leading-[1.8] text-[var(--primary)]/60">{product.description}</p>
-                </div>
-              )}
-
-              {/* Specifications */}
-              {SPECIFICATION_FIELDS.some(field => product?.[field.key]) && (
-                <div className="mt-8">
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-4">Specifications</h3>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {SPECIFICATION_FIELDS
-                      .filter(field => product?.[field.key])
-                      .map((field, idx) => {
-                        const Icon = field.icon
-                        const value = product[field.key]
-                        const displayValue = Array.isArray(value) ? value.join(', ') : value
-                        return (
-                          <motion.div
-                            key={field.key}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 + idx * 0.1 }}
-                            className="flex items-start gap-3 rounded-xl bg-white p-4 border border-[var(--border)] shadow-sm"
-                          >
-                            <div className="flex-shrink-0 mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
-                              {Icon ? <Icon size={18} strokeWidth={1.5} /> : <span className="inline-block h-4 w-4 rounded-full bg-white/10" />}
-                            </div>
-                            <div>
-                              <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--accent)]">{field.label}</p>
-                              <p className="text-sm text-[var(--primary)] mt-0.5">{displayValue}</p>
-                            </div>
-                          </motion.div>
-                        )
-                      })}
-                  </div>
-                </div>
-              )}
-
-              {/* Color Variants - Single selector, no duplicates */}
-              {product.variants?.length > 0 && (
-                <div className="mt-8">
-                  <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-3">
-                    Color: <span className="text-[var(--primary)] font-medium">{activeColor}</span>
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {product.variants.map((variant) => (
-                      <button
-                        key={variant.color}
-                        onClick={() => { setActiveColor(variant.color); setViewImage(null) }}
-                        title={variant.color}
-                        className={`relative h-12 w-12 min-h-[48px] min-w-[48px] overflow-hidden rounded-full border-2 transition-all duration-300 ${
-                          activeColor === variant.color
-                            ? 'border-[var(--accent)] shadow-lg scale-110'
-                            : 'border-[var(--border)] hover:border-[var(--accent)]/60'
-                        }`}
-                      >
-                        {variant.image ? (
-                          <PositionedImage
-                            src={variant.image}
-                            alt={variant.color}
-                            settings={{ fit: 'contain', position: 'center', zoom: 100 }}
-                            className="h-full w-full object-cover bg-[var(--bg)]"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <span className="block h-full w-full rounded-full" style={{ backgroundColor: variant.colorHex || '#ccc' }} />
-                        )}
-                        {activeColor === variant.color && (
-                          <span className="absolute inset-0 flex items-center justify-center rounded-full">
-                            <Check size={14} strokeWidth={2.5} className="text-[var(--bg)] drop-shadow-md" />
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="mt-8 flex flex-wrap gap-3">
-                <button
-                  onClick={() => {
-                    addToCart(product, 1, activeVariant ? { 
-                      color: activeVariant.color, 
-                      colorHex: activeVariant.colorHex, 
-                      image: activeVariant.image 
-                    } : null)
-                    setAddedToCart(true)
-                    setTimeout(() => setAddedToCart(false), 2000)
-                  }}
-                  disabled={!inStock || product.stock === 0}
-                  className="btn-luxury-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {addedToCart ? <Check size={16} strokeWidth={2} /> : <ShoppingBag size={16} strokeWidth={1.5} />}
-                  {addedToCart ? 'Added!' : 'Add to Cart'}
-                </button>
-                <button
-                  onClick={() => navigate('/checkout', { state: { buyNow: product, variant: activeVariant ? { 
-                    color: activeVariant.color, 
-                    colorHex: activeVariant.colorHex, 
-                    image: activeVariant.image,
-                    priceOverride: activeVariant.price 
-                  } : null } })}
-                  disabled={!inStock || product.stock === 0}
-                  className="btn-luxury-secondary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <CreditCard size={16} strokeWidth={1.5} />
-                  Buy Now
-                </button>
-                <button
-                  onClick={() => toggleWishlist(product)}
-                  className={`btn-luxury-secondary flex items-center gap-2 ${isWishlisted ? 'border-[var(--accent)] text-[var(--accent)]' : ''}`}
-                >
-                  <Heart size={16} strokeWidth={1.5} fill={isWishlisted ? 'currentColor' : 'none'} />
-                  {isWishlisted ? 'Wishlisted' : 'Wishlist'}
-                </button>
-              </div>
-
-              {/* Features */}
-              <div className="mt-8 flex flex-wrap gap-6 border-t border-[var(--border)] pt-6">
-                <div className="flex items-center gap-2 text-sm text-[var(--primary)]/55">
-                  <Truck size={18} strokeWidth={1.5} className="text-[var(--accent)]" />
-                  <span>Free Delivery</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-[var(--primary)]/55">
-                  <Shield size={18} strokeWidth={1.5} className="text-[var(--accent)]" />
-                  <span>Quality Guaranteed</span>
-                </div>
-              </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Related Products */}
-      {relatedProducts.length > 0 && (
-        <section className="section-pad bg-[var(--secondary)]/30">
-          <div className="container-wide px-4 md:px-12 lg:px-20">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-              className="mb-10"
+      {/* Fullscreen Lightbox */}
+      <AnimatePresence>
+        {lightboxOpen && images.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-[var(--primary)]/95 backdrop-blur-sm flex items-center justify-center"
+            onClick={() => setLightboxOpen(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Fullscreen gallery"
+          >
+            <button
+              onClick={() => setLightboxOpen(false)}
+              className="absolute top-6 right-6 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+              aria-label="Close gallery"
             >
-              <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--accent)] mb-3">You May Also Like</p>
-              <h2 className="font-display text-4xl font-medium text-[var(--primary)] md:text-5xl">Related Products</h2>
-            </motion.div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {relatedProducts.map((p, i) => (
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
+            <button
+              onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((i) => (i - 1 + images.length) % images.length); reset() }}
+              className="absolute left-6 z-10 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors hidden md:block"
+              aria-label="Previous image"
+            >
+              <ChevronLeft size={28} strokeWidth={1.5} />
+            </button>
+
+            <button
+              onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((i) => (i + 1) % images.length); reset() }}
+              className="absolute right-6 z-10 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors hidden md:block"
+              aria-label="Next image"
+            >
+              <ChevronRight size={28} strokeWidth={1.5} />
+            </button>
+
+            <div
+              style={zoomStyle}
+              onWheel={handleWheel}
+              onMouseDown={handleMouseDown}
+              onTouchStart={handleTouchStart}
+              onTouchMove={(e) => e.preventDefault()}
+              onTouchEnd={handleTouchEnd}
+              onMouseUp={handleTouchEnd}
+              onMouseLeave={handleTouchEnd}
+              className="relative max-h-[90vh] max-w-[90vw]"
+            >
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={currentImageIndex}
+                  src={getOptimizedUrl(images[currentImageIndex], { width: 2560, crop: 'limit' })}
+                  alt={`${product.name} - Image ${currentImageIndex + 1}`}
+                  className="max-h-[90vh] max-w-[90vw] object-contain"
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                />
+              </AnimatePresence>
+            </div>
+
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2">
+              {images.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(index); reset() }}
+                  className={`h-2 w-2 rounded-full transition-all duration-300 ${
+                    index === currentImageIndex ? 'bg-white w-8' : 'bg-white/50 hover:bg-white/75'
+                  }`}
+                  aria-label={`Go to image ${index + 1}`}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Related Products */}
+      {product.relatedProducts && product.relatedProducts.length > 0 && (
+        <section className="px-6 md:px-12 lg:px-20 py-16 md:py-24 bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5">
+          <div className="container-wide">
+            <div className="mb-16 md:mb-24 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">You May Also Like</p>
+              <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+                Related Products
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 lg:gap-12">
+              {product.relatedProducts.slice(0, 4).map((related, index) => (
                 <motion.div
-                  key={p._id}
+                  key={related._id || related.id || index}
                   initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                  className="group"
                 >
-                  <Link to={`/shop/${p._id}`} className="group block">
-                    <div className="overflow-hidden rounded-2xl bg-[var(--card)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] group-hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
-                      <div className="relative aspect-[3/4] overflow-hidden bg-[var(--secondary)]">
-                        <PositionedImage
-                          src={typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url || p.variants?.[0]?.image}
-                          alt={p.name}
-                          settings={p.mediaSettings}
-                          className="h-full w-full transition duration-700 group-hover:scale-105"
+                  <Link to={`/shop/${related._id || related.id}`} className="block">
+                    <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-[var(--secondary)]/30">
+                      {related.images?.[0] ? (
+                        <img
+                          src={getOptimizedUrl(typeof related.images[0] === 'string' ? related.images[0] : related.images[0]?.url, { width: 600, crop: 'limit' })}
+                          alt={related.name}
+                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                           loading="lazy"
                         />
-                      </div>
-                      <div className="p-4">
-                        <p className="text-2xs font-medium uppercase tracking-widest text-[var(--accent)]">{p.category}</p>
-                        <h3 className="font-display text-lg font-medium text-[var(--primary)] mt-1 group-hover:text-[var(--accent)] transition-colors">
-                          {p.name}
-                        </h3>
-                      </div>
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center text-[var(--primary)]/30">
+                          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                            <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                            <circle cx="9" cy="9" r="2" />
+                            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-4 text-center">
+                      <p className="text-2xs font-medium uppercase tracking-widest text-[var(--accent)] mb-1">{categoryLabels[related.category] || related.category}</p>
+                      <h3 className="font-display text-lg font-medium text-[var(--primary)] leading-tight group-hover:text-[var(--accent)] transition-colors mb-2">
+                        {related.name}
+                      </h3>
+                      <p className="text-lg font-semibold text-[var(--primary)]">{formatPrice(related.discountPrice || related.price || 0)}</p>
                     </div>
                   </Link>
                 </motion.div>
@@ -477,6 +466,8 @@ export const ProductDetailPage = () => {
           </div>
         </section>
       )}
-    </motion.div>
+    </main>
   )
 }
+
+export default ProductDetailPage

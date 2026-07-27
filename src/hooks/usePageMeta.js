@@ -3,7 +3,6 @@ import { useLocation } from 'react-router-dom'
 
 const DEFAULT_TITLE = 'HOK INTERIOR DESIGNS'
 const DEFAULT_DESCRIPTION = 'Timeless luxury interior design, curated furniture, and premium virtual design services.'
-
 const SITE_URL = 'https://hokinteriors.com'
 
 const pageMeta = {
@@ -34,6 +33,10 @@ const pageMeta = {
   '/contact': {
     title: 'Contact Us — HOK Interior Designs',
     description: 'Get in touch with HOK Interior Designs for your next project.',
+  },
+  '/socials': {
+    title: 'Socials — HOK Interior Designs',
+    description: 'Follow HOK Interior Designs on social media.',
   },
 }
 

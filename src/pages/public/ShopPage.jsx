@@ -1,51 +1,60 @@
-import { Square, PictureInPicture, Armchair, SlidersHorizontal, X, ChevronDown, Filter, Search } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useMemo, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ProductCard } from '../../components/shop/ProductCard'
-import { api } from '../../services/api'
-import { SHOP_CATEGORIES, CURRENCIES } from '../../utils/constants'
-import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
-import { useCurrency } from '../../context/CurrencyContext'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { api } from '@services/api'
+import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
+import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
+import { PageMeta } from '@hooks/usePageMeta'
+import { useShop } from '@context/ShopContext'
+import { useCurrency } from '@context/CurrencyContext'
 
-const categoryIcons = {
-  mirror: Square,
-  artwork: PictureInPicture,
-  'throw-pillows': Armchair,
-}
+const SkeletonShop = () => (
+  <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 px-6 md:px-12 lg:px-20 py-20 md:py-32">
+    <div className="container-wide">
+      <div className="mb-16 text-center">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Shop</p>
+        <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
+          Shop Collection
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="group flex flex-col items-center">
+            <div className="relative w-full max-w-sm mx-auto mb-6">
+              <div className="relative rounded-full overflow-hidden bg-[var(--secondary)]/30 skeleton aspect-square" />
+            </div>
+            <div className="skeleton h-6 w-3/4 mb-2" />
+            <div className="skeleton h-4 w-1/2" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+)
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.6, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] } }),
-}
-
-const staggerContainer = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.06 } },
-}
-
-export const ShopPage = ({ category: initialCategory }) => {
-  const navigate = useNavigate()
-  const { formatPrice, currency, changeCurrency } = useCurrency()
-  const [allProducts, setAllProducts] = useState([])
-  const [category, setCategory] = useState(initialCategory || '')
-  const [query, setQuery] = useState('')
-  const [sortBy, setSortBy] = useState('newest')
-  const [minPrice, setMinPrice] = useState('')
-  const [maxPrice, setMaxPrice] = useState('')
+export const ShopPage = ({ category }) => {
+  const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  const [currencyOpen, setCurrencyOpen] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [filter, setFilter] = useState(category || 'all')
+  const { addToCart, addToWishlist, wishlist, cart } = useShop()
+  const { formatPrice } = useCurrency()
 
-  const loadProducts = useCallback(() => {
-    api.get('/products', { params: { sort: '-createdAt', limit: 100 } })
-      .then((res) => setAllProducts(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setAllProducts([]))
-      .finally(() => setLoading(false))
-  }, [])
+  const loadProducts = useCallback(async () => {
+    try {
+      const params = filter !== 'all' ? { category: filter } : {}
+      const res = await api.get('/products', { params })
+      setProducts(res.data || [])
+    } catch (err) {
+      console.warn('[SHOP] Failed to load:', err?.message)
+      setProducts([])
+    } finally {
+      setLoading(false)
+    }
+  }, [filter])
 
-  useEffect(() => { loadProducts() }, [loadProducts])
+  useEffect(() => {
+    loadProducts()
+  }, [loadProducts])
 
   useEffect(() => {
     const handler = (event) => {
@@ -56,363 +65,157 @@ export const ShopPage = ({ category: initialCategory }) => {
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
   }, [loadProducts])
 
-  const products = useMemo(() => {
-    let next = [...allProducts]
-    if (query) {
-      const q = query.toLowerCase()
-      next = next.filter((item) => [item.name, item.description, item.category, item.sku].join(' ').toLowerCase().includes(q))
-    }
-    if (category) next = next.filter((item) => (item.category || '').toLowerCase() === category.toLowerCase())
+  const categories = useMemo(() => {
+    const cats = new Set(products.map((p) => p.category).filter(Boolean))
+    return ['all', ...cats]
+  }, [products])
 
-    if (minPrice) next = next.filter((item) => formatPrice(item.discountPrice || item.price) >= Number(minPrice))
-    if (maxPrice) next = next.filter((item) => formatPrice(item.discountPrice || item.price) <= Number(maxPrice))
+  const handleAddToCart = async (product) => {
+    await addToCart(product, product.variants?.[0], 1)
+  }
 
-    switch (sortBy) {
-      case 'price-low':
-        next.sort((a, b) => (a.discountPrice || a.price) - (b.discountPrice || b.price))
-        break
-      case 'price-high':
-        next.sort((a, b) => (b.discountPrice || b.price) - (a.discountPrice || a.price))
-        break
-      case 'name':
-        next.sort((a, b) => a.name.localeCompare(b.name))
-        break
-      default:
-        next.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    }
-    return next
-  }, [allProducts, category, query, minPrice, maxPrice, sortBy, formatPrice])
+  const handleAddToWishlist = async (product) => {
+    await addToWishlist(product._id)
+  }
 
-  const hasFilters = category || query || minPrice || maxPrice
-  const clearFilters = useCallback(() => { navigate('/shop'); setQuery(''); setCategory(''); setMinPrice(''); setMaxPrice('') }, [navigate])
+  const isInWishlist = (productId) => wishlist.some((item) => item._id === productId)
+  const isInCart = (productId) => cart.some((item) => item._id === productId)
+
+  if (loading) {
+    return <main><SkeletonShop /></main>
+  }
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
-      {/* Sticky Premium Header - Search, Category, Sort, Currency */}
-      <div className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-xl shadow-sm md:top-[72px]">
-        <div className="container-wide px-4 py-4 md:px-12 md:py-5">
-          {/* Unified Search Bar - Both Desktop and Mobile */}
-          <div className="flex items-center gap-3 mb-4 md:mb-0">
-            <div className="relative flex-1 max-w-full">
-              <Search size={16} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--primary)]/30" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search products..."
-                className="w-full rounded-full border border-[var(--border)] bg-white pl-10 pr-4 py-2.5 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
-              />
-            </div>
-
-            {/* Desktop Controls - Filter/Sort/Currency */}
-            <div className="hidden md:flex items-center gap-3 ml-auto">
-              <div className="relative">
-                <button
-                  onClick={() => setCurrencyOpen((p) => !p)}
-                  className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/70 hover:border-[var(--accent)] transition"
-                >
-                  {currency} <ChevronDown size={12} strokeWidth={2} className={`transition-transform ${currencyOpen ? 'rotate-180' : ''}`} />
-                </button>
-                <AnimatePresence>
-                  {currencyOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 4 }}
-                      className="absolute right-0 mt-2 w-40 border border-[var(--border)] bg-white rounded-2xl shadow-[0_20px_40px_rgba(42,36,31,0.15)] z-10 overflow-hidden"
-                    >
-                      {CURRENCIES.map((c) => (
-                        <button
-                          key={c.code}
-                          onClick={() => { changeCurrency(c.code); setCurrencyOpen(false) }}
-                          className={`w-full px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-widest transition ${
-                            currency === c.code ? 'bg-[var(--bg)] text-[var(--accent)]' : 'text-[var(--primary)] hover:bg-[var(--bg)]/50'
-                          }`}
-                        >
-                          {c.code} ({c.symbol})
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/70 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition cursor-pointer"
-              >
-                <option value="newest">Newest</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="name">Name A-Z</option>
-              </select>
-
-              <button
-                onClick={() => setFiltersOpen((p) => !p)}
-                className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/60 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-              >
-                <SlidersHorizontal size={13} strokeWidth={1.5} />
-                Filters
-              </button>
-
-              {hasFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/40 transition hover:text-[var(--accent)]"
-                >
-                  <X size={12} strokeWidth={1.5} /> Clear
-                </button>
-              )}
-              <span className="text-2xs text-[var(--primary)]/40 font-medium">{products.length} items</span>
-            </div>
-          </div>
-
-          {/* Mobile Filters Button */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setMobileMenuOpen((p) => !p)}
-              className="w-full flex items-center justify-center gap-1.5 rounded-full border border-[var(--border)] bg-white px-3 py-2.5 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/70"
-            >
-              <Filter size={14} strokeWidth={1.5} />
-              {hasFilters ? 'Filters' : 'Menu'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Category Bar - Both Desktop and Mobile */}
-      <div className="border-b border-[var(--border)] bg-[var(--bg)]/50 overflow-x-auto">
-        <div className="container-wide px-6 md:px-12 lg:px-20 py-3">
-          <div className="flex items-center gap-2 min-w-max">
-            <button
-              onClick={() => { navigate('/shop'); setCategory('') }}
-              className={`px-5 py-2 text-2xs font-semibold uppercase tracking-widest transition rounded-full whitespace-nowrap ${
-                !category ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
-              }`}
-            >
-              All
-            </button>
-            {SHOP_CATEGORIES.map((cat) => {
-              const Icon = categoryIcons[cat.slug] || Armchair
-              return (
-                <button
-                  key={cat.slug}
-                  onClick={() => { navigate(category === cat.slug ? '/shop' : `/shop/${cat.slug}`); setCategory(category === cat.slug ? '' : cat.slug) }}
-                  className={`flex items-center gap-1.5 px-5 py-2 text-2xs font-semibold uppercase tracking-widest transition rounded-full whitespace-nowrap ${
-                    category === cat.slug ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
-                  }`}
-                >
-                  <Icon size={12} strokeWidth={1.5} />
-                  {cat.label}s
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Desktop Expandable Filters */}
-      <div className="hidden md:block border-b border-[var(--border)] bg-[var(--bg)]/50">
-        <div className="container-wide px-6 md:px-12 lg:px-20">
-          <AnimatePresence>
-            {filtersOpen && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="flex flex-col lg:flex-row gap-6 py-6 overflow-hidden"
-              >
-                <div className="flex-1 max-w-xs">
-                  <label className="block text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Min Price ({CURRENCIES.find(c => c.code === currency)?.symbol || currency})</label>
-                  <input
-                    value={minPrice}
-                    onChange={(e) => setMinPrice(e.target.value)}
-                    placeholder="0"
-                    type="number"
-                    className="w-full rounded-full border border-[var(--border)] bg-[var(--bg)] px-4 py-2.5 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
-                  />
-                </div>
-                <div className="flex-1 max-w-xs">
-                  <label className="block text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Max Price ({CURRENCIES.find(c => c.code === currency)?.symbol || currency})</label>
-                  <input
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(e.target.value)}
-                    placeholder="Any"
-                    type="number"
-                    className="w-full rounded-full border border-[var(--border)] bg-[var(--bg)] px-4 py-2.5 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* Mobile Filters Bottom Sheet */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-[var(--primary)]/50 backdrop-blur-sm md:hidden"
-              onClick={() => setMobileMenuOpen(false)}
-            />
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-[2rem] bg-white shadow-2xl md:hidden"
-            >
-              <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
-                <p className="font-display text-xl text-[var(--primary)]">Filters & Categories</p>
-                <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-[var(--primary)]/50 hover:text-[var(--primary)] transition">
-                  <X size={20} strokeWidth={1.5} />
-                </button>
-              </div>
-
-              <div className="p-5 space-y-6">
-                <div>
-                  <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-3">Categories</p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => { navigate('/shop'); setCategory(''); setMobileMenuOpen(false) }}
-                      className={`px-4 py-2 text-2xs font-semibold uppercase tracking-widest transition rounded-full ${
-                        !category ? 'bg-[var(--primary)] text-white' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
-                      }`}
-                    >
-                      All
-                    </button>
-                    {SHOP_CATEGORIES.map((cat) => {
-                      const Icon = categoryIcons[cat.slug] || Armchair
-                      return (
-                        <button
-                          key={cat.slug}
-                          onClick={() => { navigate(category === cat.slug ? '/shop' : `/shop/${cat.slug}`); setCategory(category === cat.slug ? '' : cat.slug); setMobileMenuOpen(false) }}
-                          className={`flex items-center gap-1.5 px-4 py-2 text-2xs font-semibold uppercase tracking-widest transition rounded-full ${
-                            category === cat.slug ? 'bg-[var(--primary)] text-white' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
-                          }`}
-                        >
-                          <Icon size={12} strokeWidth={1.5} />
-                          {cat.label}s
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-3">Currency</p>
-                  <div className="flex flex-wrap gap-2">
-                    {CURRENCIES.map((c) => (
-                      <button
-                        key={c.code}
-                        onClick={() => { changeCurrency(c.code); setCurrencyOpen(false) }}
-                        className={`px-4 py-2 text-2xs font-semibold uppercase tracking-widest transition rounded-full ${
-                          currency === c.code ? 'bg-[var(--primary)] text-white' : 'text-[var(--primary)]/50 hover:text-[var(--primary)] bg-[var(--bg)] border border-[var(--border)]'
-                        }`}
-                      >
-                        {c.code} ({c.symbol})
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-3">Sort By</p>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="w-full rounded-2xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm outline-none focus:border-[var(--accent)] transition"
-                  >
-                    <option value="newest">Newest</option>
-                    <option value="price-low">Price: Low to High</option>
-                    <option value="price-high">Price: High to Low</option>
-                    <option value="name">Name A-Z</option>
-                  </select>
-                </div>
-
-                <div>
-                  <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-3">Price Range</p>
-                  <div className="flex gap-3">
-                    <input
-                      value={minPrice}
-                      onChange={(e) => setMinPrice(e.target.value)}
-                      placeholder="Min"
-                      type="number"
-                      className="flex-1 rounded-2xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] transition"
-                    />
-                    <input
-                      value={maxPrice}
-                      onChange={(e) => setMaxPrice(e.target.value)}
-                      placeholder="Max"
-                      type="number"
-                      className="flex-1 rounded-2xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] transition"
-                    />
-                  </div>
-                </div>
-
-                {hasFilters && (
-                  <button
-                    onClick={() => { clearFilters(); setMobileMenuOpen(false) }}
-                    className="w-full rounded-full border border-[var(--border)] bg-white py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 hover:text-[var(--accent)] hover:border-[var(--accent)] transition"
-                  >
-                    Clear All Filters
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Product Grid */}
-      <section className="section-pad bg-[var(--bg)] pt-6 md:pt-10">
-        <div className="container-wide px-4 md:px-12 lg:px-20">
-          {loading && (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <div key={i}>
-                  <div className="skeleton aspect-[3/4] w-full rounded-3xl" />
-                  <div className="mt-4 space-y-2">
-                    <div className="skeleton h-3 w-20" />
-                    <div className="skeleton h-5 w-40" />
-                    <div className="skeleton h-4 w-16" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {!loading && products.length === 0 && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="py-24 text-center">
-              <Armchair size={48} strokeWidth={1} className="mx-auto text-[var(--secondary)] mb-4" />
-              <p className="font-display text-3xl text-[var(--primary)]/30">
-                {allProducts.length === 0 ? 'No products yet.' : 'No products found'}
-              </p>
-              <p className="mt-2 text-sm text-[var(--primary)]/35">Try adjusting your filters</p>
-              {hasFilters && (
-                <button onClick={clearFilters} className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 text-2xs font-semibold uppercase tracking-widest border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] rounded-full transition">
-                  <X size={12} strokeWidth={1.5} /> Clear Filters
-                </button>
-              )}
-            </motion.div>
-          )}
-
-          <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={staggerContainer} className="grid gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {products.map((product, i) => (
-              <motion.div key={product._id || product.id} variants={fadeUp} custom={i}>
-                <ProductCard product={product} />
-              </motion.div>
-            ))}
-          </motion.div>
+    <main>
+      <PageMeta
+        title="Shop Collection — HOK Interior Designs"
+        description="Discover timeless furniture and decor pieces curated for luxury living."
+      />
+      <section className="relative min-h-[50vh] md:min-h-[60vh] flex items-center justify-center">
+        <div className="absolute inset-0 bg-gradient-to-b from-[var(--primary)] via-[var(--primary)]/80 to-[var(--bg)]" />
+        <div className="relative z-10 container-wide px-6 md:px-12 lg:px-20 text-center">
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            className="font-display text-5xl md:text-7xl lg:text-8xl font-semibold text-white leading-tight"
+          >
+            Shop
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-6 text-lg md:text-xl text-white/70 max-w-3xl mx-auto"
+          >
+            Curated pieces to elevate your space with timeless elegance. Each item is selected for its quality, craftsmanship, and enduring design.
+          </motion.p>
         </div>
       </section>
-    </div>
+
+      <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-12 md:py-16">
+        <div className="container-wide">
+          <div className="flex flex-wrap items-center gap-3 mb-12">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setFilter(cat)}
+                className={`px-5 py-2.5 rounded-full text-sm font-medium uppercase tracking-wide transition-all duration-300 ${
+                  filter === cat
+                    ? 'bg-[var(--primary)] text-white shadow-[0_4px_16px_rgba(42,36,31,0.2)]'
+                    : 'bg-white border border-[var(--border)] text-[var(--primary)] hover:border-[var(--accent)] hover:text-[var(--accent)]'
+                }`}
+              >
+                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {products.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+              <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-full bg-[var(--secondary)]/30 text-[var(--primary)]/30">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                  <circle cx="9" cy="9" r="2" />
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                </svg>
+              </div>
+              <h3 className="font-display text-2xl md:text-3xl text-[var(--primary)] mb-2">No products found</h3>
+              <p className="text-[var(--primary)]/60 max-w-md">Try selecting a different category to browse our collection.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
+                {products.map((product, index) => (
+                  <motion.article
+                    key={product._id || product.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                    className="group flex flex-col items-center"
+                  >
+                    <Link to={`/shop/${product._id || product.id}`} className="block w-full">
+                      <div className="relative w-full max-w-sm mx-auto mb-6">
+                        <div className="relative rounded-full overflow-hidden bg-[var(--secondary)]/30 group-hover:shadow-[0_20px_40px_rgba(42,36,31,0.15)] transition-all duration-500">
+                          {product.images?.[0] ? (
+                            <img
+                              src={getOptimizedUrl(typeof product.images[0] === 'string' ? product.images[0] : product.images[0]?.url, { width: 600, crop: 'limit' })}
+                              alt={product.name}
+                              className="h-[320px] w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          ) : (
+                            <div className="h-[320px] w-full flex items-center justify-center text-[var(--primary)]/30">
+                              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                                <circle cx="9" cy="9" r="2" />
+                                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-center w-full max-w-xs">
+                        <p className="text-2xs font-medium uppercase tracking-widest text-[var(--accent)] mb-1">{product.category}</p>
+                        <h3 className="font-display text-base md:text-lg font-medium text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors">
+                          {product.name}
+                        </h3>
+                        <p className="text-lg font-semibold text-[var(--primary)] mb-4">
+                          {formatPrice(product.discountPrice || product.price || 0)}
+                        </p>
+                        <div className="flex items-center justify-center gap-3">
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddToWishlist(product) }}
+                            className={`p-3 rounded-full transition-all duration-300 ${isInWishlist(product._id) ? 'bg-[var(--error)]/10 text-[var(--error)]' : 'bg-white border border-[var(--border)] text-[var(--primary)]/60 hover:bg-[var(--accent)] hover:border-[var(--accent)] hover:text-white hover:shadow-[0_4px_16px_rgba(232,154,67,0.3)]'} `}
+                            aria-label={isInWishlist(product._id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill={isInWishlist(product._id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddToCart(product) }}
+                            className={`p-3 rounded-full transition-all duration-300 ${isInCart(product._id) ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--border)] text-[var(--primary)]/60 hover:bg-[var(--accent)] hover:border-[var(--accent)] hover:text-white hover:shadow-[0_4px_16px_rgba(232,154,67,0.3)]'} `}
+                            aria-label={isInCart(product._id) ? 'In cart' : 'Add to cart'}
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                              <line x1="3" y1="6" x2="21" y2="6" />
+                              <path d="M16 10a4 4 0 0 1-8 0" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.article>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+    </main>
   )
 }
 

@@ -1,95 +1,31 @@
-import { Suspense, useState, useEffect, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
-import { api } from '../../services/api'
-import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
+import { motion } from 'framer-motion'
 
 const AuthLoader = () => (
-  <div className="flex min-h-[40vh] items-center justify-center">
-    <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
+  <div className="flex min-h-[60vh] items-center justify-center">
+    <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
   </div>
 )
 
-function useHeroImage() {
-  const [image, setImage] = useState('')
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      try {
-        const res = await api.get('/content/hero-media')
-        const items = Array.isArray(res.data) ? res.data : []
-        if (!cancelled && items.length > 0) {
-          const first = items[0]
-          const url = first.imageUrl || first.mediaUrl || first.mediaUrls?.[0] || ''
-          setImage(url)
-        }
-      } catch {
-        // keep fallback
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [])
-
-  return { image, loading }
-}
-
 export const AuthShell = () => {
-  const { image } = useHeroImage()
-
-  const heroImage = useMemo(() => {
-    if (!image) return ''
-    return getOptimizedUrl(image, { width: 1280, crop: 'limit' })
-  }, [image])
-
   return (
-    <div className="grid min-h-screen bg-[var(--bg)] md:grid-cols-2">
-      {/* Left image panel */}
-      <div className="relative hidden overflow-hidden md:block">
-        {heroImage ? (
-          <img
-            src={heroImage}
-            alt="Luxury interior"
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)] via-[var(--primary)]/95 to-[var(--primary)]/80" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/70 via-[var(--primary)]/20 to-[var(--primary)]/10" />
-        <div className="absolute bottom-12 left-12 max-w-sm">
-          <Link to="/">
-            <div className="flex flex-col items-start">
-              <p className="font-display text-4xl font-medium tracking-[0.25em] text-white">HOK</p>
-              <p className="font-sans text-[11px] font-medium uppercase tracking-[0.35em] text-[var(--accent)] -mt-1">INTERIOR DESIGNS</p>
-            </div>
-          </Link>
-          <p className="mt-6 font-display text-3xl font-normal leading-snug text-white/85">
-            Timeless interiors, designed for a life well lived.
-          </p>
-        </div>
-      </div>
-
-      {/* Right form panel */}
-      <div className="flex items-center justify-center px-6 py-16 md:px-12">
+    <div className="min-h-screen bg-[var(--bg)] flex flex-col">
+      <main className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
-          {/* Mobile logo */}
-          <div className="mb-10 md:hidden">
-            <Link to="/">
-              <div className="flex flex-col items-center">
-                <p className="font-display text-3xl font-medium tracking-[0.25em] text-[var(--primary)]">HOK</p>
-                <p className="font-sans text-[11px] font-medium uppercase tracking-[0.35em] text-[var(--accent)] -mt-1">INTERIOR DESIGNS</p>
-              </div>
-            </Link>
-          </div>
           <Suspense fallback={<AuthLoader />}>
-            <Outlet />
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Outlet />
+            </motion.div>
           </Suspense>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
+
+export default AuthShell

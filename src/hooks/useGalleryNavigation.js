@@ -1,76 +1,46 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 
-export function useGalleryNavigation({
-  isOpen,
-  onClose,
-  onPrev,
-  onNext,
-}) {
-  const touchStartX = useRef(null)
-  const touchStartY = useRef(null)
+export function useGalleryNavigation(items) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const intervalRef = useRef(null)
 
-  const handleKeyDown = useCallback(
-    (e) => {
-      if (!isOpen) return
+  const totalItems = useMemo(() => items?.length || 0, [items])
 
-      switch (e.key) {
-        case 'Escape':
-          e.preventDefault()
-          onClose()
-          break
-        case 'ArrowLeft':
-          e.preventDefault()
-          onPrev()
-          break
-        case 'ArrowRight':
-          e.preventDefault()
-          onNext()
-          break
-      }
-    },
-    [isOpen, onClose, onPrev, onNext]
-  )
+  const goToNext = useCallback(() => {
+    if (isAnimating || totalItems <= 1) return
+    setIsAnimating(true)
+    setCurrentIndex((prev) => (prev + 1) % totalItems)
+    setTimeout(() => setIsAnimating(false), 1200)
+  }, [isAnimating, totalItems])
 
-  const handleTouchStart = useCallback(
-    (e) => {
-      if (!isOpen) return
-      touchStartX.current = e.touches[0].clientX
-      touchStartY.current = e.touches[0].clientY
-    },
-    [isOpen]
-  )
+  const goToPrev = useCallback(() => {
+    if (isAnimating || totalItems <= 1) return
+    setIsAnimating(true)
+    setCurrentIndex((prev) => (prev - 1 + totalItems) % totalItems)
+    setTimeout(() => setIsAnimating(false), 1200)
+  }, [isAnimating, totalItems])
 
-  const handleTouchEnd = useCallback(
-    (e) => {
-      if (!isOpen || touchStartX.current === null) return
-
-      const touchEndX = e.changedTouches[0].clientX
-      const touchEndY = e.changedTouches[0].clientY
-      const diffX = touchStartX.current - touchEndX
-      const diffY = touchStartY.current - touchEndY
-
-      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
-        if (diffX > 0) {
-          onNext()
-        } else {
-          onPrev()
-        }
-      }
-
-      touchStartX.current = null
-      touchStartY.current = null
-    },
-    [isOpen, onPrev, onNext]
-  )
+  const goToIndex = useCallback((index) => {
+    if (isAnimating || index === currentIndex || totalItems <= 1) return
+    setIsAnimating(true)
+    setCurrentIndex(index)
+    setTimeout(() => setIsAnimating(false), 1200)
+  }, [isAnimating, currentIndex, totalItems])
 
   useEffect(() => {
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown)
-    }
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isOpen, handleKeyDown])
+    if (totalItems <= 1) return
+    intervalRef.current = setInterval(goToNext, 7000)
+    return () => clearInterval(intervalRef.current)
+  }, [totalItems, goToNext])
 
-  return { handleTouchStart, handleTouchEnd }
+  return {
+    currentIndex,
+    totalItems,
+    isAnimating,
+    goToNext,
+    goToPrev,
+    goToIndex,
+    currentItem: items?.[currentIndex],
+  }
 }

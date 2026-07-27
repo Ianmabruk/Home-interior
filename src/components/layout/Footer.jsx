@@ -2,18 +2,12 @@ import { useState, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { Instagram, Facebook } from 'lucide-react'
 import { FaTiktok, FaPinterest } from 'react-icons/fa'
-import { api } from '../services/api'
+import { api } from '@services/api'
+import { FOOTER_SOCIAL_LINKS } from '@constants/socialLinks.jsx'
 
 export const Footer = memo(() => {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState('')
-
-  const socialLinks = [
-    { icon: FaTiktok, href: 'https://www.tiktok.com/@hokinteriors', label: 'TikTok', ariaLabel: 'Follow us on TikTok' },
-    { icon: Instagram, href: 'https://www.instagram.com/hokinteriors', label: 'Instagram', ariaLabel: 'Follow us on Instagram' },
-    { icon: Facebook, href: 'https://www.facebook.com/share/14i3V8Sw7uo', label: 'Facebook', ariaLabel: 'Follow us on Facebook' },
-    { icon: FaPinterest, href: 'https://www.pinterest.com/hokinterior', label: 'Pinterest', ariaLabel: 'Follow us on Pinterest' },
-  ]
 
   const handleSubscribe = async (e) => {
     e.preventDefault()
@@ -28,13 +22,13 @@ export const Footer = memo(() => {
   }
 
   return (
-    <footer className="relative bg-footer-bg text-footer-text" role="contentinfo">
+    <footer className="relative bg-[var(--footer-bg)] text-[var(--footer-text)]" role="contentinfo">
       <div className="relative z-10 container-wide px-6 md:px-12 lg:px-20 py-16 md:py-24 lg:py-32">
         <div className="space-y-16 md:space-y-20">
           {/* Section 1: Branding - Centered */}
           <div className="text-center animate-fade-up" style={{ animationDelay: '0s' }}>
             <Link to="/" className="inline-block group" aria-label="HOK Interiors - Home">
-              <p className="font-display text-3xl md:text-4xl lg:text-5xl font-medium tracking-[0.25em] leading-tight text-white transition-colors duration-300 group-hover:text-orange-accent">
+              <p className="font-display text-3xl md:text-4xl lg:text-5xl font-medium tracking-[0.25em] leading-tight text-white transition-colors duration-300 group-hover:text-[var(--accent)]">
                 HOK Interiors
               </p>
             </Link>
@@ -44,19 +38,22 @@ export const Footer = memo(() => {
           <div className="text-center animate-fade-up" style={{ animationDelay: '0.1s' }}>
             <h3 className="font-display text-xl md:text-2xl font-normal text-white mb-6">Follow Us</h3>
             <div className="flex items-center justify-center gap-4 md:gap-6">
-              {socialLinks.map((social, index) => (
+              {FOOTER_SOCIAL_LINKS.map((social, index) => (
                 <a
                   key={social.label}
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={social.ariaLabel}
-                  className="social-icon group relative flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border border-white/20 transition-all duration-500 hover:border-orange-accent hover:bg-orange-accent/10 hover:text-orange-accent hover:scale-110 active:scale-95"
+                  className="social-icon group relative flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border border-white/20 transition-all duration-500 hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] hover:scale-110 active:scale-95"
                   style={{ animationDelay: `${index * 0.08}s` }}
                   role="listitem"
                 >
-                  {social.icon ? <social.icon size={22} md={24} strokeWidth={1.5} className="transition-colors duration-300 group-hover:text-orange-accent" aria-hidden="true" /> : <span className="inline-block h-6 w-6 rounded-full bg-white/10" />}
-                  <span className="absolute inset-0 rounded-full border border-transparent transition-all duration-300 group-hover:border-orange-accent group-hover:scale-110" aria-hidden="true" />
+                  {social.icon === 'TikTok' && <FaTiktok size={22} md={24} strokeWidth={1.5} className="transition-colors duration-300 group-hover:text-[var(--accent)]" aria-hidden="true" />}
+                  {social.icon === 'Instagram' && <Instagram size={22} md={24} strokeWidth={1.5} className="transition-colors duration-300 group-hover:text-[var(--accent)]" aria-hidden="true" />}
+                  {social.icon === 'Facebook' && <Facebook size={22} md={24} strokeWidth={1.5} className="transition-colors duration-300 group-hover:text-[var(--accent)]" aria-hidden="true" />}
+                  {social.icon === 'Pinterest' && <FaPinterest size={22} md={24} strokeWidth={1.5} className="transition-colors duration-300 group-hover:text-[var(--accent)]" aria-hidden="true" />}
+                  <span className="absolute inset-0 rounded-full border border-transparent transition-all duration-300 group-hover:border-[var(--accent)] group-hover:scale-110" aria-hidden="true" />
                 </a>
               ))}
             </div>
@@ -67,12 +64,12 @@ export const Footer = memo(() => {
             <h3 className="font-display text-xl md:text-2xl font-normal text-white mb-6">Contact Us</h3>
             <div className="space-y-3 text-base md:text-lg text-white/70">
               <p className="flex items-center justify-center gap-2">
-                <span className="text-orange-accent" aria-hidden="true">📞</span>
-                <a href="tel:+254700000000" className="hover:text-orange-accent transition-colors">+254 700 000 000</a>
+                <span className="text-[var(--accent)]" aria-hidden="true">📞</span>
+                <a href="tel:+254700000000" className="hover:text-[var(--accent)] transition-colors">+254 700 000 000</a>
               </p>
               <p className="flex items-center justify-center gap-2">
-                <span className="text-orange-accent" aria-hidden="true">✉</span>
-                <a href="mailto:info@hokinteriors.com" className="hover:text-orange-accent transition-colors">info@hokinteriors.com</a>
+                <span className="text-[var(--accent)]" aria-hidden="true">✉</span>
+                <a href="mailto:info@hokinteriors.com" className="hover:text-[var(--accent)] transition-colors">info@hokinteriors.com</a>
               </p>
             </div>
           </div>
@@ -88,11 +85,11 @@ export const Footer = memo(() => {
                 type="email"
                 required
                 placeholder="Email Address"
-                className="w-full rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm text-white placeholder:text-white/40 outline-none transition-all duration-300 focus:border-orange-accent focus:bg-white/10"
+                className="w-full rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm text-white placeholder:text-white/40 outline-none transition-all duration-300 focus:border-[var(--accent)] focus:bg-white/10"
               />
               <button
                 type="submit"
-                className="w-full rounded-full bg-orange-accent px-5 py-3 text-[11px] font-semibold uppercase tracking-widest text-white transition-all duration-300 hover:bg-orange-hover hover:shadow-lg"
+                className="w-full rounded-full bg-[var(--accent)] px-5 py-3 text-[11px] font-semibold uppercase tracking-widest text-white transition-all duration-300 hover:bg-[var(--accent)] hover:shadow-lg"
               >
                 Join Mailing List
               </button>

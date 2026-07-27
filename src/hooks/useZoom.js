@@ -1,66 +1,124 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
-export function useZoom(options = {}) {
-  const { minScale = 1, maxScale = 4, initialScale = 1 } = options
-
-  const [scale, setScale] = useState(initialScale)
+export function useZoom() {
+  const [scale, setScale] = useState(1)
   const [position, setPosition] = useState({ x: 0, y: 0 })
-  const isDragging = useRef(false)
-  const dragStart = useRef({ x: 0, y: 0 })
-  const imageRef = useRef(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragStartRef = useRef({ x: 0, y: 0 })
+  const initialPositionRef = useRef({ x: 0, y: 0 })
+  const initialScaleRef = useRef(1)
+  const initialDistanceRef = useRef(0)
 
-  const resetZoom = useCallback(() => {
-    setScale(initialScale)
+  const reset = useCallback(() => {
+    setScale(1)
     setPosition({ x: 0, y: 0 })
-  }, [initialScale])
-
-  const handleWheel = useCallback((e) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault()
-      setScale((prev) => {
-        const newScale = Math.min(Math.max(prev - e.deltaY * 0.001, minScale), maxScale)
-        return newScale
-      })
-    }
-  }, [minScale, maxScale])
-
-  const handleMouseDown = useCallback((e) => {
-    if (scale <= minScale) return
-    isDragging.current = true
-    dragStart.current = { x: e.clientX - position.x, y: e.clientY - position.y }
-    if (imageRef.current) imageRef.current.style.cursor = 'grabbing'
-  }, [scale, position, minScale])
-
-  const handleMouseMove = useCallback((e) => {
-    if (!isDragging.current || scale <= minScale) return
-    setPosition({
-      x: e.clientX - dragStart.current.x,
-      y: e.clientY - dragStart.current.y,
-    })
-  }, [scale, minScale])
-
-  const handleMouseUp = useCallback(() => {
-    isDragging.current = false
-    if (imageRef.current) {
-      imageRef.current.style.cursor = 'grab'
-    }
   }, [])
 
-  const handleDoubleClick = useCallback(() => {
-    setScale((prev) => (prev > minScale ? minScale : maxScale))
-  }, [minScale, maxScale])
+  const zoomIn = useCallback(() => {
+    setScale((prev) => Math.min(prev * 1.2, 5))
+  }, [])
+
+  const zoomOut = useCallback(() => {
+    setScale((prev) => Math.max(prev / 1.2, 1))
+  }, [])
+
+  const handleWheel = useCallback((e) => {
+    e.preventDefault()
+    const delta = e.deltaY > 0 ? 0.9 : 1.1
+    setScale((prev) => {
+      const newScale = Math.min(Math.max(prev * delta, 1), 5)
+      return newScale
+    })
+  }, [])
+
+  const handleMouseDown = useCallback((e) => {
+    if (scale <= 1) return
+    setIsDragging(true)
+    dragStartRef.current = { x: e.clientX, y: e.clientY }
+    initialPositionRef.current = position
+  }, [scale, position])
+
+  const handleTouchStart = useCallback((e) => {
+    if (e.touches.length === 1 && scale > 1) {
+      setIsDragging(true)
+      dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      initialPositionRef.current = position
+    } else if (e.touches.length === 2) {
+      setIsDragging(false)
+      const dx = e.touches[0].clientX - e.touches[1].clientX
+      const dy = e.touches[0].clientY - e.touches[1].clientY
+      initialDistanceRef.current = Math.sqrt(dx * dx + dy * dy)
+      initialScaleRef.current = scale
+    }
+  }, [scale, position])
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isDragging || scale <= 1) return
+    const dx = e.clientX - dragStartRef.current.x
+    const dy = e.clientY - dragStartRef.current.y
+    setPosition({
+      x: initialPositionRef.current.x + dx,
+      y: initialPositionRef.current.y + dy,
+    })
+  }, [isDragging, scale])
+
+  const handleTouchMove = useCallback((e) => {
+    e.preventDefault()
+    if (e.touches.length === 1 && isDragging && scale > 1) {
+      const dx = e.touches[0].clientX - dragStartRef.current.x
+      const dy = e.touches[0].clientY - dragStartRef.current.y
+      setPosition({
+        x: initialPositionRef.current.x + dx,
+        y: initialPositionRef.current.y + dy,
+      })
+    } else if (e.touches.length === 2) {
+      setIsDragging(false)
+      const dx = e.touches[0].clientX - e.touches[1].clientX
+      const dy = e.touches[0].clientY - e.touches[1].clientY
+      const distance = Math.sqrt(dx * dx + dy * dy)
+      const newScale = Math.min(Math.max(initialScaleRef.current * (distance / initialDistanceRef.current), 1), 5)
+      setScale(newScale)
+    }
+  }, [isDragging, scale])
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false)
+  }, [])
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false)
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+    window.addEventListener('touchmove', handleTouchMove, { passive: false })
+    window.addEventListener('touchend', handleTouchEnd)
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+      window.removeEventListener('touchmove', handleTouchMove)
+      window.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd])
+
+  const style = {
+    transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+    transformOrigin: 'center center',
+    transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+    cursor: isDragging ? 'grabbing' : scale > 1 ? 'grab' : 'default',
+  }
 
   return {
     scale,
     position,
-    resetZoom,
+    isDragging,
+    style,
+    reset,
+    zoomIn,
+    zoomOut,
     handleWheel,
     handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-    handleDoubleClick,
-    imageRef,
+    handleTouchStart,
   }
 }
-
-export default useZoom

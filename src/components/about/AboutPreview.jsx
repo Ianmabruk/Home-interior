@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { api } from '../services/api'
-import { getOptimizedUrl } from '../utils/cloudinaryHelpers'
+import { api } from '../../services/api'
+import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 import { Link } from 'react-router-dom'
-import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../utils/adminEvents'
+import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
 
 export const AboutPreview = () => {
   const [aboutData, setAboutData] = useState(null)
@@ -18,7 +18,6 @@ export const AboutPreview = () => {
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial data load is a standard pattern
     loadAbout()
   }, [loadAbout])
 
@@ -47,7 +46,7 @@ export const AboutPreview = () => {
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
       viewport={{ once: true }}
-      className="bg-soft-cream px-6 md:px-12 lg:px-20 py-20 md:py-32"
+      className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-20 md:py-32"
     >
       <div className="container-wide">
         <div className="grid items-center gap-12 lg:gap-24 lg:grid-cols-2">
@@ -82,7 +81,7 @@ export const AboutPreview = () => {
                   fetchPriority="high"
                 />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-luxury-text/10 to-transparent pointer-events-none rounded-3xl" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/10 to-transparent pointer-events-none rounded-3xl" />
             </div>
           </motion.div>
 
@@ -94,23 +93,23 @@ export const AboutPreview = () => {
             className="space-y-8 md:space-y-10 max-w-3xl"
           >
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-orange-accent mb-4">Our Story</p>
-              <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-normal text-luxury-text leading-[1.15]">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Our Story</p>
+              <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-normal text-[var(--primary)] leading-[1.15]">
                 Designing Spaces,
                 <br />
                 Creating Memories
               </h3>
             </div>
-            <p className="text-base md:text-lg leading-[1.8] text-luxury-text/70">{story}</p>
+            <p className="text-base md:text-lg leading-[1.8] text-[var(--primary)]/70">{story}</p>
 
-            <div className="py-2 border-t border-b border-linen/40">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-orange-accent mb-3">Our Philosophy</p>
-              <p className="font-display text-xl md:text-2xl text-luxury-text italic leading-relaxed">{mission}</p>
+            <div className="py-2 border-t border-b border-[var(--secondary)]/40">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-3">Our Philosophy</p>
+              <p className="font-display text-xl md:text-2xl text-[var(--primary)] italic leading-relaxed">{mission}</p>
             </div>
 
             <Link
               to="/about"
-              className="group inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-orange-accent transition-colors duration-300 hover:text-warm-bronze"
+              className="group inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] transition-colors duration-300 hover:text-[var(--accent)]/80"
             >
               Discover Our Story
               <motion.svg
@@ -134,3 +133,5 @@ export const AboutPreview = () => {
     </motion.section>
   )
 }
+
+export default AboutPreview

@@ -11,35 +11,13 @@ import {
   X,
   Package,
   CreditCard,
-  LayoutGrid,
-  MonitorSmartphone,
-  Mail,
-  Sparkles,
-  Home,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useAuth } from '../context/AuthContext'
-import { useShop } from '../context/ShopContext'
-import hokLogoWebP from '../assets/hok-logo.webp'
-import { prefetchMap } from '../app/prefetchMap'
-
-const NAV_ITEMS = [
-  { to: '/portfolio', label: 'Portfolio' },
-  { to: '/virtual-design', label: 'Virtual Designs' },
-  { to: '/services', label: 'Services' },
-  { to: '/about', label: 'About Us' },
-  { to: '/socials', label: 'Socials' },
-]
-
-const FULLSCREEN_MENU_ITEMS = [
-  { to: '/', label: 'Home', icon: Home },
-  { to: '/portfolio', label: 'Portfolio', icon: LayoutGrid },
-  { to: '/virtual-design', label: 'Virtual Design', icon: MonitorSmartphone },
-  { to: '/services', label: 'Services', icon: Sparkles },
-  { to: '/shop', label: 'Shop', icon: ShoppingBag },
-  { to: '/socials', label: 'Socials', icon: Mail },
-  { to: '/about', label: 'About Us', icon: User },
-]
+import { useAuth } from '@context/AuthContext'
+import { useShop } from '@context/ShopContext'
+import hokLogoWebP from '@assets/hok-logo.webp'
+import { prefetchMap } from '@app/prefetchMap'
+import { NAV_ITEMS, FULLSCREEN_MENU_ITEMS } from '@constants/navItems'
 
 const handlePrefetch = (to) => {
   const prefetchFn = prefetchMap[to]

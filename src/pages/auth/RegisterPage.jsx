@@ -1,127 +1,216 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
-import { PageMeta } from '../../hooks/usePageMeta';
 import { motion } from 'framer-motion'
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle, UserPlus } from 'lucide-react'
+import { useAuth } from '@context/AuthContext'
+import { PageMeta } from '@hooks/usePageMeta'
 
 export const RegisterPage = () => {
-  const navigate = useNavigate()
-  const { register } = useAuth()
-  const [form, setForm] = useState({ fullName: '', email: '', password: '', confirm: '' })
-  const [error, setError] = useState('')
+  const [formData, setFormData] = useState({ fullName: '', email: '', password: '', confirmPassword: '' })
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(null)
+  const { register } = useAuth()
+  const navigate = useNavigate()
 
-  const submit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    setError('')
-    if (form.password !== form.confirm) return setError('Passwords do not match.')
-    if (form.password.length < 8) return setError('Password must be at least 8 characters.')
-    if (!/\d/.test(form.password)) return setError('Password must contain at least one number.')
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
     setLoading(true)
+    setError(null)
+    setSuccess(null)
     try {
-      await register(form.fullName, form.email, form.password)
-      navigate('/account')
+      await register(formData.fullName, formData.email, formData.password)
+      setSuccess('Account created successfully! Redirecting...')
+      setTimeout(() => navigate('/login'), 1500)
     } catch (err) {
-      setError(err?.response?.data?.message || 'Registration failed. Please try again.')
+      setError(err?.message || 'Registration failed. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
+  const handleChange = (e) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
   return (
-    <motion.form
-      onSubmit={submit}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="space-y-8"
-    >
-      <PageMeta title="Register — HOK Interior Designs" description="Create your HOK Interior Designs account." />
-      <div>
-         <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-3">Join HOK</p>
-        <h1 className="font-display text-5xl font-normal text-[var(--primary)]">Create Account</h1>
-      </div>
+    <>
+      <PageMeta
+        title="Sign Up — HOK Interior Designs"
+        description="Create your HOK Interior Designs account."
+      />
+      <div className="bg-white rounded-3xl border border-[var(--border)]/40 p-8 md:p-12 shadow-[0_10px_40px_rgba(42,36,31,0.06)]">
+        <div className="text-center mb-10">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-2"
+          >
+            Create Account
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-[var(--primary)]/60"
+          >
+            Join HOK Interior Designs to start your design journey
+          </motion.p>
+        </div>
 
-      {error && (
-        <motion.p
-          initial={{ opacity: 0, y: -10 }}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 flex items-center gap-3 p-4 rounded-xl bg-[var(--error)]/10 text-[var(--error)]"
+          >
+            <AlertCircle size={20} strokeWidth={2} />
+            <span className="text-sm">{error}</span>
+          </motion.div>
+        )}
+
+        {success && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 flex items-center gap-3 p-4 rounded-xl bg-[var(--success)]/10 text-[var(--success)]"
+          >
+            <CheckCircle size={20} strokeWidth={2} />
+            <span className="text-sm">{success}</span>
+          </motion.div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="fullName" className="block text-sm font-medium text-[var(--primary)] mb-1">
+              Full Name
+            </label>
+            <input
+              type="text"
+              id="fullName"
+              name="fullName"
+              value={formData.fullName}
+              onChange={handleChange}
+              required
+              autoComplete="name"
+              className="input-luxury"
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-[var(--primary)] mb-1">
+              Email Address
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              autoComplete="email"
+              className="input-luxury"
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-[var(--primary)] mb-1">
+              Password
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                autoComplete="new-password"
+                minLength={8}
+                className="input-luxury pr-12"
+                disabled={loading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--primary)]/40 hover:text-[var(--primary)]"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={20} strokeWidth={1.5} /> : <Eye size={20} strokeWidth={1.5} />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-[var(--primary)] mb-1">
+              Confirm Password
+            </label>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                autoComplete="new-password"
+                className="input-luxury pr-12"
+                disabled={loading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--primary)]/40 hover:text-[var(--primary)]"
+                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+              >
+                {showConfirmPassword ? <EyeOff size={20} strokeWidth={1.5} /> : <Eye size={20} strokeWidth={1.5} />}
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full btn-luxury-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Creating Account...
+              </>
+            ) : (
+              <>
+                <UserPlus size={16} strokeWidth={1.5} className="mr-2" />
+                Create Account
+              </>
+            )}
+          </button>
+        </form>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-sm text-[var(--error)] bg-[var(--error)]/5 border border-[var(--error)]/20 px-4 py-3 rounded-xl"
+          transition={{ delay: 0.3 }}
+          className="mt-8 text-center"
         >
-          {error}
-        </motion.p>
-      )}
-
-      <div className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-[var(--primary)] mb-1.5">Full Name</label>
-          <input
-            className="input-luxury"
-            required
-            minLength={2}
-            value={form.fullName}
-            onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-            autoComplete="name"
-            placeholder="John Smith"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-[var(--primary)] mb-1.5">Email Address</label>
-          <input
-            className="input-luxury"
-            type="email"
-            required
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            autoComplete="email"
-            placeholder="you@example.com"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-[var(--primary)] mb-1.5">Password</label>
-          <input
-            className="input-luxury"
-            type="password"
-            required
-            minLength={8}
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            autoComplete="new-password"
-            placeholder="••••••••"
-          />
-          <p className="mt-1.5 text-2xs text-[var(--primary)]/35">Min 8 characters, at least 1 number.</p>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-[var(--primary)] mb-1.5">Confirm Password</label>
-          <input
-            className="input-luxury"
-            type="password"
-            required
-            minLength={8}
-            value={form.confirm}
-            onChange={(e) => setForm({ ...form, confirm: e.target.value })}
-            autoComplete="new-password"
-            placeholder="••••••••"
-          />
-        </div>
+          <p className="text-[var(--primary)]/60">
+            Already have an account?{' '}
+            <Link to="/login" className="text-[var(--accent)] font-medium hover:underline">
+              Sign In
+            </Link>
+          </p>
+        </motion.div>
       </div>
-
-      <div className="space-y-4">
-        <button
-          type="submit"
-          disabled={loading}
-          className="btn-luxury-primary w-full"
-        >
-          {loading ? 'Creating account…' : <>Create Account <ArrowRight size={14} strokeWidth={1.5} /></>}
-        </button>
-        <p className="text-center text-sm text-[var(--primary)]/45">
-          Already have an account?{' '}
-          <Link to="/login" className="font-medium text-[var(--primary)] transition hover:text-[var(--accent)]">
-            Sign in
-          </Link>
-        </p>
-      </div>
-    </motion.form>
+    </>
   )
 }
+
+export default RegisterPage

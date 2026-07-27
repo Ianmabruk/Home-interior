@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { ScrollReveal } from '../../utils/scrollReveal'
+import { ScrollReveal } from '../../hooks/useScrollReveal'
 
 const ContactSection = memo(({ contactInfo }) => {
   const phoneNumbers = contactInfo?.phoneNumbers || ['+254 700 000 000', '+254 711 111 111']

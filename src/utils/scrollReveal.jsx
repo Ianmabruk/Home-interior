@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components -- Utility file with hook + component */
 import { useEffect, useRef, useState } from 'react'
 
 export const useScrollReveal = (options = {}) => {

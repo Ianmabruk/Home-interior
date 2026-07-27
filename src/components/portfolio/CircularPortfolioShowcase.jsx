@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
-import { getOptimizedUrl } from '../utils/cloudinaryHelpers'
+import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
 const CIRCULAR_CARD_SIZE = {
   base: 300,

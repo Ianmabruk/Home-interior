@@ -23,38 +23,41 @@ export class ErrorBoundary extends Component {
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback
+      }
       return (
-        <div className="flex min-h-screen items-center justify-center px-4 bg-primary-bg text-charcoal">
+        <div className="flex min-h-screen items-center justify-center px-4 bg-[var(--bg)] text-[var(--primary)]">
           <div className="text-center max-w-md">
-            <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-error/10 text-error">
+            <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-[var(--error)]/10 text-[var(--error)]">
               <AlertTriangle size={32} strokeWidth={1.5} />
             </div>
-            <h1 className="font-display text-3xl font-semibold text-charcoal mb-3">Something went wrong</h1>
-            <p className="text-sm text-stone mb-6">
+            <h1 className="font-display text-3xl font-semibold text-[var(--primary)] mb-3">Something went wrong</h1>
+            <p className="text-sm text-[var(--primary)]/55 mb-6">
               We encountered an unexpected error. Our team has been notified.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 onClick={this.handleRetry}
-                className="group inline-flex items-center gap-2 rounded-full bg-forest px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-white transition-all duration-300 hover:bg-forestDark hover:shadow-[0_8px_30px_rgba(31,77,58,0.15)] hover:-translate-y-0.5"
+                className="group inline-flex items-center gap-2 rounded-full bg-[var(--primary)] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bg)] transition-all duration-300 hover:bg-[var(--accent)] hover:shadow-[0_8px_30px_rgba(232,154,67,0.15)] hover:-translate-y-0.5"
               >
                 <RefreshCw size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:rotate-12" />
                 Try Again
               </button>
               <Link
                 to="/"
-                className="group inline-flex items-center gap-2 rounded-full border border-border bg-white px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-charcoal transition-all duration-300 hover:border-bronze hover:text-bronze"
+                className="group inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg)] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--primary)] transition-all duration-300 hover:border-[var(--accent)] hover:text-[var(--accent)]"
               >
                 <Home size={14} strokeWidth={1.5} />
                 Go Home
               </Link>
             </div>
             {import.meta.env.DEV && this.state.error && (
-              <details className="mt-8 text-left p-4 bg-white/50 rounded-xl border border-border">
-                <summary className="font-medium text-sm text-charcoal cursor-pointer">Error Details</summary>
-                <pre className="mt-3 text-[10px] text-error overflow-auto max-h-64">{this.state.error?.toString()}</pre>
+              <details className="mt-8 text-left p-4 bg-[var(--bg)]/50 rounded-xl border border-[var(--border)]">
+                <summary className="font-medium text-sm text-[var(--primary)] cursor-pointer">Error Details</summary>
+                <pre className="mt-3 text-[10px] text-[var(--error)] overflow-auto max-h-64">{this.state.error?.toString()}</pre>
                 {this.state.errorInfo && (
-                  <pre className="mt-3 text-[10px] text-stone overflow-auto max-h-64">{this.state.errorInfo.componentStack}</pre>
+                  <pre className="mt-3 text-[10px] text-[var(--primary)]/60 overflow-auto max-h-64">{this.state.errorInfo.componentStack}</pre>
                 )}
               </details>
             )}

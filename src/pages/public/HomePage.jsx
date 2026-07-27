@@ -1,28 +1,18 @@
-import { useState, useEffect, useCallback, memo, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
-import { Hero } from '../../components/Hero'
-import { AboutPreview } from '../../components/AboutPreview'
-import { ConsultationModal } from '../../components/ConsultationModal'
-import { CircularPortfolioShowcase } from '../../components/CircularPortfolioShowcase'
-import { CircularServicesGrid } from '../../components/CircularServicesGrid'
+import { Hero } from '../../components/ui/Hero'
+import { AboutPreview } from '../../components/about/AboutPreview'
+import { ConsultationModal } from '../../components/common/ConsultationModal'
+import { CircularPortfolioShowcase } from '../../components/portfolio/CircularPortfolioShowcase'
+import { CircularServicesGrid } from '../../components/services/CircularServicesGrid'
+import { CircularNavCard } from '../../components/ui/CircularNavCard'
 import { api } from '../../services/api'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
-import { CircularNavCard } from '../../components/mobile/CircularNavCard'
 import { PageMeta } from '../../hooks/usePageMeta'
 import ContactSection from '../../components/common/ContactSection'
-
-const getProjectImage = (item) => {
-  if (!item) return null
-  return (
-    item.imageUrl ||
-    item.mediaUrl ||
-    item.mediaUrls?.[0] ||
-    item.galleryImages?.[0] ||
-    null
-  )
-}
+import { getProjectImage } from '../../utils/homepageHelpers'
 
 const SkeletonPortfolio = memo(() => (
   <section className="bg-[var(--secondary)]/30 px-6 md:px-12 lg:px-20 py-20 md:py-32">
@@ -49,7 +39,7 @@ const SkeletonPortfolio = memo(() => (
 ))
 
 const SkeletonServices = memo(() => (
-  <section className="bg-soft-cream px-6 md:px-12 lg:px-20 py-20 md:py-32">
+  <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-20 md:py-32">
     <div className="container-wide">
       <div className="mb-16 text-center">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Services</p>
@@ -60,9 +50,9 @@ const SkeletonServices = memo(() => (
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
         {[1, 2, 3].map((i) => (
           <div key={i} className="group flex flex-col items-center text-center">
-            <div className="mb-8 inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-champagne-beige/60 text-espresso skeleton" />
-            <h3 className="font-display text-xl md:text-2xl font-medium text-espresso leading-tight skeleton" />
-            <p className="mt-2 text-sm text-espresso/60 leading-relaxed skeleton" />
+            <div className="mb-8 inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--secondary)]/60 text-[var(--primary)] skeleton" />
+            <h3 className="font-display text-xl md:text-2xl font-medium text-[var(--primary)] leading-tight skeleton" />
+            <p className="mt-2 text-sm text-[var(--primary)]/60 leading-relaxed skeleton" />
           </div>
         ))}
       </div>
@@ -96,7 +86,7 @@ const SkeletonVirtualDesigns = memo(() => (
 ))
 
 const SkeletonContact = memo(() => (
-  <section className="bg-soft-cream px-6 md:px-12 lg:px-20 py-20 md:py-32">
+  <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 px-6 md:px-12 lg:px-20 py-20 md:py-32">
     <div className="container-wide">
       <div className="mb-16 text-center">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Contact Us</p>
@@ -222,7 +212,7 @@ export const HomePage = () => {
           </div>
         </section>
 
-        <section className="bg-soft-cream px-6 py-16">
+        <section className="bg-[var(--bg)] px-6 py-16">
           <div className="container-wide">
             <CircularNavCard
               to="/services"
@@ -246,7 +236,7 @@ export const HomePage = () => {
           </div>
         </section>
 
-        <section className="bg-soft-cream px-6 py-16">
+        <section className="bg-[var(--bg)] px-6 py-16">
           <div className="container-wide">
             <CircularNavCard
               to="/shop"
@@ -270,7 +260,7 @@ export const HomePage = () => {
           </div>
         </section>
 
-        <section className="bg-soft-cream px-6 py-16 pb-24">
+        <section className="bg-[var(--bg)] px-6 py-16 pb-24">
           <div className="container-wide">
             <CircularNavCard
               to="/about"
@@ -397,7 +387,7 @@ export const HomePage = () => {
         </section>
 
         {/* About Us Section - Using premium AboutPreview */}
-        <section id="about" className="bg-soft-cream py-20 md:py-32">
+        <section id="about" className="bg-[var(--bg)] py-20 md:py-32">
           <div className="container-wide md:px-12 lg:px-20">
             <AboutPreview />
           </div>

@@ -1,23 +1,24 @@
-import { useEffect } from 'react'
+export const ADMIN_DATA_CHANGED_EVENT = 'admin-data-changed'
 
-// Admin data change event system for real-time updates
-const ADMIN_DATA_CHANGED_EVENT = 'admin:data-changed'
-
-export function emitAdminDataChanged(payload = {}) {
-  if (typeof window === 'undefined') return
-  window.dispatchEvent(new CustomEvent(ADMIN_DATA_CHANGED_EVENT, { detail: payload }))
+export function dispatchAdminDataChanged(type, data = {}) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(ADMIN_DATA_CHANGED_EVENT, { detail: { type, ...data } }))
+  }
 }
 
 export function getAdminDataChangedPayload(event) {
-  return event?.detail || {}
+  return event?.detail || null
 }
 
-export function useAdminDataChangedListener(callback) {
-  useEffect(() => {
-    const handler = (event) => callback(getAdminDataChangedPayload(event))
-    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-    return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-  }, [callback])
+export const ADMIN_EVENT_TYPES = {
+  PORTFOLIO_CHANGED: 'portfolio-changed',
+  SERVICES_CHANGED: 'services-changed',
+  VIRTUAL_CHANGED: 'virtual-changed',
+  HERO_IMAGES_CHANGED: 'hero-images-changed',
+  CONTACT_CHANGED: 'contact-changed',
+  PRODUCTS_CHANGED: 'products-changed',
+  ABOUT_CHANGED: 'about-changed',
+  TEAM_CHANGED: 'team-changed',
+  SOCIALS_CHANGED: 'socials-changed',
+  SETTINGS_CHANGED: 'settings-changed',
 }
-
-export { ADMIN_DATA_CHANGED_EVENT }

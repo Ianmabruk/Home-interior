@@ -1,202 +1,90 @@
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import {
-  LayoutDashboard,
-  Images,
-  ShoppingBag,
-  Brush,
-  Info,
-  MessageSquare,
-  Settings as SettingsIcon,
-  LogOut,
-  Star,
-  UploadCloud,
-  Layers,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Link, useLocation } from 'react-router-dom'
+import { LayoutDashboard, ChevronRight, ChevronLeft, BarChart2 } from 'lucide-react'
 
-const tabs = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'hero', label: 'Hero Images', icon: UploadCloud },
-  { id: 'portfolio', label: 'Portfolio', icon: Images },
-  { id: 'shop', label: 'Shop', icon: ShoppingBag },
-  { id: 'services', label: 'Services', icon: Layers },
-  { id: 'virtual', label: 'Virtual Designs', icon: Brush },
-  { id: 'about', label: 'About', icon: Info },
-  { id: 'testimonials', label: 'Testimonials', icon: Star },
-  { id: 'consultations', label: 'Consultations', icon: MessageSquare },
-  { id: 'settings', label: 'Settings', icon: SettingsIcon },
-]
+export const Sidebar = ({ items = [], currentRoute, onNavigate, open, collapsed, onToggleCollapse }) => {
+  const location = useLocation()
 
-export const Sidebar = ({ activeTab, onTabChange, mobileOpen, onCloseMobile, isCollapsed, setIsCollapsed, user, onLogout }) => {
-  const [isMobile, setIsMobile] = useState(false)
-  const [hoveredItem, setHoveredItem] = useState(null)
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 1024)
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
-
-  const sidebarOpen = !isCollapsed
+  if (collapsed) {
+    return (
+      <motion.aside
+        initial={{ width: 0 }}
+        animate={{ width: 72 }}
+        exit={{ width: 0 }}
+        className="fixed left-0 top-0 bottom-0 z-50 bg-white border-r border-[#E6D8C9]/30 flex flex-col overflow-hidden transition-all duration-300"
+        style={{ width: collapsed ? 72 : 280 }}
+      >
+        <div className="flex h-16 items-center justify-center border-b border-[#E6D8C9]/30">
+          <Link to="/admin" className="p-2 rounded-lg text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30 hover:text-[var(--primary)]">
+            <LayoutDashboard size={24} strokeWidth={1.5} />
+          </Link>
+        </div>
+        <button
+          onClick={onToggleCollapse}
+          className="mx-3 mt-4 p-2 rounded-lg text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30 hover:text-[var(--primary)]"
+          aria-label="Expand sidebar"
+        >
+          <ChevronRight size={20} strokeWidth={1.5} />
+        </button>
+      </motion.aside>
+    )
+  }
 
   return (
-    <>
-      {/* Mobile Overlay */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#1B1714]/60 backdrop-blur-sm z-30 lg:hidden"
-            onClick={onCloseMobile}
-            aria-hidden="true"
-          />
-        )}
-      </AnimatePresence>
+    <motion.aside
+      initial={{ x: open ? 0 : -300 }}
+      animate={{ x: open ? 0 : -300 }}
+      className="fixed left-0 top-0 bottom-0 z-50 w-72 bg-white border-r border-[#E6D8C9]/30 flex flex-col lg:static lg:z-auto lg:w-64 lg:border-r lg:border-[#E6D8C9]/30"
+    >
+      <div className="flex h-16 items-center justify-between px-4 border-b border-[#E6D8C9]/30 lg:justify-center">
+        <Link to="/admin" className="flex items-center gap-2 text-[var(--primary)] hover:text-[var(--accent)] transition-colors">
+          <LayoutDashboard size={24} strokeWidth={1.5} />
+          <span className="font-display text-lg font-medium hidden lg:block">Admin</span>
+        </Link>
+        <button
+          onClick={onToggleCollapse}
+          className="lg:hidden p-2 rounded-lg text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30 hover:text-[var(--primary)]"
+          aria-label="Collapse sidebar"
+        >
+          <ChevronLeft size={20} strokeWidth={1.5} />
+        </button>
+      </div>
 
-      {/* Sidebar */}
-      <motion.aside
-        initial={false}
-        animate={{
-          width: isMobile ? (mobileOpen ? 300 : 0) : (isCollapsed ? 88 : 300),
-        }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-        className={`fixed inset-y-0 left-0 z-40 flex flex-col bg-[#1B1714] text-white border-r border-white/10 shadow-2xl overflow-hidden backdrop-blur-xl bg-opacity-90 ${
-          isMobile ? 'transform transition-transform duration-300' : ''
-        } ${mobileOpen && isMobile ? 'translate-x-0' : isMobile ? '-translate-x-full' : ''}`}
-      >
-        {/* Brand / Logo Area */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent)] flex items-center justify-center text-white font-bold text-lg shadow-lg flex-shrink-0">
-              H
-            </div>
-            <AnimatePresence>
-              {sidebarOpen && !isMobile && (
-                <motion.span
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className="font-display text-xl font-semibold text-white whitespace-nowrap"
-                >
-                  HOK Admin
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </div>
-            {!isMobile && (
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setIsCollapsed((c) => !c)}
-              className="p-1.5 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition hidden lg:flex"
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1" aria-label="Admin navigation">
+        {items.map((item) => {
+          const isActive = location.pathname.startsWith(item.to) || currentRoute === item.id
+          const Icon = item.icon
+          return (
+            <Link
+              key={item.id}
+              to={item.to}
+              onClick={onNavigate}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                isActive
+                  ? 'bg-[var(--accent)]/10 text-[var(--accent)] shadow-[0_4px_16px_rgba(232,154,67,0.15)]'
+                  : 'text-[var(--primary)]/70 hover:bg-[var(--secondary)]/30 hover:text-[var(--primary)]'
+              }`}
+              aria-current={isActive ? 'page' : undefined}
             >
-              {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-            </motion.button>
-          )}
-        </div>
+              <Icon size={20} strokeWidth={1.5} aria-hidden="true" />
+              <span className="font-medium">{item.label}</span>
+            </Link>
+          )
+        })}
+      </nav>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">
-          {tabs.map((item, idx) => {
-            const isActive = activeTab === item.id
-            const isHovered = hoveredItem === item.id
-            const Icon = item.icon
-            return (
-              <motion.button
-                key={item.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.03, duration: 0.3 }}
-                onClick={() => {
-                  onTabChange(item.id)
-                  onCloseMobile()
-                }}
-                onMouseEnter={() => setHoveredItem(item.id)}
-                onMouseLeave={() => setHoveredItem(null)}
-                className={`relative w-full flex items-center ${
-                  sidebarOpen && !isCollapsed && !isMobile ? 'gap-3 px-4' : 'justify-center px-2'
-                } py-3 text-sm font-medium transition-all duration-200 rounded-xl ${
-                  isActive
-                    ? 'text-[var(--accent)] bg-white/10 shadow-sm font-semibold'
-                    : isHovered
-                    ? 'text-white bg-white/5'
-                    : 'text-white/75 hover:bg-white/5 hover:text-white'
-                }`}
-                title={(!sidebarOpen || isCollapsed || isMobile) && !isActive ? item.label : undefined}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="sidebar-active-indicator"
-                    className="absolute inset-0 bg-white/10 rounded-xl"
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }}
-                  />
-                )}
-                <span className={`relative z-10 flex-shrink-0 ${isActive ? 'text-[var(--accent)]' : ''}`}>
-                  {Icon ? <Icon size={18} className="flex-shrink-0" /> : <span className="inline-block h-[18px] w-[18px] rounded-full bg-white/10" />}
-                </span>
-                <AnimatePresence>
-                  {(sidebarOpen && !isCollapsed && !isMobile) && (
-                    <motion.span
-                      initial={{ opacity: 0, x: -5 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -5 }}
-                      transition={{ duration: 0.2 }}
-                      className={`relative z-10 font-medium whitespace-nowrap ${isActive ? 'text-[var(--accent)]' : 'text-white/75'}`}
-                    >
-                      {item.label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.button>
-            )
-          })}
-        </nav>
-
-        {/* User Section */}
-        <div className="p-3 border-t border-white/10 flex-shrink-0">
-          {sidebarOpen && !isCollapsed && !isMobile ? (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="rounded-2xl p-3 flex items-center gap-3 bg-white/5 border border-white/10"
-            >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--accent)] to-[var(--accent)] flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 shadow-lg shadow-[var(--accent)]/20">
-                {(user?.fullName || user?.email || 'A').charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{user?.fullName || 'Admin'}</p>
-                <p className="text-[10px] text-white/50 truncate">{user?.email}</p>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onLogout}
-                className="p-2 rounded-xl hover:bg-white/10 text-white/70 hover:text-white transition"
-                title="Logout"
-              >
-                <LogOut size={18} />
-              </motion.button>
-            </motion.div>
-          ) : (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onLogout}
-              className="flex w-full items-center justify-center p-2.5 rounded-xl hover:bg-white/10 text-white/70 hover:text-white transition"
-              title="Logout"
-            >
-              <LogOut size={18} />
-            </motion.button>
-          )}
-        </div>
-      </motion.aside>
-    </>
+      <div className="p-4 border-t border-[#E6D8C9]/30">
+        <Link
+          to="/"
+          className="flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30 hover:text-[var(--primary)] transition-all duration-200"
+          target="_blank"
+        >
+          <BarChart2 size={20} strokeWidth={1.5} />
+          <span className="font-medium">View Site</span>
+        </Link>
+      </div>
+    </motion.aside>
   )
 }
+
+export default Sidebar

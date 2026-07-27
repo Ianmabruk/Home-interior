@@ -1,567 +1,347 @@
-import { useEffect, useState, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { User, Heart, Package, CreditCard, Settings, LogOut, Loader2, ChevronRight, ShoppingBag } from 'lucide-react'
 import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
-import { motion } from 'framer-motion'
-import {
-  Package,
-  Truck,
-  RotateCcw,
-  CheckCircle,
-  Clock,
-  User,
-  Lock,
-  Sparkles,
-  X,
-  X as XIcon,
-  Heart,
-  Settings,
-  LogOut,
-} from 'lucide-react'
-import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
-import { PageMeta } from '../../hooks/usePageMeta';
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return 'N/A'
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-  } catch {
-    return dateStr
-  }
-}
-
-const getStatusConfig = (status) => {
-  const configs = {
-    pending: { label: 'Pending', icon: Clock, color: 'text-amber-700 bg-amber-50 border-amber-200' },
-    processing: { label: 'Processing', icon: RotateCcw, color: 'text-blue-700 bg-blue-50 border-blue-200' },
-    shipped: { label: 'Shipped', icon: Truck, color: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
-    delivered: { label: 'Delivered', icon: CheckCircle, color: 'text-green-700 bg-green-50 border-green-200' },
-    cancelled: { label: 'Cancelled', icon: XIcon, color: 'text-red-700 bg-red-50 border-red-200' },
-    confirmed: { label: 'Confirmed', icon: CheckCircle, color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
-    design_review: { label: 'Design Review', icon: Sparkles, color: 'text-purple-700 bg-purple-50 border-purple-200' },
-    in_design: { label: 'In Design', icon: Sparkles, color: 'text-purple-700 bg-purple-50 border-purple-200' },
-    design_approved: { label: 'Design Approved', icon: CheckCircle, color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
-  }
-  return configs[status] || { label: status, icon: Package, color: 'text-stone-600 bg-stone-100 border-stone-200' }
-}
-
-const StatusBadge = ({ status, className = '' }) => {
-  const config = getStatusConfig(status)
-  const Icon = config.icon
-  return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider border ${config.color} ${className}`}>
-      {Icon ? <Icon size={10} strokeWidth={2} /> : <span className="inline-block h-2.5 w-2.5 rounded-full bg-white/10" />}
-      {config.label}
-    </span>
-  )
-}
-
-const OrderCard = ({ order }) => {
-  const isVirtualDesign = order.type === 'virtual_design' || order.items?.some(item => item.type === 'virtual_design')
-  const virtualItem = order.items?.find(item => item.type === 'virtual_design' || item.imageUrl)
-  const bgImage = virtualItem?.imageUrl || virtualItem?.image || order.backgroundImage
-
-  return (
-    <motion.article
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className={`relative rounded-3xl border border-[var(--border)] bg-white p-5 shadow-[0_2px_16px_rgba(42,36,31,0.04)] transition-all duration-300 hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] ${isVirtualDesign ? 'overflow-hidden' : ''}`}
-    >
-      {isVirtualDesign && bgImage && (
-        <div className="absolute inset-0 -z-10" aria-hidden="true">
-          <img
-            src={getOptimizedUrl(bgImage, { width: 800, crop: 'limit' })}
-            alt=""
-            className="h-full w-full object-cover opacity-10"
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-white via-white/90 to-white" />
-        </div>
-      )}
-
-      <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          {isVirtualDesign ? (
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/10 text-[var(--accent)]">
-              <Sparkles size={20} strokeWidth={1.5} />
-            </div>
-          ) : (
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--primary)]/10 text-[var(--primary)]">
-              <Package size={20} strokeWidth={1.5} />
-            </div>
-          )}
-          <div className="min-w-0">
-            <p className="font-medium text-[var(--primary)] truncate">
-              Order #{(order._id || order.id)?.slice ? (order._id || order.id).slice(-6).toUpperCase() : order._id || order.id}
-            </p>
-            <p className="text-xs text-[var(--primary)]/60 truncate">Placed on {formatDate(order.createdAt)}</p>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-          <StatusBadge status={order.status} />
-          <p className="font-semibold text-[var(--primary)] text-sm whitespace-nowrap">
-            ${Number(order.total || 0).toFixed(2)}
-          </p>
-        </div>
-      </div>
-
-      {order.items && order.items.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-[var(--border)]">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {order.items.map((item, idx) => (
-              <div
-                key={idx}
-                className={`flex items-center gap-3 rounded-xl p-3 text-xs transition-colors ${isVirtualDesign ? 'bg-white/80 backdrop-blur-sm' : 'bg-[var(--bg)]/50'}`}
-              >
-                {item.imageUrl && (
-                  <img
-                    src={getOptimizedUrl(item.imageUrl, { width: 80, crop: 'limit' })}
-                    alt={item.name}
-                    className="h-12 w-12 rounded-lg object-cover flex-shrink-0"
-                    loading="lazy"
-                  />
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-[var(--primary)] truncate">{item.name || item.productName || 'Product'}</p>
-                  {item.variant?.color && (
-                    <p className="text-[var(--primary)]/60">{item.variant.color}</p>
-                  )}
-                  <p className="text-[var(--primary)]/60">Qty: {item.quantity}</p>
-                </div>
-                <p className="font-semibold text-[var(--primary)] whitespace-nowrap">
-                  ${Number(item.price || item.discountPrice || item.variant?.price || item.variant?.priceOverride || 0).toFixed(2)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </motion.article>
-  )
-}
-
-const ChangePasswordModal = ({ onClose, onSubmit }) => {
-  const [form, setForm] = useState({ current: '', new: '', confirm: '' })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    if (form.new !== form.confirm) {
-      setError('New passwords do not match')
-      return
-    }
-    if (form.new.length < 8) {
-      setError('Password must be at least 8 characters')
-      return
-    }
-    setLoading(true)
-    try {
-      await onSubmit(form.current, form.new)
-      setForm({ current: '', new: '', confirm: '' })
-      onClose()
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Failed to change password')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-    >
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-[var(--primary)]/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-md bg-white rounded-3xl p-8 shadow-[0_30px_80px_rgba(0,0,0,0.15)]"
-      >
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 flex h-10 w-10 items-center justify-center rounded-full text-[var(--primary)]/40 transition-colors hover:text-[var(--primary)] hover:bg-[var(--secondary)]/50"
-        >
-          <X size={20} strokeWidth={1.5} />
-        </button>
-
-        <div className="text-center mb-8">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
-            <Lock size={24} strokeWidth={1.5} />
-          </div>
-          <h2 className="font-display text-2xl font-normal text-[var(--primary)]">Change Password</h2>
-          <p className="mt-2 text-sm text-[var(--primary)]/60">Enter your current and new password below</p>
-        </div>
-
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 rounded-xl bg-[var(--error)]/10 border border-[var(--error)]/20 p-4 text-sm text-[var(--error)]"
-          >
-            {error}
-          </motion.div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-[var(--primary)] mb-1">Current Password</label>
-              <input
-                type="password"
-                value={form.current}
-                onChange={(e) => setForm({ ...form, current: e.target.value })}
-                className="input-luxury"
-                autoComplete="current-password"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--primary)] mb-1">New Password</label>
-              <input
-                type="password"
-                value={form.new}
-                onChange={(e) => setForm({ ...form, new: e.target.value })}
-                className="input-luxury"
-                autoComplete="new-password"
-                required
-                minLength={8}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--primary)] mb-1">Confirm New Password</label>
-              <input
-                type="password"
-                value={form.confirm}
-                onChange={(e) => setForm({ ...form, confirm: e.target.value })}
-                className="input-luxury"
-                autoComplete="new-password"
-                required
-                minLength={8}
-              />
-            </div>
-          </div>
-
-          <div className="mt-6 flex gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 rounded-full border border-[var(--border)] bg-white py-3 text-sm font-medium uppercase tracking-widest text-[var(--primary)]/50 hover:text-[var(--accent)] hover:border-[var(--accent)] transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 rounded-full bg-[var(--accent)] py-3 text-sm font-medium uppercase tracking-widest text-white transition hover:bg-[var(--accent)] hover:shadow-lg disabled:opacity-50"
-            >
-              {loading ? 'Updating...' : 'Update Password'}
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </motion.div>
-  )
-}
-
-const tabConfig = [
-  { id: 'orders', label: 'Orders', icon: Package, count: 'ordersCount' },
-  { id: 'saved', label: 'Saved', icon: Heart, count: 'savedCount' },
-  { id: 'profile', label: 'Profile', icon: User, count: null },
-  { id: 'settings', label: 'Settings', icon: Settings, count: null },
-]
+import { useShop } from '../../context/ShopContext'
+import { useCurrency } from '../../context/CurrencyContext'
+import { PageMeta } from '../../hooks/usePageMeta'
 
 export const AccountPage = () => {
-  const navigate = useNavigate()
-  const { user, logout, isAuthenticated, loading: authLoading } = useAuth()
-  const [activeTab, setActiveTab] = useState('orders')
+  const { user, logout, loading: authLoading } = useAuth()
+  const { cart, wishlist, fetchCart, fetchWishlist } = useShop()
+  const { formatPrice } = useCurrency()
+  const [activeTab, setActiveTab] = useState('overview')
   const [orders, setOrders] = useState([])
-  const [savedItems, setSavedItems] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+  const [loadingOrders, setLoadingOrders] = useState(true)
 
-  const fetchOrders = useCallback(async () => {
+  const loadOrders = useCallback(async () => {
     try {
-      const res = await api.get('/orders/me')
+      const res = await api.get('/orders')
       setOrders(res.data || [])
-    } catch {
+    } catch (err) {
+      console.warn('[ACCOUNT] Failed to load orders:', err?.message)
       setOrders([])
-    }
-  }, [])
-
-  const fetchSaved = useCallback(async () => {
-    try {
-      const res = await api.get('/users/wishlist')
-      setSavedItems(res.data || [])
-    } catch {
-      setSavedItems([])
+    } finally {
+      setLoadingOrders(false)
     }
   }, [])
 
   useEffect(() => {
-    // Data fetching on mount/auth change - intentional setState in effect
-    const fetchData = async () => {
-      if (isAuthenticated) {
-        await fetchOrders()
-        await fetchSaved()
-      }
-      setLoading(false)
+    if (user) {
+      fetchCart()
+      fetchWishlist()
+      loadOrders()
     }
-    fetchData()
-  }, [isAuthenticated, fetchOrders, fetchSaved])
-
-  const handleChangePassword = async (current, newPass) => {
-    await api.post('/auth/change-password', { currentPassword: current, newPassword: newPass })
-  }
-
-  const handleLogout = async () => {
-    await logout()
-    navigate('/')
-  }
+  }, [user, fetchCart, fetchWishlist, loadOrders])
 
   if (authLoading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <main className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
-      </div>
+      </main>
     )
   }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center bg-[var(--bg)] px-6">
-        <div className="text-center max-w-md">
-          <h1 className="font-display text-5xl font-normal text-[var(--primary)]">Sign In Required</h1>
-          <p className="mt-4 text-[var(--primary)]/55">Please sign in to access your account.</p>
-          <Link to="/login" className="btn-luxury-primary mt-6 inline-block">
-            Sign In
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  const cancelledOrders = orders.filter((o) => o.status === 'cancelled')
-  const activeOrders = orders.filter((o) => o.status !== 'cancelled')
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
-      <PageMeta title="My Account — HOK Interior Designs" description="Manage your HOK Interior Designs account settings and orders." />
-      <section className="section-pad bg-[var(--bg)]">
-        <div className="container-wide px-6 md:px-12 lg:px-20">
-          {/* Tab Navigation */}
-          <div className="mb-12">
-            <div className="flex flex-wrap gap-2 border-b border-[var(--border)] pb-2">
-              {tabConfig.map((tab) => (
+    <main className="min-h-screen bg-[var(--bg)] py-12 md:py-20">
+      <PageMeta
+        title="My Account — HOK Interior Designs"
+        description="Manage your account, orders, wishlist, and settings."
+      />
+      <div className="container-wide px-6 md:px-12 lg:px-20">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-12 md:mb-16"
+        >
+          <h1 className="font-display text-4xl md:text-5xl font-semibold text-[var(--primary)]">
+            My Account
+          </h1>
+          <p className="mt-2 text-[var(--primary)]/60">Welcome back, {user?.fullName?.split(' ')[0] || 'Guest'}</p>
+        </motion.div>
+
+        <div className="grid gap-8 lg:grid-cols-4">
+          <aside className="lg:col-span-1">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="bg-white rounded-3xl border border-[var(--border)]/40 p-6 shadow-[0_10px_40px_rgba(42,36,31,0.06)] sticky top-24"
+            >
+              <div className="flex items-center gap-4 mb-6 pb-6 border-b border-[var(--border)]/40">
+                <div className="h-16 w-16 rounded-full bg-[var(--secondary)]/30 flex items-center justify-center text-[var(--accent)]">
+                  <User size={28} strokeWidth={1.5} />
+                </div>
+                <div>
+                  <p className="font-display text-lg font-medium text-[var(--primary)]">{user?.fullName || 'Guest'}</p>
+                  <p className="text-sm text-[var(--primary)]/50">{user?.email}</p>
+                </div>
+              </div>
+              <nav className="space-y-1">
+                {[
+                  { id: 'overview', label: 'Overview', icon: User },
+                  { id: 'orders', label: 'My Orders', icon: Package },
+                  { id: 'wishlist', label: 'Wishlist', icon: Heart, count: wishlist?.length || 0 },
+                  { id: 'settings', label: 'Settings', icon: Settings },
+                ].map((item) => (
+                  <Link
+                    key={item.id}
+                    to={`/account/${item.id}`}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                      activeTab === item.id
+                        ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                        : 'text-[var(--primary)]/70 hover:bg-[var(--secondary)]/30 hover:text-[var(--primary)]'
+                    }`}
+                  >
+                    <item.icon size={20} strokeWidth={1.5} />
+                    <span className="font-medium">{item.label}</span>
+                    {item.count !== undefined && item.count > 0 && (
+                      <span className="ml-auto h-5 min-w-5 rounded-full bg-[var(--accent)] text-white text-xs font-semibold flex items-center justify-center">
+                        {item.count > 99 ? '99+' : item.count}
+                      </span>
+                    )}
+                  </Link>
+                ))}
                 <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-5 py-3 text-sm font-medium uppercase tracking-widest transition rounded-full ${
-                    activeTab === tab.id
-                      ? 'bg-[var(--primary)] text-white shadow-md'
-                      : 'text-[var(--primary)]/60 hover:bg-[var(--secondary)]/60 hover:text-[var(--primary)]'
-                  }`}
+                  onClick={logout}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--error)] hover:bg-[var(--error)]/10 transition-all duration-200"
                 >
-                  {tab.icon ? <tab.icon size={16} strokeWidth={1.5} /> : <span className="inline-block h-4 w-4 rounded-full bg-white/10" />}
-                  {tab.label}
-                  {tab.count && user[tab.count] > 0 && (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)]/20 text-[var(--accent)] text-[10px] font-semibold">
-                      {user[tab.count]}
-                    </span>
-                  )}
+                  <LogOut size={20} strokeWidth={1.5} />
+                  <span className="font-medium">Logout</span>
                 </button>
-              ))}
-            </div>
-          </div>
+              </nav>
+            </motion.div>
+          </aside>
 
-          {/* Orders Tab */}
-          {activeTab === 'orders' && (
-            <>
-              {loading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="skeleton h-24 w-full rounded-2xl" />
-                  ))}
-                </div>
-              ) : activeOrders.length === 0 ? (
-                <div className="text-center py-16">
-                  <Package size={48} strokeWidth={1} className="mx-auto text-[var(--secondary)] mb-4" />
-                  <p className="font-display text-2xl text-[var(--primary)]/30">No orders yet</p>
-                  <p className="mt-2 text-sm text-[var(--primary)]/50">Start shopping to see your orders here</p>
-                  <Link to="/shop" className="btn-luxury-primary mt-6 inline-block">Start Shopping</Link>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {activeOrders.map((order) => (
-                    <OrderCard key={order._id || order.id} order={order} />
-                  ))}
-                </div>
-              )}
-
-              {cancelledOrders.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="mt-12 space-y-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-display text-2xl font-normal text-[var(--primary)] flex items-center gap-2">
-                      <XIcon className="text-[var(--error)]" size={24} strokeWidth={1.5} />
-                      Cancelled Orders
-                    </h2>
-                    <span className="text-sm text-[var(--error)] font-medium px-3 py-1 rounded-full bg-[var(--error)]/10 border border-[var(--error)]/20">
-                      {cancelledOrders.length}
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    {cancelledOrders.map((order) => (
-                      <OrderCard key={order._id || order.id} order={order} />
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </>
-          )}
-
-          {/* Saved Tab */}
-          {activeTab === 'saved' && (
-            <div className="space-y-6">
-              {loading ? (
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="h-80 bg-[var(--secondary)]/30 animate-pulse rounded-3xl" />
-                  ))}
-                </div>
-              ) : savedItems.length === 0 ? (
-                <div className="text-center py-16">
-                  <Heart size={48} strokeWidth={1} className="mx-auto text-[var(--secondary)] mb-4" />
-                  <p className="font-display text-2xl text-[var(--primary)]/30">No saved items</p>
-                  <p className="mt-2 text-sm text-[var(--primary)]/50">Items you save will appear here</p>
-                  <Link to="/shop" className="btn-luxury-primary mt-6 inline-block">Start Shopping</Link>
-                </div>
-              ) : (
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {savedItems.map((item) => (
-                    <div key={item._id} className="group relative overflow-hidden bg-white border border-[var(--border)] shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500 rounded-3xl">
-                      <img
-                         src={item.imageUrl || ''}
-                        alt={item.name}
-                        className="h-56 w-full object-cover transition duration-700 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                      <div className="p-5">
-                        <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]">{item.category}</p>
-                        <h3 className="mt-2 font-display text-xl font-normal text-[var(--primary)]">{item.name}</h3>
-                        <div className="mt-3 flex items-baseline gap-2">
-                          <span className="font-medium text-[var(--primary)]">${Number(item.discountPrice || item.price || 0).toFixed(2)}</span>
-                          {item.discountPrice && <span className="text-sm text-[var(--primary)]/35 line-through">${Number(item.price).toFixed(2)}</span>}
-                        </div>
+          <div className="lg:col-span-3 space-y-8">
+            {activeTab === 'overview' && (
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-3xl border border-[var(--border)]/40 p-6 md:p-8 shadow-[0_10px_40px_rgba(42,36,31,0.06)]"
+              >
+                <h2 className="font-display text-2xl font-medium text-[var(--primary)] mb-6">Account Overview</h2>
+                <div className="grid gap-6 md:grid-cols-3">
+                  <Link
+                    to="/account/orders"
+                    onClick={() => setActiveTab('orders')}
+                    className="p-6 rounded-2xl border border-[var(--border)]/40 hover:border-[var(--accent)]/40 hover:shadow-[0_10px_30px_rgba(42,36,31,0.08)] transition-all duration-300"
+                  >
+                    <div className="flex items-center gap-4 mb-3">
+                      <div className="h-12 w-12 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)]">
+                        <Package size={24} strokeWidth={1.5} />
+                      </div>
+                      <div>
+                        <p className="font-display text-xl font-medium text-[var(--primary)]">Orders</p>
+                        <p className="text-sm text-[var(--primary)]/50">View your order history</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Profile Tab */}
-          {activeTab === 'profile' && (
-            <div className="max-w-2xl space-y-8">
-              <div className="bg-white border border-[var(--border)] rounded-3xl p-8">
-                <h2 className="font-display text-2xl font-normal text-[var(--primary)] mb-6">Profile Information</h2>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between py-4 border-b border-[var(--border)]">
-                    <span className="text-[var(--primary)]/60">Full Name</span>
-                    <span className="font-medium text-[var(--primary)]">{user.fullName || 'Not set'}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-4 border-b border-[var(--border)]">
-                    <span className="text-[var(--primary)]/60">Email</span>
-                    <span className="font-medium text-[var(--primary)]">{user.email}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-4 border-b border-[var(--border)]">
-                    <span className="text-[var(--primary)]/60">Phone</span>
-                    <span className="font-medium text-[var(--primary)]">{user.phone || 'Not set'}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-4">
-                    <span className="text-[var(--primary)]/60">Member Since</span>
-                    <span className="font-medium text-[var(--primary)]">{user.createdAt ? formatDate(user.createdAt) : 'N/A'}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white border border-[var(--border)] rounded-3xl p-8">
-                <h2 className="font-display text-2xl font-normal text-[var(--primary)] mb-6">Change Password</h2>
-                <button
-                  onClick={() => setChangePasswordOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-6 py-3 text-sm font-medium uppercase tracking-widest text-[var(--primary)]/70 hover:border-[var(--accent)] hover:text-[var(--accent)] transition"
-                >
-                  <Lock size={16} strokeWidth={1.5} />
-                  Update Password
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Settings Tab */}
-          {activeTab === 'settings' && (
-            <div className="max-w-2xl space-y-6">
-              <div className="bg-white border border-[var(--border)] rounded-3xl p-8">
-                <h2 className="font-display text-2xl font-normal text-[var(--primary)] mb-6">Notifications</h2>
-                <div className="space-y-4">
-                  {[
-                    { id: 'email-orders', label: 'Order Updates', desc: 'Receive email notifications about your orders' },
-                    { id: 'email-promo', label: 'Promotions', desc: 'Receive special offers and promotions' },
-                  ].map((item) => (
-                    <label key={item.id} className="flex items-center justify-between py-3">
-                      <div>
-                        <p className="font-medium text-[var(--primary)]">{item.label}</p>
-                        <p className="text-sm text-[var(--primary)]/50">{item.desc}</p>
+                    <p className="text-3xl font-semibold text-[var(--primary)]">{orders.length}</p>
+                  </Link>
+                  <Link
+                    to="/wishlist"
+                    onClick={() => setActiveTab('wishlist')}
+                    className="p-6 rounded-2xl border border-[var(--border)]/40 hover:border-[var(--accent)]/40 hover:shadow-[0_10px_30px_rgba(42,36,31,0.08)] transition-all duration-300"
+                  >
+                    <div className="flex items-center gap-4 mb-3">
+                      <div className="h-12 w-12 rounded-xl bg-[var(--error)]/10 flex items-center justify-center text-[var(--error)]">
+                        <Heart size={24} strokeWidth={1.5} />
                       </div>
-                      <input type="checkbox" className="h-5 w-5 rounded border-[var(--border)] text-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20" defaultChecked />
-                    </label>
-                  ))}
+                      <div>
+                        <p className="font-display text-xl font-medium text-[var(--primary)]">Wishlist</p>
+                        <p className="text-sm text-[var(--primary)]/50">Saved items</p>
+                      </div>
+                    </div>
+                    <p className="text-3xl font-semibold text-[var(--primary)]">{wishlist?.length || 0}</p>
+                  </Link>
+                  <Link
+                    to="/cart"
+                    className="p-6 rounded-2xl border border-[var(--border)]/40 hover:border-[var(--accent)]/40 hover:shadow-[0_10px_30px_rgba(42,36,31,0.08)] transition-all duration-300"
+                  >
+                    <div className="flex items-center gap-4 mb-3">
+                      <div className="h-12 w-12 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)]">
+                        <CreditCard size={24} strokeWidth={1.5} />
+                      </div>
+                      <div>
+                        <p className="font-display text-xl font-medium text-[var(--primary)]">Cart</p>
+                        <p className="text-sm text-[var(--primary)]/50">{cart?.length || 0} items</p>
+                      </div>
+                    </div>
+                  </Link>
                 </div>
-              </div>
+              </motion.section>
+            )}
 
-              <div className="bg-white border border-[var(--border)] rounded-3xl p-8">
-                <h2 className="font-display text-2xl font-normal text-[var(--primary)] mb-6">Danger Zone</h2>
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-3 rounded-full bg-[var(--error)]/10 px-6 py-3 text-sm font-medium text-[var(--error)] transition hover:bg-[var(--error)]/20"
-                >
-                  <LogOut size={16} strokeWidth={1.5} />
-                  Sign Out
-                </button>
-              </div>
-            </div>
-          )}
+            {activeTab === 'orders' && (
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-3xl border border-[var(--border)]/40 p-6 md:p-8 shadow-[0_10px_40px_rgba(42,36,31,0.06)]"
+              >
+                <h2 className="font-display text-2xl font-medium text-[var(--primary)] mb-6">My Orders</h2>
+                {loadingOrders ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-10 w-10 animate-spin text-[var(--accent)]" />
+                  </div>
+                ) : orders.length === 0 ? (
+                  <div className="text-center py-16">
+                    <Package className="h-16 w-16 mx-auto text-[var(--primary)]/30 mb-4" />
+                    <h3 className="font-display text-xl text-[var(--primary)] mb-2">No orders yet</h3>
+                    <p className="text-[var(--primary)]/60 mb-6">When you place an order, it will appear here.</p>
+                    <Link to="/shop" className="btn-luxury-primary inline-flex items-center gap-2">
+                      <ShoppingBag size={14} strokeWidth={1.5} />
+                      Start Shopping
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {orders.map((order) => (
+                      <Link
+                        key={order._id}
+                        to={`/account/orders/${order._id}`}
+                        className="flex items-center gap-6 p-4 rounded-2xl border border-[var(--border)]/40 hover:border-[var(--accent)]/40 hover:shadow-[0_10px_30px_rgba(42,36,31,0.08)] transition-all duration-300"
+                      >
+                        <div className="flex-shrink-0 w-20 h-20 rounded-lg bg-[var(--secondary)]/30 flex items-center justify-center overflow-hidden">
+                          {order.items?.[0]?.image && (
+                            <img src={order.items[0].image} alt="" className="h-full w-full object-cover" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-medium text-[var(--primary)]">Order #{order._id?.slice(-8).toUpperCase()}</span>
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.status === 'delivered' ? 'bg-green-100 text-green-700' : order.status === 'shipped' ? 'bg-blue-100 text-blue-700' : order.status === 'processing' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>
+                              {order.status}
+                            </span>
+                          </div>
+                          <p className="text-sm text-[var(--primary)]/50">{order.items?.length || 0} items · {formatPrice(order.total || 0)}</p>
+                          <p className="text-xs text-[var(--primary)]/40">{new Date(order.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-[var(--primary)]/40" strokeWidth={1.5} />
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </motion.section>
+            )}
+
+            {activeTab === 'wishlist' && (
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-3xl border border-[var(--border)]/40 p-6 md:p-8 shadow-[0_10px_40px_rgba(42,36,31,0.06)]"
+              >
+                <h2 className="font-display text-2xl font-medium text-[var(--primary)] mb-6">Wishlist</h2>
+                {wishlist?.length === 0 ? (
+                  <div className="text-center py-16">
+                    <Heart className="h-16 w-16 mx-auto text-[var(--primary)]/30 mb-4" />
+                    <h3 className="font-display text-xl text-[var(--primary)] mb-2">Your wishlist is empty</h3>
+                    <p className="text-[var(--primary)]/60 mb-6">Save items you love for later.</p>
+                    <Link to="/shop" className="btn-luxury-primary inline-flex items-center gap-2">
+                      <ShoppingBag size={14} strokeWidth={1.5} />
+                      Start Shopping
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                    {wishlist.map((product, index) => (
+                      <motion.div
+                        key={product._id || product.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.08 }}
+                        className="group relative bg-white rounded-3xl border border-[var(--border)]/40 overflow-hidden hover:shadow-[0_20px_40px_rgba(42,36,31,0.1)] transition-all duration-500"
+                      >
+                        <Link to={`/shop/${product._id || product.id}`} className="block">
+                          <div className="aspect-[4/3] relative overflow-hidden bg-[var(--secondary)]/30">
+                            {product.images?.[0] ? (
+                              <img
+                                src={product.images[0]}
+                                alt={product.name}
+                                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="h-full w-full flex items-center justify-center text-[var(--primary)]/30">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                                  <circle cx="9" cy="9" r="2" />
+                                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-6">
+                            <p className="text-2xs font-medium uppercase tracking-widest text-[var(--accent)] mb-2">{product.category}</p>
+                            <h3 className="font-display text-lg font-medium text-[var(--primary)] line-clamp-1 group-hover:text-[var(--accent)] transition-colors">{product.name}</h3>
+                            <p className="mt-2 text-xl font-semibold text-[var(--primary)]">{formatPrice(product.discountPrice || product.price || 0)}</p>
+                          </div>
+                        </Link>
+                        <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button className="p-2 rounded-full bg-white/90 backdrop-blur-sm text-[var(--primary)]/60 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 hover:text-white hover:bg-[var(--accent)] transition-all shadow-md">
+                            <ShoppingBag size={18} strokeWidth={1.5} />
+                          </button>
+                          <button className="p-2 rounded-full bg-white/90 backdrop-blur-sm text-[var(--primary)]/60 hover:text-[var(--error)] hover:bg-[var(--error)]/10 transition-all shadow-md">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                              <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </motion.section>
+            )}
+
+            {activeTab === 'settings' && (
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-3xl border border-[var(--border)]/40 p-6 md:p-8 shadow-[0_10px_40px_rgba(42,36,31,0.06)]"
+              >
+                <h2 className="font-display text-2xl font-medium text-[var(--primary)] mb-6">Settings</h2>
+                <div className="max-w-2xl space-y-8">
+                  <div className="p-6 rounded-2xl border border-[var(--border)]/40 bg-[var(--bg)]/30">
+                    <h3 className="font-display text-lg font-medium text-[var(--primary)] mb-4">Profile Information</h3>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--primary)] mb-1">Full Name</label>
+                        <input type="text" value={user?.fullName || ''} className="input-luxury" disabled />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--primary)] mb-1">Email</label>
+                        <input type="email" value={user?.email || ''} className="input-luxury" disabled />
+                      </div>
+                    </div>
+                    <p className="mt-4 text-sm text-[var(--primary)]/50">Contact support to update your profile information.</p>
+                  </div>
+                  <div className="p-6 rounded-2xl border border-[var(--border)]/40 bg-[var(--bg)]/30">
+                    <h3 className="font-display text-lg font-medium text-[var(--primary)] mb-4">Notifications</h3>
+                    <div className="space-y-3">
+                      <label className="flex items-center justify-between">
+                        <span className="text-[var(--primary)]">Order Updates</span>
+                        <input type="checkbox" className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]" defaultChecked />
+                      </label>
+                      <label className="flex items-center justify-between">
+                        <span className="text-[var(--primary)]">Promotional Emails</span>
+                        <input type="checkbox" className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]" />
+                      </label>
+                      <label className="flex items-center justify-between">
+                        <span className="text-[var(--primary)]">New Arrivals</span>
+                        <input type="checkbox" className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]" defaultChecked />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </motion.section>
+            )}
+          </div>
         </div>
-      </section>
-
-      <ChangePasswordModal
-        isOpen={changePasswordOpen}
-        onClose={() => setChangePasswordOpen(false)}
-        onSubmit={handleChangePassword}
-      />
-    </div>
+      </div>
+    </main>
   )
 }
 
