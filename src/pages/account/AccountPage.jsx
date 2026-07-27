@@ -379,7 +379,7 @@ export const AccountPage = () => {
                       : 'text-[var(--primary)]/60 hover:bg-[var(--secondary)]/60 hover:text-[var(--primary)]'
                   }`}
                 >
-                  <tab.icon size={16} strokeWidth={1.5} />
+                  {tab.icon ? <tab.icon size={16} strokeWidth={1.5} /> : <span className="inline-block h-4 w-4 rounded-full bg-white/10" />}
                   {tab.label}
                   {tab.count && user[tab.count] > 0 && (
                     <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)]/20 text-[var(--accent)] text-[10px] font-semibold">

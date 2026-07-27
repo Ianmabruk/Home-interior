@@ -55,7 +55,7 @@ export const Footer = memo(() => {
                   style={{ animationDelay: `${index * 0.08}s` }}
                   role="listitem"
                 >
-                  <social.icon size={22} md={24} strokeWidth={1.5} className="transition-colors duration-300 group-hover:text-orange-accent" aria-hidden="true" />
+                  {social.icon ? <social.icon size={22} md={24} strokeWidth={1.5} className="transition-colors duration-300 group-hover:text-orange-accent" aria-hidden="true" /> : <span className="inline-block h-6 w-6 rounded-full bg-white/10" />}
                   <span className="absolute inset-0 rounded-full border border-transparent transition-all duration-300 group-hover:border-orange-accent group-hover:scale-110" aria-hidden="true" />
                 </a>
               ))}
