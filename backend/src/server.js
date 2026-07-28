@@ -42,10 +42,6 @@ async function start() {
   } catch (err) {
     console.error('Startup check failed:', err)
   }
-    }
-  } catch (err) {
-    console.error('Startup check failed:', err)
-  }
 
   server = app.listen(PORT, () => {
     console.log(`Backend server running on port ${PORT} (${process.env.NODE_ENV || 'development'})`)
