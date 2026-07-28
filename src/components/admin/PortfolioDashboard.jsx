@@ -652,3 +652,5 @@ export const PortfolioDashboard = () => {
     </div>
   )
 }
+
+export default PortfolioDashboard

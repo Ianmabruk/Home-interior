@@ -921,3 +921,5 @@ export const ShopDashboard = () => {
     </div>
   )
 }
+
+export default ShopDashboard

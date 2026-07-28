@@ -622,3 +622,5 @@ export const ServicesDashboard = () => {
     </div>
   )
 }
+
+export default ServicesDashboard

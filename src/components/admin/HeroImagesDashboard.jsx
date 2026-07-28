@@ -405,6 +405,8 @@ export const HeroImagesDashboard = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  )
+     </div>
+   )
 }
+
+export default HeroImagesDashboard

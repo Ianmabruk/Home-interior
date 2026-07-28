@@ -316,7 +316,10 @@ export const OrderDashboard = () => {
             </div>
           </motion.div>
         </motion.div>
-      )}
-    </div>
-  )
+       )}
+     </div>
+   )
 }
+
+export default OrderDashboard
+

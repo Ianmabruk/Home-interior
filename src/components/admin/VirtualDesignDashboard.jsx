@@ -687,3 +687,5 @@ export const VirtualDesignDashboard = () => {
     </div>
   )
 }
+
+export default VirtualDesignDashboard
