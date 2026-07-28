@@ -51,6 +51,6 @@ export async function deleteFiles(storagePaths) {
   if (isSupabaseConfigured()) {
     await Promise.allSettled(valid.map(deleteFromSupabase))
   } else {
-    await deleteManyFromCloudinary(valid)
+    await Promise.allSettled(valid.map(deleteFromCloudinary))
   }
 }

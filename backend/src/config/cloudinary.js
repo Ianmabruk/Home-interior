@@ -42,7 +42,6 @@ export const uploadToCloudinary = async (buffer, mimetype, folder) => {
               message: error.message,
               http_code: error.http_code,
               name: error.name,
-              stack: error.stack,
             })
             reject(error)
           } else {
