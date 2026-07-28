@@ -27,25 +27,46 @@ export const uploadToCloudinary = async (buffer, mimetype, folder) => {
   const ext = mimetype.split('/')[1] || 'bin'
   const publicId = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}`
 
-  const result = await new Promise((resolve, reject) => {
-    cloudinary.uploader.upload_stream(
-      {
-        resource_type: 'auto',
-        folder,
-        public_id: publicId,
-        overwrite: false,
-      },
-      (error, result) => {
-        if (error) reject(error)
-        else resolve(result)
-      }
-    ).end(buffer)
-  })
+  try {
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          resource_type: 'auto',
+          folder,
+          public_id: publicId,
+          overwrite: false,
+        },
+        (error, result) => {
+          if (error) {
+            console.error('[Cloudinary] Upload stream error:', {
+              message: error.message,
+              http_code: error.http_code,
+              name: error.name,
+              stack: error.stack,
+            })
+            reject(error)
+          } else {
+            resolve(result)
+          }
+        }
+      ).end(buffer)
+    })
 
-  return {
-    url: result.secure_url,
-    publicId: result.public_id,
-    mimeType: mimetype,
+    return {
+      url: result.secure_url,
+      publicId: result.public_id,
+      mimeType: mimetype,
+    }
+  } catch (err) {
+    console.error('[Cloudinary] Upload failed:', {
+      message: err?.message,
+      http_code: err?.http_code,
+      name: err?.name,
+      folder,
+      mimeType: mimetype,
+      bufferLength: buffer?.length || buffer?.byteLength || 'unknown',
+    })
+    throw err
   }
 }
 
