@@ -3,11 +3,14 @@ import { uploadToCloudinary, deleteFromCloudinary, deleteManyFromCloudinary } fr
 import { failure } from '../utils/response.js'
 
 export async function uploadFile(buffer, mimetype, folder) {
+  if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+    const uploaded = await uploadToCloudinary(buffer, mimetype, folder)
+    return { url: uploaded.url, path: uploaded.publicId, mimeType: mimetype }
+  }
   if (isSupabaseConfigured()) {
     return uploadToSupabase(buffer, mimetype, folder)
   }
-  const uploaded = await uploadToCloudinary(buffer, mimetype, folder)
-  return { url: uploaded.url, path: uploaded.publicId, mimeType: mimetype }
+  throw failure(500, 'No storage provider configured. Set Cloudinary or Supabase env vars.')
 }
 
 async function uploadToSupabase(buffer, mimetype, folder) {

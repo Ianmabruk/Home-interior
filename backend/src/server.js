@@ -4,6 +4,7 @@ import { validateEnv } from './config/env.js'
 import { prisma } from './config/database.js'
 import { uploadToCloudinary } from './config/cloudinary.js'
 import cloudinary from './config/cloudinary.js'
+import { isSupabaseConfigured } from './config/supabase.js'
 import fs from 'fs'
 import path from 'path'
 
@@ -21,6 +22,9 @@ let server = null
 
 async function start() {
   try {
+    if (process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET && isSupabaseConfigured()) {
+      console.warn('[WARNING] Both Cloudinary and Supabase are configured. Cloudinary will be used for uploads. Remove SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY if you want to use Supabase.')
+    }
     if (process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
       try {
         await new Promise((resolve, reject) => {
@@ -34,6 +38,10 @@ async function start() {
         console.error('Cloudinary ping failed:', err?.message || err)
         console.error('Check CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET')
       }
+    }
+  } catch (err) {
+    console.error('Startup check failed:', err)
+  }
     }
   } catch (err) {
     console.error('Startup check failed:', err)
