@@ -22,7 +22,7 @@ services:
       - key: SEED_ADMIN_PASSWORD
         value: admin123.
       - key: DATABASE_URL
-        value: postgresql://neondb_owner:npg_8g1kJfADurxe@ep-red-cake-aya2hje0-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require&connection_limit=1
+        value: postgresql://neondb_owner:npg_8g1kJfADurxe@ep-red-cake-aya2hje0-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
       - key: PRISMA_MIGRATE_LOCK_TIMEOUT
         value: "30000"
       - key: CLOUDINARY_CLOUD_NAME
