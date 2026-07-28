@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
-import { emitAdminDataChanged } from '../../utils/adminEvents'
+import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 
 export const TestimonialDashboard = () => {
   const [testimonials, setTestimonials] = useState([])
@@ -110,7 +110,7 @@ export const TestimonialDashboard = () => {
       setStatus(editing ? 'Testimonial updated successfully' : 'Testimonial created successfully')
       resetForm()
       load()
-      emitAdminDataChanged({ type: 'testimonials-changed' })
+      dispatchAdminDataChanged('testimonials-changed')
     } catch {
       setStatus('Failed to save testimonial. Please try again.')
       toast.error('Failed to save testimonial.')
@@ -141,7 +141,7 @@ export const TestimonialDashboard = () => {
       await api.delete(`/admin/testimonials/${deleteId}`)
       setDeleteId(null)
       load()
-      emitAdminDataChanged({ type: 'testimonials-changed' })
+      dispatchAdminDataChanged('testimonials-changed')
       toast.success('Testimonial deleted successfully.')
     } catch {
       toast.error('Failed to delete testimonial.')

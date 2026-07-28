@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { UploadCloud, X, Edit, Trash2, Eye, Plus, Sparkles, LayoutGrid, Brush, MonitorSmartphone, Armchair, Search, Star, ArrowUp, ArrowDown, ToggleLeft } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
-import { emitAdminDataChanged } from '../../utils/adminEvents'
+import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 
 const ICON_OPTIONS = [
   { value: 'LayoutGrid', label: 'Layout Grid', icon: LayoutGrid },
@@ -132,7 +132,7 @@ export const ServicesDashboard = () => {
       resetForm()
       const res = await api.get('/services')
       setServices(Array.isArray(res.data) ? res.data : res.data?.items || [])
-      emitAdminDataChanged({ type: 'services-changed' })
+      dispatchAdminDataChanged('services-changed')
     } catch (err) {
       console.error('Submit error:', err)
       toast.error(err?.message || 'Failed to save service. Please try again.')
@@ -148,7 +148,7 @@ export const ServicesDashboard = () => {
       setDeleteId(null)
       const res = await api.get('/services')
       setServices(Array.isArray(res.data) ? res.data : res.data?.items || [])
-      emitAdminDataChanged({ type: 'services-changed' })
+      dispatchAdminDataChanged('services-changed')
       toast.success('Service deleted successfully.')
     } catch (err) {
       console.error('Delete error:', err)
@@ -167,7 +167,7 @@ export const ServicesDashboard = () => {
     try {
       await api.patch('/services/reorder', { order: orderPayload })
       setServices(updated)
-      emitAdminDataChanged({ type: 'services-changed' })
+      dispatchAdminDataChanged('services-changed')
     } catch (err) {
       console.error('Reorder error:', err)
       toast.error(err?.message || 'Failed to reorder services.')
@@ -178,7 +178,7 @@ export const ServicesDashboard = () => {
     try {
       await api.patch(`/services/${item.id}`, { isActive: !item.isActive })
       setServices(services.map(s => s.id === item.id ? { ...s, isActive: !s.isActive } : s))
-      emitAdminDataChanged({ type: 'services-changed' })
+      dispatchAdminDataChanged('services-changed')
     } catch (err) {
       console.error('Toggle active error:', err)
       toast.error(err?.message || 'Failed to update service status.')

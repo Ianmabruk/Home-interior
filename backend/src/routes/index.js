@@ -21,6 +21,7 @@ import adminSocialRoutes from './adminSocialRoutes.js'
 import { uploadSingle } from '../middleware/upload.js'
 import { uploadFile } from '../uploads/uploadService.js'
 import { authenticate } from '../middleware/auth.js'
+import { prisma } from '../config/database.js'
 
 const router = Router()
 
@@ -37,13 +38,6 @@ router.use('/content/hero-media', heroRoutes)
 router.use('/content/consultations', consultationRoutes)
 router.use('/content/media', mediaRoutes)
 router.use('/content/testimonials', testRoutes)
-
-router.use('/admin/portfolio', adminPortfolioRoutes)
-router.use('/admin/virtual-designs', adminVDRoutes)
-router.use('/admin/services', serviceRoutes)
-router.use('/admin/testimonials', testRoutes)
-router.use('/admin/consultations', adminConsultationRoutes)
-router.use('/admin/socials', adminSocialRoutes)
 
 router.use('/portfolio', contentPortfolioRoutes)
 router.use('/virtual-design', contentVDRoutes)

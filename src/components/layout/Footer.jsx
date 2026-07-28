@@ -1,13 +1,39 @@
-import { useState, memo } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { Instagram, Facebook } from 'lucide-react'
 import { FaTiktok, FaPinterest } from 'react-icons/fa'
 import { api } from '@services/api'
-import { FOOTER_SOCIAL_LINKS } from '@constants/socialLinks.jsx'
+
+const SOCIAL_ICONS = {
+  TikTok: <FaTiktok size={22} md={24} strokeWidth={1.5} aria-hidden="true" />,
+  Instagram: <Instagram size={22} md={24} strokeWidth={1.5} aria-hidden="true" />,
+  Facebook: <Facebook size={22} md={24} strokeWidth={1.5} aria-hidden="true" />,
+  Pinterest: <FaPinterest size={22} md={24} strokeWidth={1.5} aria-hidden="true" />,
+}
+
+const PLATFORM_CONFIG = {
+  tiktok: { label: 'TikTok', ariaLabel: 'Follow us on TikTok' },
+  instagram: { label: 'Instagram', ariaLabel: 'Follow us on Instagram' },
+  facebook: { label: 'Facebook', ariaLabel: 'Follow us on Facebook' },
+  pinterest: { label: 'Pinterest', ariaLabel: 'Follow us on Pinterest' },
+}
 
 export const Footer = memo(() => {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState('')
+  const [socialLinks, setSocialLinks] = useState({})
+
+  useEffect(() => {
+    const loadSocials = async () => {
+      try {
+        const res = await api.get('/socials')
+        setSocialLinks(res.data || {})
+      } catch {
+        setSocialLinks({})
+      }
+    }
+    loadSocials()
+  }, [])
 
   const handleSubscribe = async (e) => {
     e.preventDefault()
@@ -19,6 +45,17 @@ export const Footer = memo(() => {
     } catch {
       setStatus('error')
     }
+  }
+
+  const getFooterSocials = () => {
+    return Object.entries(socialLinks)
+      .filter((entry) => entry[1] && entry[1].trim() !== '')
+      .map(([key, href]) => ({
+        key,
+        href,
+        label: PLATFORM_CONFIG[key]?.label || key,
+        ariaLabel: PLATFORM_CONFIG[key]?.ariaLabel || `Follow us on ${key}`,
+      }))
   }
 
   return (
@@ -38,7 +75,7 @@ export const Footer = memo(() => {
           <div className="text-center animate-fade-up" style={{ animationDelay: '0.1s' }}>
             <h3 className="font-display text-xl md:text-2xl font-normal text-white mb-6">Follow Us</h3>
             <div className="flex items-center justify-center gap-4 md:gap-6">
-              {FOOTER_SOCIAL_LINKS.map((social, index) => (
+              {getFooterSocials().map((social, index) => (
                 <a
                   key={social.label}
                   href={social.href}
@@ -49,10 +86,7 @@ export const Footer = memo(() => {
                   style={{ animationDelay: `${index * 0.08}s` }}
                   role="listitem"
                 >
-                  {social.icon === 'TikTok' && <FaTiktok size={22} md={24} strokeWidth={1.5} className="transition-colors duration-300 group-hover:text-[var(--accent)]" aria-hidden="true" />}
-                  {social.icon === 'Instagram' && <Instagram size={22} md={24} strokeWidth={1.5} className="transition-colors duration-300 group-hover:text-[var(--accent)]" aria-hidden="true" />}
-                  {social.icon === 'Facebook' && <Facebook size={22} md={24} strokeWidth={1.5} className="transition-colors duration-300 group-hover:text-[var(--accent)]" aria-hidden="true" />}
-                  {social.icon === 'Pinterest' && <FaPinterest size={22} md={24} strokeWidth={1.5} className="transition-colors duration-300 group-hover:text-[var(--accent)]" aria-hidden="true" />}
+                  {SOCIAL_ICONS[social.label]}
                   <span className="absolute inset-0 rounded-full border border-transparent transition-all duration-300 group-hover:border-[var(--accent)] group-hover:scale-110" aria-hidden="true" />
                 </a>
               ))}

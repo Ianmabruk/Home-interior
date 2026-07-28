@@ -81,7 +81,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
   if (!images.length) {
     return (
       <section
-        className={`relative w-full h-screen min-h-[700px] overflow-hidden bg-[var(--primary)] ${className}`}
+        className={`relative w-full h-[85vh] min-h-[500px] max-h-[700px] overflow-hidden bg-[var(--primary)] ${className}`}
         role="region"
         aria-label="Hero image"
         style={{ contain: 'layout paint' }}
@@ -93,7 +93,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
 
   return (
     <section
-      className={`relative w-full h-screen min-h-[700px] overflow-hidden ${className}`}
+      className={`relative w-full h-[85vh] min-h-[500px] max-h-[700px] overflow-hidden ${className}`}
       role="region"
       aria-label="Hero image"
       style={{ contain: 'layout paint' }}

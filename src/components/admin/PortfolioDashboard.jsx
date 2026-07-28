@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Star, Image, Loader2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
-import { emitAdminDataChanged } from '../../utils/adminEvents'
+import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { Link } from 'react-router-dom'
 
 const INITIAL_FORM = {
@@ -160,7 +160,7 @@ export const PortfolioDashboard = () => {
       }
       resetForm()
       load()
-      emitAdminDataChanged({ type: 'portfolio-changed' })
+      dispatchAdminDataChanged({ type: 'portfolio-changed' })
       toast.success(editingId ? 'Portfolio project updated successfully.' : 'Portfolio project uploaded successfully.')
     } catch (err) {
       console.error('Submit error:', err)
@@ -186,7 +186,7 @@ export const PortfolioDashboard = () => {
         return next
       })
       load()
-      emitAdminDataChanged({ type: 'portfolio-changed' })
+      dispatchAdminDataChanged({ type: 'portfolio-changed' })
       toast.success('Portfolio project deleted successfully.')
     } catch (err) {
       console.error('Delete error:', err)

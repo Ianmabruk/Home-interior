@@ -1,20 +1,21 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Twitter,
   Instagram,
   Facebook,
   Loader2,
+  Check,
 } from 'lucide-react'
+import { FaTiktok, FaPinterest } from 'react-icons/fa'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 
 const SOCIAL_PLATFORMS = [
-  { key: 'tiktok', label: 'TikTok', icon: Twitter, placeholder: 'https://tiktok.com/@yourhandle' },
-  { key: 'instagram', label: 'Instagram', icon: Instagram, placeholder: 'https://instagram.com/yourhandle' },
-  { key: 'facebook', label: 'Facebook', icon: Facebook, placeholder: 'https://facebook.com/yourpage' },
-  { key: 'pinterest', label: 'Pinterest', icon: Twitter, placeholder: 'https://pinterest.com/yourprofile' }, // Using Twitter icon as placeholder for Pinterest
+  { key: 'tiktok', label: 'TikTok', icon: FaTiktok, placeholder: 'https://tiktok.com/@yourhandle', color: '#000000' },
+  { key: 'instagram', label: 'Instagram', icon: Instagram, placeholder: 'https://instagram.com/yourhandle', color: '#E4405F' },
+  { key: 'facebook', label: 'Facebook', icon: Facebook, placeholder: 'https://facebook.com/yourpage', color: '#1877F2' },
+  { key: 'pinterest', label: 'Pinterest', icon: FaPinterest, placeholder: 'https://pinterest.com/yourprofile', color: '#BD081C' },
 ]
 
 const INITIAL_SOCIALS = {
@@ -92,7 +93,7 @@ export const SocialLinksDashboard = () => {
       >
         <div>
           <h2 className="font-display text-3xl text-[var(--primary)]">Social Links</h2>
-          <p className="text-sm text-[var(--primary)]/50 mt-1">Manage social media profile links</p>
+          <p className="text-sm text-[var(--primary)]/50 mt-1">Manage social media profile links for footer and socials page</p>
         </div>
       </motion.div>
 
@@ -132,7 +133,7 @@ export const SocialLinksDashboard = () => {
             return (
               <div key={platform.key} className="space-y-1">
                 <label className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">
-                  <div className="w-8 h-8 rounded-lg bg-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/60">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/60" style={{ color: platform.color }}>
                     <Icon size={18} strokeWidth={1.5} />
                   </div>
                   {platform.label}
@@ -156,6 +157,11 @@ export const SocialLinksDashboard = () => {
                         <line x1="12" y1="8" x2="12" y2="12" />
                         <line x1="12" y1="16" x2="12.01" y2="16" />
                       </svg>
+                    </span>
+                  )}
+                  {socials[platform.key] && isValid && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--success)]">
+                      <Check size={16} strokeWidth={2} />
                     </span>
                   )}
                 </div>
@@ -182,8 +188,8 @@ export const SocialLinksDashboard = () => {
         transition={{ delay: 0.1, duration: 0.5 }}
         className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)]"
       >
-        <h3 className="font-display text-lg text-[var(--primary)] mb-4">Preview</h3>
-        <p className="text-[10px] text-[var(--primary)]/50 mb-4">How the social links will appear on the homepage and socials page</p>
+        <h3 className="font-display text-lg text-[var(--primary)] mb-4">Live Preview</h3>
+        <p className="text-[10px] text-[var(--primary)]/50 mb-4">How the social links will appear on the homepage footer and socials page</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {SOCIAL_PLATFORMS.map((platform) => {
             const Icon = platform.icon
@@ -203,7 +209,7 @@ export const SocialLinksDashboard = () => {
               >
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
                   url ? 'bg-[var(--secondary)]/30 group-hover:bg-[var(--accent)]/10' : 'bg-[var(--secondary)]/10'
-                }`}>
+                }`} style={{ color: platform.color }}>
                   <Icon size={24} className={`transition-colors duration-300 ${
                     url ? 'text-[var(--primary)] group-hover:text-[var(--accent)]' : 'text-[var(--primary)]/30'
                   }`} strokeWidth={1.5} />

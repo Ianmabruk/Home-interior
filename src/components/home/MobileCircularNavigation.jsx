@@ -111,7 +111,7 @@ const CircleItemMobile = memo(({ item, data }) => {
   const placeholder = PlaceholderIcons[item.key]
 
   return (
-    <section className={item.key === 'portfolio' ? 'bg-[var(--secondary)]/30 px-6 py-16' : item.key === 'services' ? 'bg-[var(--bg)] px-6 py-16' : item.key === 'virtualDesigns' ? 'bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 py-16' : item.key === 'shop' ? 'bg-[var(--bg)] px-6 py-16' : item.key === 'about' ? 'bg-[var(--bg)] px-6 py-16 pb-24' : 'bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 px-6 py-16'}>
+    <section className="bg-[var(--bg)] px-6 py-12">
       <div className="container-wide">
         <Link
           to={item.path}
@@ -119,7 +119,7 @@ const CircleItemMobile = memo(({ item, data }) => {
           aria-label={`${item.label} — tap to explore`}
         >
           <div
-            className="relative rounded-full transition-transform duration-300 hover:scale-[1.02] active:scale-[0.98]"
+            className="relative rounded-full transition-opacity duration-200 hover:opacity-90 active:opacity-80"
             style={{
               width: CIRCLE_SIZE,
               height: CIRCLE_SIZE,
@@ -146,7 +146,7 @@ const CircleItemMobile = memo(({ item, data }) => {
           </div>
 
           <div
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-full max-w-xs px-4"
+            className="mt-6 w-full max-w-xs px-4"
             style={{ zIndex: 10 }}
           >
             <button

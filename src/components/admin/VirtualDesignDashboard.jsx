@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
-import { emitAdminDataChanged } from '../../utils/adminEvents'
+import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { getOptimizedVideoUrl, getVideoPosterUrl, getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
 const INITIAL_FORM = {
@@ -180,7 +180,7 @@ export const VirtualDesignDashboard = () => {
       }
       resetForm()
       load()
-      emitAdminDataChanged({ type: 'virtual-changed' })
+      dispatchAdminDataChanged('virtual-changed')
       toast.success(editingId ? 'Virtual design updated successfully.' : 'Virtual design uploaded successfully.')
     } catch (err) {
       console.error('Submit error:', err)
@@ -207,7 +207,7 @@ export const VirtualDesignDashboard = () => {
         return next
       })
       load()
-      emitAdminDataChanged({ type: 'virtual-changed' })
+      dispatchAdminDataChanged('virtual-changed')
     } catch (err) {
       console.error('Delete error:', err)
       setOptimisticDeletes(prev => {

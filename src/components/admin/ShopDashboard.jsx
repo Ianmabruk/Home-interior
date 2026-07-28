@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
-import { emitAdminDataChanged } from '../../utils/adminEvents'
+import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 
 import { SHOP_CATEGORIES } from '../../utils/constants'
 
@@ -135,7 +135,7 @@ export const ShopDashboard = () => {
       setVariantPreviews([])
       const res = await api.get('/products/admin/all', { params: { sort: '-createdAt', limit: 500 } })
       setAllProducts(res.data?.items || [])
-      emitAdminDataChanged({ type: 'products-changed' })
+      dispatchAdminDataChanged('products-changed')
       toast.success(editingId ? 'Product updated successfully.' : 'Product uploaded successfully.')
     } catch (err) {
       showError(err?.message || 'Failed to save product. Please try again.')
@@ -210,7 +210,7 @@ export const ShopDashboard = () => {
       setDeleteId(null)
       const res = await api.get('/products/admin/all', { params: { sort: '-createdAt', limit: 500 } })
       setAllProducts(res.data?.items || [])
-      emitAdminDataChanged({ type: 'products-changed' })
+      dispatchAdminDataChanged('products-changed')
     } catch (err) {
       toast.error(err?.message || 'Failed to delete product. Please try again.')
     }

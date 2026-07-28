@@ -149,7 +149,7 @@ const CircleItem = memo(({ item, data }) => {
       </div>
 
       <div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-full max-w-xs px-4"
+        className="mt-6 w-full max-w-xs px-4"
         style={{ zIndex: 10 }}
       >
         <button
@@ -181,10 +181,10 @@ export const CircularNavigationGrid = memo(({ portfolio = [], virtualDesigns = [
   }), [portfolio, virtualDesigns, services, products, about])
 
   return (
-    <section className="bg-[var(--secondary)]/30 py-16 md:py-24 lg:py-32">
+    <section className="bg-[var(--secondary)]/30 py-12 md:py-16 lg:py-20">
       <div className="container-wide md:px-12 lg:px-20">
         <div
-          className="grid gap-6 md:gap-8 lg:gap-10 justify-items-center grid-cols-1 md:grid-cols-3"
+          className="grid gap-8 md:gap-10 lg:gap-12 justify-items-center grid-cols-1 md:grid-cols-3"
           role="list"
           aria-label="Navigation"
         >

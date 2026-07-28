@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
-import { emitAdminDataChanged } from '../../utils/adminEvents'
+import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 
 function parseConsultationMessage(message) {
   if (!message) return { images: [], extraData: {}, text: '' }
@@ -226,7 +226,7 @@ export const ConsultationDashboard = () => {
     try {
       await api.patch(`/admin/consultations/${id}/status`, { status })
       refresh()
-      emitAdminDataChanged({ type: 'consultations-changed' })
+      dispatchAdminDataChanged('consultations-changed')
       toast.success(`Status updated to ${status}.`)
     } catch (err) {
       toast.error(err?.message || 'Failed to update status.')
@@ -239,7 +239,7 @@ export const ConsultationDashboard = () => {
       await api.delete(`/admin/consultations/${deleteId}`)
       setDeleteId(null)
       refresh()
-      emitAdminDataChanged({ type: 'consultations-changed' })
+      dispatchAdminDataChanged('consultations-changed')
       toast.success('Consultation deleted successfully.')
     } catch (err) {
       toast.error(err?.message || 'Failed to delete consultation.')

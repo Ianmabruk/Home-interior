@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { X, Plus, Image as ImageIcon } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
-import { emitAdminDataChanged } from '../../utils/adminEvents'
+import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 
 const INITIAL_FORM = {
   story: '',
@@ -103,7 +103,7 @@ export const AboutDashboard = () => {
       if (aboutImageFile) payload.append('media', aboutImageFile)
       await api.put('/about', payload)
       await loadAbout()
-      emitAdminDataChanged({ type: 'about-changed' })
+      dispatchAdminDataChanged('about-changed')
       toast.success('About page saved successfully.')
     } catch (err) {
       setError(err?.message || 'Failed to save about page. Please try again.')

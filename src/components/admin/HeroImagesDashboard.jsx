@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UploadCloud, X, Trash2, Images, Eye, Plus, Image as ImageIcon } from 'lucide-react'
 import { api } from '../../services/api'
-import { emitAdminDataChanged } from '../../utils/adminEvents'
+import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 
 const INITIAL_FORM = {
   title: '',
@@ -90,7 +90,7 @@ export const HeroImagesDashboard = () => {
       const res = await api.get('/hero-media')
       const data = Array.isArray(res.data) ? res.data : res.data?.items || []
       setHeroImages(data)
-      emitAdminDataChanged({ type: 'hero-images-changed' })
+      dispatchAdminDataChanged('hero-images-changed')
     } catch (err) {
       setStatus({ type: 'error', message: err?.message || 'Upload failed' })
       console.error('Submit error:', err)
@@ -109,7 +109,7 @@ export const HeroImagesDashboard = () => {
       const res = await api.get('/hero-media')
       const data = Array.isArray(res.data) ? res.data : res.data?.items || []
       setHeroImages(data)
-      emitAdminDataChanged({ type: 'hero-images-changed' })
+      dispatchAdminDataChanged('hero-images-changed')
     } catch (err) {
       setStatus({ type: 'error', message: err?.message || 'Delete failed' })
       console.error('Delete error:', err)

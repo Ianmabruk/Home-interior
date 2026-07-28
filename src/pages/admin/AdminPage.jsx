@@ -20,15 +20,15 @@ import { Sidebar } from '@components/admin/Sidebar'
 const ADMIN_NAV = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, to: '/admin' },
   { id: 'portfolio', label: 'Portfolio', icon: Image, to: '/admin/portfolio' },
+  { id: 'virtual-design', label: 'Virtual Design', icon: Home, to: '/admin/virtual-designs' },
   { id: 'services', label: 'Services', icon: Sparkles, to: '/admin/services' },
   { id: 'shop', label: 'Shop', icon: ShoppingBag, to: '/admin/shop' },
-  { id: 'virtual-design', label: 'Virtual Design', icon: Home, to: '/admin/virtual-design' },
   { id: 'about', label: 'About', icon: Users, to: '/admin/about' },
   { id: 'hero-images', label: 'Hero Images', icon: Image, to: '/admin/hero-images' },
   { id: 'consultations', label: 'Consultations', icon: MessageSquare, to: '/admin/consultations' },
   { id: 'testimonials', label: 'Testimonials', icon: MessageSquare, to: '/admin/testimonials' },
   { id: 'chat', label: 'Chat', icon: MessageSquare, to: '/admin/chat' },
-  { id: 'social-links', label: 'Social Links', icon: Share2, to: '/admin/social-links' },
+  { id: 'social-links', label: 'Social Links', icon: Share2, to: '/admin/socials' },
   { id: 'settings', label: 'Settings', icon: Settings, to: '/admin/settings' },
 ]
 

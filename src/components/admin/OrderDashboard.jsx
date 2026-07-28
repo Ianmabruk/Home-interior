@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { Package, Eye, X, Search, ChevronDown } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
-import { emitAdminDataChanged } from '../../utils/adminEvents'
+import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 
 const STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
 
@@ -67,7 +67,7 @@ export const OrderDashboard = () => {
       if (viewOrder && (viewOrder._id === orderId || viewOrder.id === orderId)) {
         setViewOrder((prev) => ({ ...prev, status: newStatus }))
       }
-      emitAdminDataChanged({ type: 'orders-changed' })
+      dispatchAdminDataChanged('orders-changed')
       toast.success('Order status updated.')
     } catch (err) {
       toast.error(err?.message || 'Failed to update status.')
