@@ -1,22 +1,20 @@
 /*
-  Warnings:
-
-  - You are about to drop the column `color_variants` on the `products` table. All the data in the column will be lost.
-  - You are about to drop the column `style_variants` on the `products` table. All the data in the column will be lost.
-
+  Safe idempotent migration for adding variant tables and settings.
+  Uses IF NOT EXISTS / IF EXISTS so re-runs do not fail on partial state.
 */
--- AlterTable
-ALTER TABLE "abouts" ADD COLUMN     "statistics" TEXT NOT NULL DEFAULT '',
-ADD COLUMN     "values" TEXT NOT NULL DEFAULT '';
 
--- AlterTable
-ALTER TABLE "products" DROP COLUMN "color_variants",
-DROP COLUMN "style_variants",
-ADD COLUMN     "main_image" TEXT,
-ADD COLUMN     "storage_paths" TEXT[] DEFAULT ARRAY[]::TEXT[];
+-- AlterTable: add missing abouts columns safely
+ALTER TABLE "abouts" ADD COLUMN IF NOT EXISTS "statistics" TEXT NOT NULL DEFAULT '',
+ADD COLUMN IF NOT EXISTS "values" TEXT NOT NULL DEFAULT '';
 
--- CreateTable
-CREATE TABLE "product_variants" (
+-- AlterTable: restructure products safely
+ALTER TABLE "products" DROP COLUMN IF EXISTS "color_variants",
+DROP COLUMN IF EXISTS "style_variants",
+ADD COLUMN IF NOT EXISTS "main_image" TEXT,
+ADD COLUMN IF NOT EXISTS "storage_paths" TEXT[] DEFAULT ARRAY[]::TEXT[];
+
+-- CreateTable: product variants safe
+CREATE TABLE IF NOT EXISTS "product_variants" (
     "id" TEXT NOT NULL,
     "product_id" TEXT NOT NULL,
     "color" TEXT NOT NULL,
@@ -29,8 +27,20 @@ CREATE TABLE "product_variants" (
     CONSTRAINT "product_variants_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE INDEX "product_variants_product_id_idx" ON "product_variants"("product_id");
+-- CreateIndex: safe
+CREATE INDEX IF NOT EXISTS "product_variants_product_id_idx" ON "product_variants"("product_id");
 
--- AddForeignKey
-ALTER TABLE "product_variants" ADD CONSTRAINT "product_variants_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- AddForeignKey: safe via DO block
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE constraint_name = 'product_variants_product_id_fkey'
+          AND table_name = 'product_variants'
+    ) THEN
+        ALTER TABLE "product_variants"
+        ADD CONSTRAINT "product_variants_product_id_fkey"
+        FOREIGN KEY ("product_id") REFERENCES "products"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;
