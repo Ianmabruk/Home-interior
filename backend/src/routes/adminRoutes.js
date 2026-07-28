@@ -13,6 +13,7 @@ import { testimonialController } from '../controllers/testimonialController.js'
 import { consultationController } from '../controllers/consultationController.js'
 import { orderController } from '../controllers/orderController.js'
 import { asyncHandler } from '../middleware/asyncHandler.js'
+import { adminOverviewController } from '../controllers/adminOverviewController.js'
 import adminSocialRoutes from './adminSocialRoutes.js'
 
 const router = Router()

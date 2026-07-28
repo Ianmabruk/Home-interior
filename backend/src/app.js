@@ -77,8 +77,17 @@ app.use((req, res, next) => {
   next()
 })
 
+import { prisma } from './config/database.js'
+
 app.get(['/api/health', '/health'], async (req, res) => {
-  res.json({ database: 'ok', server: 'running' })
+  let database = 'error'
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    database = 'ok'
+  } catch (err) {
+    console.error('[health] database check failed:', err?.message || err)
+  }
+  res.json({ database, server: 'running' })
 })
 
 app.use('/uploads', express.static(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public', 'uploads')))

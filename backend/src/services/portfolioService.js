@@ -37,6 +37,20 @@ async function listPortfolio({ sort = '-createdAt', limit = 100 } = {}) {
     const items = await prisma.portfolioProject.findMany({
       orderBy,
       take: Number(limit) || 100,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        category: true,
+        featured: true,
+        displayOrder: true,
+        published: true,
+        imageUrl: true,
+        cloudinaryId: true,
+        mediaUrls: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     })
     return items.map(mapPortfolio)
   } catch {
