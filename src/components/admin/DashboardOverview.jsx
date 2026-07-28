@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import {
   Images,
   ShoppingBag,
@@ -102,22 +103,45 @@ const QuickActionCard = ({ label, icon: Icon, color, onClick }) => (
   </motion.button>
 )
 
-export const DashboardOverview = ({ overview, onNavigate }) => {
+export const DashboardOverview = () => {
+  const navigate = useNavigate()
+  const [overview, setOverview] = useState(null)
   const [recentUploads, setRecentUploads] = useState([])
   const [recentOrders, setRecentOrders] = useState([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([
-      api.get('/portfolio', { params: { sort: '-createdAt', limit: 6 } }),
-      api.get('/orders').catch(() => ({ data: [] })),
-    ])
-      .then(([portfolioRes, ordersRes]) => {
+    let cancelled = false
+
+    const loadAll = async () => {
+      try {
+        const [overviewRes, portfolioRes, ordersRes] = await Promise.all([
+          api.get('/admin/overview').catch(() => ({ data: null })),
+          api.get('/portfolio', { params: { sort: '-createdAt', limit: 6 } }).catch(() => ({ data: [] })),
+          api.get('/orders').catch(() => ({ data: [] })),
+        ])
+
+        if (cancelled) return
+
+        setOverview(overviewRes.data?.data || null)
         setRecentUploads(Array.isArray(portfolioRes.data) ? portfolioRes.data : portfolioRes.data?.items || [])
         setRecentOrders(Array.isArray(ordersRes.data) ? ordersRes.data : ordersRes.data?.items || [])
-      })
-      .catch(() => {})
-      .finally(() => setIsLoading(false))
+      } catch {
+        if (!cancelled) {
+          setOverview(null)
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadAll()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -316,25 +340,25 @@ export const DashboardOverview = ({ overview, onNavigate }) => {
             label="New Portfolio"
             icon={Plus}
             color="bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]"
-            onClick={() => onNavigate?.('portfolio')}
+            onClick={() => navigate('/admin/portfolio')}
           />
           <QuickActionCard
             label="Add Product"
             icon={ShoppingBag}
             color="bg-gradient-to-br from-[var(--primary)] to-[var(--primary)]"
-            onClick={() => onNavigate?.('shop')}
+            onClick={() => navigate('/admin/shop')}
           />
           <QuickActionCard
             label="View Messages"
             icon={MessageSquare}
             color="bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]"
-            onClick={() => onNavigate?.('consultations')}
+            onClick={() => navigate('/admin/consultations')}
           />
           <QuickActionCard
             label="Virtual Design"
             icon={Newspaper}
             color="bg-gradient-to-br from-[var(--primary)] to-[var(--primary)]"
-            onClick={() => onNavigate?.('virtual')}
+            onClick={() => navigate('/admin/virtual-designs')}
           />
         </div>
       </motion.div>

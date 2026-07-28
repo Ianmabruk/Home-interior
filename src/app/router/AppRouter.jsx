@@ -73,6 +73,7 @@ const CheckoutPage = lazyWithCache(() => import('@pages/account/CheckoutPage').t
 // Admin pages
 const AdminPage = lazyWithCache(() => import('@pages/admin/AdminPage').then(m => ({ default: m.AdminPage })), 'admin')
 const AdminChatPage = lazyWithCache(() => import('@pages/admin/AdminChatPage').then(m => ({ default: m.AdminChatPage })), 'admin-chat')
+const DashboardOverview = lazyWithCache(() => import('@components/admin/DashboardOverview').then(m => ({ default: m.DashboardOverview })), 'dashboard-overview')
 const SocialLinksDashboard = lazyWithCache(() => import('@components/admin/SocialLinksDashboard').then(m => ({ default: m.default })), 'social-links-dashboard')
 const PortfolioDashboard = lazyWithCache(() => import('@components/admin/PortfolioDashboard').then(m => ({ default: m.default })), 'portfolio-dashboard')
 const VirtualDesignDashboard = lazyWithCache(() => import('@components/admin/VirtualDesignDashboard').then(m => ({ default: m.default })), 'virtual-design-dashboard')
@@ -140,19 +141,34 @@ export const AppRouter = () => {
           </Route>
 
           <Route element={<ProtectedRoute adminOnly />}>
-            <Route path="/admin" element={<ErrorBoundaryRoute element={<AdminPage />} />} />
-            <Route path="/admin-dashboard" element={<ErrorBoundaryRoute element={<AdminPage />} />} />
-            <Route path="/admin/chat" element={<ErrorBoundaryRoute element={<AdminChatPage />} />} />
-            <Route path="/admin/portfolio" element={<ErrorBoundaryRoute element={<PortfolioDashboard />} />} />
-            <Route path="/admin/virtual-designs" element={<ErrorBoundaryRoute element={<VirtualDesignDashboard />} />} />
-            <Route path="/admin/services" element={<ErrorBoundaryRoute element={<ServicesDashboard />} />} />
-            <Route path="/admin/shop" element={<ErrorBoundaryRoute element={<ShopDashboard />} />} />
-            <Route path="/admin/about" element={<ErrorBoundaryRoute element={<AboutDashboard />} />} />
-            <Route path="/admin/hero-images" element={<ErrorBoundaryRoute element={<HeroImagesDashboard />} />} />
-            <Route path="/admin/consultations" element={<ErrorBoundaryRoute element={<ConsultationDashboard />} />} />
-            <Route path="/admin/testimonials" element={<ErrorBoundaryRoute element={<TestimonialDashboard />} />} />
-            <Route path="/admin/socials" element={<ErrorBoundaryRoute element={<SocialLinksDashboard />} />} />
-            <Route path="/admin/social-links" element={<ErrorBoundaryRoute element={<SocialLinksDashboard />} />} />
+            <Route path="/admin" element={<ErrorBoundaryRoute element={<AdminPage />} />}>
+              <Route index element={<ErrorBoundaryRoute element={<DashboardOverview />} />} />
+              <Route path="chat" element={<ErrorBoundaryRoute element={<AdminChatPage />} />} />
+              <Route path="portfolio" element={<ErrorBoundaryRoute element={<PortfolioDashboard />} />} />
+              <Route path="virtual-designs" element={<ErrorBoundaryRoute element={<VirtualDesignDashboard />} />} />
+              <Route path="services" element={<ErrorBoundaryRoute element={<ServicesDashboard />} />} />
+              <Route path="shop" element={<ErrorBoundaryRoute element={<ShopDashboard />} />} />
+              <Route path="about" element={<ErrorBoundaryRoute element={<AboutDashboard />} />} />
+              <Route path="hero-images" element={<ErrorBoundaryRoute element={<HeroImagesDashboard />} />} />
+              <Route path="consultations" element={<ErrorBoundaryRoute element={<ConsultationDashboard />} />} />
+              <Route path="testimonials" element={<ErrorBoundaryRoute element={<TestimonialDashboard />} />} />
+              <Route path="socials" element={<ErrorBoundaryRoute element={<SocialLinksDashboard />} />} />
+              <Route path="social-links" element={<ErrorBoundaryRoute element={<SocialLinksDashboard />} />} />
+            </Route>
+            <Route path="/admin-dashboard" element={<ErrorBoundaryRoute element={<AdminPage />} />}>
+              <Route index element={<ErrorBoundaryRoute element={<DashboardOverview />} />} />
+              <Route path="chat" element={<ErrorBoundaryRoute element={<AdminChatPage />} />} />
+              <Route path="portfolio" element={<ErrorBoundaryRoute element={<PortfolioDashboard />} />} />
+              <Route path="virtual-designs" element={<ErrorBoundaryRoute element={<VirtualDesignDashboard />} />} />
+              <Route path="services" element={<ErrorBoundaryRoute element={<ServicesDashboard />} />} />
+              <Route path="shop" element={<ErrorBoundaryRoute element={<ShopDashboard />} />} />
+              <Route path="about" element={<ErrorBoundaryRoute element={<AboutDashboard />} />} />
+              <Route path="hero-images" element={<ErrorBoundaryRoute element={<HeroImagesDashboard />} />} />
+              <Route path="consultations" element={<ErrorBoundaryRoute element={<ConsultationDashboard />} />} />
+              <Route path="testimonials" element={<ErrorBoundaryRoute element={<TestimonialDashboard />} />} />
+              <Route path="socials" element={<ErrorBoundaryRoute element={<SocialLinksDashboard />} />} />
+              <Route path="social-links" element={<ErrorBoundaryRoute element={<SocialLinksDashboard />} />} />
+            </Route>
           </Route>
         </Route>
 

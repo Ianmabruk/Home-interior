@@ -98,28 +98,6 @@ export const ShopPage = ({ category }) => {
         title="Shop Collection — HOK Interior Designs"
         description="Discover timeless furniture and decor pieces curated for luxury living."
       />
-      <section className="relative min-h-[50vh] md:min-h-[60vh] flex items-center justify-center">
-        <div className="absolute inset-0 bg-gradient-to-b from-[var(--primary)] via-[var(--primary)]/80 to-[var(--bg)]" />
-        <div className="relative z-10 container-wide px-6 md:px-12 lg:px-20 text-center">
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="font-display text-5xl md:text-7xl lg:text-8xl font-semibold text-white leading-tight"
-          >
-            Shop
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-6 text-lg md:text-xl text-white/70 max-w-3xl mx-auto"
-          >
-            Curated pieces to elevate your space with timeless elegance. Each item is selected for its quality, craftsmanship, and enduring design.
-          </motion.p>
-        </div>
-      </section>
-
       <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-12 md:py-16">
         <div className="container-wide">
           <div className="flex flex-wrap items-center gap-3 mb-12">
@@ -138,7 +116,7 @@ export const ShopPage = ({ category }) => {
             ))}
           </div>
 
-          {products.length === 0 ? (
+          {displayProducts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
               <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-full bg-[var(--secondary)]/30 text-[var(--primary)]/30">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
@@ -153,7 +131,7 @@ export const ShopPage = ({ category }) => {
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
-                {products.map((product, index) => (
+                {displayProducts.map((product, index) => (
                   <motion.article
                     key={product._id || product.id}
                     initial={{ opacity: 0, y: 20 }}

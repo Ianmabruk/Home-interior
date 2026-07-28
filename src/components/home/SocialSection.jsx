@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { api } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
+import { ArrowRight } from 'lucide-react'
 
 const PLATFORM_CONFIG = {
   tiktok: { label: 'TikTok', color: '#000000', icon: 'tiktok' },
