@@ -17,14 +17,16 @@ for (const dir of subDirs) {
 
 const PORT = process.env.PORT || 5000
 
+let server = null
+
 async function start() {
   try {
     if (process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
       try {
-        const result = await new Promise((resolve, reject) => {
-          cloudinary.api.ping((error, result) => {
+        await new Promise((resolve, reject) => {
+          cloudinary.api.ping((error) => {
             if (error) reject(error)
-            else resolve(result)
+            else resolve()
           })
         })
         console.log(`Cloudinary connected (cloud: ${process.env.CLOUDINARY_CLOUD_NAME})`)
@@ -37,7 +39,7 @@ async function start() {
     console.error('Startup check failed:', err)
   }
 
-  const server = app.listen(PORT, () => {
+  server = app.listen(PORT, () => {
     console.log(`Backend server running on port ${PORT} (${process.env.NODE_ENV || 'development'})`)
   })
 }
@@ -57,5 +59,3 @@ process.on('SIGTERM', async () => {
   await prisma.$disconnect()
   process.exit(0)
 })
-
-export default server
