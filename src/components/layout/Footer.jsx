@@ -1,37 +1,11 @@
 import { useState, useEffect, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '@services/api'
-import { SOCIAL_ICONS } from '@constants/socialLinks'
-import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
+import { SOCIAL_ICONS, SOCIAL_LINKS } from '@constants/socialLinks'
 
 export const Footer = memo(() => {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState('')
-  const [socialLinks, setSocialLinks] = useState({})
-
-  const loadSocials = async () => {
-    try {
-      const res = await api.get('/socials')
-      setSocialLinks(res.data || {})
-    } catch {
-      setSocialLinks({})
-    }
-  }
-
-  useEffect(() => {
-    loadSocials()
-  }, [])
-
-  useEffect(() => {
-    const handler = (event) => {
-      const payload = getAdminDataChangedPayload(event)
-      if (payload?.type === 'socials-changed') {
-        loadSocials()
-      }
-    }
-    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-    return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-  }, [loadSocials])
 
   const handleSubscribe = async (e) => {
     e.preventDefault()
@@ -46,17 +20,7 @@ export const Footer = memo(() => {
   }
 
   const getFooterSocials = () => {
-    return Object.entries(socialLinks)
-      .filter((entry) => entry[1] && entry[1].trim() !== '')
-      .map(([key, href]) => {
-        const label = key.charAt(0).toUpperCase() + key.slice(1)
-        return {
-          key,
-          href,
-          label,
-          ariaLabel: `Follow us on ${label}`,
-        }
-      })
+    return SOCIAL_LINKS.filter(link => link.href && link.href.trim() !== '')
   }
 
   return (

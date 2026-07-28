@@ -1,4 +1,5 @@
 import { SiFacebookF, SiInstagram, SiPinterestP, SiTiktok, SiWhatsapp } from 'react-icons/si'
+import { SOCIAL_LINKS } from '@constants/socialLinks'
 
 const iconMap = {
   instagram: SiInstagram,
@@ -17,12 +18,13 @@ const normalizeSocials = (socials = {}) =>
     .map((key) => ({ key, url: socials?.[key], label: capitalize(key) }))
     .filter((item) => Boolean(item.url))
 
-export const SocialIcons = ({ className = '', socials = {}, dark = false }) => {
+export const SocialIcons = ({ className = '', socials, dark = false }) => {
   const items = normalizeSocials(socials)
   const showDefaults = items.length === 0
 
   const displayItems = showDefaults
-    ? socialOrder.map((key) => ({ key, url: '#', label: capitalize(key), isDefault: true }))
+    ? SOCIAL_LINKS.filter(link => link.href && link.href.trim() !== '')
+        .map(link => ({ key: link.icon.toLowerCase(), url: link.href, label: link.label, isDefault: false }))
     : items.map((item) => ({ ...item, isDefault: false }))
 
   return (

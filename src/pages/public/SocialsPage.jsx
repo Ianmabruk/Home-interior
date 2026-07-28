@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { api } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
-import { SOCIAL_ICONS } from '@constants/socialLinks'
+import { SOCIAL_ICONS, SOCIAL_LINKS } from '@constants/socialLinks'
 
 const SkeletonSocials = () => (
   <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 md:px-12 lg:px-20 py-20 md:py-32">
@@ -36,44 +36,10 @@ const SkeletonSocials = () => (
 )
 
 export const SocialsPage = () => {
-  const [socialLinks, setSocialLinks] = useState({})
-  const [loading, setLoading] = useState(true)
-
-  const loadSocials = useCallback(async () => {
-    try {
-      const res = await api.get('/socials')
-      setSocialLinks(res.data || {})
-    } catch (err) {
-      console.warn('[SOCIALS] Failed to load:', err?.message)
-      setSocialLinks({})
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadSocials()
-  }, [loadSocials])
-
-  useEffect(() => {
-    const handler = (event) => {
-      const payload = getAdminDataChangedPayload(event)
-      if (payload?.type === 'socials-changed') loadSocials()
-    }
-    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-    return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-  }, [loadSocials])
-
-  const platforms = [
-    { key: 'tiktok', label: 'TikTok', color: '#000000', icon: 'TikTok' },
-    { key: 'instagram', label: 'Instagram', color: '#E4405F', icon: 'Instagram' },
-    { key: 'facebook', label: 'Facebook', color: '#1877F2', icon: 'Facebook' },
-    { key: 'pinterest', label: 'Pinterest', color: '#BD081C', icon: 'Pinterest' },
-  ]
-
-  if (loading) {
-    return <main><SkeletonSocials /></main>
-  }
+  const socialLinks = SOCIAL_LINKS.reduce((acc, link) => {
+    acc[link.icon.toLowerCase()] = link.href
+    return acc
+  }, {})
 
   return (
     <main>
@@ -116,12 +82,11 @@ export const SocialsPage = () => {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 lg:gap-12">
-            {platforms.map((platform, index) => {
-              const url = socialLinks[platform.key]
-              const hasLink = url && url.trim() !== ''
+            {SOCIAL_LINKS.map((platform, index) => {
+              const hasLink = platform.href && platform.href.trim() !== ''
               return (
                 <motion.div
-                  key={platform.key}
+                  key={platform.icon}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
@@ -142,7 +107,7 @@ export const SocialsPage = () => {
                   <div className="w-full max-w-xs">
                     {hasLink ? (
                       <a
-                        href={url}
+                        href={platform.href}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block w-full py-4 bg-[var(--primary)] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(42,36,31,0.2)] hover:bg-[var(--primary)]/90 hover:shadow-[0_8px_24px_rgba(42,36,31,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"

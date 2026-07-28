@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, memo } from 'react'
 import { api } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { ArrowRight } from 'lucide-react'
-import { SOCIAL_ICONS } from '@constants/socialLinks'
+import { SOCIAL_ICONS, SOCIAL_LINKS } from '@constants/socialLinks'
 
 const SkeletonSocials = memo(() => (
   <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 md:px-12 lg:px-20 py-20 md:py-32">
@@ -80,24 +80,24 @@ export const SocialSection = memo(() => {
   if (loading) return <SkeletonSocials />
   if (error) return <ErrorSocials onRetry={loadData} />
 
-  const platforms = [
-    { key: 'tiktok', label: 'TikTok', color: '#000000', icon: 'TikTok' },
-    { key: 'instagram', label: 'Instagram', color: '#E4405F', icon: 'Instagram' },
-    { key: 'facebook', label: 'Facebook', color: '#1877F2', icon: 'Facebook' },
-    { key: 'pinterest', label: 'Pinterest', color: '#BD081C', icon: 'Pinterest' },
-  ]
+  const platforms = SOCIAL_LINKS.map(link => ({
+    key: link.icon.toLowerCase(),
+    label: link.label,
+    color: link.color || 'currentColor',
+    icon: link.icon,
+    href: link.href,
+  }))
 
   return (
     <section id="socials" className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 py-20 md:py-32">
       <div className="container-wide md:px-12 lg:px-20">
         <div className="flex items-center justify-center gap-6 md:gap-8">
           {platforms.map((platform) => {
-            const url = socialLinks[platform.key]
-            const hasLink = url && url.trim() !== ''
+            const hasLink = platform.href && platform.href.trim() !== ''
             return (
               <a
                 key={platform.key}
-                href={hasLink ? url : '#'}
+                href={hasLink ? platform.href : '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={platform.label}

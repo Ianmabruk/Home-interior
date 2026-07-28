@@ -5,6 +5,7 @@ import { SiTiktok, SiInstagram, SiFacebook, SiPinterest } from 'react-icons/si'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
+import { SOCIAL_LINKS } from '../../constants/socialLinks'
 
 const SOCIAL_PLATFORMS = [
   { key: 'tiktok', label: 'TikTok', icon: SiTiktok, placeholder: 'https://tiktok.com/@yourhandle', color: '#000000' },
@@ -13,12 +14,10 @@ const SOCIAL_PLATFORMS = [
   { key: 'pinterest', label: 'Pinterest', icon: SiPinterest, placeholder: 'https://pinterest.com/yourprofile', color: '#BD081C' },
 ]
 
-const INITIAL_SOCIALS = {
-  tiktok: '',
-  instagram: '',
-  facebook: '',
-  pinterest: '',
-}
+const INITIAL_SOCIALS = SOCIAL_LINKS.reduce((acc, link) => {
+  acc[link.icon.toLowerCase()] = link.href
+  return acc
+}, {})
 
 export const SocialLinksDashboard = () => {
   const [socials, setSocials] = useState(INITIAL_SOCIALS)
