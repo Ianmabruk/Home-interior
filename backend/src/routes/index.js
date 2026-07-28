@@ -50,6 +50,7 @@ router.use('/testimonials', testRoutes)
 router.use('/messages', messageRoutes)
 router.use('/chat', chatRoutes)
 router.use('/socials', socialsRoutes)
+router.use('/content/socials', socialsRoutes)
 
 router.post('/test-upload', uploadSingle('media'), async (req, res) => {
   if (!req.file) {
