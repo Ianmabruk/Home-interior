@@ -101,11 +101,18 @@ const PrefetchOnIdle = () => {
       () => import('@pages/public/AboutPage'),
     ]
 
-    const timer = setTimeout(() => {
+    const idleCallback = window.requestIdleCallback || ((cb) => setTimeout(cb, 1000))
+    const id = idleCallback(() => {
       prefetchRoutes.forEach((p) => prefetch(p))
-    }, 1000)
+    })
 
-    return () => clearTimeout(timer)
+    return () => {
+      if (window.cancelIdleCallback) {
+        window.cancelIdleCallback(id)
+      } else {
+        clearTimeout(id)
+      }
+    }
   }, [prefetch])
 
   return null

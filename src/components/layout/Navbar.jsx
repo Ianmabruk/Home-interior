@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo } from 'react'
+import { useState, useEffect, useRef, memo, useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   ShoppingBag,
@@ -79,8 +79,12 @@ export const Navbar = memo(() => {
     setUserMenuOpen(false)
   }
 
-  const cartItems = Array.isArray(cart) ? cart : []
-  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+  const cartItems = useMemo(() => (Array.isArray(cart) ? cart : []), [cart])
+  const totalItems = useMemo(() => cartItems.reduce((sum, item) => sum + item.quantity, 0), [cartItems])
+  const cartSubtotal = useMemo(() => {
+    if (!cartItems.length) return 0
+    return cartItems.reduce((sum, item) => sum + Number(item.selectedVariant?.price || item.discountPrice || item.price || 0) * item.quantity, 0)
+  }, [cartItems])
 
   const menuVariants = {
     hidden: { opacity: 0 },
@@ -260,7 +264,7 @@ export const Navbar = memo(() => {
                             <div className="border-t border-[#E6D8C9]/40 p-4 space-y-3">
                               <div className="flex justify-between text-sm">
                                 <span className="text-[#2A241F]/55">Subtotal</span>
-                                <span className="font-medium text-[#2A241F]">${Array.isArray(cartItems) ? cartItems.reduce((sum, item) => sum + Number(item.selectedVariant?.price || item.discountPrice || item.price || 0) * item.quantity, 0).toFixed(2) : '0.00'}</span>
+                                <span className="font-medium text-[#2A241F]">${cartSubtotal.toFixed(2)}</span>
                               </div>
                               <div className="flex justify-between text-sm">
                                 <span className="text-[#2A241F]/55">Shipping</span>
@@ -273,7 +277,7 @@ export const Navbar = memo(() => {
                               <div className="border-t border-[#E6D8C9]/40 pt-3">
                                 <div className="flex justify-between text-lg font-semibold text-[#2A241F]">
                                   <span>Total</span>
-                                  <span>${Array.isArray(cartItems) ? cartItems.reduce((sum, item) => sum + Number(item.selectedVariant?.price || item.discountPrice || item.price || 0) * item.quantity, 0).toFixed(2) : '0.00'}</span>
+                                  <span>${cartSubtotal.toFixed(2)}</span>
                                 </div>
                               </div>
                               <Link

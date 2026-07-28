@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react'
+import { useState, useEffect, memo, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '@services/api'
 import { SOCIAL_ICONS } from '@constants/socialLinks'
@@ -45,7 +45,7 @@ export const Footer = memo(() => {
     }
   }
 
-  const getFooterSocials = () => {
+  const footerSocials = useMemo(() => {
     return Object.entries(socialLinks)
       .filter((entry) => entry[1] && entry[1].trim() !== '')
       .map(([key, href]) => {
@@ -57,7 +57,7 @@ export const Footer = memo(() => {
           ariaLabel: `Follow us on ${label}`,
         }
       })
-  }
+  }, [socialLinks])
 
   return (
     <footer className="relative bg-[var(--footer-bg)] text-[var(--footer-text)]" role="contentinfo">
@@ -76,7 +76,7 @@ export const Footer = memo(() => {
           <div className="text-center animate-fade-up" style={{ animationDelay: '0.1s' }}>
             <h3 className="font-display text-xl md:text-2xl font-normal text-white mb-6">Follow Us</h3>
             <div className="flex items-center justify-center gap-4 md:gap-6">
-              {getFooterSocials().map((social, index) => (
+              {footerSocials.map((social, index) => (
                 <a
                   key={social.label}
                   href={social.href}

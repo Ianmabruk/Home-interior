@@ -142,11 +142,21 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        // Split heavy vendors into their own long-term-cacheable chunks so the
-        // initial app chunk stays small and unchanged vendors are served from
-        // cache on repeat visits. This directly cuts main-thread parse/exec
-        // time on mobile.
-        // Keep the default chunking strategy to avoid vendor bundle issues
+        manualChunks: (id) => {
+          if (
+            id.includes('node_modules/react') ||
+            id.includes('node_modules/react-dom') ||
+            id.includes('node_modules/react-router-dom')
+          ) {
+            return 'vendor-react'
+          }
+          if (id.includes('node_modules/framer-motion')) {
+            return 'vendor-motion'
+          }
+          if (id.includes('node_modules/axios')) {
+            return 'vendor-axios'
+          }
+        },
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
