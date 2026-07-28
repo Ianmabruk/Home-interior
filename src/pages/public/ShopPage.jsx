@@ -98,8 +98,8 @@ export const ShopPage = ({ category }) => {
     await addToWishlist(product._id)
   }
 
-  const isInWishlist = (productId) => wishlist.some((item) => item._id === productId)
-  const isInCart = (productId) => cart.some((item) => item._id === productId)
+  const isInWishlist = (productId) => Array.isArray(wishlist) && wishlist.some((item) => item._id === productId)
+  const isInCart = (productId) => Array.isArray(cart) && cart.some((item) => item._id === productId)
 
   if (loading) {
     return <main><SkeletonShop /></main>

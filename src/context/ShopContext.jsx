@@ -11,7 +11,7 @@ export function ShopProvider({ children }) {
   const fetchCart = useCallback(async () => {
     try {
       const res = await api.get('/users/cart')
-      setCart(res.data || [])
+      setCart(Array.isArray(res.data) ? res.data : [])
     } catch {
       setCart([])
     }
@@ -20,7 +20,7 @@ export function ShopProvider({ children }) {
   const fetchWishlist = useCallback(async () => {
     try {
       const res = await api.get('/users/wishlist')
-      setWishlist(res.data || [])
+      setWishlist(Array.isArray(res.data) ? res.data : [])
     } catch {
       setWishlist([])
     }
@@ -33,19 +33,19 @@ export function ShopProvider({ children }) {
 
   const addToCart = useCallback(async (product, variant, quantity = 1) => {
     const res = await api.post('/users/cart', { productId: product._id, variantId: variant?._id, quantity })
-    setCart(res.data || [])
+    setCart(Array.isArray(res.data) ? res.data : [])
     return res.data
   }, [])
 
   const removeFromCart = useCallback(async (productId, variantId) => {
     const res = await api.delete(`/users/cart/${productId}`, { data: { variantId } })
-    setCart(res.data || [])
+    setCart(Array.isArray(res.data) ? res.data : [])
     return res.data
   }, [])
 
   const setCartQuantity = useCallback(async (productId, quantity, variantId) => {
     const res = await api.patch(`/users/cart/${productId}`, { quantity, variantId })
-    setCart(res.data || [])
+    setCart(Array.isArray(res.data) ? res.data : [])
     return res.data
   }, [])
 
@@ -56,19 +56,19 @@ export function ShopProvider({ children }) {
 
   const addToWishlist = useCallback(async (productId) => {
     const res = await api.post('/users/wishlist', { productId })
-    setWishlist(res.data || [])
+    setWishlist(Array.isArray(res.data) ? res.data : [])
     return res.data
   }, [])
 
   const removeFromWishlist = useCallback(async (productId) => {
     const res = await api.delete(`/users/wishlist/${productId}`)
-    setWishlist(res.data || [])
+    setWishlist(Array.isArray(res.data) ? res.data : [])
     return res.data
   }, [])
 
   const toggleWishlist = useCallback(async (product) => {
-    const isInWishlist = wishlist.some((item) => item._id === product._id)
-    if (isInWishlist) {
+    const inWishlist = Array.isArray(wishlist) && wishlist.some((item) => item._id === product._id)
+    if (inWishlist) {
       await removeFromWishlist(product._id)
     } else {
       await addToWishlist(product._id)
