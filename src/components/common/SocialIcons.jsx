@@ -1,11 +1,11 @@
-import { FaFacebookF, FaInstagram, FaPinterestP, FaTiktok, FaWhatsapp } from 'react-icons/fa6'
+import { SiFacebookF, SiInstagram, SiPinterestP, SiTiktok, SiWhatsapp } from 'react-icons/si'
 
 const iconMap = {
-  instagram: FaInstagram,
-  tiktok: FaTiktok,
-  pinterest: FaPinterestP,
-  facebook: FaFacebookF,
-  whatsapp: FaWhatsapp,
+  instagram: SiInstagram,
+  tiktok: SiTiktok,
+  pinterest: SiPinterestP,
+  facebook: SiFacebookF,
+  whatsapp: SiWhatsapp,
 }
 
 const socialOrder = ['instagram', 'tiktok', 'facebook', 'pinterest', 'whatsapp']

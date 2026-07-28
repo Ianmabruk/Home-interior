@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2, Check } from 'lucide-react'
-import { FaTiktok, FaInstagram, FaFacebookF, FaPinterestP } from 'react-icons/fa6'
+import { SiTiktok, SiInstagram, SiFacebook, SiPinterest } from 'react-icons/si'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 
 const SOCIAL_PLATFORMS = [
-  { key: 'tiktok', label: 'TikTok', icon: FaTiktok, placeholder: 'https://tiktok.com/@yourhandle', color: '#000000' },
-  { key: 'instagram', label: 'Instagram', icon: FaInstagram, placeholder: 'https://instagram.com/yourhandle', color: '#E4405F' },
-  { key: 'facebook', label: 'Facebook', icon: FaFacebookF, placeholder: 'https://facebook.com/yourpage', color: '#1877F2' },
-  { key: 'pinterest', label: 'Pinterest', icon: FaPinterestP, placeholder: 'https://pinterest.com/yourprofile', color: '#BD081C' },
+  { key: 'tiktok', label: 'TikTok', icon: SiTiktok, placeholder: 'https://tiktok.com/@yourhandle', color: '#000000' },
+  { key: 'instagram', label: 'Instagram', icon: SiInstagram, placeholder: 'https://instagram.com/yourhandle', color: '#E4405F' },
+  { key: 'facebook', label: 'Facebook', icon: SiFacebook, placeholder: 'https://facebook.com/yourpage', color: '#1877F2' },
+  { key: 'pinterest', label: 'Pinterest', icon: SiPinterest, placeholder: 'https://pinterest.com/yourprofile', color: '#BD081C' },
 ]
 
 const INITIAL_SOCIALS = {
@@ -128,8 +128,8 @@ export const SocialLinksDashboard = () => {
             return (
               <div key={platform.key} className="space-y-1">
                 <label className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">
-                  <div className="w-8 h-8 rounded-lg bg-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/60" style={{ color: platform.color }}>
-                    <Icon size={18} strokeWidth={1.5} />
+                  <div className="w-8 h-8 rounded-lg bg-[var(--secondary)]/30 flex items-center justify-center" style={{ color: platform.color }}>
+                    <Icon size={18} />
                   </div>
                   {platform.label}
                 </label>
@@ -205,9 +205,7 @@ export const SocialLinksDashboard = () => {
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
                   url ? 'bg-[var(--secondary)]/30 group-hover:bg-[var(--accent)]/10' : 'bg-[var(--secondary)]/10'
                 }`} style={{ color: platform.color }}>
-                  <Icon size={24} className={`transition-colors duration-300 ${
-                    url ? 'text-[var(--primary)] group-hover:text-[var(--accent)]' : 'text-[var(--primary)]/30'
-                  }`} strokeWidth={1.5} />
+                  <Icon size={24} className="transition-colors duration-300" />
                 </div>
                 <span className={`mt-2 text-sm font-medium ${url ? 'text-[var(--primary)]' : 'text-[var(--primary)]/30'}`}>
                   {platform.label}
