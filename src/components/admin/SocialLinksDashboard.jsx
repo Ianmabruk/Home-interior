@@ -1,21 +1,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  Instagram,
-  Facebook,
-  Loader2,
-  Check,
-} from 'lucide-react'
-import { FaTiktok, FaPinterest } from 'react-icons/fa'
+import { Loader2, Check } from 'lucide-react'
+import { FaTiktok, FaInstagram, FaFacebookF, FaPinterestP } from 'react-icons/fa6'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 
 const SOCIAL_PLATFORMS = [
   { key: 'tiktok', label: 'TikTok', icon: FaTiktok, placeholder: 'https://tiktok.com/@yourhandle', color: '#000000' },
-  { key: 'instagram', label: 'Instagram', icon: Instagram, placeholder: 'https://instagram.com/yourhandle', color: '#E4405F' },
-  { key: 'facebook', label: 'Facebook', icon: Facebook, placeholder: 'https://facebook.com/yourpage', color: '#1877F2' },
-  { key: 'pinterest', label: 'Pinterest', icon: FaPinterest, placeholder: 'https://pinterest.com/yourprofile', color: '#BD081C' },
+  { key: 'instagram', label: 'Instagram', icon: FaInstagram, placeholder: 'https://instagram.com/yourhandle', color: '#E4405F' },
+  { key: 'facebook', label: 'Facebook', icon: FaFacebookF, placeholder: 'https://facebook.com/yourpage', color: '#1877F2' },
+  { key: 'pinterest', label: 'Pinterest', icon: FaPinterestP, placeholder: 'https://pinterest.com/yourprofile', color: '#BD081C' },
 ]
 
 const INITIAL_SOCIALS = {
