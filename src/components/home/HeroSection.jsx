@@ -1,18 +1,15 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 
-const HeroSection = memo(({ heroImages = [] }) => {
+const HeroSection = memo(({ heroImages = [], className = '' }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [displayIndex, setDisplayIndex] = useState(0)
   const [opacityA, setOpacityA] = useState(1)
   const [opacityB, setOpacityB] = useState(0)
   const [nextImage, setNextImage] = useState(null)
   const [isLoaded, setIsLoaded] = useState(false)
-  const [kenBurnsKey, setKenBurnsKey] = useState(0)
   const firstImageLoadedRef = useRef(false)
   const transitionTimeoutRef = useRef(null)
-  const kenBurnsIntervalRef = useRef(null)
-  const kenBurnsStartedRef = useRef(false)
 
   const images = useMemo(() => {
     if (!heroImages || heroImages.length === 0) return []
@@ -81,32 +78,10 @@ const HeroSection = memo(({ heroImages = [] }) => {
     if (!isLoaded) setIsLoaded(true)
   }, [isLoaded])
 
-  const startKenBurns = useCallback(() => {
-    if (images.length <= 1) return
-    setKenBurnsKey(prev => prev + 1)
-  }, [images.length])
-
-  useEffect(() => {
-    if (!isLoaded || images.length <= 1 || kenBurnsStartedRef.current) return
-
-    kenBurnsStartedRef.current = true
-    startKenBurns()
-    if (kenBurnsIntervalRef.current) {
-      clearInterval(kenBurnsIntervalRef.current)
-    }
-    kenBurnsIntervalRef.current = setInterval(startKenBurns, 10000)
-
-    return () => {
-      if (kenBurnsIntervalRef.current) {
-        clearInterval(kenBurnsIntervalRef.current)
-      }
-    }
-  }, [isLoaded, images.length, startKenBurns])
-
   if (!images.length) {
     return (
       <section
-        className="relative w-full h-screen min-h-[700px] overflow-hidden bg-[var(--primary)]"
+        className={`relative w-full h-screen min-h-[700px] overflow-hidden bg-[var(--primary)] ${className}`}
         role="region"
         aria-label="Hero image"
         style={{ contain: 'layout paint' }}
@@ -118,15 +93,14 @@ const HeroSection = memo(({ heroImages = [] }) => {
 
   return (
     <section
-      className="relative w-full h-screen min-h-[700px] overflow-hidden"
+      className={`relative w-full h-screen min-h-[700px] overflow-hidden ${className}`}
       role="region"
       aria-label="Hero image"
       style={{ contain: 'layout paint' }}
     >
       <div
-        className="absolute inset-0 will-change-transform animate-ken-burns"
+        className="absolute inset-0 will-change-transform"
         style={{ animationDelay: '0s', animationDuration: '12s' }}
-        key={kenBurnsKey}
       >
         <img
           src={getOptimizedUrl(activeImage, { width: 1920, crop: 'limit' })}

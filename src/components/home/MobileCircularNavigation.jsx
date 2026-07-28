@@ -1,0 +1,193 @@
+import { useMemo, memo } from 'react'
+import { Link } from 'react-router-dom'
+import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
+
+const CIRCLE_SIZE = 300
+
+const NAV_ITEMS_MOBILE = [
+  {
+    key: 'portfolio',
+    label: 'Portfolio',
+    path: '/portfolio',
+    getImage: (data) => {
+      const item = data.portfolio?.[0]
+      if (!item) return null
+      return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
+    },
+  },
+  {
+    key: 'services',
+    label: 'Services',
+    path: '/services',
+    getImage: (data) => {
+      const item = data.services?.[0]
+      if (!item) return null
+      return item.imageUrl || item.mediaUrl || item.galleryImages?.[0] || null
+    },
+  },
+  {
+    key: 'virtualDesigns',
+    label: 'Virtual Designs',
+    path: '/virtual-design',
+    getImage: (data) => {
+      const item = data.virtualDesigns?.[0]
+      if (!item) return null
+      return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
+    },
+  },
+  {
+    key: 'shop',
+    label: 'Shop With Us',
+    path: '/shop',
+    getImage: (data) => {
+      const product = data.products?.[0]
+      if (!product) return null
+      return typeof product.images?.[0] === 'string'
+        ? product.images[0]
+        : product.images?.[0]?.url || null
+    },
+  },
+  {
+    key: 'about',
+    label: 'About Us',
+    path: '/about',
+    getImage: (data) => data.about?.imageUrl || null,
+  },
+  {
+    key: 'socials',
+    label: 'Socials',
+    path: '/socials',
+    getImage: (data) => data.about?.imageUrl || null,
+  },
+]
+
+const PlaceholderIcons = {
+  portfolio: (
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
+      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+    </svg>
+  ),
+  services: (
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3a6 6 0 0 0 9 4 9 9 0 1 1-9-9Z" />
+      <line x1="21" y1="9" x2="15.5" y2="14.5" />
+      <line x1="15" y1="15" x2="14" y2="16" />
+    </svg>
+  ),
+  virtualDesigns: (
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
+      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+    </svg>
+  ),
+  shop: (
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 6H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z" />
+      <path d="M3 12h18" />
+      <path d="M9 6v6" />
+      <path d="M15 6v6" />
+    </svg>
+  ),
+  about: (
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
+      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+    </svg>
+  ),
+  socials: (
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
+    </svg>
+  ),
+}
+
+const CircleItemMobile = memo(({ item, data }) => {
+  const imageUrl = useMemo(() => item.getImage(data), [item, data])
+  const placeholder = PlaceholderIcons[item.key]
+
+  return (
+    <section className={item.key === 'portfolio' ? 'bg-[var(--secondary)]/30 px-6 py-16' : item.key === 'services' ? 'bg-[var(--bg)] px-6 py-16' : item.key === 'virtualDesigns' ? 'bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 py-16' : item.key === 'shop' ? 'bg-[var(--bg)] px-6 py-16' : item.key === 'about' ? 'bg-[var(--bg)] px-6 py-16 pb-24' : 'bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 px-6 py-16'}>
+      <div className="container-wide">
+        <Link
+          to={item.path}
+          className="relative flex flex-col items-center group focus:outline-none w-full"
+          aria-label={`${item.label} — tap to explore`}
+        >
+          <div
+            className="relative rounded-full transition-transform duration-300 hover:scale-[1.02] active:scale-[0.98]"
+            style={{
+              width: CIRCLE_SIZE,
+              height: CIRCLE_SIZE,
+              boxShadow: '0 8px 25px rgba(42,36,31,0.1)',
+              border: '2px solid #E89A43',
+              background: '#F5EFE8',
+              overflow: 'hidden',
+            }}
+          >
+            {imageUrl ? (
+              <img
+                src={getOptimizedUrl(imageUrl, { width: 600, crop: 'limit' })}
+                alt={item.label}
+                className="h-full w-full object-cover"
+                loading={item.key === 'portfolio' ? 'eager' : 'lazy'}
+                decoding="async"
+                fetchPriority={item.key === 'portfolio' ? 'high' : undefined}
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-[var(--primary)]/20">
+                {placeholder}
+              </div>
+            )}
+          </div>
+
+          <div
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-full max-w-xs px-4"
+            style={{ zIndex: 10 }}
+          >
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                window.location.href = item.path
+              }}
+              className="block w-full py-3 px-6 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+              aria-label={`View ${item.label}`}
+            >
+              {item.label}
+            </button>
+          </div>
+        </Link>
+      </div>
+    </section>
+  )
+})
+
+CircleItemMobile.displayName = 'CircleItemMobile'
+
+export const MobileCircularNavigation = memo(({ portfolio = [], virtualDesigns = [], services = [], products = [], about = null }) => {
+  const data = useMemo(() => ({
+    portfolio,
+    virtualDesigns,
+    services,
+    products,
+    about,
+  }), [portfolio, virtualDesigns, services, products, about])
+
+  return (
+    <div className="md:hidden">
+      {NAV_ITEMS_MOBILE.map((item) => (
+        <CircleItemMobile key={item.key} item={item} data={data} />
+      ))}
+    </div>
+  )
+})
+
+MobileCircularNavigation.displayName = 'MobileCircularNavigation'
+
+export default MobileCircularNavigation
