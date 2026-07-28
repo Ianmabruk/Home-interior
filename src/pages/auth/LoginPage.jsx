@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
 import { useAuth } from '@context/AuthContext'
@@ -13,6 +13,7 @@ export const LoginPage = () => {
   const [success, setSuccess] = useState(null)
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -20,9 +21,12 @@ export const LoginPage = () => {
     setError(null)
     setSuccess(null)
     try {
-      await login(formData.email, formData.password)
+      const result = await login(formData.email, formData.password)
+      const isAdminUser = result?.user?.role === 'ADMIN'
+      const from = location.state?.from
+      const target = from || (isAdminUser ? '/admin' : '/account')
       setSuccess('Welcome back!')
-      setTimeout(() => navigate('/account'), 1000)
+      setTimeout(() => navigate(target, { replace: true }), 1000)
     } catch (err) {
       setError(err?.message || 'Invalid email or password')
     } finally {

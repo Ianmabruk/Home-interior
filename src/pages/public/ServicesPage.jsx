@@ -148,28 +148,6 @@ export const ServicesPage = () => {
         title="Services — HOK Interior Designs"
         description="Comprehensive interior design services from concept to completion."
       />
-      <section className="relative min-h-[50vh] md:min-h-[60vh] flex items-center justify-center">
-        <div className="absolute inset-0 bg-gradient-to-b from-[var(--primary)] via-[var(--primary)]/80 to-[var(--bg)]" />
-        <div className="relative z-10 container-wide px-6 md:px-12 lg:px-20 text-center">
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="font-display text-5xl md:text-7xl lg:text-8xl font-semibold text-white leading-tight"
-          >
-            Services
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-6 text-lg md:text-xl text-white/70 max-w-3xl mx-auto"
-          >
-            Comprehensive interior design services tailored to elevate your space with timeless elegance and meticulous attention to detail.
-          </motion.p>
-        </div>
-      </section>
-
       <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-20 md:py-32">
         <div className="container-wide">
           <div className="mb-16 md:mb-24 text-center">

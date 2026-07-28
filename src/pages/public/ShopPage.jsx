@@ -32,6 +32,8 @@ const SkeletonShop = () => (
   </section>
 )
 
+const ALLOWED_CATEGORIES = ['Wall Artwork', 'Mirrors', 'Throw Pillows']
+
 export const ShopPage = ({ category }) => {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -66,9 +68,14 @@ export const ShopPage = ({ category }) => {
   }, [loadProducts])
 
   const categories = useMemo(() => {
-    const cats = new Set(products.map((p) => p.category).filter(Boolean))
-    return ['all', ...cats]
+    const present = new Set(products.map((p) => p.category).filter(Boolean))
+    return ['all', ...ALLOWED_CATEGORIES.filter((c) => present.has(c))]
   }, [products])
+
+  const displayProducts = useMemo(() => {
+    if (filter === 'all') return products.filter((p) => ALLOWED_CATEGORIES.includes(p.category))
+    return products.filter((p) => p.category === filter)
+  }, [products, filter])
 
   const handleAddToCart = async (product) => {
     await addToCart(product, product.variants?.[0], 1)

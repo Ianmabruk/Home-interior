@@ -1,8 +1,9 @@
-import { Outlet, Navigate } from 'react-router-dom'
+import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@context/AuthContext'
 
 export const ProtectedRoute = ({ adminOnly = false }) => {
   const { isAuthenticated, isAdmin, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -13,7 +14,7 @@ export const ProtectedRoute = ({ adminOnly = false }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
   if (adminOnly && !isAdmin) {

@@ -138,8 +138,7 @@ export const Navbar = memo(() => {
                   className="relative p-2.5 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
                   aria-label="Shop With Us"
                 >
-                  <ShoppingBag size={20} md={22} strokeWidth={1.5} aria-hidden="true" />
-                  <span className="hidden sm:inline-block ml-2 text-[10px] md:text-[11px] font-medium uppercase tracking-[0.15em]">Shop With Us</span>
+                  <span className="hidden sm:inline-block text-[10px] md:text-[11px] font-medium uppercase tracking-[0.15em]">Shop With Us</span>
                 </Link>
 
                 <div className="relative" ref={cartRef}>

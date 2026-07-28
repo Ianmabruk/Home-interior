@@ -59,17 +59,17 @@ describe('ShopPage', () => {
     localStorage.clear()
   })
 
-  it('renders shop page without crashing', () => {
+  it('renders shop page without crashing', async () => {
     renderWithProviders(<ShopPage />)
-    expect(screen.getByText('Shop Collection')).toBeDefined()
+    await waitFor(() => {
+      expect(screen.getByText('No products found')).toBeDefined()
+    })
   })
 
   it('shows empty state when no products', async () => {
     renderWithProviders(<ShopPage />)
     await waitFor(() => {
-      expect(screen.getByText('Shop Collection')).toBeDefined()
+      expect(screen.getByText('Try selecting a different category to browse our collection.')).toBeDefined()
     })
-    // The component shows skeleton while loading, then empty state
-    expect(screen.queryByText('Shop Collection')).toBeDefined()
   })
 })
