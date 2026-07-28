@@ -45,7 +45,7 @@ export const VirtualDesignDashboard = () => {
 
   const load = useCallback(async () => {
     try {
-      const res = await api.get('/virtual-design')
+      const res = await api.get('/admin/virtual-designs')
       const data = Array.isArray(res.data) ? res.data : res.data?.items || []
       setItems(data)
     } catch {
@@ -174,9 +174,9 @@ export const VirtualDesignDashboard = () => {
       }
 
       if (editingId) {
-        await api.patch(`/virtual-design/${editingId}`, payload)
+        await api.patch(`/admin/virtual-designs/${editingId}`, payload)
       } else {
-        await api.post('/virtual-design', payload)
+        await api.post('/admin/virtual-designs', payload)
       }
       resetForm()
       load()
@@ -200,7 +200,7 @@ export const VirtualDesignDashboard = () => {
     setItems(prev => prev.filter(item => (item._id || item.id) !== id))
 
     try {
-      await api.delete(`/virtual-design/${id}`)
+      await api.delete(`/admin/virtual-designs/${id}`)
       setOptimisticDeletes(prev => {
         const next = new Set(prev)
         next.delete(id)

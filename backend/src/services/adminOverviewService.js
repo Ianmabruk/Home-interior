@@ -7,18 +7,24 @@ export const adminOverviewService = {
 }
 
 export async function getAdminOverview() {
-  const [portfolioCount, productCount, orderCount, consultationCount] = await Promise.all([
+  const [portfolioCount, productCount, orderCount, consultationCount, heroCount, virtualCount, serviceCount] = await Promise.all([
     prisma.portfolioProject.count(),
     prisma.product.count(),
     prisma.order.count(),
     prisma.consultation.count(),
+    prisma.heroMedia.count(),
+    prisma.virtualDesign.count(),
+    prisma.service.count(),
   ])
 
   return {
     portfolioCount,
     productCount,
-    ordersCount: orderCount,
+    orderCount,
     consultationCount,
+    heroCount,
+    virtualCount,
+    serviceCount,
   }
 }
 

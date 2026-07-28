@@ -33,7 +33,7 @@ export const PortfolioDashboard = () => {
 
   const load = useCallback(async () => {
     try {
-      const res = await api.get('/portfolio')
+      const res = await api.get('/admin/portfolio')
       const data = Array.isArray(res.data) ? res.data : res.data?.items || []
       setPortfolio(data)
     } catch {
@@ -154,13 +154,13 @@ export const PortfolioDashboard = () => {
       }
 
       if (editingId) {
-        await api.patch(`/portfolio/${editingId}`, payload)
+        await api.patch(`/admin/portfolio/${editingId}`, payload)
       } else {
-        await api.post('/portfolio', payload)
+        await api.post('/admin/portfolio', payload)
       }
       resetForm()
       load()
-      dispatchAdminDataChanged({ type: 'portfolio-changed' })
+      dispatchAdminDataChanged('portfolio-changed')
       toast.success(editingId ? 'Portfolio project updated successfully.' : 'Portfolio project uploaded successfully.')
     } catch (err) {
       console.error('Submit error:', err)
@@ -179,14 +179,10 @@ export const PortfolioDashboard = () => {
     setOptimisticUpdates(prev => new Set(prev).add(id))
 
     try {
-      await api.delete(`/portfolio/${id}`)
-      setOptimisticUpdates(prev => {
-        const next = new Set(prev)
-        next.delete(id)
-        return next
-      })
+      await api.delete(`/admin/portfolio/${id}`)
+      setDeleteId(null)
       load()
-      dispatchAdminDataChanged({ type: 'portfolio-changed' })
+      dispatchAdminDataChanged('portfolio-changed')
       toast.success('Portfolio project deleted successfully.')
     } catch (err) {
       console.error('Delete error:', err)

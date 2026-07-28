@@ -15,7 +15,7 @@ export const portfolioController = {
   }),
 
   create: asyncHandler(async (req, res) => {
-    const file = req.file
+    const file = req.files?.media?.[0] || null
     const galleryFiles = Array.isArray(req.files?.gallery) ? req.files.gallery : []
     if (!file && !req.body.imageUrl && galleryFiles.length === 0) {
       return res.status(400).json({ success: false, message: 'Image is required' })
@@ -34,7 +34,7 @@ export const portfolioController = {
   }),
 
   update: asyncHandler(async (req, res) => {
-    const file = req.file
+    const file = req.files?.media?.[0] || null
     const galleryFiles = Array.isArray(req.files?.gallery) ? req.files.gallery : []
     const data = {}
     if (req.body.title !== undefined) data.title = req.body.title

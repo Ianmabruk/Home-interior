@@ -31,7 +31,7 @@ export const AboutDashboard = () => {
 
   const loadAbout = useCallback(async () => {
     try {
-      const res = await api.get('/about')
+      const res = await api.get('/admin/about')
       if (res.data) {
         setForm({
           story: res.data?.story || '',
@@ -101,7 +101,7 @@ export const AboutDashboard = () => {
       payload.append('team', form.team || '[]')
       payload.append('process', form.process || '[]')
       if (aboutImageFile) payload.append('media', aboutImageFile)
-      await api.put('/about', payload)
+      await api.put('/admin/about', payload)
       await loadAbout()
       dispatchAdminDataChanged('about-changed')
       toast.success('About page saved successfully.')

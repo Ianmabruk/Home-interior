@@ -62,6 +62,19 @@ export const ProductDetailPage = () => {
     return imgs
   }, [product])
 
+  const currentImage = useMemo(() => {
+    const variantImg = selectedVariant?.image
+    if (variantImg) return variantImg
+    const img = images[currentImageIndex]
+    return typeof img === 'string' ? img : img?.url || ''
+  }, [selectedVariant, images, currentImageIndex])
+
+  const currentPrice = useMemo(() => {
+    if (!product) return 0
+    if (selectedVariant?.price) return selectedVariant.price
+    return product.discountPrice || product.price || 0
+  }, [product, selectedVariant])
+
   const handleAddToCart = async () => {
     if (!product) return
     setAddingToCart(true)
@@ -122,8 +135,8 @@ export const ProductDetailPage = () => {
   }
 
   const categoryLabels = {
-    mirror: 'Mirror',
-    artwork: 'Artwork',
+    mirror: 'Mirrors',
+    artwork: 'Wall Artwork',
     'throw-pillows': 'Throw Pillows',
   }
 
@@ -153,7 +166,7 @@ export const ProductDetailPage = () => {
               <div className="aspect-[4/3] rounded-3xl overflow-hidden bg-[var(--secondary)]/30">
                 {images.length > 0 ? (
                   <img
-                    src={getOptimizedUrl(images[currentImageIndex], { width: 1200, crop: 'limit' })}
+                    src={getOptimizedUrl(currentImage, { width: 1200, crop: 'limit' })}
                     alt={`${product.name} - Image ${currentImageIndex + 1}`}
                     className="h-full w-full object-cover"
                     loading="eager"
@@ -212,8 +225,8 @@ export const ProductDetailPage = () => {
                 </div>
 
                 <div className="border-t border-b border-[var(--border)]/40 py-6">
-                  <p className="text-3xl md:text-4xl font-semibold text-[var(--primary)]">{formatPrice(product.discountPrice || product.price || 0)}</p>
-                  {product.discountPrice && product.price && product.price > product.discountPrice && (
+                  <p className="text-3xl md:text-4xl font-semibold text-[var(--primary)]">{formatPrice(currentPrice)}</p>
+                  {currentPrice < (product.price || 0) && product.price && (
                     <p className="mt-1 text-lg text-[var(--primary)]/40 line-through">{formatPrice(product.price)}</p>
                   )}
                 </div>

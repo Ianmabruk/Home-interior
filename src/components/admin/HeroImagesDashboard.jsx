@@ -21,18 +21,18 @@ export const HeroImagesDashboard = () => {
   const [status, setStatus] = useState({ type: '', message: '' })
   const fileRef = useRef(null)
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await api.get('/hero-media')
-        const data = Array.isArray(res.data) ? res.data : res.data?.items || []
-        setHeroImages(data)
-      } catch {
-        setHeroImages([])
-      }
-    }
-    load()
-  }, [])
+   useEffect(() => {
+     const load = async () => {
+       try {
+         const res = await api.get('/admin/hero-media')
+         const data = Array.isArray(res.data) ? res.data : res.data?.items || []
+         setHeroImages(data)
+       } catch {
+         setHeroImages([])
+       }
+     }
+     load()
+   }, [])
 
   const handleFiles = (files) => {
     const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
@@ -84,10 +84,10 @@ export const HeroImagesDashboard = () => {
         }
       })
 
-      await api.post('/hero-media', payload)
+      await api.post('/admin/hero-media', payload)
       setStatus({ type: 'success', message: 'Hero images uploaded successfully' })
       resetForm()
-      const res = await api.get('/hero-media')
+      const res = await api.get('/admin/hero-media')
       const data = Array.isArray(res.data) ? res.data : res.data?.items || []
       setHeroImages(data)
       dispatchAdminDataChanged('hero-images-changed')
@@ -103,10 +103,10 @@ export const HeroImagesDashboard = () => {
   const deleteItem = async () => {
     if (!deleteId) return
     try {
-      const result = await api.delete(`/hero-media/${deleteId}`)
+      const result = await api.delete(`/admin/hero-media/${deleteId}`)
       setDeleteId(null)
       setStatus({ type: 'success', message: result.data?.data?.message || 'Hero image deleted' })
-      const res = await api.get('/hero-media')
+      const res = await api.get('/admin/hero-media')
       const data = Array.isArray(res.data) ? res.data : res.data?.items || []
       setHeroImages(data)
       dispatchAdminDataChanged('hero-images-changed')

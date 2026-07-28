@@ -39,11 +39,12 @@ export const productController = {
   }),
 
   create: asyncHandler(async (req, res) => {
-    const files = Array.isArray(req.files) ? req.files : []
+    const rawFiles = Array.isArray(req.files) ? req.files : []
+    const filesByName = Array.isArray(req.files)
+      ? {}
+      : { ...req.files }
 
-    console.log('[PRODUCT CREATE] body keys:', Object.keys(req.body || {}))
-    console.log('[PRODUCT CREATE] files count:', files.length)
-    files.forEach((f, i) => console.log(`[PRODUCT CREATE] file ${i}: fieldname=${f.fieldname}, mimetype=${f.mimetype}, size=${f.size}, bufferLen=${f.buffer?.length}`))
+    const files = rawFiles.length > 0 ? rawFiles : Object.values(filesByName).flat()
 
     const imageFiles = files.filter((f) => f.fieldname === 'images' || !f.fieldname)
 
@@ -77,7 +78,12 @@ export const productController = {
   }),
 
   update: asyncHandler(async (req, res) => {
-    const files = Array.isArray(req.files) ? req.files : []
+    const rawFiles = Array.isArray(req.files) ? req.files : []
+    const filesByName = Array.isArray(req.files)
+      ? {}
+      : { ...req.files }
+
+    const files = rawFiles.length > 0 ? rawFiles : Object.values(filesByName).flat()
     const imageFiles = files.filter((f) => f.fieldname === 'images' || !f.fieldname)
     const variantFiles = files
       .filter((f) => f.fieldname && /^variantImages(_|\[)(\d+)/.test(f.fieldname))

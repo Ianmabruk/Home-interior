@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { authenticate } from '../middleware/auth.js'
 import { adminOverviewController } from '../controllers/adminOverviewController.js'
-import { uploadSingle, uploadFields } from '../middleware/upload.js'
+import { uploadSingle, uploadFields, uploadProductImages } from '../middleware/upload.js'
 import { uploadFile } from '../uploads/uploadService.js'
 import { prisma } from '../config/database.js'
 import { portfolioController } from '../controllers/portfolioController.js'
@@ -12,6 +12,7 @@ import { aboutController } from '../controllers/aboutController.js'
 import { heroMediaController } from '../controllers/heroMediaController.js'
 import { testimonialController } from '../controllers/testimonialController.js'
 import { consultationController } from '../controllers/consultationController.js'
+import { orderController } from '../controllers/orderController.js'
 import { asyncHandler } from '../middleware/asyncHandler.js'
 
 const router = Router()
@@ -62,8 +63,8 @@ router.post('/services/reorder', authenticate, serviceController.reorder)
 // Admin Shop (Products)
 router.get('/shop', authenticate, productController.list)
 router.get('/shop/:id', authenticate, productController.get)
-router.post('/shop', authenticate, uploadFields([{ name: 'images', maxCount: 10 }]), productController.create)
-router.patch('/shop/:id', authenticate, uploadFields([{ name: 'images', maxCount: 10 }]), productController.update)
+router.post('/shop', authenticate, uploadProductImages(60), productController.create)
+router.patch('/shop/:id', authenticate, uploadProductImages(60), productController.update)
 router.delete('/shop/:id', authenticate, productController.delete)
 
 // Admin About
@@ -86,8 +87,12 @@ router.delete('/testimonials/:id', authenticate, testimonialController.delete)
 
 // Admin Consultations
 router.get('/consultations', authenticate, consultationController.list)
-router.get('/consultations/:id', authenticate, consultationController.get)
-router.patch('/consultations/:id', authenticate, consultationController.update)
+router.patch('/consultations/:id/status', authenticate, consultationController.updateStatus)
 router.delete('/consultations/:id', authenticate, consultationController.delete)
+router.get('/consultations/export', authenticate, consultationController.exportCsv)
+
+// Admin Orders
+router.get('/orders', authenticate, orderController.listAll)
+router.patch('/orders/:id/status', authenticate, orderController.updateStatus)
 
 export default router

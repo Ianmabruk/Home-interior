@@ -129,7 +129,7 @@ export const SocialLinksDashboard = () => {
         <div className="space-y-4">
           {SOCIAL_PLATFORMS.map((platform) => {
             const Icon = platform.icon
-            const isValid = validateUrl(socials[platform.key])
+            const urlValid = validateUrl(socials[platform.key])
             return (
               <div key={platform.key} className="space-y-1">
                 <label className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">
@@ -145,13 +145,13 @@ export const SocialLinksDashboard = () => {
                     onChange={(e) => handleChange(platform.key, e.target.value)}
                     placeholder={platform.placeholder}
                     className={`w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12 ${
-                      socials[platform.key] && !isValid
+                      socials[platform.key] && !urlValid
                         ? 'border-[var(--error)] focus:border-[var(--error)]'
                         : 'border-[var(--border)] focus:border-[var(--accent)]'
                     }`}
                   />
-                  {socials[platform.key] && !isValid && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--error)]">
+                  {socials[platform.key] && !urlValid && (
+                    <span className="absolute right-3 top-1/2 -translate-x-1/2 text-[var(--error)]">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="12" cy="12" r="10" />
                         <line x1="12" y1="8" x2="12" y2="12" />
@@ -159,8 +159,8 @@ export const SocialLinksDashboard = () => {
                       </svg>
                     </span>
                   )}
-                  {socials[platform.key] && isValid && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--success)]">
+                  {socials[platform.key] && urlValid && (
+                    <span className="absolute right-3 top-1/2 -translate-x-1/2 text-[var(--success)]">
                       <Check size={16} strokeWidth={2} />
                     </span>
                   )}

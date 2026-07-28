@@ -31,8 +31,9 @@ export const ACCOUNT_ROUTES = {
 
 export const ADMIN_ROUTES = {
   ADMIN: '/admin',
-  ADMIN_DASHBOARD: '/admin-dashboard',
   ADMIN_CHAT: '/admin/chat',
+  ADMIN_ORDERS: '/admin/orders',
+  ADMIN_SETTINGS: '/admin/settings',
 }
 
 export const ALL_ROUTES = {

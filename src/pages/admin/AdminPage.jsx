@@ -5,30 +5,26 @@ import {
   Image,
   ShoppingBag,
   Sparkles,
-  Home,
-  Users,
+  Video,
+  Package,
   MessageSquare,
   Settings,
   LogOut,
   ChevronDown,
-  ChevronUp,
-  Share2,
+  X,
 } from 'lucide-react'
 import { useAuth } from '@context/AuthContext'
 import { Sidebar } from '@components/admin/Sidebar'
 
 const ADMIN_NAV = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard, to: '/admin' },
+  { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
+  { id: 'hero-images', label: 'Hero Images', icon: Image, to: '/admin/hero-images' },
   { id: 'portfolio', label: 'Portfolio', icon: Image, to: '/admin/portfolio' },
-  { id: 'virtual-design', label: 'Virtual Design', icon: Home, to: '/admin/virtual-designs' },
+  { id: 'virtual-design', label: 'Virtual Designs', icon: Video, to: '/admin/virtual-designs' },
   { id: 'services', label: 'Services', icon: Sparkles, to: '/admin/services' },
   { id: 'shop', label: 'Shop', icon: ShoppingBag, to: '/admin/shop' },
-  { id: 'about', label: 'About', icon: Users, to: '/admin/about' },
-  { id: 'hero-images', label: 'Hero Images', icon: Image, to: '/admin/hero-images' },
+  { id: 'orders', label: 'Orders', icon: Package, to: '/admin/orders' },
   { id: 'consultations', label: 'Consultations', icon: MessageSquare, to: '/admin/consultations' },
-  { id: 'testimonials', label: 'Testimonials', icon: MessageSquare, to: '/admin/testimonials' },
-  { id: 'chat', label: 'Chat', icon: MessageSquare, to: '/admin/chat' },
-  { id: 'social-links', label: 'Social Links', icon: Share2, to: '/admin/socials' },
   { id: 'settings', label: 'Settings', icon: Settings, to: '/admin/settings' },
 ]
 
@@ -43,7 +39,7 @@ export const AdminPage = () => {
       <main className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <h1 className="font-display text-3xl font-semibold text-[var(--primary)] mb-3">Access Denied</h1>
-          <p className="text-[var(--primary)]/60 mb-6">You don't have permission to access the admin dashboard.</p>
+          <p className="text-[var(--primary)]/60 mb-6">You do not have permission to access the admin dashboard.</p>
           <Link to="/" className="btn-luxury-primary inline-flex items-center gap-2">
             Go Home
           </Link>
@@ -63,6 +59,7 @@ export const AdminPage = () => {
         open={sidebarOpen}
         collapsed={collapsed}
         onToggleCollapse={() => setCollapsed(!collapsed)}
+        onLogout={logout}
       />
       <div className="flex-1 flex flex-col lg:ml-0">
         <header className="fixed top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-xl border-b border-[#E6D8C9]/30 lg:ml-64">
@@ -71,8 +68,9 @@ export const AdminPage = () => {
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="lg:hidden p-2 rounded-lg text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30 hover:text-[var(--primary)]"
+                aria-label="Toggle menu"
               >
-                {sidebarOpen ? <ChevronUp size={24} strokeWidth={1.5} /> : <ChevronDown size={24} strokeWidth={1.5} />}
+                {sidebarOpen ? <X size={24} strokeWidth={1.5} /> : <ChevronDown size={24} strokeWidth={1.5} />}
               </button>
               <h1 className="font-display text-xl font-medium text-[var(--primary)] hidden lg:block">
                 {currentRoute.label}
@@ -85,6 +83,7 @@ export const AdminPage = () => {
               <button
                 onClick={logout}
                 className="p-2 rounded-lg text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30 hover:text-[var(--primary)]"
+                aria-label="Logout"
               >
                 <LogOut size={20} strokeWidth={1.5} />
               </button>

@@ -12,6 +12,8 @@ import {
   TrendingDown,
   UploadCloud,
   Newspaper,
+  Package,
+  Sparkles,
 } from 'lucide-react'
 import { api } from '../../services/api'
 
@@ -115,17 +117,17 @@ export const DashboardOverview = () => {
 
     const loadAll = async () => {
       try {
-        const [overviewRes, portfolioRes, ordersRes] = await Promise.all([
+        const [overviewRes, ordersRes, uploadsRes] = await Promise.all([
           api.get('/admin/overview').catch(() => ({ data: null })),
+          api.get('/orders', { params: { sort: '-createdAt', limit: 100 } }).catch(() => ({ data: [] })),
           api.get('/portfolio', { params: { sort: '-createdAt', limit: 6 } }).catch(() => ({ data: [] })),
-          api.get('/orders').catch(() => ({ data: [] })),
         ])
 
         if (cancelled) return
 
         setOverview(overviewRes.data?.data || null)
-        setRecentUploads(Array.isArray(portfolioRes.data) ? portfolioRes.data : portfolioRes.data?.items || [])
         setRecentOrders(Array.isArray(ordersRes.data) ? ordersRes.data : ordersRes.data?.items || [])
+        setRecentUploads(Array.isArray(uploadsRes.data) ? uploadsRes.data : uploadsRes.data?.items || [])
       } catch {
         if (!cancelled) {
           setOverview(null)
@@ -178,25 +180,60 @@ export const DashboardOverview = () => {
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Portfolio Items"
-          value={overview?.portfolioCount ?? 0}
+          title="Hero Images"
+          value={overview?.heroCount ?? 0}
           icon={Images}
           delay={0}
           color="gold"
+          onClick={() => navigate('/admin/hero-images')}
+        />
+        <StatCard
+          title="Portfolio Items"
+          value={overview?.portfolioCount ?? 0}
+          icon={Images}
+          delay={0.05}
+          color="gold"
+          onClick={() => navigate('/admin/portfolio')}
+        />
+        <StatCard
+          title="Virtual Designs"
+          value={overview?.virtualCount ?? 0}
+          icon={Sparkles}
+          delay={0.1}
+          color="forest"
+          onClick={() => navigate('/admin/virtual-designs')}
+        />
+        <StatCard
+          title="Services"
+          value={overview?.serviceCount ?? 0}
+          icon={FileText}
+          delay={0.15}
+          color="gold"
+          onClick={() => navigate('/admin/services')}
         />
         <StatCard
           title="Products"
           value={overview?.productCount ?? 0}
           icon={ShoppingBag}
-          delay={0.1}
+          delay={0.2}
           color="forest"
+          onClick={() => navigate('/admin/shop')}
+        />
+        <StatCard
+          title="Orders"
+          value={overview?.orderCount ?? 0}
+          icon={Package}
+          delay={0.25}
+          color="gold"
+          onClick={() => navigate('/admin/orders')}
         />
         <StatCard
           title="Consultations"
           value={overview?.consultationCount ?? 0}
-          icon={FileText}
-          delay={0.2}
-          color="gold"
+          icon={MessageSquare}
+          delay={0.3}
+          color="forest"
+          onClick={() => navigate('/admin/consultations')}
         />
       </div>
 
