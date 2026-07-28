@@ -105,7 +105,7 @@ export const SettingsDashboard = () => {
 
       const bannerFile = settings.shopBannerImage
       if (bannerFile && bannerFile instanceof File) {
-        payload.append('shopBannerImage', bannerFile)
+        payload.append('image', bannerFile)
       }
 
       await api.put('/admin/settings', payload, {

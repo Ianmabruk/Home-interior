@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useNavigate } from 'react-router-dom'
 import { Heart, ShoppingBag, ChevronLeft, ChevronRight, Minus, Plus, AlertTriangle, ArrowLeft, Loader2, CheckCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '@services/api'
@@ -22,6 +22,7 @@ export const ProductDetailPage = () => {
   const [addingToCart, setAddingToCart] = useState(false)
   const { addToCart, addToWishlist, wishlist, cart } = useShop()
   const { formatPrice } = useCurrency()
+  const navigate = useNavigate()
 
   const { style: zoomStyle, handleWheel, handleMouseDown, handleTouchStart, handleTouchEnd, reset } = useZoom()
 
@@ -80,6 +81,17 @@ export const ProductDetailPage = () => {
     setAddingToCart(true)
     try {
       await addToCart(product, selectedVariant, quantity)
+    } finally {
+      setAddingToCart(false)
+    }
+  }
+
+  const handleBuyNow = async () => {
+    if (!product) return
+    setAddingToCart(true)
+    try {
+      await addToCart(product, selectedVariant, quantity)
+      navigate('/checkout')
     } finally {
       setAddingToCart(false)
     }
@@ -281,6 +293,13 @@ export const ProductDetailPage = () => {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <button
+                    onClick={handleBuyNow}
+                    disabled={addingToCart}
+                    className="px-6 py-4 rounded-full bg-[var(--primary)] text-white text-xs font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--primary)]/90 hover:shadow-lg active:scale-95 disabled:opacity-50"
+                  >
+                    {addingToCart ? 'Adding...' : 'Buy Now'}
+                  </button>
                   <button
                     onClick={handleAddToCart}
                     disabled={addingToCart}

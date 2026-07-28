@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { api } from '@services/api'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
@@ -41,6 +41,7 @@ export const ShopPage = ({ category }) => {
   const [filter, setFilter] = useState(category || 'all')
   const { addToCart, addToWishlist, wishlist, cart } = useShop()
   const { formatPrice } = useCurrency()
+  const navigate = useNavigate()
 
   const loadProducts = useCallback(async () => {
     try {
@@ -86,6 +87,12 @@ export const ShopPage = ({ category }) => {
   const handleAddToCart = async (product) => {
     const variant = selectedVariants[product._id] || product.variants?.[0]
     await addToCart(product, variant, 1)
+  }
+
+  const handleBuyNow = async (product) => {
+    const variant = selectedVariants[product._id] || product.variants?.[0]
+    await addToCart(product, variant, 1)
+    navigate('/checkout')
   }
 
   const handleVariantChange = (productId, variant) => {
@@ -198,31 +205,37 @@ export const ShopPage = ({ category }) => {
                              })}
                            </div>
                          )}
-                         <p className="text-lg font-semibold text-[var(--primary)] mb-4">
-                          {formatPrice(product.discountPrice || product.price || 0)}
-                        </p>
-                        <div className="flex items-center justify-center gap-3">
-                          <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddToWishlist(product) }}
-                            className={`p-3 rounded-full transition-all duration-300 ${isInWishlist(product._id) ? 'bg-[var(--error)]/10 text-[var(--error)]' : 'bg-white border border-[var(--border)] text-[var(--primary)]/60 hover:bg-[var(--accent)] hover:border-[var(--accent)] hover:text-white hover:shadow-[0_4px_16px_rgba(232,154,67,0.3)]'} `}
-                            aria-label={isInWishlist(product._id) ? 'Remove from wishlist' : 'Add to wishlist'}
-                          >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill={isInWishlist(product._id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddToCart(product) }}
-                            className={`p-3 rounded-full transition-all duration-300 ${isInCart(product._id) ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--border)] text-[var(--primary)]/60 hover:bg-[var(--accent)] hover:border-[var(--accent)] hover:text-white hover:shadow-[0_4px_16px_rgba(232,154,67,0.3)]'} `}
-                            aria-label={isInCart(product._id) ? 'In cart' : 'Add to cart'}
-                          >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                              <line x1="3" y1="6" x2="21" y2="6" />
-                              <path d="M16 10a4 4 0 0 1-8 0" />
-                            </svg>
-                          </button>
-                        </div>
+                          <p className="text-lg font-semibold text-[var(--primary)] mb-4">
+                           {formatPrice(product.discountPrice || product.price || 0)}
+                         </p>
+                         <div className="flex items-center justify-center gap-3">
+                           <button
+                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddToWishlist(product) }}
+                             className={`p-3 rounded-full transition-all duration-300 ${isInWishlist(product._id) ? 'bg-[var(--error)]/10 text-[var(--error)]' : 'bg-white border border-[var(--border)] text-[var(--primary)]/60 hover:bg-[var(--accent)] hover:border-[var(--accent)] hover:text-white hover:shadow-[0_4px_16px_rgba(232,154,67,0.3)]'} `}
+                             aria-label={isInWishlist(product._id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                           >
+                             <svg width="20" height="20" viewBox="0 0 24 24" fill={isInWishlist(product._id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                             </svg>
+                           </button>
+                           <button
+                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleBuyNow(product) }}
+                             className="px-5 py-2.5 rounded-full bg-[var(--primary)] text-white text-xs font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--primary)]/90 hover:shadow-lg active:scale-95"
+                           >
+                             Buy Now
+                           </button>
+                           <button
+                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddToCart(product) }}
+                             className={`p-3 rounded-full transition-all duration-300 ${isInCart(product._id) ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--border)] text-[var(--primary)]/60 hover:bg-[var(--accent)] hover:border-[var(--accent)] hover:text-white hover:shadow-[0_4px_16px_rgba(232,154,67,0.3)]'} `}
+                             aria-label={isInCart(product._id) ? 'In cart' : 'Add to cart'}
+                           >
+                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                               <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                               <line x1="3" y1="6" x2="21" y2="6" />
+                               <path d="M16 10a4 4 0 0 1-8 0" />
+                             </svg>
+                           </button>
+                         </div>
                       </div>
                     </Link>
                   </motion.article>

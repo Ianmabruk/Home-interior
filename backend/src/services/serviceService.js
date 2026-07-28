@@ -84,6 +84,12 @@ async function updateServiceOrder(orderArray) {
 async function deleteService(id) {
   const existing = await prisma.service.findUnique({ where: { id } })
   if (!existing) throw failure(404, 'Service not found')
-  if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
+  if (existing.cloudinaryId) {
+    try {
+      await deleteFile(existing.cloudinaryId)
+    } catch (fileErr) {
+      console.error('[serviceService] Failed to delete file for service', id, fileErr)
+    }
+  }
   await prisma.service.delete({ where: { id } })
 }

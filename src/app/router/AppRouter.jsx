@@ -134,7 +134,7 @@ export const AppRouter = () => {
 
           <Route element={<ProtectedRoute />}>
             <Route path="/account" element={<ErrorBoundaryRoute element={<AccountPage />} />}>
-              <Route path="orders" element={<ErrorBoundaryRoute element={<AccountPage />} />} />
+              <Route path="orders" element={<ErrorBoundaryRoute element={<OrdersPage />} />} />
               <Route path="wishlist" element={<ErrorBoundaryRoute element={<AccountPage />} />} />
             </Route>
             <Route path="/wishlist" element={<ErrorBoundaryRoute element={<WishlistPage />} />} />
