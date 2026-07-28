@@ -6,6 +6,7 @@ import { uploadSingle } from '../middleware/upload.js'
 const router = Router()
 
 router.get('/', optionalAuth, aboutController.get)
+router.get('/team', optionalAuth, aboutController.get)
 router.post('/', authenticate, uploadSingle('media', ['image/jpeg', 'image/png', 'image/webp', 'image/gif']), aboutController.update)
 router.put('/', authenticate, uploadSingle('media', ['image/jpeg', 'image/png', 'image/webp', 'image/gif']), aboutController.update)
 

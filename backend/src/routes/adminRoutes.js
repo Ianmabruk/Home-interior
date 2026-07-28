@@ -58,8 +58,8 @@ router.delete('/virtual-designs/:id', authenticate, virtualDesignController.dele
 // Admin Services
 router.get('/services', authenticate, serviceController.list)
 router.get('/services/:id', authenticate, serviceController.get)
-router.post('/services', authenticate, uploadSingle('image'), serviceController.create)
-router.patch('/services/:id', authenticate, uploadSingle('image'), serviceController.update)
+router.post('/services', authenticate, uploadSingle('media'), serviceController.create)
+router.patch('/services/:id', authenticate, uploadSingle('media'), serviceController.update)
 router.delete('/services/:id', authenticate, serviceController.delete)
 router.post('/services/reorder', authenticate, serviceController.reorder)
 
@@ -72,7 +72,7 @@ router.delete('/shop/:id', authenticate, productController.delete)
 
 // Admin About
 router.get('/about', authenticate, aboutController.get)
-router.put('/about', authenticate, uploadSingle('image'), aboutController.update)
+router.put('/about', authenticate, uploadSingle('media'), aboutController.update)
 
 // Admin Hero Images
 router.get('/hero-images', authenticate, heroMediaController.list)

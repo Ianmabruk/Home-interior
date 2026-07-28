@@ -40,12 +40,24 @@ const NAV_ITEMS_MOBILE = [
     label: 'Shop With Us',
     path: '/shop',
     getImage: (data) => {
-      const product = data.products?.[0]
+      const list = Array.isArray(data.products) ? data.products : []
+      const product = list.find((p) => {
+        const images = Array.isArray(p.images) ? p.images : []
+        const hasImage = images.some((img) => {
+          if (typeof img === 'string') return img.trim() !== ''
+          return Boolean(img?.url)
+        })
+        return hasImage || Boolean(p.mainImage)
+      }) || list[0]
       if (!product) return null
-      const firstImage = typeof product.images?.[0] === 'string'
-        ? product.images[0]
-        : product.images?.[0]?.url || product.main_image || null
-      return firstImage
+      const images = Array.isArray(product.images) ? product.images : []
+      const firstImage = images.find((img) => {
+        if (typeof img === 'string') return img.trim() !== ''
+        return Boolean(img?.url)
+      })
+      if (typeof firstImage === 'string') return firstImage
+      if (firstImage?.url) return firstImage.url
+      return product.mainImage || product.main_image || null
     },
   },
   {

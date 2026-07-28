@@ -44,9 +44,8 @@ async function getHomepage() {
         take: 5,
       }),
       prisma.product.findMany({
-        where: { featured: true },
-        orderBy: { createdAt: 'desc' },
-        take: 8,
+        orderBy: { displayOrder: 'asc' },
+        take: 1,
         include: { variants: true },
       }),
       contactService.getContact(),
