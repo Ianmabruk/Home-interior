@@ -5,14 +5,12 @@ import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 
-const STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
+const STATUSES = ['Pending', 'Being Delivered', 'Delivered']
 
 const STATUS_COLORS = {
-  pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  processing: 'bg-blue-100 text-blue-700 border-blue-200',
-  shipped: 'bg-purple-100 text-purple-700 border-purple-200',
-  delivered: 'bg-green-100 text-green-700 border-green-200',
-  cancelled: 'bg-red-100 text-red-700 border-red-200',
+  Pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  'Being Delivered': 'bg-orange-100 text-orange-700 border-orange-200',
+  Delivered: 'bg-green-100 text-green-700 border-green-200',
 }
 
 export const OrderDashboard = () => {

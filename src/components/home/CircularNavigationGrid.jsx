@@ -46,9 +46,10 @@ const NAV_ITEMS = [
     getImage: (data) => {
       const product = data.products?.[0]
       if (!product) return null
-      return typeof product.images?.[0] === 'string'
+      const firstImage = typeof product.images?.[0] === 'string'
         ? product.images[0]
-        : product.images?.[0]?.url || null
+        : product.images?.[0]?.url || product.main_image || null
+      return firstImage
     },
   },
   {

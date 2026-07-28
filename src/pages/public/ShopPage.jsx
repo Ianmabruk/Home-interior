@@ -81,9 +81,18 @@ export const ShopPage = ({ category }) => {
     return products.filter((p) => p.category === filter)
   }, [products, filter])
 
+  const [selectedVariants, setSelectedVariants] = useState({})
+
   const handleAddToCart = async (product) => {
-    await addToCart(product, product.variants?.[0], 1)
+    const variant = selectedVariants[product._id] || product.variants?.[0]
+    await addToCart(product, variant, 1)
   }
+
+  const handleVariantChange = (productId, variant) => {
+    setSelectedVariants((prev) => ({ ...prev, [productId]: variant }))
+  }
+
+  const getVariantColor = (variant) => variant?.colorHex || variant?.color || '#cccccc'
 
   const handleAddToWishlist = async (product) => {
     await addToWishlist(product._id)
@@ -167,10 +176,29 @@ export const ShopPage = ({ category }) => {
                       </div>
                       <div className="text-center w-full max-w-xs">
                         <p className="text-2xs font-medium uppercase tracking-widest text-[var(--accent)] mb-1">{product.category}</p>
-                        <h3 className="font-display text-base md:text-lg font-medium text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors">
-                          {product.name}
-                        </h3>
-                        <p className="text-lg font-semibold text-[var(--primary)] mb-4">
+                         <h3 className="font-display text-base md:text-lg font-medium text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors">
+                           {product.name}
+                         </h3>
+                         {product.variants && product.variants.length > 1 && (
+                           <div className="flex items-center justify-center gap-2 mb-4">
+                             {product.variants.map((variant) => {
+                               const selected = selectedVariants[product._id]?._id === variant._id
+                               return (
+                                 <button
+                                   key={variant._id || variant.id}
+                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVariantChange(product._id, variant) }}
+                                   className={`h-6 w-6 rounded-full border-2 transition-all duration-200 ${
+                                     selected ? 'border-[var(--accent)] shadow-[0_0_0_2px_rgba(232,154,67,0.3)]' : 'border-transparent hover:border-[var(--border)]'
+                                   }`}
+                                   style={{ backgroundColor: getVariantColor(variant) }}
+                                   aria-label={`Select ${variant.color}`}
+                                   title={variant.color}
+                                 />
+                               )
+                             })}
+                           </div>
+                         )}
+                         <p className="text-lg font-semibold text-[var(--primary)] mb-4">
                           {formatPrice(product.discountPrice || product.price || 0)}
                         </p>
                         <div className="flex items-center justify-center gap-3">

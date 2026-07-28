@@ -11,6 +11,7 @@ import {
   X,
   Package,
   CreditCard,
+  ClipboardList,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@context/AuthContext'
@@ -140,6 +141,16 @@ export const Navbar = memo(() => {
                 >
                   <span className="hidden sm:inline-block text-[10px] md:text-[11px] font-medium uppercase tracking-[0.15em]">Shop With Us</span>
                 </Link>
+
+                {isAuthenticated && (
+                  <Link
+                    to="/account/orders"
+                    className="relative p-2.5 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
+                    aria-label="Orders"
+                  >
+                    <span className="hidden sm:inline-block text-[10px] md:text-[11px] font-medium uppercase tracking-[0.15em]">Orders</span>
+                  </Link>
+                )}
 
                 <div className="relative" ref={cartRef}>
                   <button
@@ -327,6 +338,15 @@ export const Navbar = memo(() => {
                       >
                         {isAuthenticated && user ? (
                           <>
+                            <Link
+                              to="/account/orders"
+                              onClick={() => setUserMenuOpen(false)}
+                              className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
+                              role="menuitem"
+                            >
+                              <ClipboardList size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
+                              Orders
+                            </Link>
                             <Link
                               to="/account"
                               onClick={() => setUserMenuOpen(false)}

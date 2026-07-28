@@ -81,7 +81,7 @@ export const CheckoutPage = () => {
       await api.post('/orders', orderData)
       await clearCart()
       setSuccess(true)
-      setTimeout(() => navigate(`/account/orders`), 2000)
+      setTimeout(() => navigate('/orders'), 2000)
     } catch (err) {
       setError(err?.message || 'Failed to place order')
     } finally {
@@ -148,10 +148,10 @@ export const CheckoutPage = () => {
             </div>
             <h1 className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-4">Order Confirmed!</h1>
             <p className="text-[var(--primary)]/60 mb-8 max-w-md mx-auto">Thank you for your order. You&apos;ll receive a confirmation email shortly.</p>
-            <Link to="/account/orders" className="btn-luxury-primary inline-flex items-center gap-2">
-              View Orders
-              <ChevronRight size={14} strokeWidth={1.5} />
-            </Link>
+             <Link to="/orders" className="btn-luxury-primary inline-flex items-center gap-2">
+               View Orders
+               <ChevronRight size={14} strokeWidth={1.5} />
+             </Link>
           </motion.div>
         ) : (
           <div className="grid gap-8 lg:grid-cols-3">
