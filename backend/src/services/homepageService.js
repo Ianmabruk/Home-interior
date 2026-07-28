@@ -1,4 +1,4 @@
-import { prisma } from '../config/database.js'
+import { prisma, withRetry } from '../config/database.js'
 import { contactService } from './contactService.js'
 
 export const homepageService = {
@@ -7,6 +7,51 @@ export const homepageService = {
 
 async function getHomepage() {
   try {
+    const data = await withRetry(() =>
+      Promise.all([
+        prisma.portfolioProject.findMany({
+          where: { published: true },
+          orderBy: { displayOrder: 'asc' },
+          take: 6,
+          select: { id: true, title: true, imageUrl: true, mediaUrls: true, featured: true },
+        }),
+        prisma.virtualDesign.findMany({
+          where: { published: true },
+          orderBy: { createdAt: 'desc' },
+          take: 6,
+          select: { id: true, title: true, imageUrl: true, mediaUrls: true, featured: true },
+        }),
+        prisma.service.findMany({
+          where: { isActive: true },
+          orderBy: { displayOrder: 'asc' },
+          take: 6,
+          select: { id: true, title: true, imageUrl: true },
+        }),
+        prisma.about.findFirst({
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, imageUrl: true },
+        }),
+        prisma.testimonial.findMany({
+          where: { isActive: true },
+          orderBy: { displayOrder: 'asc' },
+          take: 10,
+          select: { id: true, clientName: true, content: true, photoUrl: true },
+        }),
+        prisma.heroMedia.findMany({
+          where: { isActive: true },
+          orderBy: { displayOrder: 'asc' },
+          take: 5,
+          select: { id: true, title: true, subtitle: true, imageUrl: true, mediaUrls: true },
+        }),
+        prisma.product.findMany({
+          orderBy: { displayOrder: 'asc' },
+          take: 1,
+          select: { id: true, name: true, price: true, originalPrice: true, mainImage: true, images: true, discountPrice: true },
+        }),
+        contactService.getContact(),
+      ])
+    )
+
     const [
       portfolio,
       virtualDesigns,
@@ -16,40 +61,7 @@ async function getHomepage() {
       heroMedia,
       featuredProducts,
       contact,
-    ] = await Promise.all([
-      prisma.portfolioProject.findMany({
-        where: { published: true },
-        orderBy: { displayOrder: 'asc' },
-        take: 6,
-      }),
-      prisma.virtualDesign.findMany({
-        where: { published: true },
-        orderBy: { createdAt: 'desc' },
-        take: 6,
-      }),
-      prisma.service.findMany({
-        where: { isActive: true },
-        orderBy: { displayOrder: 'asc' },
-        take: 6,
-      }),
-      prisma.about.findFirst({ orderBy: { createdAt: 'desc' } }),
-      prisma.testimonial.findMany({
-        where: { isActive: true },
-        orderBy: { displayOrder: 'asc' },
-        take: 10,
-      }),
-      prisma.heroMedia.findMany({
-        where: { isActive: true },
-        orderBy: { displayOrder: 'asc' },
-        take: 5,
-      }),
-      prisma.product.findMany({
-        orderBy: { displayOrder: 'asc' },
-        take: 1,
-        include: { variants: true },
-      }),
-      contactService.getContact(),
-    ])
+    ] = data
 
     const featuredPortfolio = portfolio.filter((p) => p.featured).slice(0, 3)
 

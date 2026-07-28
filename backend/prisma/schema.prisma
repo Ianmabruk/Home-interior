@@ -86,6 +86,7 @@ model Product {
   @@map("products")
   @@index([featured, inStock, createdAt(desc)])
   @@index([category])
+  @@index([displayOrder(asc)])
 }
 
 model ProductVariant {
