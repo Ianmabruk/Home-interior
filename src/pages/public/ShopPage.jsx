@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { api } from '@services/api'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
+import { clearApiCache } from '@services/api'
 import { PageMeta } from '@hooks/usePageMeta'
 import { useShop } from '@context/ShopContext'
 import { useCurrency } from '@context/CurrencyContext'
@@ -61,7 +62,10 @@ export const ShopPage = ({ category }) => {
   useEffect(() => {
     const handler = (event) => {
       const payload = getAdminDataChangedPayload(event)
-      if (payload?.type === 'products-changed') loadProducts()
+      if (payload?.type === 'products-changed') {
+        clearApiCache('/products')
+        loadProducts()
+      }
     }
     window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)

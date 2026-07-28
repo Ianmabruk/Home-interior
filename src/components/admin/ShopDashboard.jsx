@@ -27,7 +27,7 @@ const INITIAL_FORM = {
   description: '',
   price: '',
   discountPrice: '',
-  category: 'mirror',
+  category: 'Mirrors',
   vendor: '',
   stock: 0,
   sku: '',
@@ -311,7 +311,7 @@ export const ShopDashboard = () => {
             >
               <option value="">All Categories</option>
               {SHOP_CATEGORIES.map((c) => (
-                <option key={c.slug} value={c.slug}>
+                <option key={c.slug} value={c.label}>
                   {c.label}
                 </option>
               ))}
@@ -424,7 +424,7 @@ export const ShopDashboard = () => {
                 className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12 cursor-pointer"
               >
                 {SHOP_CATEGORIES.map((c) => (
-                  <option key={c.slug} value={c.slug}>
+                  <option key={c.slug} value={c.label}>
                     {c.label}
                   </option>
                 ))}
