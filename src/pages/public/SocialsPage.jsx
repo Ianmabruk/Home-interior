@@ -36,10 +36,37 @@ const SkeletonSocials = () => (
 )
 
 export const SocialsPage = () => {
-  const socialLinks = SOCIAL_LINKS.reduce((acc, link) => {
-    acc[link.icon.toLowerCase()] = link.href
-    return acc
-  }, {})
+  const [socialLinks, setSocialLinks] = useState({})
+  const [loading, setLoading] = useState(true)
+
+  const loadSocials = useCallback(async () => {
+    try {
+      const res = await api.get('/socials')
+      setSocialLinks(res.data || {})
+    } catch (err) {
+      console.warn('[SOCIALS] Failed to load:', err?.message)
+      setSocialLinks({})
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadSocials()
+  }, [loadSocials])
+
+  useEffect(() => {
+    const handler = (event) => {
+      const payload = getAdminDataChangedPayload(event)
+      if (payload?.type === 'socials-changed') loadSocials()
+    }
+    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+    return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+  }, [loadSocials])
+
+  if (loading) {
+    return <main><SkeletonSocials /></main>
+  }
 
   return (
     <main>
@@ -83,7 +110,8 @@ export const SocialsPage = () => {
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 lg:gap-12">
             {SOCIAL_LINKS.map((platform, index) => {
-              const hasLink = platform.href && platform.href.trim() !== ''
+              const url = socialLinks[platform.icon.toLowerCase()] || platform.href
+              const hasLink = url && url.trim() !== ''
               return (
                 <motion.div
                   key={platform.icon}
@@ -107,7 +135,7 @@ export const SocialsPage = () => {
                   <div className="w-full max-w-xs">
                     {hasLink ? (
                       <a
-                        href={platform.href}
+                        href={url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block w-full py-4 bg-[var(--primary)] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(42,36,31,0.2)] hover:bg-[var(--primary)]/90 hover:shadow-[0_8px_24px_rgba(42,36,31,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"

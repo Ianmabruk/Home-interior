@@ -15,13 +15,13 @@ export const SOCIAL_LINKS = [
   },
   { 
     icon: 'Facebook', 
-    href: '', 
+    href: 'https://www.facebook.com/profile.php?id=61589240250994', 
     label: 'Facebook', 
     ariaLabel: 'Follow us on Facebook' 
   },
   { 
     icon: 'Pinterest', 
-    href: '', 
+    href: 'https://pin.it/47AUIIl9v', 
     label: 'Pinterest', 
     ariaLabel: 'Follow us on Pinterest' 
   },

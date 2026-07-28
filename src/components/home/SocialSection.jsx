@@ -93,11 +93,12 @@ export const SocialSection = memo(() => {
       <div className="container-wide md:px-12 lg:px-20">
         <div className="flex items-center justify-center gap-6 md:gap-8">
           {platforms.map((platform) => {
-            const hasLink = platform.href && platform.href.trim() !== ''
+            const url = socialLinks[platform.key] || platform.href
+            const hasLink = url && url.trim() !== ''
             return (
               <a
                 key={platform.key}
-                href={hasLink ? platform.href : '#'}
+                href={hasLink ? url : '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={platform.label}
