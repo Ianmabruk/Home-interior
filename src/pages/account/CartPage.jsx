@@ -37,7 +37,7 @@ export const CartPage = () => {
     }
   }
 
-  const subtotal = cart?.reduce((sum, item) => sum + Number(item.selectedVariant?.price || item.discountPrice || item.price || 0) * item.quantity, 0) || 0
+  const subtotal = Array.isArray(cart) ? cart.reduce((sum, item) => sum + Number(item.selectedVariant?.price || item.discountPrice || item.price || 0) * item.quantity, 0) : 0
 
   return (
     <main className="min-h-screen bg-[var(--bg)] py-12 md:py-20">

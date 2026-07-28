@@ -78,7 +78,7 @@ export const Navbar = memo(() => {
     setUserMenuOpen(false)
   }
 
-  const cartItems = cart || []
+  const cartItems = Array.isArray(cart) ? cart : []
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0)
 
   const menuVariants = {
@@ -269,7 +269,7 @@ export const Navbar = memo(() => {
                               <div className="border-t border-[#E6D8C9]/40 p-4 space-y-3">
                                 <div className="flex justify-between text-sm">
                                   <span className="text-[#2A241F]/55">Subtotal</span>
-                                  <span className="font-medium text-[#2A241F]">${cartItems.reduce((sum, item) => sum + Number(item.selectedVariant?.price || item.discountPrice || item.price || 0) * item.quantity, 0).toFixed(2)}</span>
+                                  <span className="font-medium text-[#2A241F]">${Array.isArray(cartItems) ? cartItems.reduce((sum, item) => sum + Number(item.selectedVariant?.price || item.discountPrice || item.price || 0) * item.quantity, 0).toFixed(2) : '0.00'}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                   <span className="text-[#2A241F]/55">Shipping</span>
@@ -282,7 +282,7 @@ export const Navbar = memo(() => {
                                 <div className="border-t border-[#E6D8C9]/40 pt-3">
                                   <div className="flex justify-between text-lg font-semibold text-[#2A241F]">
                                     <span>Total</span>
-                                    <span>${cartItems.reduce((sum, item) => sum + Number(item.selectedVariant?.price || item.discountPrice || item.price || 0) * item.quantity, 0).toFixed(2)}</span>
+                                    <span>${Array.isArray(cartItems) ? cartItems.reduce((sum, item) => sum + Number(item.selectedVariant?.price || item.discountPrice || item.price || 0) * item.quantity, 0).toFixed(2) : '0.00'}</span>
                                   </div>
                                 </div>
                                 <Link
