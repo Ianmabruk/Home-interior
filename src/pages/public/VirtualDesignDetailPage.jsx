@@ -267,7 +267,7 @@ export const VirtualDesignDetailPage = () => {
                       {design.relatedProjects.slice(0, 2).map((related, index) => (
                         <Link
                           key={related.id || index}
-                          to={`/virtual-design/project/${related.id}`}
+                           to={`/virtual-design/${related.id}`}
                           className="group relative aspect-[4/3] rounded-2xl overflow-hidden bg-[var(--secondary)]/30"
                         >
                           {related.imageUrl && (

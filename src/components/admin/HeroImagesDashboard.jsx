@@ -24,7 +24,7 @@ export const HeroImagesDashboard = () => {
    useEffect(() => {
      const load = async () => {
        try {
-         const res = await api.get('/admin/hero-media')
+         const res = await api.get('/admin/hero-images')
          const data = Array.isArray(res.data) ? res.data : res.data?.items || []
          setHeroImages(data)
        } catch {
@@ -84,10 +84,10 @@ export const HeroImagesDashboard = () => {
         }
       })
 
-      await api.post('/admin/hero-media', payload)
+      await api.post('/admin/hero-images', payload)
       setStatus({ type: 'success', message: 'Hero images uploaded successfully' })
       resetForm()
-      const res = await api.get('/admin/hero-media')
+      const res = await api.get('/admin/hero-images')
       const data = Array.isArray(res.data) ? res.data : res.data?.items || []
       setHeroImages(data)
       dispatchAdminDataChanged('hero-images-changed')
@@ -103,10 +103,10 @@ export const HeroImagesDashboard = () => {
   const deleteItem = async () => {
     if (!deleteId) return
     try {
-      const result = await api.delete(`/admin/hero-media/${deleteId}`)
+      const result = await api.delete(`/admin/hero-images/${deleteId}`)
       setDeleteId(null)
       setStatus({ type: 'success', message: result.data?.data?.message || 'Hero image deleted' })
-      const res = await api.get('/admin/hero-media')
+      const res = await api.get('/admin/hero-images')
       const data = Array.isArray(res.data) ? res.data : res.data?.items || []
       setHeroImages(data)
       dispatchAdminDataChanged('hero-images-changed')

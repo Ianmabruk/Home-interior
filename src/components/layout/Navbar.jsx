@@ -491,19 +491,33 @@ export const Navbar = memo(() => {
                     })}
                   </div>
 
-                  <div className="mt-10 space-y-4">
-                    {isAuthenticated && user ? (
-                      <motion.button
-                        variants={itemVariants}
-                        onClick={() => { handleLogout(); setMobileOpen(false) }}
-                        className="flex items-center gap-5 rounded-2xl px-5 py-4.5 text-[#C62828] hover:bg-[#C62828]/5 transition-all duration-300 w-full"
-                      >
-                        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E6D8C9]/40 text-[#C62828]">
-                          <LogOut size={20} strokeWidth={1.5} aria-hidden="true" />
-                        </span>
-                        <span className="font-display text-lg md:text-xl font-normal tracking-wide">Logout</span>
-                      </motion.button>
-                    ) : (
+                   <div className="mt-10 space-y-4">
+                     {isAuthenticated && user ? (
+                       <>
+                         <motion.div variants={itemVariants}>
+                           <Link
+                             to="/account/orders"
+                             onClick={() => setMobileOpen(false)}
+                             className="flex items-center gap-5 rounded-2xl px-5 py-4.5 text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-all duration-300"
+                           >
+                             <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E6D8C9]/40 text-[#2A241F]/70">
+                               <Package size={20} strokeWidth={1.5} aria-hidden="true" />
+                             </span>
+                             <span className="font-display text-lg md:text-xl font-normal tracking-wide">Orders</span>
+                           </Link>
+                         </motion.div>
+                         <motion.button
+                           variants={itemVariants}
+                           onClick={() => { handleLogout(); setMobileOpen(false) }}
+                           className="flex items-center gap-5 rounded-2xl px-5 py-4.5 text-[#C62828] hover:bg-[#C62828]/5 transition-all duration-300 w-full"
+                         >
+                           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E6D8C9]/40 text-[#C62828]">
+                             <LogOut size={20} strokeWidth={1.5} aria-hidden="true" />
+                           </span>
+                           <span className="font-display text-lg md:text-xl font-normal tracking-wide">Logout</span>
+                         </motion.button>
+                       </>
+                     ) : (
                       <motion.div variants={itemVariants} className="space-y-3">
                         <Link
                           to="/login"

@@ -60,6 +60,7 @@ export const HomePage = () => {
     const handler = (event) => {
       const payload = getAdminDataChangedPayload(event)
       if (payload?.type === 'portfolio-changed' || payload?.type === 'services-changed' || payload?.type === 'virtual-changed' || payload?.type === 'hero-images-changed' || payload?.type === 'products-changed' || payload?.type === 'about-changed') {
+        import('@services/api').then(({ clearApiCache }) => clearApiCache('/homepage'))
         loadData()
       }
     }

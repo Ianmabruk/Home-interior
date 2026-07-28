@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { User, Heart, Package, CreditCard, Settings, LogOut, Loader2, ChevronRight, ShoppingBag } from 'lucide-react'
 import { api } from '../../services/api'
@@ -12,9 +12,17 @@ export const AccountPage = () => {
   const { user, logout, loading: authLoading } = useAuth()
   const { cart, wishlist, fetchCart, fetchWishlist } = useShop()
   const { formatPrice } = useCurrency()
+  const location = useLocation()
   const [activeTab, setActiveTab] = useState('overview')
   const [orders, setOrders] = useState([])
   const [loadingOrders, setLoadingOrders] = useState(true)
+
+  useEffect(() => {
+    const tab = location.pathname.replace('/account/', '') || 'overview'
+    if (['overview', 'orders', 'wishlist', 'settings'].includes(tab)) {
+      setActiveTab(tab)
+    }
+  }, [location.pathname])
 
   const loadOrders = useCallback(async () => {
     try {
@@ -88,7 +96,6 @@ export const AccountPage = () => {
                   <Link
                     key={item.id}
                     to={`/account/${item.id}`}
-                    onClick={() => setActiveTab(item.id)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                       activeTab === item.id
                         ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
@@ -126,7 +133,6 @@ export const AccountPage = () => {
                 <div className="grid gap-6 md:grid-cols-3">
                   <Link
                     to="/account/orders"
-                    onClick={() => setActiveTab('orders')}
                     className="p-6 rounded-2xl border border-[var(--border)]/40 hover:border-[var(--accent)]/40 hover:shadow-[0_10px_30px_rgba(42,36,31,0.08)] transition-all duration-300"
                   >
                     <div className="flex items-center gap-4 mb-3">
@@ -142,7 +148,6 @@ export const AccountPage = () => {
                   </Link>
                   <Link
                     to="/wishlist"
-                    onClick={() => setActiveTab('wishlist')}
                     className="p-6 rounded-2xl border border-[var(--border)]/40 hover:border-[var(--accent)]/40 hover:shadow-[0_10px_30px_rgba(42,36,31,0.08)] transition-all duration-300"
                   >
                     <div className="flex items-center gap-4 mb-3">

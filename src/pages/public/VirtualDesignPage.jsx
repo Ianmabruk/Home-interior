@@ -71,29 +71,8 @@ export const VirtualDesignPage = () => {
         title="Virtual Design — HOK Interior Designs"
         description="Experience your dream space with immersive 3D virtual design services."
       />
-      <section className="relative min-h-[50vh] md:min-h-[60vh] flex items-center justify-center">
-        <div className="absolute inset-0 bg-gradient-to-b from-[var(--primary)] via-[var(--primary)]/80 to-[var(--bg)]" />
-        <div className="relative z-10 container-wide px-6 md:px-12 lg:px-20 text-center">
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="font-display text-5xl md:text-7xl lg:text-8xl font-semibold text-white leading-tight"
-          >
-            Virtual Designs
-          </motion.h1>
-        </div>
-      </section>
-
-      <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 md:px-12 lg:px-20 py-20 md:py-32">
+      <section className="px-6 md:px-12 lg:px-20 py-20 md:py-32">
         <div className="container-wide">
-          <div className="mb-16 md:mb-24 text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Virtual Designs</p>
-            <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
-              Virtual Interior Designs
-            </h2>
-          </div>
-
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {designs.map((item, index) => (
               <motion.div
@@ -103,7 +82,7 @@ export const VirtualDesignPage = () => {
                 transition={{ duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
                 className="group"
               >
-                <Link to={`/virtual-design/project/${item.id}`} className="block">
+                <Link to={`/virtual-design/${item.id}`} className="block">
                   <div className="relative w-full mb-4">
                     <div className="relative rounded-3xl overflow-hidden bg-[var(--secondary)]/30">
                       <img
