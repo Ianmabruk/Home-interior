@@ -7,7 +7,6 @@ import { api } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 import { ConsultationModal } from '@components/common/ConsultationModal'
-import { Footer } from '@components/layout/Footer'
 
 const SkeletonHero = memo(() => (
   <section className="relative w-full h-screen min-h-[700px] overflow-hidden bg-[var(--primary)]" role="region" aria-label="Hero image">
@@ -77,7 +76,6 @@ export const HomePage = () => {
         <SectionErrorBoundary sectionName="CircularNavigation" fallback={<EmptySection />}>
           <CircularNavigationGrid />
         </SectionErrorBoundary>
-        <Footer />
         <ConsultationModal isOpen={showModal} onClose={() => setShowModal(false)} />
       </main>
     )
@@ -120,9 +118,6 @@ export const HomePage = () => {
           />
         </SectionErrorBoundary>
       </div>
-
-      {/* FOOTER - Immediately after circular navigation */}
-      <Footer />
 
       <ConsultationModal isOpen={showModal} onClose={() => setShowModal(false)} />
     </main>

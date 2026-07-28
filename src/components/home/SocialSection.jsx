@@ -2,47 +2,7 @@ import { useState, useEffect, useCallback, memo } from 'react'
 import { api } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { ArrowRight } from 'lucide-react'
-
-const PLATFORM_CONFIG = {
-  tiktok: { label: 'TikTok', color: '#000000', icon: 'tiktok' },
-  instagram: { label: 'Instagram', color: '#E4405F', icon: 'instagram' },
-  facebook: { label: 'Facebook', color: '#1877F2', icon: 'facebook' },
-  pinterest: { label: 'Pinterest', color: '#BD081C', icon: 'pinterest' },
-}
-
-const SocialIcons = ({ platform, size = 28 }) => {
-  const icons = {
-    tiktok: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M15 8.5c0-2.5-2-4.5-4.5-4.5C8 4 6 6 6 8.5c0 2.7 3.5 6 6 8.1 2.6-2.2 6-5.4 6-8.1z" />
-        <path d="M12 16h.01" />
-      </svg>
-    ),
-    instagram: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-        <circle cx="9" cy="9" r="2" />
-        <path d="M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-      </svg>
-    ),
-    facebook: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-      </svg>
-    ),
-    pinterest: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="17" x2="12" y2="12" />
-        <line x1="12" y1="7" x2="12" y2="3" />
-        <line x1="4.5" y1="9.5" x2="4.5" y2="5.5" />
-        <line x1="19.5" y1="9.5" x2="19.5" y2="5.5" />
-        <path d="M6 20c0-3.3 2.7-6 6-6s6 2.7 6 6-2.7 6-6 6" />
-        <circle cx="12" cy="14" r="4" />
-      </svg>
-    ),
-  }
-  return icons[platform] || icons.instagram
-}
+import { SOCIAL_ICONS } from '@constants/socialLinks'
 
 const SkeletonSocials = memo(() => (
   <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 md:px-12 lg:px-20 py-20 md:py-32">
@@ -65,7 +25,7 @@ const SkeletonSocials = memo(() => (
       </div>
     </div>
   </section>
-))
+  ))
 
 SkeletonSocials.displayName = 'SkeletonSocials'
 
@@ -121,10 +81,10 @@ export const SocialSection = memo(() => {
   if (error) return <ErrorSocials onRetry={loadData} />
 
   const platforms = [
-    { key: 'tiktok', ...PLATFORM_CONFIG.tiktok },
-    { key: 'instagram', ...PLATFORM_CONFIG.instagram },
-    { key: 'facebook', ...PLATFORM_CONFIG.facebook },
-    { key: 'pinterest', ...PLATFORM_CONFIG.pinterest },
+    { key: 'tiktok', label: 'TikTok', color: '#000000', icon: 'TikTok' },
+    { key: 'instagram', label: 'Instagram', color: '#E4405F', icon: 'Instagram' },
+    { key: 'facebook', label: 'Facebook', color: '#1877F2', icon: 'Facebook' },
+    { key: 'pinterest', label: 'Pinterest', color: '#BD081C', icon: 'Pinterest' },
   ]
 
   return (
@@ -144,7 +104,7 @@ export const SocialSection = memo(() => {
                 className="group relative flex h-14 w-14 md:h-16 md:w-16 items-center justify-center rounded-full border border-[var(--border)] transition-all duration-500 hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] hover:scale-110 active:scale-95"
                 style={{ color: platform.color }}
               >
-                <SocialIcons platform={platform.icon} size={28} />
+                {SOCIAL_ICONS[platform.icon]}
                 {!hasLink && (
                   <span className="absolute inset-0 rounded-full border border-transparent transition-all duration-300 group-hover:border-[var(--accent)] group-hover:scale-110" aria-hidden="true" />
                 )}

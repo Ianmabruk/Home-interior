@@ -1,22 +1,7 @@
 import { useState, useEffect, memo } from 'react'
 import { Link } from 'react-router-dom'
-import { Instagram, Facebook } from 'lucide-react'
-import { FaTiktok, FaPinterest } from 'react-icons/fa'
 import { api } from '@services/api'
-
-const SOCIAL_ICONS = {
-  TikTok: <FaTiktok size={22} md={24} strokeWidth={1.5} aria-hidden="true" />,
-  Instagram: <Instagram size={22} md={24} strokeWidth={1.5} aria-hidden="true" />,
-  Facebook: <Facebook size={22} md={24} strokeWidth={1.5} aria-hidden="true" />,
-  Pinterest: <FaPinterest size={22} md={24} strokeWidth={1.5} aria-hidden="true" />,
-}
-
-const PLATFORM_CONFIG = {
-  tiktok: { label: 'TikTok', ariaLabel: 'Follow us on TikTok' },
-  instagram: { label: 'Instagram', ariaLabel: 'Follow us on Instagram' },
-  facebook: { label: 'Facebook', ariaLabel: 'Follow us on Facebook' },
-  pinterest: { label: 'Pinterest', ariaLabel: 'Follow us on Pinterest' },
-}
+import { SOCIAL_ICONS } from '@constants/socialLinks'
 
 export const Footer = memo(() => {
   const [email, setEmail] = useState('')
@@ -50,12 +35,15 @@ export const Footer = memo(() => {
   const getFooterSocials = () => {
     return Object.entries(socialLinks)
       .filter((entry) => entry[1] && entry[1].trim() !== '')
-      .map(([key, href]) => ({
-        key,
-        href,
-        label: PLATFORM_CONFIG[key]?.label || key,
-        ariaLabel: PLATFORM_CONFIG[key]?.ariaLabel || `Follow us on ${key}`,
-      }))
+      .map(([key, href]) => {
+        const label = key.charAt(0).toUpperCase() + key.slice(1)
+        return {
+          key,
+          href,
+          label,
+          ariaLabel: `Follow us on ${label}`,
+        }
+      })
   }
 
   return (
