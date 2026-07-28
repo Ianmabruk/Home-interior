@@ -1,6 +1,5 @@
 import { Router } from 'express'
 import { authenticate } from '../middleware/auth.js'
-import { adminOverviewController } from '../controllers/adminOverviewController.js'
 import { uploadSingle, uploadFields, uploadProductImages } from '../middleware/upload.js'
 import { uploadFile } from '../uploads/uploadService.js'
 import { prisma } from '../config/database.js'
@@ -14,6 +13,7 @@ import { testimonialController } from '../controllers/testimonialController.js'
 import { consultationController } from '../controllers/consultationController.js'
 import { orderController } from '../controllers/orderController.js'
 import { asyncHandler } from '../middleware/asyncHandler.js'
+import adminSocialRoutes from './adminSocialRoutes.js'
 
 const router = Router()
 
@@ -37,6 +37,9 @@ router.post('/settings/shop-banner', authenticate, uploadSingle('image'), async 
     res.status(500).json({ success: false, message: err?.message || 'Upload failed' })
   }
 })
+
+// Admin Socials
+router.use('/socials', adminSocialRoutes)
 
 // Admin Portfolio
 router.get('/portfolio', authenticate, portfolioController.list)

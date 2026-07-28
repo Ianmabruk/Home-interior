@@ -2,23 +2,36 @@ import { useState, useEffect, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '@services/api'
 import { SOCIAL_ICONS } from '@constants/socialLinks'
+import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 
 export const Footer = memo(() => {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState('')
   const [socialLinks, setSocialLinks] = useState({})
 
-  useEffect(() => {
-    const loadSocials = async () => {
-      try {
-        const res = await api.get('/socials')
-        setSocialLinks(res.data || {})
-      } catch {
-        setSocialLinks({})
-      }
+  const loadSocials = async () => {
+    try {
+      const res = await api.get('/socials')
+      setSocialLinks(res.data || {})
+    } catch {
+      setSocialLinks({})
     }
+  }
+
+  useEffect(() => {
     loadSocials()
   }, [])
+
+  useEffect(() => {
+    const handler = (event) => {
+      const payload = getAdminDataChangedPayload(event)
+      if (payload?.type === 'socials-changed') {
+        loadSocials()
+      }
+    }
+    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+    return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+  }, [loadSocials])
 
   const handleSubscribe = async (e) => {
     e.preventDefault()

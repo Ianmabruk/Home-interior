@@ -17,7 +17,6 @@ import { portfolioRoutes as adminPortfolioRoutes, virtualDesignRoutes as adminVD
 import contentRoutes, { portfolioRoutes as contentPortfolioRoutes, virtualDesignRoutes as contentVDRoutes } from './contentRoutes.js'
 import messageRoutes from './messageRoutes.js'
 import socialsRoutes from './socialsRoutes.js'
-import adminSocialRoutes from './adminSocialRoutes.js'
 import { uploadSingle } from '../middleware/upload.js'
 import { uploadFile } from '../uploads/uploadService.js'
 import { authenticate } from '../middleware/auth.js'
