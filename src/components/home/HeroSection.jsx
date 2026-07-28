@@ -93,28 +93,23 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
 
   return (
     <section
-      className={`relative w-full h-[85vh] min-h-[500px] overflow-hidden bg-[var(--primary)] ${className}`}
+      className={`relative w-full h-screen min-h-[500px] overflow-hidden bg-[var(--primary)] ${className}`}
       role="region"
       aria-label="Hero image"
       style={{ contain: 'layout paint' }}
     >
-      <div
-        className="absolute inset-0 will-change-transform"
-        style={{ animationDelay: '0s', animationDuration: '12s' }}
-      >
+      <div className="absolute inset-0 will-change-transform">
         <img
           src={getOptimizedUrl(activeImage, { width: 1920, crop: 'limit' })}
           srcSet={buildSrcSet(activeImage) || undefined}
           sizes={buildSrcSet(activeImage) ? '100vw' : undefined}
           fetchPriority="high"
           alt={activeAlt}
-          className="absolute inset-0 h-full w-full object-contain transition-opacity duration-[1200ms] ease-out"
+          className="h-full w-full object-cover transition-opacity duration-[1200ms] ease-out"
           style={{ opacity: opacityA }}
           loading="eager"
           decoding="async"
           onLoad={handleImageLoad}
-          width={1920}
-          height={1080}
         />
         {nextImage && (
           <img
@@ -122,12 +117,10 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
             srcSet={buildSrcSet(nextImage.url) || undefined}
             sizes={buildSrcSet(nextImage.url) ? '100vw' : undefined}
             alt={nextImage.alt}
-            className="absolute inset-0 h-full w-full object-contain transition-opacity duration-[1200ms] ease-out"
+            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-out"
             style={{ opacity: opacityB }}
             loading="lazy"
             decoding="async"
-            width={1920}
-            height={1080}
           />
         )}
       </div>
