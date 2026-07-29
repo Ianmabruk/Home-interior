@@ -54,6 +54,7 @@ const VirtualDesignDetailPage = lazyWithCache(() => import('@pages/public/Virtua
 const AboutPage = lazyWithCache(() => import('@pages/public/AboutPage'), 'about')
 const ContactPage = lazyWithCache(() => import('@pages/public/ContactPage'), 'contact')
 const SocialsPage = lazyWithCache(() => import('@pages/public/SocialsPage'), 'socials')
+const BlogPage = lazyWithCache(() => import('@pages/public/BlogPage'), 'blog')
 const ChatPage = lazyWithCache(() => import('@pages/public/ChatPage').then(m => ({ default: m.ChatPage })), 'chat')
 const NotFoundPage = lazyWithCache(() => import('@pages/public/NotFoundPage').then(m => ({ default: m.NotFoundPage })), 'not-found')
 
