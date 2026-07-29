@@ -102,8 +102,8 @@ export const ProductDetailPage = () => {
     await addToWishlist(product._id)
   }
 
-  const isInWishlist = product?. _id && wishlist.some((item) => item._id === product._id)
-  const isInCart = product?. _id && cart.some((item) => item._id === product._id && (!selectedVariant || item.selectedVariant?._id === selectedVariant._id))
+  const isInWishlist = product?._id && wishlist.some((item) => item._id === product._id)
+  const isInCart = product?._id && cart.some((item) => item._id === product._id && (!selectedVariant || item.selectedVariant?._id === selectedVariant._id))
 
   if (loading) {
     return (

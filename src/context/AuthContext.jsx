@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { api } from '../services/api'
 
 const AuthContext = createContext(null)
@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('hok_access_token')
     return !!token
   })
+  const cancelledRef = useRef(false)
 
   const fetchUser = useCallback(async () => {
     const token = localStorage.getItem('hok_access_token')
@@ -16,23 +17,23 @@ export function AuthProvider({ children }) {
       setLoading(false)
       return
     }
-    let cancelled = false
+    cancelledRef.current = false
     try {
       const res = await api.get('/auth/me')
-      if (!cancelled) setUser(res.data || null)
+      if (!cancelledRef.current) setUser(res.data || null)
     } catch (err) {
       const status = err?.response?.status
       if (status === 401) {
         localStorage.removeItem('hok_access_token')
       }
     } finally {
-      if (!cancelled) setLoading(false)
+      if (!cancelledRef.current) setLoading(false)
     }
-    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
     fetchUser()
+    return () => { cancelledRef.current = true }
   }, [fetchUser])
 
   const login = useCallback(async (email, password) => {

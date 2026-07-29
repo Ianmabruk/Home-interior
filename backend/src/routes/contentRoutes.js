@@ -27,15 +27,15 @@ router.get('/consultations', optionalAuth, cacheHeaders(60, 30), consultationCon
 export const portfolioRoutes = Router()
 portfolioRoutes.get('/', cacheHeaders(60, 30), portfolioController.list)
 portfolioRoutes.get('/:id', cacheHeaders(120, 60), portfolioController.get)
-portfolioRoutes.post('/', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), portfolioController.create)
-portfolioRoutes.patch('/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), portfolioController.update)
-portfolioRoutes.delete('/:id', portfolioController.delete)
+portfolioRoutes.post('/', authenticate, uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), portfolioController.create)
+portfolioRoutes.patch('/:id', authenticate, uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), portfolioController.update)
+portfolioRoutes.delete('/:id', authenticate, portfolioController.delete)
 
 export const virtualDesignRoutes = Router()
 virtualDesignRoutes.get('/', cacheHeaders(60, 30), virtualDesignController.list)
 virtualDesignRoutes.get('/:id', cacheHeaders(120, 60), virtualDesignController.get)
-virtualDesignRoutes.post('/', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), virtualDesignController.create)
-virtualDesignRoutes.patch('/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), virtualDesignController.update)
-virtualDesignRoutes.delete('/:id', virtualDesignController.delete)
+virtualDesignRoutes.post('/', authenticate, uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), virtualDesignController.create)
+virtualDesignRoutes.patch('/:id', authenticate, uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), virtualDesignController.update)
+virtualDesignRoutes.delete('/:id', authenticate, virtualDesignController.delete)
 
 export default router

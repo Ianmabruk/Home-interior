@@ -45,14 +45,7 @@ const NAV_ITEMS = [
     path: '/shop',
     getImage: (data) => {
       const list = Array.isArray(data.products) ? data.products : []
-      const product = list.find((p) => {
-        const images = Array.isArray(p.images) ? p.images : []
-        const hasImage = images.some((img) => {
-          if (typeof img === 'string') return img.trim() !== ''
-          return Boolean(img?.url)
-        })
-        return hasImage || Boolean(p.mainImage)
-      }) || list[0]
+      const product = list[0] || null
       if (!product) return null
       const images = Array.isArray(product.images) ? product.images : []
       const firstImage = images.find((img) => {
@@ -65,23 +58,10 @@ const NAV_ITEMS = [
     },
   },
   {
-    key: 'shop',
-    label: 'Shop With Us',
-    path: '/shop',
-    getImage: (data) => {
-      const list = Array.isArray(data.products) ? data.products : []
-      const featured = list.find((p) => p.featured)
-      const product = featured || list[0] || null
-      if (!product) return null
-      const images = Array.isArray(product.images) ? product.images : []
-      const firstImage = images.find((img) => {
-        if (typeof img === 'string') return img.trim() !== ''
-        return Boolean(img?.url)
-      })
-      if (typeof firstImage === 'string') return firstImage
-      if (firstImage?.url) return firstImage.url
-      return product.mainImage || product.main_image || null
-    },
+    key: 'about',
+    label: 'About Us',
+    path: '/about',
+    getImage: (data) => data.about?.imageUrl || null,
   },
   {
     key: 'blog',

@@ -96,7 +96,7 @@ export const PortfolioPage = () => {
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
               {portfolio.map((item, index) => (
                 <motion.article
-                  key={item.id}
+                  key={item._id || item.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}

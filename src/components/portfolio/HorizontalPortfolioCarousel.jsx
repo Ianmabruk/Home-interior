@@ -3,17 +3,6 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
-const getProjectImage = (item) => {
-  if (!item) return null
-  return (
-    item.imageUrl ||
-    item.mediaUrl ||
-    item.mediaUrls?.[0] ||
-    item.galleryImages?.[0] ||
-    null
-  )
-}
-
 const ASPECT_RATIO = 'aspect-[4/3]'
 
 export const HorizontalPortfolioCarousel = memo(({ portfolio = [] }) => {
@@ -27,8 +16,10 @@ export const HorizontalPortfolioCarousel = memo(({ portfolio = [] }) => {
 
   const portfolioItems = useMemo(() => {
     if (!Array.isArray(portfolio)) return []
-    return portfolio
-      .filter(item => item && item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0])
+    return portfolio.filter(
+      (item) => item && (item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0])
+    )
+  }, [portfolio])
 
   const updateScrollButtons = useCallback(() => {
     const el = scrollRef.current
@@ -166,7 +157,7 @@ export const HorizontalPortfolioCarousel = memo(({ portfolio = [] }) => {
             >
               {portfolioItems.map((item, index) => (
                 <article
-                  key={item.id}
+                  key={item._id || item.id}
                   role="option"
                   aria-selected={index === activeIndex}
                   tabIndex={0}
@@ -207,7 +198,7 @@ export const HorizontalPortfolioCarousel = memo(({ portfolio = [] }) => {
                       {item.title}
                     </h3>
                     <Link
-                      to={`/portfolio/${item.slug}`}
+                      to={`/portfolio/${item._id || item.id}`}
                       className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] transition-colors duration-300 hover:text-[var(--accent)]/80"
                     >
                       View Project

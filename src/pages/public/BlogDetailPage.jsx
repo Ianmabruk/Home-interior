@@ -35,10 +35,8 @@ export const BlogDetailPage = () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get('/blog')
-      const blogs = Array.isArray(res.data) ? res.data : []
-      const found = blogs.find((b) => b.id === id || b._id === id) || blogs[0] || null
-      setBlog(found)
+      const res = await api.get(`/blog/${id}`)
+      setBlog(res.data || null)
     } catch (err) {
       setError(err?.message || 'Failed to load blog')
       setBlog(null)

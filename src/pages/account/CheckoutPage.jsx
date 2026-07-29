@@ -204,6 +204,12 @@ export const CheckoutPage = () => {
                       <label htmlFor="country" className="block text-sm font-medium text-[var(--primary)] mb-1">Country</label>
                       <select id="country" name="country" value={formData.country} onChange={handleChange} required className="input-luxury">
                         <option value="Kenya">Kenya</option>
+                        <option value="Uganda">Uganda</option>
+                        <option value="Tanzania">Tanzania</option>
+                        <option value="Rwanda">Rwanda</option>
+                        <option value="United States">United States</option>
+                        <option value="United Kingdom">United Kingdom</option>
+                        <option value="United Arab Emirates">United Arab Emirates</option>
                       </select>
                     </div>
                   </div>

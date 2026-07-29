@@ -152,11 +152,11 @@ export const FeaturedProjects = () => {
         >
           {projects.map((item) => (
             <motion.article
-              key={item.id}
+              key={item._id || item.id}
               variants={itemVariants}
               className="group relative bg-white border border-[var(--border)]/40 rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] transition-all duration-700 hover:-translate-y-2 hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)]"
             >
-              <Link to={`/portfolio/${item.id}`} className="block" aria-label={`View ${item.title} project`}>
+              <Link to={`/portfolio/${item._id || item.id}`} className="block" aria-label={`View ${item.title} project`}>
                 <div className="relative aspect-[3/4] overflow-hidden">
                   <img
                     src={getOptimizedUrl(item.imageUrl, { width: 800, crop: 'limit' })}
@@ -172,7 +172,7 @@ export const FeaturedProjects = () => {
               <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
                 <div className="flex items-center justify-between gap-4">
                   <Link
-                    to={`/portfolio/${item.id}`}
+                    to={`/portfolio/${item._id || item.id}`}
                     className="btn-luxury-primary group flex items-center gap-2 text-[10px] px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0"
                     onClick={(e) => e.stopPropagation()}
                   >

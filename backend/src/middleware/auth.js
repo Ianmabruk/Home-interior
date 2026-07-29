@@ -36,7 +36,7 @@ export async function authenticate(req, res, next) {
     if (err?.name === 'TokenExpiredError' || err?.name === 'JsonWebTokenError') {
       return res.status(401).json({ success: false, message: 'Token expired or invalid' })
     }
-    return res.status(503).json({ success: false, message: 'Service temporarily unavailable' })
+    return res.status(500).json({ success: false, message: err?.message || 'Authentication failed' })
   }
 }
 

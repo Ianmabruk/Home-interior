@@ -150,7 +150,7 @@ export const BlogDashboard = () => {
     try {
       const id = item._id || item.id
       await api.patch(`/admin/blog/${id}`, { published: !item.published })
-      setBlogs(blogs.map((b) => (b._id === id || b.id === id ? { ...b, published: !item.published } : b)))
+      setBlogs((prev) => prev.map((b) => ((b._id === id || b.id === id) ? { ...b, published: !item.published } : b)))
       dispatchAdminDataChanged('blog-changed')
     } catch (err) {
       console.error('Toggle published error:', err)
@@ -375,7 +375,7 @@ export const BlogDashboard = () => {
         {blogs.map((item, i) => (
           <motion.article
             layout
-            key={item.id}
+            key={item._id || item.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}

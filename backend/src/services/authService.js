@@ -119,7 +119,7 @@ async function requestPasswordReset(email) {
     },
   })
 
-  return { message: 'If the email exists, a reset link has been sent', token }
+  return { message: 'If the email exists, a reset link has been sent' }
 }
 
 async function verifyResetToken(token) {

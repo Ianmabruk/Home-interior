@@ -55,7 +55,7 @@ router.use('/content/socials', socialsRoutes)
 router.use('/content/blog', blogRoutes)
 router.use('/blog', blogRoutes)
 
-router.post('/test-upload', uploadSingle('media'), async (req, res) => {
+router.post('/test-upload', authenticate, uploadSingle('media'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ success: false, message: 'No file uploaded' })
   }
