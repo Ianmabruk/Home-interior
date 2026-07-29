@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { HeroSection } from '@components/home/HeroSection'
+import { BrandingBanner } from '@components/home/BrandingBanner'
 import { CircularNavigationGrid } from '@components/home/CircularNavigationGrid'
 import { MobileCircularNavigation } from '@components/home/MobileCircularNavigation'
 import { SectionErrorBoundary } from '@components/home/SectionErrorBoundary'
@@ -75,6 +76,7 @@ export const HomePage = () => {
         <SectionErrorBoundary sectionName="Hero" fallback={<SkeletonHero />}>
           <HeroSection heroImages={[]} />
         </SectionErrorBoundary>
+        <BrandingBanner />
         <SectionErrorBoundary sectionName="CircularNavigation" fallback={<EmptySection />}>
           <CircularNavigationGrid />
         </SectionErrorBoundary>
@@ -94,6 +96,8 @@ export const HomePage = () => {
       <SectionErrorBoundary sectionName="Hero" fallback={<SkeletonHero />}>
         <HeroSection heroImages={heroImages} className="w-full" />
       </SectionErrorBoundary>
+
+      <BrandingBanner />
 
       {/* DESKTOP: CIRCULAR NAVIGATION GRID (3x2) */}
       <div className="hidden md:block">
