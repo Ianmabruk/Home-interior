@@ -61,6 +61,7 @@ vi.mock('lucide-react', () => ({
   MonitorSmartphone: () => <span data-testid="monitor-smartphone">Monitor</span>,
   Image: () => <span data-testid="image">Image</span>,
   Home: () => <span data-testid="home">Home</span>,
+  Book: () => <span data-testid="book">Book</span>,
   Share2: () => <span data-testid="share2">Share</span>,
 }))
 

@@ -29,6 +29,7 @@ export const HomePage = () => {
   const [loading, setLoading] = useState(true)
   const [heroImages, setHeroImages] = useState([])
   const [about, setAbout] = useState(null)
+  const [blog, setBlog] = useState([])
 
   const loadData = useCallback(async () => {
     let cancelled = false
@@ -42,6 +43,7 @@ export const HomePage = () => {
         setHeroImages(data.heroImages || data.heroMedia || [])
         setProducts(data.products || [])
         setAbout(data.about || null)
+        setBlog(data.blog || [])
       }
     } catch (err) {
       if (!cancelled) console.warn('[HOME] Failed to load data:', err?.message)
@@ -58,7 +60,7 @@ export const HomePage = () => {
   useEffect(() => {
     const handler = (event) => {
       const payload = getAdminDataChangedPayload(event)
-      if (payload?.type === 'portfolio-changed' || payload?.type === 'services-changed' || payload?.type === 'virtual-changed' || payload?.type === 'hero-images-changed' || payload?.type === 'products-changed' || payload?.type === 'about-changed') {
+      if (payload?.type === 'portfolio-changed' || payload?.type === 'services-changed' || payload?.type === 'virtual-changed' || payload?.type === 'hero-images-changed' || payload?.type === 'products-changed' || payload?.type === 'about-changed' || payload?.type === 'blog-changed') {
         import('@services/api').then(({ clearApiCache }) => clearApiCache('/homepage'))
         loadData()
       }
@@ -102,6 +104,7 @@ export const HomePage = () => {
             services={services}
             products={products}
             about={about}
+            blog={blog}
           />
         </SectionErrorBoundary>
       </div>
@@ -115,6 +118,7 @@ export const HomePage = () => {
             services={services}
             products={products}
             about={about}
+            blog={blog}
           />
         </SectionErrorBoundary>
       </div>

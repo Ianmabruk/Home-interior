@@ -12,6 +12,7 @@ import {
   LogOut,
   ChevronDown,
   X,
+  Book,
 } from 'lucide-react'
 import { useAuth } from '@context/AuthContext'
 import { Sidebar } from '@components/admin/Sidebar'
@@ -23,6 +24,7 @@ const ADMIN_NAV = [
   { id: 'virtual-design', label: 'Virtual Designs', icon: Video, to: '/admin/virtual-designs' },
   { id: 'services', label: 'Services', icon: Sparkles, to: '/admin/services' },
   { id: 'shop', label: 'Shop', icon: ShoppingBag, to: '/admin/shop' },
+  { id: 'blog', label: 'Blog', icon: Book, to: '/admin/blog' },
   { id: 'orders', label: 'Orders', icon: Package, to: '/admin/orders' },
   { id: 'consultations', label: 'Consultations', icon: MessageSquare, to: '/admin/consultations' },
   { id: 'settings', label: 'Settings', icon: Settings, to: '/admin/settings' },

@@ -15,6 +15,7 @@ import { orderController } from '../controllers/orderController.js'
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import { adminOverviewController } from '../controllers/adminOverviewController.js'
 import adminSocialRoutes from './adminSocialRoutes.js'
+import { blogController } from '../controllers/blogController.js'
 
 const router = Router()
 
@@ -98,5 +99,12 @@ router.get('/consultations/export', authenticate, consultationController.exportC
 // Admin Orders
 router.get('/orders', authenticate, orderController.listAll)
 router.patch('/orders/:id/status', authenticate, orderController.updateStatus)
+
+// Admin Blog
+router.get('/blog', authenticate, blogController.getAll)
+router.get('/blog/:id', authenticate, blogController.get)
+router.post('/blog', authenticate, uploadFields([{ name: 'image', maxCount: 1 }, { name: 'video', maxCount: 1 }]), blogController.create)
+router.patch('/blog/:id', authenticate, uploadFields([{ name: 'image', maxCount: 1 }, { name: 'video', maxCount: 1 }]), blogController.update)
+router.delete('/blog/:id', authenticate, blogController.delete)
 
 export default router

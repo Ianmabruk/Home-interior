@@ -132,7 +132,7 @@ export const Navbar = memo(() => {
               </picture>
             </Link>
 
-            <nav className="flex items-center justify-end flex-1" role="navigation" aria-label="Main navigation">
+            <nav className="flex items-center justify-end flex-1 relative z-50" role="navigation" aria-label="Main navigation">
               <div
                 className="flex items-center gap-3 animate-fade-in"
                 style={{ animationDelay: '0.05s' }}
@@ -175,12 +175,12 @@ export const Navbar = memo(() => {
                   {cartOpen && (
                     <>
                       <div
-                        className="fixed inset-0 z-40 animate-fade-in"
+                        className="fixed inset-0 z-[60] animate-fade-in"
                         onClick={() => setCartOpen(false)}
                         aria-hidden="true"
                       />
                       <div
-                        className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-2xl shadow-[0_20px_40px_rgba(42,36,31,0.15)] border border-[#E6D8C9]/60 overflow-hidden z-50 backdrop-blur-xl bg-white/95 animate-fade-in"
+                        className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-2xl shadow-[0_20px_40px_rgba(42,36,31,0.15)] border border-[#E6D8C9]/60 overflow-hidden z-[65] backdrop-blur-xl bg-white/95 animate-fade-in"
                         role="menu"
                       >
                         <div className="p-4 border-b border-[#E6D8C9]/40 flex items-center justify-between">
@@ -332,12 +332,12 @@ export const Navbar = memo(() => {
                   {userMenuOpen && (
                     <>
                       <div
-                        className="fixed inset-0 z-40 animate-fade-in"
+                        className="fixed inset-0 z-[60] animate-fade-in"
                         onClick={() => setUserMenuOpen(false)}
                         aria-hidden="true"
                       />
                       <div
-                        className="absolute right-0 mt-3 w-56 md:w-64 bg-white rounded-2xl shadow-[0_20px_40px_rgba(42,36,31,0.15)] border border-[#E6D8C9]/60 overflow-hidden z-50 backdrop-blur-xl bg-white/95 animate-fade-in"
+                        className="absolute right-0 mt-3 w-56 md:w-64 bg-white rounded-2xl shadow-[0_20px_40px_rgba(42,36,31,0.15)] border border-[#E6D8C9]/60 overflow-hidden z-[65] backdrop-blur-xl bg-white/95 animate-fade-in"
                         role="menu"
                       >
                         {isAuthenticated && user ? (

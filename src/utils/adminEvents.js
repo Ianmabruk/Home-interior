@@ -21,4 +21,5 @@ export const ADMIN_EVENT_TYPES = {
   TEAM_CHANGED: 'team-changed',
   SOCIALS_CHANGED: 'socials-changed',
   SETTINGS_CHANGED: 'settings-changed',
+  BLOG_CHANGED: 'blog-changed',
 }

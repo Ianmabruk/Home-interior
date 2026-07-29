@@ -48,6 +48,12 @@ async function getHomepage() {
           take: 1,
           select: { id: true, name: true, price: true, originalPrice: true, mainImage: true, images: true, discountPrice: true },
         }),
+        prisma.blog.findMany({
+          where: { published: true },
+          orderBy: { createdAt: 'desc' },
+          take: 6,
+          select: { id: true, title: true, imageUrl: true, mediaUrls: true },
+        }),
         contactService.getContact(),
       ])
     )
@@ -60,6 +66,7 @@ async function getHomepage() {
       testimonials,
       heroMedia,
       featuredProducts,
+      blog,
       contact,
     ] = data
 
@@ -101,6 +108,7 @@ async function getHomepage() {
         addresses: ['Westlands, Nairobi, Kenya'],
         businessHours: 'Mon - Fri: 8:00 AM - 6:00 PM\nSat: 9:00 AM - 4:00 PM\nSun: Closed',
       },
+      blog: [],
     }
   }
 }

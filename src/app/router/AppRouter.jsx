@@ -136,6 +136,7 @@ export const AppRouter = () => {
           <Route path="/virtual-design" element={<ErrorBoundaryRoute element={<VirtualDesignPage />} />} />
           <Route path="/virtual-design/:id" element={<ErrorBoundaryRoute element={<VirtualDesignDetailPage />} />} />
           <Route path="/socials" element={<ErrorBoundaryRoute element={<SocialsPage />} />} />
+          <Route path="/blog" element={<ErrorBoundaryRoute element={<BlogPage />} />} />
           <Route path="/contact" element={<ErrorBoundaryRoute element={<ContactPage />} />} />
           <Route path="/chat" element={<ErrorBoundaryRoute element={<ChatPage />} />} />
 

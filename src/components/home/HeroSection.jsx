@@ -93,7 +93,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
 
   return (
     <section
-      className={`relative w-full h-screen min-h-[500px] overflow-hidden bg-[var(--primary)] ${className}`}
+      className={`relative w-full h-[85vh] lg:h-screen min-h-[500px] overflow-hidden bg-[var(--primary)] ${className}`}
       role="region"
       aria-label="Hero image"
       style={{ contain: 'layout paint' }}

@@ -219,6 +219,24 @@ model Order {
   @@index([status, createdAt(desc)])
 }
 
+model Blog {
+  id           String   @id @default(cuid())
+  title        String   @db.Text
+  description  String?  @db.Text
+  image        String?  @db.Text
+  video        String?  @db.Text
+  cloudinaryId String?  @db.Text @map("cloudinary_id")
+  published    Boolean  @default(false)
+  featured     Boolean  @default(false)
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("blogs")
+  @@index([published, featured, createdAt(desc)])
+  @@index([displayOrder(asc)])
+}
+
 model Message {
   id        String   @id @default(cuid())
   name      String   @db.Text

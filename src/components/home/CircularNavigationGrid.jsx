@@ -6,6 +6,7 @@ const CIRCLE_SIZE = {
   mobile: 280,
   tablet: 320,
   desktop: 380,
+  services: 361,
 }
 
 const NAV_ITEMS = [
@@ -13,6 +14,7 @@ const NAV_ITEMS = [
     key: 'portfolio',
     label: 'Portfolio',
     path: '/portfolio',
+    size: 'desktop',
     getImage: (data) => {
       const item = data.portfolio?.[0]
       if (!item) return null
@@ -23,6 +25,7 @@ const NAV_ITEMS = [
     key: 'virtualDesigns',
     label: 'Virtual Designs',
     path: '/virtual-design',
+    size: 'desktop',
     getImage: (data) => {
       const item = data.virtualDesigns?.[0]
       if (!item) return null
@@ -33,6 +36,7 @@ const NAV_ITEMS = [
     key: 'services',
     label: 'Services',
     path: '/services',
+    size: 'services',
     getImage: (data) => {
       const item = data.services?.[0]
       if (!item) return null
@@ -43,6 +47,7 @@ const NAV_ITEMS = [
     key: 'shop',
     label: 'Shop With Us',
     path: '/shop',
+    size: 'desktop',
     getImage: (data) => {
       const list = Array.isArray(data.products) ? data.products : []
       const product = list.find((p) => {
@@ -68,12 +73,25 @@ const NAV_ITEMS = [
     key: 'about',
     label: 'About Us',
     path: '/about',
+    size: 'desktop',
     getImage: (data) => data.about?.imageUrl || null,
+  },
+  {
+    key: 'blog',
+    label: 'Blog',
+    path: '/blog',
+    size: 'desktop',
+    getImage: (data) => {
+      const item = data.blog?.[0]
+      if (!item) return null
+      return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
+    },
   },
   {
     key: 'socials',
     label: 'Socials',
     path: '/socials',
+    size: 'desktop',
     getImage: (data) => data.about?.imageUrl || null,
   },
 ]
@@ -121,11 +139,20 @@ const PlaceholderIcons = {
       <path d="M12 6v6l4 2" />
     </svg>
   ),
+  blog: (
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2h10" />
+      <line x1="8" y1="7" x2="16" y2="7" />
+      <line x1="8" y1="11" x2="13" y2="11" />
+    </svg>
+  ),
 }
 
 const CircleItem = memo(({ item, data }) => {
   const imageUrl = useMemo(() => item.getImage(data), [item, data])
   const placeholder = PlaceholderIcons[item.key]
+  const circleSize = CIRCLE_SIZE[item.size] || CIRCLE_SIZE.desktop
 
   return (
     <Link
@@ -136,8 +163,8 @@ const CircleItem = memo(({ item, data }) => {
       <div
         className="relative rounded-full transition-transform duration-300 hover:scale-[1.02] active:scale-[0.98]"
         style={{
-          width: CIRCLE_SIZE.desktop,
-          height: CIRCLE_SIZE.desktop,
+          width: circleSize,
+          height: circleSize,
           boxShadow: '0 12px 40px rgba(42,36,31,0.12)',
           border: '3px solid #E89A43',
           background: '#F5EFE8',
@@ -184,14 +211,15 @@ const CircleItem = memo(({ item, data }) => {
 
 CircleItem.displayName = 'CircleItem'
 
-export const CircularNavigationGrid = memo(({ portfolio = [], virtualDesigns = [], services = [], products = [], about = null }) => {
+export const CircularNavigationGrid = memo(({ portfolio = [], virtualDesigns = [], services = [], products = [], about = null, blog = [] }) => {
   const data = useMemo(() => ({
     portfolio,
     virtualDesigns,
     services,
     products,
     about,
-  }), [portfolio, virtualDesigns, services, products, about])
+    blog,
+  }), [portfolio, virtualDesigns, services, products, about, blog])
 
   return (
     <section className="bg-[var(--secondary)]/30 py-12 md:py-16 lg:py-20">
