@@ -20,8 +20,11 @@ export function AuthProvider({ children }) {
     try {
       const res = await api.get('/auth/me')
       if (!cancelled) setUser(res.data || null)
-    } catch {
-      if (!cancelled) localStorage.removeItem('hok_access_token')
+    } catch (err) {
+      const status = err?.response?.status
+      if (status === 401) {
+        localStorage.removeItem('hok_access_token')
+      }
     } finally {
       if (!cancelled) setLoading(false)
     }

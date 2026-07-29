@@ -83,6 +83,7 @@ const HeroImagesDashboard = lazyWithCache(() => import('@components/admin/HeroIm
 const ConsultationDashboard = lazyWithCache(() => import('@components/admin/ConsultationDashboard').then(m => ({ default: m.default })), 'consultation-dashboard')
 const OrderDashboard = lazyWithCache(() => import('@components/admin/OrderDashboard').then(m => ({ default: m.default })), 'order-dashboard')
 const SettingsDashboard = lazyWithCache(() => import('@components/admin/SettingsDashboard').then(m => ({ default: m.default })), 'settings-dashboard')
+const BlogDashboard = lazyWithCache(() => import('@components/admin/BlogDashboard').then(m => ({ default: m.default })), 'blog-dashboard')
 
 const ErrorBoundaryRoute = memo(({ element }) => (
   <ErrorBoundary fallback={<ErrorFallback />}>
@@ -159,6 +160,7 @@ export const AppRouter = () => {
               <Route path="virtual-designs" element={<ErrorBoundaryRoute element={<VirtualDesignDashboard />} />} />
               <Route path="services" element={<ErrorBoundaryRoute element={<ServicesDashboard />} />} />
               <Route path="shop" element={<ErrorBoundaryRoute element={<ShopDashboard />} />} />
+              <Route path="blog" element={<ErrorBoundaryRoute element={<BlogDashboard />} />} />
               <Route path="orders" element={<ErrorBoundaryRoute element={<OrderDashboard />} />} />
               <Route path="consultations" element={<ErrorBoundaryRoute element={<ConsultationDashboard />} />} />
               <Route path="settings" element={<ErrorBoundaryRoute element={<SettingsDashboard />} />} />

@@ -30,6 +30,12 @@ export async function authenticate(req, res, next) {
     if (err instanceof ApiError) {
       return res.status(err.status).json({ success: false, message: err.message })
     }
+    if ([401, 403].includes(err?.status)) {
+      return res.status(err.status).json({ success: false, message: err?.message || 'Unauthorized' })
+    }
+    if (err?.name === 'TokenExpiredError' || err?.name === 'JsonWebTokenError') {
+      return res.status(401).json({ success: false, message: 'Token expired or invalid' })
+    }
     return res.status(503).json({ success: false, message: 'Service temporarily unavailable' })
   }
 }

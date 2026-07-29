@@ -148,8 +148,9 @@ export const BlogDashboard = () => {
 
   const togglePublished = async (item) => {
     try {
-      await api.patch(`/admin/blog/${item.id}`, { published: !item.published })
-      setBlogs(blogs.map((b) => (b.id === item.id ? { ...b, published: !b.published } : b)))
+      const id = item._id || item.id
+      await api.patch(`/admin/blog/${id}`, { published: !item.published })
+      setBlogs(blogs.map((b) => (b._id === id || b.id === id ? { ...b, published: !item.published } : b)))
       dispatchAdminDataChanged('blog-changed')
     } catch (err) {
       console.error('Toggle published error:', err)

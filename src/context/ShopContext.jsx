@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react'
 import { api } from '../services/api'
+import { useAuth } from './AuthContext'
 
 const ShopContext = createContext(null)
 
@@ -7,6 +8,7 @@ export function ShopProvider({ children }) {
   const [cart, setCart] = useState([])
   const [wishlist, setWishlist] = useState([])
   const [loading] = useState(false)
+  const { isAuthenticated } = useAuth()
 
   const fetchCart = useCallback(async () => {
     try {
@@ -27,9 +29,10 @@ export function ShopProvider({ children }) {
   }, [])
 
   useEffect(() => {
+    if (!isAuthenticated) return
     fetchCart()
     fetchWishlist()
-  }, [fetchCart, fetchWishlist])
+  }, [isAuthenticated, fetchCart, fetchWishlist])
 
   const addToCart = useCallback(async (product, variant, quantity = 1) => {
     const res = await api.post('/users/cart', { productId: product._id, variantId: variant?._id, quantity })
