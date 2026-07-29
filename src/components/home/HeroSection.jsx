@@ -105,8 +105,8 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
           sizes={buildSrcSet(activeImage) ? '100vw' : undefined}
           fetchPriority="high"
           alt={activeAlt}
-          className="h-full w-full object-cover transition-opacity duration-[1200ms] ease-out"
-          style={{ opacity: opacityA }}
+          className="h-full w-full object-contain transition-opacity duration-[1200ms] ease-out"
+          style={{ opacity: opacityA, background: 'var(--primary)' }}
           loading="eager"
           decoding="async"
           onLoad={handleImageLoad}
@@ -117,8 +117,8 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
             srcSet={buildSrcSet(nextImage.url) || undefined}
             sizes={buildSrcSet(nextImage.url) ? '100vw' : undefined}
             alt={nextImage.alt}
-            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-out"
-            style={{ opacity: opacityB }}
+            className="absolute inset-0 h-full w-full object-contain transition-opacity duration-[1200ms] ease-out"
+            style={{ opacity: opacityB, background: 'var(--primary)' }}
             loading="lazy"
             decoding="async"
           />

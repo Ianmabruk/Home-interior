@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { Loader2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { api } from '@services/api'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
@@ -111,7 +111,8 @@ export const BlogPage = () => {
                     transition={{ delay: i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                     className="group bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500"
                   >
-                    <div className="relative aspect-[4/3] overflow-hidden">
+                    <Link to={`/blog/${item.id || item._id}`} className="block">
+                      <div className="relative aspect-[4/3] overflow-hidden">
                       {item.imageUrl ? (
                         <img
                           src={getOptimizedUrl(item.imageUrl, { width: 800, crop: 'limit' })}
@@ -132,6 +133,7 @@ export const BlogPage = () => {
                         </div>
                       )}
                     </div>
+                    </Link>
                     <div className="p-6 md:p-8">
                       <h3 className="font-display text-xl text-[var(--primary)] leading-tight line-clamp-2">
                         {item.title}

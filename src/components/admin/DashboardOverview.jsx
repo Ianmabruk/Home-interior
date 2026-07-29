@@ -158,8 +158,8 @@ export const DashboardOverview = () => {
         })
         .catch(() => {})
     }
-    window.addEventListener('admin:data-changed', handler)
-    return () => window.removeEventListener('admin:data-changed', handler)
+    window.addEventListener('admin-data-changed', handler)
+    return () => window.removeEventListener('admin-data-changed', handler)
   }, [])
 
   return (

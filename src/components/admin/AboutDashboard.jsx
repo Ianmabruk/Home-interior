@@ -61,8 +61,8 @@ export const AboutDashboard = () => {
 
   useEffect(() => {
     const handler = () => { loadAbout() }
-    window.addEventListener('admin:data-changed', handler)
-    return () => window.removeEventListener('admin:data-changed', handler)
+    window.addEventListener('admin-data-changed', handler)
+    return () => window.removeEventListener('admin-data-changed', handler)
   }, [loadAbout])
 
   const handleAboutImage = (e) => {

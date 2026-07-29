@@ -46,8 +46,8 @@ export const PortfolioDashboard = () => {
 
   useEffect(() => {
     const handler = () => { load() }
-    window.addEventListener('admin:data-changed', handler)
-    return () => window.removeEventListener('admin:data-changed', handler)
+    window.addEventListener('admin-data-changed', handler)
+    return () => window.removeEventListener('admin-data-changed', handler)
   }, [load])
 
   const handleMainFiles = (files) => {

@@ -67,8 +67,8 @@ export const SettingsDashboard = () => {
 
   useEffect(() => {
     const handler = () => loadSettings()
-    window.addEventListener('admin:data-changed', handler)
-    return () => window.removeEventListener('admin:data-changed', handler)
+    window.addEventListener('admin-data-changed', handler)
+    return () => window.removeEventListener('admin-data-changed', handler)
   }, [loadSettings])
 
   const handleChange = (key, value) => {

@@ -40,8 +40,8 @@ export const SocialLinksDashboard = () => {
 
   useEffect(() => {
     const handler = () => { loadSocials() }
-    window.addEventListener('admin:data-changed', handler)
-    return () => window.removeEventListener('admin:data-changed', handler)
+    window.addEventListener('admin-data-changed', handler)
+    return () => window.removeEventListener('admin-data-changed', handler)
   }, [loadSocials])
 
   const handleChange = (key, value) => {

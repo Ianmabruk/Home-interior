@@ -202,8 +202,8 @@ export const ConsultationDashboard = () => {
         })
         .catch(() => {})
     }
-    window.addEventListener('admin:data-changed', handler)
-    return () => window.removeEventListener('admin:data-changed', handler)
+    window.addEventListener('admin-data-changed', handler)
+    return () => window.removeEventListener('admin-data-changed', handler)
   }, [filter, search, page])
 
   const refresh = async () => {

@@ -70,8 +70,8 @@ export const ShopDashboard = () => {
         .then((res) => setAllProducts(res.data?.items || []))
         .catch(() => {})
     }
-    window.addEventListener('admin:data-changed', handler)
-    return () => window.removeEventListener('admin:data-changed', handler)
+    window.addEventListener('admin-data-changed', handler)
+    return () => window.removeEventListener('admin-data-changed', handler)
   }, [])
 
   const showError = (msg) => setError(msg)

@@ -53,8 +53,8 @@ export const ServicesDashboard = () => {
         .then((res) => setServices(Array.isArray(res.data) ? res.data : res.data?.items || []))
         .catch(() => {})
     }
-    window.addEventListener('admin:data-changed', handler)
-    return () => window.removeEventListener('admin:data-changed', handler)
+    window.addEventListener('admin-data-changed', handler)
+    return () => window.removeEventListener('admin-data-changed', handler)
   }, [])
 
   const handleFiles = (files) => {

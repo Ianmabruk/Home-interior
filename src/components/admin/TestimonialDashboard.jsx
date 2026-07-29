@@ -64,8 +64,8 @@ export const TestimonialDashboard = () => {
         .then((res) => setTestimonials(res.data || []))
         .catch(() => {})
     }
-    window.addEventListener('admin:data-changed', handler)
-    return () => window.removeEventListener('admin:data-changed', handler)
+    window.addEventListener('admin-data-changed', handler)
+    return () => window.removeEventListener('admin-data-changed', handler)
   }, [])
 
   const resetForm = () => {

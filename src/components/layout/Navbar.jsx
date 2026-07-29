@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, memo, useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   ShoppingBag,
+  ShoppingCart,
   User,
   LogIn,
   UserPlus,
@@ -11,7 +12,6 @@ import {
   X,
   Package,
   CreditCard,
-  ClipboardList,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@context/AuthContext'
@@ -148,11 +148,11 @@ export const Navbar = memo(() => {
 
                 {isAuthenticated && (
                   <Link
-                    to="/account/orders"
+                    to="/cart"
                     className="relative p-2.5 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
-                    aria-label="Orders"
+                    aria-label="Shopping cart"
                   >
-                    <span className="hidden sm:inline-block text-[10px] md:text-[11px] font-medium uppercase tracking-[0.15em]">Orders</span>
+                    <ShoppingCart size={20} md={22} strokeWidth={1.5} aria-hidden="true" />
                   </Link>
                 )}
 
@@ -175,12 +175,12 @@ export const Navbar = memo(() => {
                   {cartOpen && (
                     <>
                       <div
-                        className="fixed inset-0 z-[60] animate-fade-in"
+                        className="fixed inset-0 z-[200] animate-fade-in"
                         onClick={() => setCartOpen(false)}
                         aria-hidden="true"
                       />
                       <div
-                        className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-2xl shadow-[0_20px_40px_rgba(42,36,31,0.15)] border border-[#E6D8C9]/60 overflow-hidden z-[65] backdrop-blur-xl bg-white/95 animate-fade-in"
+                        className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-2xl shadow-[0_20px_40px_rgba(42,36,31,0.15)] border border-[#E6D8C9]/60 overflow-hidden z-[201] backdrop-blur-xl bg-white/95 animate-fade-in"
                         role="menu"
                       >
                         <div className="p-4 border-b border-[#E6D8C9]/40 flex items-center justify-between">
@@ -332,24 +332,24 @@ export const Navbar = memo(() => {
                   {userMenuOpen && (
                     <>
                       <div
-                        className="fixed inset-0 z-[60] animate-fade-in"
+                        className="fixed inset-0 z-[200] animate-fade-in"
                         onClick={() => setUserMenuOpen(false)}
                         aria-hidden="true"
                       />
                       <div
-                        className="absolute right-0 mt-3 w-56 md:w-64 bg-white rounded-2xl shadow-[0_20px_40px_rgba(42,36,31,0.15)] border border-[#E6D8C9]/60 overflow-hidden z-[65] backdrop-blur-xl bg-white/95 animate-fade-in"
+                        className="absolute right-0 mt-3 w-56 md:w-64 bg-white rounded-2xl shadow-[0_20px_40px_rgba(42,36,31,0.15)] border border-[#E6D8C9]/60 overflow-hidden z-[201] backdrop-blur-xl bg-white/95 animate-fade-in"
                         role="menu"
                       >
                         {isAuthenticated && user ? (
                           <>
                             <Link
-                              to="/account/orders"
+                              to="/cart"
                               onClick={() => setUserMenuOpen(false)}
                               className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
                               role="menuitem"
                             >
-                              <ClipboardList size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                              Orders
+                              <ShoppingCart size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
+                              Cart
                             </Link>
                             <Link
                               to="/account"
@@ -530,19 +530,7 @@ export const Navbar = memo(() => {
                               <span className="font-display text-lg md:text-xl font-normal tracking-wide">Cart</span>
                             </Link>
                           </motion.div>
-                          <motion.div variants={itemVariants}>
-                            <Link
-                              to="/account/orders"
-                              onClick={() => setMobileOpen(false)}
-                              className="flex items-center gap-5 rounded-2xl px-5 py-4.5 text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-all duration-300"
-                            >
-                              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E6D8C9]/40 text-[#2A241F]/70">
-                                <ClipboardList size={20} strokeWidth={1.5} aria-hidden="true" />
-                              </span>
-                              <span className="font-display text-lg md:text-xl font-normal tracking-wide">Orders</span>
-                            </Link>
-                          </motion.div>
-                         <motion.button
+                          <motion.button
                            variants={itemVariants}
                            onClick={() => { handleLogout(); setMobileOpen(false) }}
                            className="flex items-center gap-5 rounded-2xl px-5 py-4.5 text-[#C62828] hover:bg-[#C62828]/5 transition-all duration-300 w-full"

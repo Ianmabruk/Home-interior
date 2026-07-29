@@ -85,6 +85,7 @@ async function getHomepage() {
       heroMedia,
       featuredProject: featuredPortfolio[0] || portfolio[0] || null,
       products: featuredProducts,
+      blog,
       contact,
     }
   } catch (err) {
@@ -102,6 +103,7 @@ async function getHomepage() {
       heroMedia: [],
       featuredProject: null,
       products: [],
+      blog: [],
       contact: {
         phoneNumbers: ['+254 700 000 000', '+254 711 111 111'],
         emails: ['info@hokinteriors.com', 'projects@hokinteriors.com'],

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UploadCloud, X, Edit, Trash2, Eye, Video, Image, ToggleLeft } from 'lucide-react'
+import { UploadCloud, X, Edit, Trash2, Video, Image, ToggleLeft } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
@@ -45,8 +45,8 @@ export const BlogDashboard = () => {
         .then((res) => setBlogs(Array.isArray(res.data) ? res.data : []))
         .catch(() => {})
     }
-    window.addEventListener('admin:data-changed', handler)
-    return () => window.removeEventListener('admin:data-changed', handler)
+    window.addEventListener('admin-data-changed', handler)
+    return () => window.removeEventListener('admin-data-changed', handler)
   }, [])
 
   const handleImageChange = (e) => {

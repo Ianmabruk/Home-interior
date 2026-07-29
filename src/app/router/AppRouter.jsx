@@ -55,6 +55,7 @@ const AboutPage = lazyWithCache(() => import('@pages/public/AboutPage'), 'about'
 const ContactPage = lazyWithCache(() => import('@pages/public/ContactPage'), 'contact')
 const SocialsPage = lazyWithCache(() => import('@pages/public/SocialsPage'), 'socials')
 const BlogPage = lazyWithCache(() => import('@pages/public/BlogPage').then(m => ({ default: m.BlogPage })), 'blog')
+const BlogDetailPage = lazyWithCache(() => import('@pages/public/BlogDetailPage').then(m => ({ default: m.BlogDetailPage })), 'blog-detail')
 const ChatPage = lazyWithCache(() => import('@pages/public/ChatPage').then(m => ({ default: m.ChatPage })), 'chat')
 const NotFoundPage = lazyWithCache(() => import('@pages/public/NotFoundPage').then(m => ({ default: m.NotFoundPage })), 'not-found')
 
@@ -69,8 +70,7 @@ const ResetPasswordPage = lazyWithCache(() => import('@pages/auth/ResetPasswordP
 const AccountPage = lazyWithCache(() => import('@pages/account/AccountPage').then(m => ({ default: m.AccountPage })), 'account')
 const CartPage = lazyWithCache(() => import('@pages/account/CartPage').then(m => ({ default: m.CartPage })), 'cart')
 const WishlistPage = lazyWithCache(() => import('@pages/account/WishlistPage').then(m => ({ default: m.WishlistPage })), 'wishlist')
-  const CheckoutPage = lazyWithCache(() => import('@pages/account/CheckoutPage').then(m => ({ default: m.CheckoutPage })), 'checkout')
-  const OrdersPage = lazyWithCache(() => import('@pages/account/OrdersPage').then(m => ({ default: m.OrdersPage })), 'orders')
+const CheckoutPage = lazyWithCache(() => import('@pages/account/CheckoutPage').then(m => ({ default: m.CheckoutPage })), 'checkout')
 
 // Admin pages
 const AdminPage = lazyWithCache(() => import('@pages/admin/AdminPage').then(m => ({ default: m.AdminPage })), 'admin')
@@ -138,18 +138,17 @@ export const AppRouter = () => {
           <Route path="/virtual-design/:id" element={<ErrorBoundaryRoute element={<VirtualDesignDetailPage />} />} />
           <Route path="/socials" element={<ErrorBoundaryRoute element={<SocialsPage />} />} />
           <Route path="/blog" element={<ErrorBoundaryRoute element={<BlogPage />} />} />
+          <Route path="/blog/:id" element={<ErrorBoundaryRoute element={<BlogDetailPage />} />} />
           <Route path="/contact" element={<ErrorBoundaryRoute element={<ContactPage />} />} />
           <Route path="/chat" element={<ErrorBoundaryRoute element={<ChatPage />} />} />
 
           <Route element={<ProtectedRoute />}>
             <Route path="/account" element={<ErrorBoundaryRoute element={<AccountPage />} />}>
-              <Route path="orders" element={<ErrorBoundaryRoute element={<OrdersPage />} />} />
               <Route path="wishlist" element={<ErrorBoundaryRoute element={<AccountPage />} />} />
             </Route>
             <Route path="/wishlist" element={<ErrorBoundaryRoute element={<WishlistPage />} />} />
             <Route path="/cart" element={<ErrorBoundaryRoute element={<CartPage />} />} />
             <Route path="/checkout" element={<ErrorBoundaryRoute element={<CheckoutPage />} />} />
-            <Route path="/orders" element={<ErrorBoundaryRoute element={<OrdersPage />} />} />
           </Route>
 
           <Route element={<ProtectedRoute adminOnly />}>

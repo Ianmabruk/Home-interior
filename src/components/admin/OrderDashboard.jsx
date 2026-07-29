@@ -54,8 +54,8 @@ export const OrderDashboard = () => {
       loadOrders()
       return () => { cancelled = true }
     }
-    window.addEventListener('admin:data-changed', handler)
-    return () => window.removeEventListener('admin:data-changed', handler)
+    window.addEventListener('admin-data-changed', handler)
+    return () => window.removeEventListener('admin-data-changed', handler)
   }, [])
 
   const updateStatus = async (orderId, newStatus) => {

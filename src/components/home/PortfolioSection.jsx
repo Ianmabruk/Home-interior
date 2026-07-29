@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { api } from '@services/api'
-import { CircularPortfolioShowcase } from '@components/portfolio/CircularPortfolioShowcase'
+import { HorizontalPortfolioCarousel } from '@components/portfolio/HorizontalPortfolioCarousel'
 import { getProjectImage } from '@utils/homepageHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { Link } from 'react-router-dom'
@@ -88,7 +88,7 @@ export const PortfolioSection = memo(({ portfolio = [] }) => {
 
   return (
     <section id="portfolio">
-      <CircularPortfolioShowcase portfolio={data} getProjectImage={getProjectImage} />
+      <HorizontalPortfolioCarousel portfolio={data} getProjectImage={getProjectImage} />
       <div className="mt-12 text-center">
         <Link to="/portfolio" className="btn-luxury-primary group inline-flex items-center gap-2">
           View All Projects

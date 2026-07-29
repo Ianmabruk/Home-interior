@@ -10,7 +10,9 @@ const NAV_ITEMS_MOBILE = [
     label: 'Portfolio',
     path: '/portfolio',
     getImage: (data) => {
-      const item = data.portfolio?.[0]
+      const featured = (data.portfolio || []).filter((p) => p.featured)
+      const source = featured.length > 0 ? featured : data.portfolio || []
+      const item = source[0]
       if (!item) return null
       return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
     },
@@ -30,7 +32,9 @@ const NAV_ITEMS_MOBILE = [
     label: 'Virtual Designs',
     path: '/virtual-design',
     getImage: (data) => {
-      const item = data.virtualDesigns?.[0]
+      const featured = (data.virtualDesigns || []).filter((v) => v.featured)
+      const source = featured.length > 0 ? featured : data.virtualDesigns || []
+      const item = source[0]
       if (!item) return null
       return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
     },
@@ -41,14 +45,8 @@ const NAV_ITEMS_MOBILE = [
     path: '/shop',
     getImage: (data) => {
       const list = Array.isArray(data.products) ? data.products : []
-      const product = list.find((p) => {
-        const images = Array.isArray(p.images) ? p.images : []
-        const hasImage = images.some((img) => {
-          if (typeof img === 'string') return img.trim() !== ''
-          return Boolean(img?.url)
-        })
-        return hasImage || Boolean(p.mainImage)
-      }) || list[0]
+      const featured = list.find((p) => p.featured)
+      const product = featured || list[0] || null
       if (!product) return null
       const images = Array.isArray(product.images) ? product.images : []
       const firstImage = images.find((img) => {
@@ -71,7 +69,9 @@ const NAV_ITEMS_MOBILE = [
     label: 'Blog',
     path: '/blog',
     getImage: (data) => {
-      const item = data.blog?.[0]
+      const featured = (data.blog || []).filter((b) => b.featured)
+      const source = featured.length > 0 ? featured : data.blog || []
+      const item = source[0]
       if (!item) return null
       return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
     },

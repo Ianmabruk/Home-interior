@@ -2,21 +2,17 @@ import { useMemo, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
-const CIRCLE_SIZE = {
-  mobile: 280,
-  tablet: 320,
-  desktop: 380,
-  services: 361,
-}
+const CIRCLE_SIZE = 300
 
 const NAV_ITEMS = [
   {
     key: 'portfolio',
     label: 'Portfolio',
     path: '/portfolio',
-    size: 'desktop',
     getImage: (data) => {
-      const item = data.portfolio?.[0]
+      const featured = (data.portfolio || []).filter((p) => p.featured)
+      const source = featured.length > 0 ? featured : data.portfolio || []
+      const item = source[0]
       if (!item) return null
       return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
     },
@@ -25,9 +21,10 @@ const NAV_ITEMS = [
     key: 'virtualDesigns',
     label: 'Virtual Designs',
     path: '/virtual-design',
-    size: 'desktop',
     getImage: (data) => {
-      const item = data.virtualDesigns?.[0]
+      const featured = (data.virtualDesigns || []).filter((v) => v.featured)
+      const source = featured.length > 0 ? featured : data.virtualDesigns || []
+      const item = source[0]
       if (!item) return null
       return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
     },
@@ -36,7 +33,6 @@ const NAV_ITEMS = [
     key: 'services',
     label: 'Services',
     path: '/services',
-    size: 'services',
     getImage: (data) => {
       const item = data.services?.[0]
       if (!item) return null
@@ -47,7 +43,6 @@ const NAV_ITEMS = [
     key: 'shop',
     label: 'Shop With Us',
     path: '/shop',
-    size: 'desktop',
     getImage: (data) => {
       const list = Array.isArray(data.products) ? data.products : []
       const product = list.find((p) => {
@@ -70,19 +65,32 @@ const NAV_ITEMS = [
     },
   },
   {
-    key: 'about',
-    label: 'About Us',
-    path: '/about',
-    size: 'desktop',
-    getImage: (data) => data.about?.imageUrl || null,
+    key: 'shop',
+    label: 'Shop With Us',
+    path: '/shop',
+    getImage: (data) => {
+      const list = Array.isArray(data.products) ? data.products : []
+      const featured = list.find((p) => p.featured)
+      const product = featured || list[0] || null
+      if (!product) return null
+      const images = Array.isArray(product.images) ? product.images : []
+      const firstImage = images.find((img) => {
+        if (typeof img === 'string') return img.trim() !== ''
+        return Boolean(img?.url)
+      })
+      if (typeof firstImage === 'string') return firstImage
+      if (firstImage?.url) return firstImage.url
+      return product.mainImage || product.main_image || null
+    },
   },
   {
     key: 'blog',
     label: 'Blog',
     path: '/blog',
-    size: 'desktop',
     getImage: (data) => {
-      const item = data.blog?.[0]
+      const featured = (data.blog || []).filter((b) => b.featured)
+      const source = featured.length > 0 ? featured : data.blog || []
+      const item = source[0]
       if (!item) return null
       return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
     },
@@ -91,35 +99,34 @@ const NAV_ITEMS = [
     key: 'socials',
     label: 'Socials',
     path: '/socials',
-    size: 'desktop',
     getImage: (data) => data.about?.imageUrl || null,
   },
 ]
 
 const PlaceholderIcons = {
   portfolio: (
-    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
       <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
       <circle cx="9" cy="9" r="2" />
       <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
     </svg>
   ),
   virtualDesigns: (
-    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
       <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
       <circle cx="9" cy="9" r="2" />
       <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
     </svg>
   ),
   services: (
-    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 3a6 6 0 0 0 9 4 9 9 0 1 1-9-9Z" />
       <line x1="21" y1="9" x2="15.5" y2="14.5" />
       <line x1="15" y1="15" x2="14" y2="16" />
     </svg>
   ),
   shop: (
-    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 6H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z" />
       <path d="M3 12h18" />
       <path d="M9 6v6" />
@@ -127,20 +134,20 @@ const PlaceholderIcons = {
     </svg>
   ),
   about: (
-    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
       <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
       <circle cx="9" cy="9" r="2" />
       <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
     </svg>
   ),
   socials: (
-    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <path d="M12 6v6l4 2" />
     </svg>
   ),
   blog: (
-    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
       <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2h10" />
       <line x1="8" y1="7" x2="16" y2="7" />
@@ -152,7 +159,7 @@ const PlaceholderIcons = {
 const CircleItem = memo(({ item, data }) => {
   const imageUrl = useMemo(() => item.getImage(data), [item, data])
   const placeholder = PlaceholderIcons[item.key]
-  const circleSize = CIRCLE_SIZE[item.size] || CIRCLE_SIZE.desktop
+  const circleSize = CIRCLE_SIZE
 
   return (
     <Link
@@ -177,9 +184,8 @@ const CircleItem = memo(({ item, data }) => {
             src={getOptimizedUrl(imageUrl, { width: 800, crop: 'limit' })}
             alt={item.label}
             className="h-full w-full object-cover"
-            loading={item.key === 'portfolio' ? 'eager' : 'lazy'}
+            loading="lazy"
             decoding="async"
-            fetchPriority={item.key === 'portfolio' ? 'high' : undefined}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-[var(--primary)]/20">
