@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, memo, useMemo, createPortal } from 'react'
+import { useState, useEffect, useRef, memo, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useLocation } from 'react-router-dom'
 import {
   ShoppingBag,
