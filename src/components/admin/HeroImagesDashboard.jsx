@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UploadCloud, X, Trash2, Images, Eye, Plus, Image as ImageIcon } from 'lucide-react'
 import { api } from '../../services/api'
@@ -21,18 +21,25 @@ export const HeroImagesDashboard = () => {
   const [status, setStatus] = useState({ type: '', message: '' })
   const fileRef = useRef(null)
 
+   const load = useCallback(async () => {
+      try {
+        const res = await api.get('/admin/hero-images')
+        const data = Array.isArray(res.data) ? res.data : res.data?.items || []
+        setHeroImages(data)
+      } catch {
+        setHeroImages([])
+      }
+    }, [])
+
+    useEffect(() => {
+      load()
+    }, [load])
+
    useEffect(() => {
-     const load = async () => {
-       try {
-         const res = await api.get('/admin/hero-images')
-         const data = Array.isArray(res.data) ? res.data : res.data?.items || []
-         setHeroImages(data)
-       } catch {
-         setHeroImages([])
-       }
-     }
-     load()
-   }, [])
+     const handler = () => { load() }
+     window.addEventListener('admin-data-changed', handler)
+     return () => window.removeEventListener('admin-data-changed', handler)
+   }, [load])
 
   const handleFiles = (files) => {
     const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'))

@@ -119,9 +119,9 @@ export const SettingsDashboard = () => {
       }
 
       setStatus({ type: 'success', message: 'Settings saved successfully.' })
+      await loadSettings()
       dispatchAdminDataChanged('settings-changed')
       toast.success('Settings saved successfully.')
-      await loadSettings()
     } catch (err) {
       const message = err?.message || 'Failed to save settings.'
       setStatus({ type: 'error', message })

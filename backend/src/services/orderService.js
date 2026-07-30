@@ -27,6 +27,28 @@ async function createOrder(data) {
   }
 }
 
+async function getOrder(id) {
+  const order = await prisma.order.findUnique({
+    where: { id },
+  })
+  if (!order) throw failure(404, 'Order not found')
+  return {
+    _id: order.id,
+    id: order.id,
+    email: order.email,
+    name: order.name,
+    phone: order.phone,
+    items: typeof order.items === 'string' ? (() => { try { return JSON.parse(order.items) } catch { return [] } })() : (order.items || []),
+    shippingAddress: typeof order.shippingAddress === 'string' ? (() => { try { return JSON.parse(order.shippingAddress) } catch { return {} } })() : (order.shippingAddress || {}),
+    shippingMethod: order.shippingMethod,
+    paymentMethod: order.paymentMethod,
+    paymentDetails: typeof order.paymentDetails === 'string' ? (() => { try { return JSON.parse(order.paymentDetails) } catch { return {} } })() : (order.paymentDetails || {}),
+    total: order.total,
+    status: order.status,
+    createdAt: order.createdAt,
+  }
+}
+
 async function getUserOrders(email) {
   const orders = await prisma.order.findMany({
     where: { email },
@@ -38,10 +60,11 @@ async function getUserOrders(email) {
     email: o.email,
     name: o.name,
     phone: o.phone,
-    items: o.items,
-    shippingAddress: o.shippingAddress,
+    items: typeof o.items === 'string' ? (() => { try { return JSON.parse(o.items) } catch { return [] } })() : (o.items || []),
+    shippingAddress: typeof o.shippingAddress === 'string' ? (() => { try { return JSON.parse(o.shippingAddress) } catch { return {} } })() : (o.shippingAddress || {}),
     shippingMethod: o.shippingMethod,
     paymentMethod: o.paymentMethod,
+    paymentDetails: typeof o.paymentDetails === 'string' ? (() => { try { return JSON.parse(o.paymentDetails) } catch { return {} } })() : (o.paymentDetails || {}),
     total: o.total,
     status: o.status,
     createdAt: o.createdAt,

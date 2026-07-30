@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo, useMemo } from 'react'
+import { useState, useEffect, useRef, memo, useMemo, createPortal } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   ShoppingBag,
@@ -77,7 +77,240 @@ export const Navbar = memo(() => {
   const handleLogout = async () => {
     await logout()
     setUserMenuOpen(false)
+    setCartOpen(false)
   }
+
+  const CartDropdown = () => (
+    <AnimatePresence>
+      {cartOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[9990] animate-fade-in"
+            onClick={() => setCartOpen(false)}
+            aria-hidden="true"
+          />
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.96 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed right-4 md:right-8 top-[104px] md:top-[112px] w-80 md:w-96 bg-white rounded-2xl shadow-[0_20px_60px_rgba(42,36,31,0.18)] border border-[#E6D8C9]/60 overflow-hidden z-[9991] backdrop-blur-xl bg-white/95 animate-fade-in"
+            role="menu"
+          >
+            <div className="p-4 border-b border-[#E6D8C9]/40 flex items-center justify-between">
+              <h3 className="font-display text-lg font-normal text-[#2A241F]">Shopping Cart</h3>
+              <span className="text-sm text-[#2A241F]/50">{totalItems} item{totalItems !== 1 ? 's' : ''}</span>
+            </div>
+
+            {cartItems.length === 0 ? (
+              <div className="p-8 text-center">
+                <ShoppingBag size={32} strokeWidth={1} className="mx-auto text-[#E6D8C9] mb-3" />
+                <p className="font-display text-lg text-[#2A241F]/30">Your cart is empty</p>
+                <p className="mt-1 text-sm text-[#2A241F]/40">Add pieces from the shop to start your order</p>
+                <Link
+                  to="/shop"
+                  onClick={() => setCartOpen(false)}
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-2xs font-semibold uppercase tracking-widest border border-[#E89A43] text-[#E89A43] hover:bg-[#E89A43] hover:text-white hover:border-[#E89A43] rounded-full transition"
+                >
+                  Shop Now
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div className="max-h-80 overflow-y-auto p-4 space-y-3">
+                  {cartItems.map((item) => (
+                    <div
+                      key={`${item._id}-${item.selectedVariant?.color || 'default'}`}
+                      className="flex gap-3 rounded-xl border border-[#E6D8C9]/40 bg-white/50 p-3 transition-colors hover:border-[#E89A43]/40"
+                    >
+                      <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg">
+                        <img
+                          src={item.selectedVariant?.image || item.image || item.images?.[0]?.url}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-2xs font-medium uppercase tracking-widest text-[#E89A43]">{item.category}</p>
+                        <h4 className="mt-0.5 font-display text-base font-medium text-[#2A241F] truncate">
+                          <Link to={`/shop/${item._id}`} className="hover:text-[#E89A43] transition-colors" onClick={() => setCartOpen(false)}>
+                            {item.name}
+                          </Link>
+                        </h4>
+                        {item.selectedVariant && (
+                          <div className="mt-0.5 flex items-center gap-1.5">
+                            <span className="h-3 w-3 rounded-full border border-[#2A241F]/10" style={{ backgroundColor: item.selectedVariant.colorHex || '#ccc' }} />
+                            <span className="text-xs text-[#2A241F]/60">{item.selectedVariant.color}</span>
+                          </div>
+                        )}
+                        <p className="mt-1 text-sm font-medium text-[#2A241F]">${Number(item.selectedVariant?.price || item.discountPrice || item.price || 0).toFixed(2)}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5">
+                        <button
+                          onClick={() => removeFromCart(item._id, item.selectedVariant)}
+                          className="p-1.5 rounded-lg text-[#2A241F]/40 hover:text-[#E89A43] hover:bg-[#E6D8C9]/30 transition-colors"
+                          aria-label="Remove from cart"
+                        >
+                          <X size={14} strokeWidth={1.5} />
+                        </button>
+                        <div className="flex items-center rounded-full border border-[#E6D8C9]/60 bg-white">
+                          <button
+                            onClick={() => setCartQuantity(item._id, item.quantity - 1, item.selectedVariant)}
+                            disabled={item.quantity <= 1}
+                            className="flex h-8 w-8 items-center justify-center text-[#2A241F]/50 transition hover:text-[#2A241F] disabled:opacity-30 disabled:cursor-not-allowed"
+                            aria-label="Decrease quantity"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                          </button>
+                          <span className="min-w-8 text-center text-sm font-medium text-[#2A241F]">{item.quantity}</span>
+                          <button
+                            onClick={() => setCartQuantity(item._id, item.quantity + 1, item.selectedVariant)}
+                            className="flex h-8 w-8 items-center justify-center text-[#2A241F]/50 transition hover:text-[#2A241F]"
+                            aria-label="Increase quantity"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t border-[#E6D8C9]/40 p-4 space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#2A241F]/55">Subtotal</span>
+                    <span className="font-medium text-[#2A241F]">${cartSubtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#2A241F]/55">Shipping</span>
+                    <span className="font-medium text-[#2A241F]">Free</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#2A241F]/55">Tax</span>
+                    <span className="font-medium text-[#2A241F]">Calculated at checkout</span>
+                  </div>
+                  <div className="border-t border-[#E6D8C9]/40 pt-3">
+                    <div className="flex justify-between text-lg font-semibold text-[#2A241F]">
+                      <span>Total</span>
+                      <span>${cartSubtotal.toFixed(2)}</span>
+                    </div>
+                  </div>
+                  <Link
+                    to="/cart"
+                    onClick={() => setCartOpen(false)}
+                    className="w-full flex items-center justify-center gap-2 rounded-full bg-[#2A241F] px-6 py-3 text-xs font-medium uppercase tracking-widest text-white transition hover:bg-[#2A241F]/90 hover:shadow-lg"
+                  >
+                    <Package size={14} strokeWidth={1.5} />
+                    View Cart
+                  </Link>
+                  <Link
+                    to="/checkout"
+                    onClick={() => setCartOpen(false)}
+                    className="w-full flex items-center justify-center gap-2 rounded-full border border-[#E6D8C9] bg-white px-6 py-3 text-xs font-medium uppercase tracking-widest text-[#2A241F]/70 transition hover:border-[#E89A43] hover:text-[#E89A43]"
+                  >
+                    <CreditCard size={14} strokeWidth={1.5} />
+                    Checkout
+                  </Link>
+                </div>
+              </>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+
+  const UserDropdown = () => (
+    <AnimatePresence>
+      {userMenuOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[9990] animate-fade-in"
+            onClick={() => setUserMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.96 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed right-4 md:right-8 top-[104px] md:top-[112px] w-56 md:w-64 bg-white rounded-2xl shadow-[0_20px_60px_rgba(42,36,31,0.18)] border border-[#E6D8C9]/60 overflow-hidden z-[9991] backdrop-blur-xl bg-white/95 animate-fade-in"
+            role="menu"
+          >
+            {isAuthenticated && user ? (
+              <>
+                <Link
+                  to="/cart"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
+                  role="menuitem"
+                >
+                  <ShoppingCart size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
+                  Cart
+                </Link>
+                <Link
+                  to="/account"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
+                  role="menuitem"
+                >
+                  <LayoutDashboard size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
+                  My Account
+                </Link>
+                <hr className="my-2 border-[#E6D8C9]/40" />
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 w-full px-4 py-3 text-left text-sm font-medium text-[#C62828] hover:bg-[#C62828]/5 transition-colors"
+                  role="menuitem"
+                >
+                  <LogOut size={16} strokeWidth={1.5} className="text-[#C62828]" aria-hidden="true" />
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
+                  role="menuitem"
+                >
+                  <LayoutDashboard size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
+                  My Account
+                </Link>
+                <hr className="my-2 border-[#E6D8C9]/40" />
+                <Link
+                  to="/register"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
+                  role="menuitem"
+                >
+                  <UserPlus size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
+                  Sign Up
+                </Link>
+                <Link
+                  to="/login"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors border-t border-[#E6D8C9]/40"
+                  role="menuitem"
+                >
+                  <LogIn size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
+                  Log In
+                </Link>
+              </>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
 
   const cartItems = useMemo(() => (Array.isArray(cart) ? cart : []), [cart])
   const totalItems = useMemo(() => cartItems.reduce((sum, item) => sum + item.quantity, 0), [cartItems])
@@ -105,7 +338,7 @@ export const Navbar = memo(() => {
     <>
       <header
         ref={navRef}
-        className={`relative w-full z-50 transition-all duration-300 sticky top-0 ${
+        className={`relative w-full z-[9999] transition-all duration-300 sticky top-0 ${
           scrolled
             ? 'bg-white/90 backdrop-blur-xl border-b border-[#E6D8C9]/40 shadow-[0_8px_32px_rgba(27,23,20,0.08)]'
             : 'bg-white/70 backdrop-blur-lg border-b border-[#E6D8C9]/30'
@@ -132,21 +365,39 @@ export const Navbar = memo(() => {
               </picture>
             </Link>
 
-            <nav className="flex items-center justify-end flex-1 relative z-50" role="navigation" aria-label="Main navigation">
+            <nav className="flex items-center justify-end flex-1 relative" role="navigation" aria-label="Main navigation">
               <div
-                className="flex items-center gap-3 animate-fade-in"
+                className="flex items-center gap-2 md:gap-3 animate-fade-in"
                 style={{ animationDelay: '0.05s' }}
               >
                 <Link
                   to="/shop"
                   onMouseEnter={() => handlePrefetch('/shop')}
-                  className="relative p-2.5 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
+                  className="relative p-2 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
                   aria-label="Shop With Us"
                 >
-                  <span className="hidden sm:inline-block text-[10px] md:text-[11px] font-medium uppercase tracking-[0.15em]">Shop With Us</span>
+                  <span className="hidden sm:inline-block text-[10px] md:text-[11px] font-medium uppercase tracking-[0.15em]">Shop</span>
                 </Link>
 
-                <div className="relative" ref={cartRef}>
+                <Link
+                  to="/virtual-design"
+                  onMouseEnter={() => handlePrefetch('/virtual-design')}
+                  className="relative p-2 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
+                  aria-label="Virtual Designs"
+                >
+                  <span className="hidden sm:inline-block text-[10px] md:text-[11px] font-medium uppercase tracking-[0.15em]">Virtual Designs</span>
+                </Link>
+
+                <Link
+                  to="/about"
+                  onMouseEnter={() => handlePrefetch('/about')}
+                  className="relative p-2 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
+                  aria-label="About Us"
+                >
+                  <span className="hidden sm:inline-block text-[10px] md:text-[11px] font-medium uppercase tracking-[0.15em]">About</span>
+                </Link>
+
+                <div className="relative">
                   <button
                     onClick={() => setCartOpen((p) => !p)}
                     className="relative p-2.5 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F] active:scale-95"
@@ -154,147 +405,16 @@ export const Navbar = memo(() => {
                     aria-expanded={cartOpen}
                     aria-haspopup="true"
                   >
-                    <Package size={20} md={22} strokeWidth={1.5} aria-hidden="true" />
+                    <ShoppingCart size={20} md={22} strokeWidth={1.5} aria-hidden="true" />
                     {totalItems > 0 && (
                       <span className="absolute -top-1 -right-1 min-w-[18px] h-5 rounded-full bg-[#E89A43] text-white text-[10px] font-semibold flex items-center justify-center px-1.5 animate-badge-in">
                         {totalItems > 99 ? '99+' : totalItems}
                       </span>
                     )}
                   </button>
-                  {/* Cart dropdown preserved */}
-                  {cartOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-[200] animate-fade-in"
-                        onClick={() => setCartOpen(false)}
-                        aria-hidden="true"
-                      />
-                      <div
-                        className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-2xl shadow-[0_20px_40px_rgba(42,36,31,0.15)] border border-[#E6D8C9]/60 overflow-hidden z-[201] backdrop-blur-xl bg-white/95 animate-fade-in"
-                        role="menu"
-                      >
-                        <div className="p-4 border-b border-[#E6D8C9]/40 flex items-center justify-between">
-                          <h3 className="font-display text-lg font-normal text-[#2A241F]">Shopping Cart</h3>
-                          <span className="text-sm text-[#2A241F]/50">{totalItems} item{totalItems !== 1 ? 's' : ''}</span>
-                        </div>
-
-                        {cartItems.length === 0 ? (
-                          <div className="p-8 text-center">
-                            <ShoppingBag size={32} strokeWidth={1} className="mx-auto text-[#E6D8C9] mb-3" />
-                            <p className="font-display text-lg text-[#2A241F]/30">Your cart is empty</p>
-                            <p className="mt-1 text-sm text-[#2A241F]/40">Add pieces from the shop to start your order</p>
-                            <Link
-                              to="/shop"
-                              onClick={() => setCartOpen(false)}
-                              className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-2xs font-semibold uppercase tracking-widest border border-[#E89A43] text-[#E89A43] hover:bg-[#E89A43] hover:text-white hover:border-[#E89A43] rounded-full transition"
-                            >
-                              Shop Now
-                            </Link>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="max-h-80 overflow-y-auto p-4 space-y-3">
-                              {cartItems.map((item) => (
-                                <div
-                                  key={`${item._id}-${item.selectedVariant?.color || 'default'}`}
-                                  className="flex gap-3 rounded-xl border border-[#E6D8C9]/40 bg-white/50 p-3 transition-colors hover:border-[#E89A43]/40"
-                                >
-                                  <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg">
-                                    <img
-                                      src={item.selectedVariant?.image || item.image || item.images?.[0]?.url}
-                                      alt={item.name}
-                                      className="h-full w-full object-cover"
-                                    />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-2xs font-medium uppercase tracking-widest text-[#E89A43]">{item.category}</p>
-                                    <h4 className="mt-0.5 font-display text-base font-medium text-[#2A241F] truncate">
-                                      <Link to={`/shop/${item._id}`} className="hover:text-[#E89A43] transition-colors" onClick={() => setCartOpen(false)}>
-                                        {item.name}
-                                      </Link>
-                                    </h4>
-                                    {item.selectedVariant && (
-                                      <div className="mt-0.5 flex items-center gap-1.5">
-                                        <span className="h-3 w-3 rounded-full border border-[#2A241F]/10" style={{ backgroundColor: item.selectedVariant.colorHex || '#ccc' }} />
-                                        <span className="text-xs text-[#2A241F]/60">{item.selectedVariant.color}</span>
-                                      </div>
-                                    )}
-                                    <p className="mt-1 text-sm font-medium text-[#2A241F]">${Number(item.selectedVariant?.price || item.discountPrice || item.price || 0).toFixed(2)}</p>
-                                  </div>
-                                  <div className="flex flex-col items-end gap-1.5">
-                                    <button
-                                      onClick={() => removeFromCart(item._id, item.selectedVariant)}
-                                      className="p-1.5 rounded-lg text-[#2A241F]/40 hover:text-[#E89A43] hover:bg-[#E6D8C9]/30 transition-colors"
-                                      aria-label="Remove from cart"
-                                    >
-                                      <X size={14} strokeWidth={1.5} />
-                                    </button>
-                                    <div className="flex items-center rounded-full border border-[#E6D8C9]/60 bg-white">
-                                      <button
-                                        onClick={() => setCartQuantity(item._id, item.quantity - 1, item.selectedVariant)}
-                                        disabled={item.quantity <= 1}
-                                        className="flex h-8 w-8 items-center justify-center text-[#2A241F]/50 transition hover:text-[#2A241F] disabled:opacity-30 disabled:cursor-not-allowed"
-                                        aria-label="Decrease quantity"
-                                      >
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                                      </button>
-                                      <span className="min-w-8 text-center text-sm font-medium text-[#2A241F]">{item.quantity}</span>
-                                      <button
-                                        onClick={() => setCartQuantity(item._id, item.quantity + 1, item.selectedVariant)}
-                                        className="flex h-8 w-8 items-center justify-center text-[#2A241F]/50 transition hover:text-[#2A241F]"
-                                        aria-label="Increase quantity"
-                                      >
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="border-t border-[#E6D8C9]/40 p-4 space-y-3">
-                              <div className="flex justify-between text-sm">
-                                <span className="text-[#2A241F]/55">Subtotal</span>
-                                <span className="font-medium text-[#2A241F]">${cartSubtotal.toFixed(2)}</span>
-                              </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-[#2A241F]/55">Shipping</span>
-                                <span className="font-medium text-[#2A241F]">Free</span>
-                              </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-[#2A241F]/55">Tax</span>
-                                <span className="font-medium text-[#2A241F]">Calculated at checkout</span>
-                              </div>
-                              <div className="border-t border-[#E6D8C9]/40 pt-3">
-                                <div className="flex justify-between text-lg font-semibold text-[#2A241F]">
-                                  <span>Total</span>
-                                  <span>${cartSubtotal.toFixed(2)}</span>
-                                </div>
-                              </div>
-                              <Link
-                                to="/cart"
-                                onClick={() => setCartOpen(false)}
-                                className="w-full flex items-center justify-center gap-2 rounded-full bg-[#2A241F] px-6 py-3 text-xs font-medium uppercase tracking-widest text-white transition hover:bg-[#2A241F]/90 hover:shadow-lg"
-                              >
-                                <Package size={14} strokeWidth={1.5} />
-                                View Cart
-                              </Link>
-                              <Link
-                                to="/checkout"
-                                onClick={() => setCartOpen(false)}
-                                className="w-full flex items-center justify-center gap-2 rounded-full border border-[#E6D8C9] bg-white px-6 py-3 text-xs font-medium uppercase tracking-widest text-[#2A241F]/70 transition hover:border-[#E89A43] hover:text-[#E89A43]"
-                              >
-                                <CreditCard size={14} strokeWidth={1.5} />
-                                Checkout
-                              </Link>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </>
-                  )}
                 </div>
 
-                <div className="relative" role="menu" aria-label="User menu" ref={userMenuRef}>
+                <div className="relative" role="menu" aria-label="User menu">
                   <button
                     onClick={() => setUserMenuOpen((p) => !p)}
                     className="p-2.5 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
@@ -318,83 +438,6 @@ export const Navbar = memo(() => {
                       <path d="M6 9l6 6 6-6" />
                     </svg>
                   </button>
-                  {/* User dropdown preserved */}
-                  {userMenuOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-[200] animate-fade-in"
-                        onClick={() => setUserMenuOpen(false)}
-                        aria-hidden="true"
-                      />
-                      <div
-                        className="absolute right-0 mt-3 w-56 md:w-64 bg-white rounded-2xl shadow-[0_20px_40px_rgba(42,36,31,0.15)] border border-[#E6D8C9]/60 overflow-hidden z-[201] backdrop-blur-xl bg-white/95 animate-fade-in"
-                        role="menu"
-                      >
-                        {isAuthenticated && user ? (
-                          <>
-                            <Link
-                              to="/cart"
-                              onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
-                              role="menuitem"
-                            >
-                              <ShoppingCart size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                              Cart
-                            </Link>
-                            <Link
-                              to="/account"
-                              onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
-                              role="menuitem"
-                            >
-                              <LayoutDashboard size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                              My Account
-                            </Link>
-                            <hr className="my-2 border-[#E6D8C9]/40" />
-                            <button
-                              onClick={handleLogout}
-                              className="flex items-center gap-3 w-full px-4 py-3 text-left text-sm font-medium text-[#C62828] hover:bg-[#C62828]/5 transition-colors"
-                              role="menuitem"
-                            >
-                              <LogOut size={16} strokeWidth={1.5} className="text-[#C62828]" aria-hidden="true" />
-                              Logout
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <Link
-                              to="/login"
-                              onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
-                              role="menuitem"
-                            >
-                              <LayoutDashboard size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                              My Account
-                            </Link>
-                            <hr className="my-2 border-[#E6D8C9]/40" />
-                            <Link
-                              to="/register"
-                              onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
-                              role="menuitem"
-                            >
-                              <UserPlus size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                              Sign Up
-                            </Link>
-                            <Link
-                              to="/login"
-                              onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors border-t border-[#E6D8C9]/40"
-                              role="menuitem"
-                            >
-                              <LogIn size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                              Log In
-                            </Link>
-                          </>
-                        )}
-                      </div>
-                    </>
-                  )}
                 </div>
               </div>
             </nav>
@@ -420,7 +463,7 @@ export const Navbar = memo(() => {
             </Link>
 
             <button
-              className="fixed top-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full text-[#8B5E3C] bg-white/95 backdrop-blur-sm shadow-xl transition-all duration-300 hover:bg-[#E6D8C9]/60 active:scale-95"
+              className="fixed top-5 right-5 z-[9998] flex h-14 w-14 items-center justify-center rounded-full text-[#8B5E3C] bg-white/95 backdrop-blur-sm shadow-xl transition-all duration-300 hover:bg-[#E6D8C9]/60 active:scale-95"
               onClick={() => setMobileOpen((p) => !p)}
               aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileOpen}
@@ -430,6 +473,9 @@ export const Navbar = memo(() => {
           </div>
         </div>
       </header>
+
+      {createPortal(<CartDropdown />, document.body)}
+      {createPortal(<UserDropdown />, document.body)}
 
       {/* FULLSCREEN MOBILE MENU - rendered outside header to avoid stacking context issues */}
       <AnimatePresence>
@@ -515,7 +561,7 @@ export const Navbar = memo(() => {
                               className="flex items-center gap-5 rounded-2xl px-5 py-4.5 text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-all duration-300"
                             >
                               <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E6D8C9]/40 text-[#2A241F]/70">
-                                <Package size={20} strokeWidth={1.5} aria-hidden="true" />
+                                <ShoppingCart size={20} strokeWidth={1.5} aria-hidden="true" />
                               </span>
                               <span className="font-display text-lg md:text-xl font-normal tracking-wide">Cart</span>
                             </Link>

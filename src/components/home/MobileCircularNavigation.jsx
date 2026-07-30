@@ -1,4 +1,5 @@
 import { useMemo, memo } from 'react'
+import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
@@ -10,9 +11,8 @@ const NAV_ITEMS_MOBILE = [
     label: 'Portfolio',
     path: '/portfolio',
     getImage: (data) => {
-      const featured = (data.portfolio || []).filter((p) => p.featured)
-      const source = featured.length > 0 ? featured : data.portfolio || []
-      const item = source[0]
+      const list = data.portfolio || []
+      const item = list[0]
       if (!item) return null
       return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
     },
@@ -32,9 +32,8 @@ const NAV_ITEMS_MOBILE = [
     label: 'Virtual Designs',
     path: '/virtual-design',
     getImage: (data) => {
-      const featured = (data.virtualDesigns || []).filter((v) => v.featured)
-      const source = featured.length > 0 ? featured : data.virtualDesigns || []
-      const item = source[0]
+      const list = data.virtualDesigns || []
+      const item = list[0]
       if (!item) return null
       return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
     },
@@ -45,8 +44,7 @@ const NAV_ITEMS_MOBILE = [
     path: '/shop',
     getImage: (data) => {
       const list = Array.isArray(data.products) ? data.products : []
-      const featured = list.find((p) => p.featured)
-      const product = featured || list[0] || null
+      const product = list[0] || null
       if (!product) return null
       const images = Array.isArray(product.images) ? product.images : []
       const firstImage = images.find((img) => {
@@ -69,9 +67,8 @@ const NAV_ITEMS_MOBILE = [
     label: 'Blog',
     path: '/blog',
     getImage: (data) => {
-      const featured = (data.blog || []).filter((b) => b.featured)
-      const source = featured.length > 0 ? featured : data.blog || []
-      const item = source[0]
+      const list = data.blog || []
+      const item = list[0]
       if (!item) return null
       return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
     },
@@ -149,15 +146,25 @@ const CircleItemMobile = memo(({ item, data }) => {
           className="relative flex flex-col items-center group focus:outline-none w-full"
           aria-label={`${item.label} — tap to explore`}
         >
-          <div
-            className="relative rounded-full transition-opacity duration-200 hover:opacity-90 active:opacity-80"
+          <motion.div
+            className="relative rounded-full overflow-hidden"
             style={{
               width: CIRCLE_SIZE,
               height: CIRCLE_SIZE,
               boxShadow: '0 8px 25px rgba(42,36,31,0.1)',
               border: '2px solid #E89A43',
               background: '#F5EFE8',
-              overflow: 'hidden',
+            }}
+            whileHover={{ scale: 1.03, y: -4 }}
+            animate={{ y: [0, -6, 0] }}
+            transition={{ 
+              type: 'spring', 
+              stiffness: 300, 
+              damping: 20,
+              repeat: Infinity,
+              repeatType: 'reverse',
+              duration: 4,
+              repeatDelay: 2
             }}
           >
             {imageUrl ? (
@@ -174,7 +181,12 @@ const CircleItemMobile = memo(({ item, data }) => {
                 {placeholder}
               </div>
             )}
-          </div>
+            <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+              style={{
+                boxShadow: 'inset 0 0 30px rgba(232,154,67,0.15)',
+              }}
+            />
+          </motion.div>
 
           <div
             className="mt-6 w-full max-w-xs px-4"

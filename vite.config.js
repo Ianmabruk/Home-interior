@@ -156,6 +156,12 @@ export default defineConfig({
           if (id.includes('node_modules/axios')) {
             return 'vendor-axios'
           }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'vendor-icons'
+          }
+          if (id.includes('node_modules/react-hot-toast')) {
+            return 'vendor-toast'
+          }
         },
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',

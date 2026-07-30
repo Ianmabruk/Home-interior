@@ -3,7 +3,14 @@ import { HeroSection } from '@components/home/HeroSection'
 import { BrandingBanner } from '@components/home/BrandingBanner'
 import { CircularNavigationGrid } from '@components/home/CircularNavigationGrid'
 import { MobileCircularNavigation } from '@components/home/MobileCircularNavigation'
+import { PortfolioSection } from '@components/home/PortfolioSection'
+import { VirtualDesignSection } from '@components/home/VirtualDesignSection'
+import { AboutSection } from '@components/home/AboutSection'
+import { ServicesSection } from '@components/home/ServicesSection'
+import { ShopSection } from '@components/home/ShopSection'
+import { ContactSection } from '@components/home/ContactSection'
 import { SectionErrorBoundary } from '@components/home/SectionErrorBoundary'
+import { ScrollReveal } from '@utils/scrollReveal'
 import { api } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
@@ -56,6 +63,7 @@ export const HomePage = () => {
 
   useEffect(() => {
     loadData()
+    return () => { loadData()?.catch(() => {}) }
   }, [loadData])
 
   useEffect(() => {
@@ -97,35 +105,75 @@ export const HomePage = () => {
         <HeroSection heroImages={heroImages} className="w-full" />
       </SectionErrorBoundary>
 
-      <BrandingBanner />
+      <ScrollReveal>
+        <BrandingBanner />
+      </ScrollReveal>
 
       {/* DESKTOP: CIRCULAR NAVIGATION GRID (3x2) */}
-      <div className="hidden md:block">
-        <SectionErrorBoundary sectionName="CircularNavigation" fallback={<EmptySection />}>
-          <CircularNavigationGrid
-            portfolio={portfolio}
-            virtualDesigns={virtualDesigns}
-            services={services}
-            products={products}
-            about={about}
-            blog={blog}
-          />
-        </SectionErrorBoundary>
-      </div>
+      <ScrollReveal delay={100}>
+        <div className="hidden md:block">
+          <SectionErrorBoundary sectionName="CircularNavigation" fallback={<EmptySection />}>
+            <CircularNavigationGrid
+              portfolio={portfolio}
+              virtualDesigns={virtualDesigns}
+              services={services}
+              products={products}
+              about={about}
+              blog={blog}
+            />
+          </SectionErrorBoundary>
+        </div>
+      </ScrollReveal>
 
       {/* MOBILE: VERTICAL CIRCULAR NAVIGATION STACK */}
-      <div className="md:hidden">
-        <SectionErrorBoundary sectionName="MobileCircularNavigation" fallback={<EmptySection />}>
-          <MobileCircularNavigation
-            portfolio={portfolio}
-            virtualDesigns={virtualDesigns}
-            services={services}
-            products={products}
-            about={about}
-            blog={blog}
-          />
+      <ScrollReveal delay={100}>
+        <div className="md:hidden">
+          <SectionErrorBoundary sectionName="MobileCircularNavigation" fallback={<EmptySection />}>
+            <MobileCircularNavigation
+              portfolio={portfolio}
+              virtualDesigns={virtualDesigns}
+              services={services}
+              products={products}
+              about={about}
+              blog={blog}
+            />
+          </SectionErrorBoundary>
+        </div>
+      </ScrollReveal>
+
+      <ScrollReveal delay={200}>
+        <SectionErrorBoundary sectionName="Portfolio" fallback={<EmptySection />}>
+          <PortfolioSection portfolio={portfolio} />
         </SectionErrorBoundary>
-      </div>
+      </ScrollReveal>
+
+      <ScrollReveal delay={200}>
+        <SectionErrorBoundary sectionName="VirtualDesign" fallback={<EmptySection />}>
+          <VirtualDesignSection virtualDesigns={virtualDesigns} />
+        </SectionErrorBoundary>
+      </ScrollReveal>
+
+      <ScrollReveal delay={200}>
+        <SectionErrorBoundary sectionName="Services" fallback={<EmptySection />}>
+          <ServicesSection services={services} />
+        </SectionErrorBoundary>
+      </ScrollReveal>
+
+      <ScrollReveal delay={200}>
+        <SectionErrorBoundary sectionName="Shop" fallback={<EmptySection />}>
+          <ShopSection products={products} />
+        </SectionErrorBoundary>
+      </ScrollReveal>
+
+      <ScrollReveal delay={200}>
+        <SectionErrorBoundary sectionName="About" fallback={<EmptySection />}>
+          <AboutSection aboutData={about} />
+        </SectionErrorBoundary>
+      </ScrollReveal>
+
+      <ScrollReveal delay={200}>
+        <ContactSection />
+      </ScrollReveal>
 
       <ConsultationModal isOpen={showModal} onClose={() => setShowModal(false)} />
     </main>

@@ -4,15 +4,18 @@ import { failure } from '../utils/response.js'
 
 export const orderController = {
   create: asyncHandler(async (req, res) => {
+    const rawItems = typeof req.body.items === 'string' ? req.body.items : JSON.stringify(req.body.items || [])
+    const rawShipping = typeof req.body.shippingAddress === 'string' ? req.body.shippingAddress : JSON.stringify(req.body.shippingAddress || {})
+    const rawPayment = typeof req.body.paymentDetails === 'string' ? req.body.paymentDetails : JSON.stringify(req.body.paymentDetails || {})
     const data = {
       email: req.body.email || '',
       name: req.body.name || '',
       phone: req.body.phone || '',
-      items: typeof req.body.items === 'string' ? req.body.items : JSON.stringify(req.body.items || {}),
-      shippingAddress: typeof req.body.shippingAddress === 'string' ? req.body.shippingAddress : JSON.stringify(req.body.shippingAddress || {}),
+      items: rawItems,
+      shippingAddress: rawShipping,
       shippingMethod: req.body.shippingMethod || 'standard',
       paymentMethod: req.body.paymentMethod || '',
-      paymentDetails: typeof req.body.paymentDetails === 'string' ? req.body.paymentDetails : JSON.stringify(req.body.paymentDetails || {}),
+      paymentDetails: rawPayment,
       total: Number(req.body.total) || 0,
     }
     const order = await orderService.createOrder(data)
@@ -33,6 +36,11 @@ export const orderController = {
     const { sort } = req.query
     const orders = await orderService.getAllOrders({ sort })
     res.json({ success: true, data: orders })
+  }),
+
+  get: asyncHandler(async (req, res) => {
+    const order = await orderService.getOrder(req.params.id)
+    res.json({ success: true, data: order })
   }),
 
   updateStatus: asyncHandler(async (req, res) => {

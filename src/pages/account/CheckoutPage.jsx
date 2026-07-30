@@ -78,10 +78,15 @@ export const CheckoutPage = () => {
         tax,
         total,
       }
-      await api.post('/orders', orderData)
+      const res = await api.post('/orders', orderData)
       await clearCart()
+      const orderId = res.data?._id || res.data?.id
       setSuccess(true)
-      setTimeout(() => navigate('/orders'), 2000)
+      if (orderId) {
+        setTimeout(() => navigate(`/account/orders/${orderId}`), 2500)
+      } else {
+        setTimeout(() => navigate('/account/orders'), 2500)
+      }
     } catch (err) {
       setError(err?.message || 'Failed to place order')
     } finally {

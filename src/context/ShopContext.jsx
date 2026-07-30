@@ -93,7 +93,7 @@ export function ShopProvider({ children }) {
       fetchCart,
       fetchWishlist,
     }),
-    [cart, wishlist, loading, addToCart, removeFromCart, setCartQuantity, clearCart, addToWishlist, removeFromWishlist, toggleWishlist, fetchCart, fetchWishlist],
+    [cart, wishlist, loading, addToCart, removeFromCart, setCartQuantity, clearCart, addToWishlist, removeFromWishlist, toggleWishlist, fetchCart, fetchWishlist]
   )
 
   return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>

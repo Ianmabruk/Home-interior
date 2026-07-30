@@ -69,8 +69,10 @@ const ResetPasswordPage = lazyWithCache(() => import('@pages/auth/ResetPasswordP
 // Account pages
 const AccountPage = lazyWithCache(() => import('@pages/account/AccountPage').then(m => ({ default: m.AccountPage })), 'account')
 const CartPage = lazyWithCache(() => import('@pages/account/CartPage').then(m => ({ default: m.CartPage })), 'cart')
-const WishlistPage = lazyWithCache(() => import('@pages/account/WishlistPage').then(m => ({ default: m.WishlistPage })), 'wishlist')
 const CheckoutPage = lazyWithCache(() => import('@pages/account/CheckoutPage').then(m => ({ default: m.CheckoutPage })), 'checkout')
+const OrdersPage = lazyWithCache(() => import('@pages/account/OrdersPage').then(m => ({ default: m.OrdersPage })), 'orders')
+const OrderConfirmationPage = lazyWithCache(() => import('@pages/account/OrderConfirmationPage').then(m => ({ default: m.OrderConfirmationPage })), 'order-confirmation')
+const WishlistPage = lazyWithCache(() => import('@pages/account/WishlistPage').then(m => ({ default: m.WishlistPage })), 'wishlist')
 
 // Admin pages
 const AdminPage = lazyWithCache(() => import('@pages/admin/AdminPage').then(m => ({ default: m.AdminPage })), 'admin')
@@ -150,6 +152,9 @@ export const AppRouter = () => {
             <Route path="/wishlist" element={<ErrorBoundaryRoute element={<WishlistPage />} />} />
             <Route path="/cart" element={<ErrorBoundaryRoute element={<CartPage />} />} />
             <Route path="/checkout" element={<ErrorBoundaryRoute element={<CheckoutPage />} />} />
+            <Route path="/account/orders" element={<ErrorBoundaryRoute element={<OrdersPage />} />} />
+            <Route path="/account/orders/:id" element={<ErrorBoundaryRoute element={<OrderConfirmationPage />} />} />
+            <Route path="/order-confirmation" element={<ErrorBoundaryRoute element={<OrderConfirmationPage />} />} />
           </Route>
 
           <Route element={<ProtectedRoute adminOnly />}>

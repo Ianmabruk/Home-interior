@@ -1,4 +1,5 @@
 import { useMemo, memo } from 'react'
+import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
@@ -10,9 +11,8 @@ const NAV_ITEMS = [
     label: 'Portfolio',
     path: '/portfolio',
     getImage: (data) => {
-      const featured = (data.portfolio || []).filter((p) => p.featured)
-      const source = featured.length > 0 ? featured : data.portfolio || []
-      const item = source[0]
+      const list = data.portfolio || []
+      const item = list[0]
       if (!item) return null
       return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
     },
@@ -22,9 +22,8 @@ const NAV_ITEMS = [
     label: 'Virtual Designs',
     path: '/virtual-design',
     getImage: (data) => {
-      const featured = (data.virtualDesigns || []).filter((v) => v.featured)
-      const source = featured.length > 0 ? featured : data.virtualDesigns || []
-      const item = source[0]
+      const list = data.virtualDesigns || []
+      const item = list[0]
       if (!item) return null
       return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
     },
@@ -68,9 +67,8 @@ const NAV_ITEMS = [
     label: 'Blog',
     path: '/blog',
     getImage: (data) => {
-      const featured = (data.blog || []).filter((b) => b.featured)
-      const source = featured.length > 0 ? featured : data.blog || []
-      const item = source[0]
+      const list = data.blog || []
+      const item = list[0]
       if (!item) return null
       return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
     },
@@ -147,16 +145,26 @@ const CircleItem = memo(({ item, data }) => {
       className="relative flex flex-col items-center group focus:outline-none"
       aria-label={`${item.label} — tap to explore`}
     >
-      <div
-        className="relative rounded-full transition-transform duration-300 hover:scale-[1.02] active:scale-[0.98]"
+      <motion.div
+        className="relative rounded-full overflow-hidden"
         style={{
           width: circleSize,
           height: circleSize,
           boxShadow: '0 12px 40px rgba(42,36,31,0.12)',
           border: '3px solid #E89A43',
           background: '#F5EFE8',
-          overflow: 'hidden',
           flexShrink: 0,
+        }}
+        whileHover={{ scale: 1.03, y: -4 }}
+        animate={{ y: [0, -6, 0] }}
+        transition={{ 
+          type: 'spring', 
+          stiffness: 300, 
+          damping: 20,
+          repeat: Infinity,
+          repeatType: 'reverse',
+          duration: 4,
+          repeatDelay: 2
         }}
       >
         {imageUrl ? (
@@ -172,7 +180,12 @@ const CircleItem = memo(({ item, data }) => {
             {placeholder}
           </div>
         )}
-      </div>
+        <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+          style={{
+            boxShadow: 'inset 0 0 30px rgba(232,154,67,0.15)',
+          }}
+        />
+      </motion.div>
 
       <div
         className="mt-6 w-full max-w-xs px-4"

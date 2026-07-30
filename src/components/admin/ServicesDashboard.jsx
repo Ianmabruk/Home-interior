@@ -130,7 +130,7 @@ export const ServicesDashboard = () => {
         await api.post('/admin/services', payload)
       }
       resetForm()
-      const res = await api.get('/services')
+      const res = await api.get('/admin/services')
       setServices(Array.isArray(res.data) ? res.data : res.data?.items || [])
       dispatchAdminDataChanged('services-changed')
     } catch (err) {

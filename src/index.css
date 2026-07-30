@@ -453,17 +453,90 @@ section > .container-wide {
     animation: dropdownFadeUp 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 
-  /* Hero Image Overlay - Luxury Fade Left to Right */
-  .hero-overlay-luxury {
-    background: linear-gradient(
-      90deg,
-      rgba(250,248,244,0.92) 0%,
-      rgba(250,248,244,0.80) 20%,
-      rgba(250,248,244,0.50) 40%,
-      rgba(250,248,244,0.15) 65%,
-      rgba(250,248,244,0.00) 100%
-    );
+  /* Hero Glassmorphism Overlay */
+.hero-glass-overlay {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* Smooth scroll behavior */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
   }
+}
+
+/* Optimize animations for 60fps */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* Parallax utility */
+.parallax-slow {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Luxury hover effects */
+.hover-lift-subtle {
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hover-lift-subtle:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(42, 36, 31, 0.08);
+}
+
+/* Image loading optimization */
+img[loading="lazy"] {
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+img[loading="lazy"].loaded {
+  opacity: 1;
+}
+
+/* Prevent layout shifts */
+.aspect-square {
+  aspect-ratio: 1 / 1;
+}
+
+.aspect-video {
+  aspect-ratio: 16 / 9;
+}
+
+.aspect-portrait {
+  aspect-ratio: 3 / 4;
+}
+
+/* Focus visible for accessibility */
+.focus-visible-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-white;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in,
+  .hover-lift,
+  .hover-scale,
+  .hover-scale-subtle {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
 
   /* Social Icon Circular Outline */
   .social-icon {
