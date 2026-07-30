@@ -40,7 +40,7 @@ const NAV_ITEMS = [
   },
   {
     key: 'shop',
-    label: 'Shop With Us',
+    label: 'Showroom',
     path: '/shop',
     getImage: (data) => {
       const list = Array.isArray(data.products) ? data.products : []
@@ -57,12 +57,6 @@ const NAV_ITEMS = [
     },
   },
   {
-    key: 'about',
-    label: 'About Us',
-    path: '/about',
-    getImage: (data) => data.about?.imageUrl || null,
-  },
-  {
     key: 'blog',
     label: 'Blog',
     path: '/blog',
@@ -74,10 +68,22 @@ const NAV_ITEMS = [
     },
   },
   {
+    key: 'about',
+    label: 'About',
+    path: '/about',
+    getImage: (data) => data.about?.imageUrl || null,
+  },
+  {
     key: 'socials',
     label: 'Socials',
     path: '/socials',
     getImage: (data) => data.about?.imageUrl || null,
+  },
+  {
+    key: 'contact',
+    label: 'Contact',
+    path: '#contact',
+    getImage: () => null,
   },
 ]
 
@@ -130,6 +136,11 @@ const PlaceholderIcons = {
       <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2h10" />
       <line x1="8" y1="7" x2="16" y2="7" />
       <line x1="8" y1="11" x2="13" y2="11" />
+    </svg>
+  ),
+  contact: (
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
     </svg>
   ),
 }
