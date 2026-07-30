@@ -27,7 +27,68 @@ function parseOrder(order) {
 }
 
 async function createOrder(data) {
-  const order = await prisma.order.create({ data })
+  const enrichedItems = Array.isArray(data.items) ? data.items : (() => { try { return JSON.parse(data.items || '[]') } catch { return [] } })()
+  const productIds = enrichedItems.map((i) => i.productId).filter(Boolean)
+  const products = productIds.length > 0 ? await prisma.product.findMany({
+    where: { id: { in: productIds } },
+    include: { variants: true },
+  }) : []
+  const productMap = new Map(products.map((p) => [p.id, p]))
+
+  const finalItems = enrichedItems.map((item) => {
+    const product = productMap.get(item.productId)
+    const variant = product?.variants?.find((v) => v.id === item.variantId)
+    return {
+      productId: item.productId,
+      variantId: item.variantId,
+      quantity: item.quantity,
+      price: item.price,
+      name: product?.name || 'Unknown Product',
+      image: variant?.image || product?.mainImage || product?.images?.[0] || '',
+      selectedVariant: variant ? {
+        id: variant.id,
+        color: variant.color,
+        colorHex: variant.colorHex,
+        image: variant.image,
+        price: variant.price,
+        stock: variant.stock,
+      } : null,
+    }
+  })
+
+  const order = await prisma.order.create({
+    data: {
+      ...data,
+      items: JSON.stringify(finalItems),
+    },
+  })
+
+  try {
+    for (const item of finalItems) {
+      if (!item.productId) continue
+      const product = productMap.get(item.productId)
+      if (!product) continue
+
+      const qty = Number(item.quantity) || 1
+      if (product.variants && item.variantId) {
+        const variant = product.variants.find((v) => v.id === item.variantId)
+        if (variant && variant.stock >= qty) {
+          await prisma.productVariant.update({
+            where: { id: variant.id },
+            data: { stock: { decrement: qty } },
+          })
+        }
+      } else if (product.stock >= qty) {
+        await prisma.product.update({
+          where: { id: product.id },
+          data: { stock: { decrement: qty } },
+        })
+      }
+    }
+  } catch (stockErr) {
+    console.error('[orderService] Failed to reduce stock:', stockErr)
+  }
+
   return parseOrder(order)
 }
 

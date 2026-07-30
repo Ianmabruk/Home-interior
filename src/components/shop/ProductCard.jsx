@@ -1,5 +1,5 @@
-import { memo } from 'react'
-import { Heart, ShoppingBag, Eye } from 'lucide-react'
+import { memo, useState } from 'react'
+import { Heart, ShoppingBag, Eye, CheckCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useShop } from '../../context/ShopContext'
 import { useCurrency } from '../../context/CurrencyContext'
@@ -19,6 +19,21 @@ export const ProductCard = memo(({ product, onQuickView }) => {
     : null
   const isWishlisted = wishlist?.some((w) => w._id === product._id)
   const price = (defaultVariant?.price ?? product.discountPrice) || product.price
+  const [adding, setAdding] = useState(false)
+  const [added, setAdded] = useState(false)
+
+  const handleAddToCart = async () => {
+    if (adding || product.stock === 0) return
+    setAdding(true)
+    setAdded(false)
+    try {
+      await addToCart(product, defaultVariant ? { color: defaultVariant.color, colorHex: defaultVariant.colorHex, image: defaultVariant.image } : null, 1)
+      setAdded(true)
+      setTimeout(() => setAdded(false), 2000)
+    } finally {
+      setAdding(false)
+    }
+  }
 
    return (
     <article
@@ -56,13 +71,17 @@ export const ProductCard = memo(({ product, onQuickView }) => {
             <Heart size={16} strokeWidth={1.5} fill={isWishlisted ? 'currentColor' : 'none'} />
           </button>
             <button
-             onClick={() => addToCart(product, defaultVariant ? { color: defaultVariant.color, colorHex: defaultVariant.colorHex, image: defaultVariant.image } : null, 1)}
-            disabled={product.stock === 0}
-            className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center bg-white rounded-full shadow-md text-[var(--primary)]/50 transition hover:bg-[var(--secondary)] disabled:opacity-40"
-            aria-label="Add to cart"
-          >
-            <ShoppingBag size={16} strokeWidth={1.5} />
-          </button>
+             onClick={handleAddToCart}
+             disabled={product.stock === 0 || adding}
+             className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center bg-white rounded-full shadow-md text-[var(--primary)]/50 transition hover:bg-[var(--secondary)] disabled:opacity-40"
+             aria-label="Add to cart"
+           >
+             {added ? (
+               <CheckCircle size={16} strokeWidth={2} className="text-green-600" />
+             ) : (
+               <ShoppingBag size={16} strokeWidth={1.5} />
+             )}
+           </button>
           <button
             onClick={() => onQuickView?.(product)}
             className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center bg-white rounded-full shadow-md text-[var(--primary)]/50 transition hover:bg-[var(--secondary)]"

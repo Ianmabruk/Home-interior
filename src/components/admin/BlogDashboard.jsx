@@ -114,18 +114,31 @@ export const BlogDashboard = () => {
       if (imageFile) payload.append('image', imageFile)
       if (videoFile) payload.append('video', videoFile)
 
-      if (editingId) {
-        await api.patch(`/admin/blog/${editingId}`, payload)
-      } else {
-        await api.post('/admin/blog', payload)
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 60000)
+
+      try {
+        if (editingId) {
+          await api.patch(`/admin/blog/${editingId}`, payload, { signal: controller.signal })
+        } else {
+          await api.post('/admin/blog', payload, { signal: controller.signal })
+        }
+      } finally {
+        clearTimeout(timeout)
       }
+
       resetForm()
       const res = await api.get('/admin/blog')
       setBlogs(Array.isArray(res.data) ? res.data : [])
       dispatchAdminDataChanged('blog-changed')
+      toast.success(editingId ? 'Blog updated successfully' : 'Blog created successfully')
     } catch (err) {
       console.error('Submit error:', err)
-      toast.error(err?.message || 'Failed to save blog. Please try again.')
+      if (err?.name === 'AbortError' || err?.message === 'canceled') {
+        toast.error('Upload timed out. Please try again.')
+      } else {
+        toast.error(err?.message || 'Failed to save blog. Please try again.')
+      }
     } finally {
       setLoading(false)
     }

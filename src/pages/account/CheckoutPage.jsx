@@ -17,6 +17,7 @@ export const CheckoutPage = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
+  const [orderId, setOrderId] = useState(null)
   const [formData, setFormData] = useState({
     firstName: user?.fullName?.split(' ')[0] || '',
     lastName: user?.fullName?.split(' ').slice(1).join(' ') || '',
@@ -94,10 +95,11 @@ export const CheckoutPage = () => {
       }
       const res = await api.post('/orders', orderData)
       await clearCart()
-      const orderId = res.data?._id || res.data?.id
+      const newOrderId = res.data?._id || res.data?.id
+      setOrderId(newOrderId)
       setSuccess(true)
-      if (orderId) {
-        setTimeout(() => navigate(`/account/orders/${orderId}`), 2500)
+      if (newOrderId) {
+        setTimeout(() => navigate(`/account/orders/${newOrderId}`), 2500)
       } else {
         setTimeout(() => navigate('/account/orders'), 2500)
       }
@@ -164,17 +166,32 @@ export const CheckoutPage = () => {
             <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-[var(--success)]/10 text-[var(--success)]">
               <CheckCircle size={48} strokeWidth={1.5} />
             </div>
-            <h1 className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-4">Order Confirmed!</h1>
-            <p className="text-[var(--primary)]/60 mb-8 max-w-md mx-auto">Thank you for your order. You&apos;ll receive a confirmation email shortly.</p>
-             <Link to="/orders" className="btn-luxury-primary inline-flex items-center gap-2">
-               View Orders
-               <ChevronRight size={14} strokeWidth={1.5} />
-             </Link>
+            <h1 className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-4">Payment Successful</h1>
+            <p className="text-[var(--primary)]/60 mb-2 max-w-md mx-auto">Your order has been received.</p>
+            {orderId && (
+              <p className="text-sm text-[var(--primary)]/50 mb-6">
+                Order Number: <span className="font-semibold text-[var(--primary)]">#{String(orderId).slice(-8).toUpperCase()}</span>
+              </p>
+            )}
+            <p className="text-sm text-[var(--primary)]/50 mb-8">Estimated delivery: 3-5 business days</p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link to="/shop" className="btn-luxury-primary inline-flex items-center gap-2">
+                Continue Shopping
+                <ChevronRight size={14} strokeWidth={1.5} />
+              </Link>
+              {orderId && (
+                <Link to={`/account/orders/${orderId}`} className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--border)] bg-white text-xs font-semibold uppercase tracking-widest text-[var(--primary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all">
+                  View Order
+                  <ChevronRight size={14} strokeWidth={1.5} />
+                </Link>
+              )}
+            </div>
           </motion.div>
         ) : (
           <div className="grid gap-8 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-8">
               <motion.form
+                id="checkout-form"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 onSubmit={handleSubmit}

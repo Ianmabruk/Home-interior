@@ -19,7 +19,7 @@ export const blogController = {
   }),
 
   create: asyncHandler(async (req, res) => {
-    const imageFile = req.file || null
+    const imageFile = req.files?.image?.[0] || null
     const videoFile = req.files?.video?.[0] || null
     const data = {
       title: req.body.title || 'Untitled',
@@ -33,7 +33,7 @@ export const blogController = {
   }),
 
   update: asyncHandler(async (req, res) => {
-    const imageFile = req.file || null
+    const imageFile = req.files?.image?.[0] || null
     const videoFile = req.files?.video?.[0] || null
     const data = {}
     if (req.body.title !== undefined) data.title = req.body.title
