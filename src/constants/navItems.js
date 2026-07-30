@@ -9,11 +9,9 @@ export const NAV_ITEMS = [
 export const FULLSCREEN_MENU_ITEMS = [
   { to: '/', label: 'Home', icon: 'Home' },
   { to: '/portfolio', label: 'Portfolio', icon: 'LayoutGrid' },
-  { to: '/virtual-design', label: 'Virtual Design', icon: 'MonitorSmartphone' },
   { to: '/services', label: 'Services', icon: 'Sparkles' },
-  { to: '/shop', label: 'Shop', icon: 'ShoppingBag' },
-  { to: '/socials', label: 'Socials', icon: 'Mail' },
   { to: '/about', label: 'About Us', icon: 'User' },
+  { to: '/socials', label: 'Socials', icon: 'Mail' },
 ]
 
 export const FOOTER_NAV_GROUPS = [

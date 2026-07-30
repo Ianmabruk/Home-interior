@@ -8,30 +8,7 @@ export const orderService = {
   updateOrderStatus,
 }
 
-async function createOrder(data) {
-  const order = await prisma.order.create({ data })
-  return {
-    _id: order.id,
-    id: order.id,
-    email: order.email,
-    name: order.name,
-    phone: order.phone,
-    items: order.items,
-    shippingAddress: order.shippingAddress,
-    shippingMethod: order.shippingMethod,
-    paymentMethod: order.paymentMethod,
-    paymentDetails: order.paymentDetails,
-    total: order.total,
-    status: order.status,
-    createdAt: order.createdAt,
-  }
-}
-
-async function getOrder(id) {
-  const order = await prisma.order.findUnique({
-    where: { id },
-  })
-  if (!order) throw failure(404, 'Order not found')
+function parseOrder(order) {
   return {
     _id: order.id,
     id: order.id,
@@ -49,26 +26,25 @@ async function getOrder(id) {
   }
 }
 
+async function createOrder(data) {
+  const order = await prisma.order.create({ data })
+  return parseOrder(order)
+}
+
+async function getOrder(id) {
+  const order = await prisma.order.findUnique({
+    where: { id },
+  })
+  if (!order) throw failure(404, 'Order not found')
+  return parseOrder(order)
+}
+
 async function getUserOrders(email) {
   const orders = await prisma.order.findMany({
     where: { email },
     orderBy: { createdAt: 'desc' },
   })
-  return orders.map((o) => ({
-    _id: o.id,
-    id: o.id,
-    email: o.email,
-    name: o.name,
-    phone: o.phone,
-    items: typeof o.items === 'string' ? (() => { try { return JSON.parse(o.items) } catch { return [] } })() : (o.items || []),
-    shippingAddress: typeof o.shippingAddress === 'string' ? (() => { try { return JSON.parse(o.shippingAddress) } catch { return {} } })() : (o.shippingAddress || {}),
-    shippingMethod: o.shippingMethod,
-    paymentMethod: o.paymentMethod,
-    paymentDetails: typeof o.paymentDetails === 'string' ? (() => { try { return JSON.parse(o.paymentDetails) } catch { return {} } })() : (o.paymentDetails || {}),
-    total: o.total,
-    status: o.status,
-    createdAt: o.createdAt,
-  }))
+  return orders.map(parseOrder)
 }
 
 async function getAllOrders({ sort = '-createdAt', limit = 100 } = {}) {
@@ -77,17 +53,7 @@ async function getAllOrders({ sort = '-createdAt', limit = 100 } = {}) {
     orderBy,
     take: Number(limit) || 100,
   })
-  return orders.map((o) => ({
-    _id: o.id,
-    id: o.id,
-    email: o.email,
-    name: o.name,
-    phone: o.phone,
-    items: o.items,
-    total: o.total,
-    status: o.status,
-    createdAt: o.createdAt,
-  }))
+  return orders.map(parseOrder)
 }
 
 async function updateOrderStatus(id, status) {
@@ -95,15 +61,5 @@ async function updateOrderStatus(id, status) {
     where: { id },
     data: { status },
   })
-  return {
-    _id: order.id,
-    id: order.id,
-    email: order.email,
-    name: order.name,
-    phone: order.phone,
-    items: order.items,
-    total: order.total,
-    status: order.status,
-    createdAt: order.createdAt,
-  }
+  return parseOrder(order)
 }

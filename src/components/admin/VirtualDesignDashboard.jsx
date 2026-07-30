@@ -53,6 +53,8 @@ export const VirtualDesignDashboard = () => {
     }
    }, [])
 
+  useEffect(() => { load() }, [load])
+
   useEffect(() => {
     const handler = () => { load() }
     window.addEventListener('admin-data-changed', handler)

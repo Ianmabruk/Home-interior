@@ -219,6 +219,36 @@ model Order {
   @@index([status, createdAt(desc)])
 }
 
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id") @db.Text
+  adminEmail String?  @map("admin_email") @db.Text
+  productId String   @map("product_id") @db.Text
+  variant   String?  @db.Text
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("cart_items")
+  @@index([userId])
+  @@index([adminEmail])
+  @@index([productId])
+}
+
+model WishlistItem {
+  id         String   @id @default(cuid())
+  userId     String?  @map("user_id") @db.Text
+  adminEmail String?  @map("admin_email") @db.Text
+  productId  String   @map("product_id") @db.Text
+  variant    String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("wishlist_items")
+  @@index([userId])
+  @@index([adminEmail])
+  @@index([productId])
+}
+
 model Blog {
   id           String   @id @default(cuid())
   title        String   @db.Text

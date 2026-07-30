@@ -2,7 +2,12 @@ import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
 import { motion } from 'framer-motion'
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 
-const HOK_LINE = 'HOK Interiors'
+const HOK_LINE = (
+  <>
+    <span className="text-white">HOK</span>
+    <span className="text-[#E89A43]"> Interiors</span>
+  </>
+)
 const TAGLINE = 'Design • Build • Style'
 
 const titleVariants = {
@@ -164,22 +169,26 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
       </motion.div>
 
       <motion.div
-        className="absolute inset-0 flex items-center justify-center pointer-events-none"
+        className="absolute inset-0 flex items-end pointer-events-none"
+        style={{ paddingBottom: 'clamp(40px, 6vw, 80px)', paddingLeft: 'clamp(24px, 4vw, 64px)' }}
         initial="hidden"
         animate="visible"
       >
-        <div className="text-center px-6 max-w-6xl mx-auto">
+        <div className="max-w-6xl">
           <motion.h1
             variants={titleVariants}
-            className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-normal tracking-[0.02em] text-white drop-shadow-lg"
+            className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-normal tracking-[0.02em] drop-shadow-lg"
             style={{ textShadow: '0 4px 30px rgba(0,0,0,0.25)' }}
           >
             {HOK_LINE}
           </motion.h1>
           <motion.p
             variants={taglineVariants}
-            className="mt-4 md:mt-6 text-lg sm:text-xl md:text-2xl lg:text-3xl font-light tracking-[0.25em] uppercase text-white/90 drop-shadow-md"
-            style={{ textShadow: '0 2px 20px rgba(0,0,0,0.2)' }}
+            className="mt-4 md:mt-6 text-lg sm:text-xl md:text-2xl lg:text-3xl font-light tracking-[0.25em] uppercase text-white/90 drop-shadow-md relative z-10"
+            style={{ 
+              textShadow: '0 2px 20px rgba(0,0,0,0.2)',
+              marginTop: '-8px',
+            }}
           >
             {TAGLINE}
           </motion.p>

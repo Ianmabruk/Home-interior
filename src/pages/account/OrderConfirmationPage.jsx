@@ -159,7 +159,7 @@ export const OrderConfirmationPage = () => {
               <div className="md:col-span-2">
                 <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Address</p>
                 <p className="text-sm text-[var(--primary)] mt-1">
-                  {typeof order.shippingAddress === 'string' ? order.shippingAddress : JSON.stringify(order.shippingAddress || {})}
+                  {typeof order.shippingAddress === 'string' ? order.shippingAddress : (order.shippingAddress?.address || order.shippingAddress?.fullAddress || JSON.stringify(order.shippingAddress || {}))}
                 </p>
               </div>
               <div>

@@ -81,11 +81,7 @@ async function updateVirtualDesign(id, data, file, galleryFiles) {
   }
 
   if (galleryFiles.length > 0) {
-    const oldUrls = existing.mediaUrls || []
-    if (oldUrls.length > 0) {
-      try { await deleteFiles(oldUrls) } catch {}
-    }
-    const mediaUrls = []
+    const mediaUrls = [...(existing.mediaUrls || [])]
     for (const f of galleryFiles) {
       const uploaded = await uploadFile(f.buffer, f.mimetype, 'virtual-designs')
       mediaUrls.push(uploaded.url)

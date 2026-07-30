@@ -103,7 +103,7 @@ async function updatePortfolio(id, data, file, galleryFiles = []) {
     updateData.cloudinaryId = uploaded.path
   }
 
-  const mediaUrls = []
+  const mediaUrls = [...(existing.mediaUrls || [])]
   if (galleryFiles.length > 0) {
     for (const f of galleryFiles) {
       const uploaded = await uploadFile(f.buffer, f.mimetype, 'portfolio')

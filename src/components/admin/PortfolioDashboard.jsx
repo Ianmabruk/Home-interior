@@ -115,7 +115,7 @@ export const PortfolioDashboard = () => {
     })
     setMainImageFile(item.imageUrl ? { url: item.imageUrl } : null)
     setMainImagePreview(item.imageUrl ? item.imageUrl : null)
-    setGalleryFiles(item.galleryImages ? [{ url: item.galleryImages[0] }] : [])
+    setGalleryFiles(item.galleryImages ? item.galleryImages.map(url => ({ url })) : [])
     setGalleryPreviews(item.galleryImages ? item.galleryImages : [])
     setShowForm(true)
   }

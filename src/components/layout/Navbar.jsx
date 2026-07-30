@@ -368,36 +368,9 @@ export const Navbar = memo(() => {
 
             <nav className="flex items-center justify-end flex-1 relative" role="navigation" aria-label="Main navigation">
               <div
-                className="flex items-center gap-2 md:gap-3 animate-fade-in"
+                className="flex items-center gap-3 animate-fade-in"
                 style={{ animationDelay: '0.05s' }}
               >
-                <Link
-                  to="/shop"
-                  onMouseEnter={() => handlePrefetch('/shop')}
-                  className="relative p-2 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
-                  aria-label="Shop With Us"
-                >
-                  <span className="hidden sm:inline-block text-[10px] md:text-[11px] font-medium uppercase tracking-[0.15em]">Shop</span>
-                </Link>
-
-                <Link
-                  to="/virtual-design"
-                  onMouseEnter={() => handlePrefetch('/virtual-design')}
-                  className="relative p-2 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
-                  aria-label="Virtual Designs"
-                >
-                  <span className="hidden sm:inline-block text-[10px] md:text-[11px] font-medium uppercase tracking-[0.15em]">Virtual Designs</span>
-                </Link>
-
-                <Link
-                  to="/about"
-                  onMouseEnter={() => handlePrefetch('/about')}
-                  className="relative p-2 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
-                  aria-label="About Us"
-                >
-                  <span className="hidden sm:inline-block text-[10px] md:text-[11px] font-medium uppercase tracking-[0.15em]">About</span>
-                </Link>
-
                 <div className="relative">
                   <button
                     onClick={() => setCartOpen((p) => !p)}
@@ -418,7 +391,7 @@ export const Navbar = memo(() => {
                 <div className="relative" role="menu" aria-label="User menu">
                   <button
                     onClick={() => setUserMenuOpen((p) => !p)}
-                    className="p-2.5 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
+                    className="relative p-2.5 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
                     aria-expanded={userMenuOpen}
                     aria-haspopup="true"
                     aria-label="User menu"

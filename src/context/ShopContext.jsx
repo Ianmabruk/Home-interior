@@ -35,19 +35,19 @@ export function ShopProvider({ children }) {
   }, [isAuthenticated, fetchCart, fetchWishlist])
 
   const addToCart = useCallback(async (product, variant, quantity = 1) => {
-    const res = await api.post('/users/cart', { productId: product._id, variantId: variant?._id, quantity })
+    const res = await api.post('/users/cart', { productId: product._id, variant, quantity })
     setCart(Array.isArray(res.data) ? res.data : [])
     return res.data
   }, [])
 
-  const removeFromCart = useCallback(async (productId, variantId) => {
-    const res = await api.delete(`/users/cart/${productId}`, { data: { variantId } })
+  const removeFromCart = useCallback(async (productId, variant) => {
+    const res = await api.delete(`/users/cart/${productId}`, { data: { variant } })
     setCart(Array.isArray(res.data) ? res.data : [])
     return res.data
   }, [])
 
-  const setCartQuantity = useCallback(async (productId, quantity, variantId) => {
-    const res = await api.patch(`/users/cart/${productId}`, { quantity, variantId })
+  const setCartQuantity = useCallback(async (productId, quantity, variant) => {
+    const res = await api.patch(`/users/cart/${productId}`, { quantity, variant })
     setCart(Array.isArray(res.data) ? res.data : [])
     return res.data
   }, [])

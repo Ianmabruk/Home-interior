@@ -4,17 +4,23 @@ import { failure } from '../utils/response.js'
 
 export const orderController = {
   create: asyncHandler(async (req, res) => {
+    const shipping = req.body.shipping || {}
+    const name = shipping.fullName || shipping.name || req.body.name || ''
+    const email = shipping.email || req.body.email || ''
+    const phone = shipping.phone || req.body.phone || ''
+
     const rawItems = typeof req.body.items === 'string' ? req.body.items : JSON.stringify(req.body.items || [])
-    const rawShipping = typeof req.body.shippingAddress === 'string' ? req.body.shippingAddress : JSON.stringify(req.body.shippingAddress || {})
+    const rawShipping = typeof shipping === 'string' ? shipping : JSON.stringify(shipping)
     const rawPayment = typeof req.body.paymentDetails === 'string' ? req.body.paymentDetails : JSON.stringify(req.body.paymentDetails || {})
+
     const data = {
-      email: req.body.email || '',
-      name: req.body.name || '',
-      phone: req.body.phone || '',
+      email,
+      name,
+      phone,
       items: rawItems,
       shippingAddress: rawShipping,
       shippingMethod: req.body.shippingMethod || 'standard',
-      paymentMethod: req.body.paymentMethod || '',
+      paymentMethod: shipping.paymentMethod || req.body.paymentMethod || '',
       paymentDetails: rawPayment,
       total: Number(req.body.total) || 0,
     }

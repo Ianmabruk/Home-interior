@@ -40,7 +40,7 @@ const NAV_ITEMS_MOBILE = [
   },
   {
     key: 'shop',
-    label: 'Showroom',
+    label: 'Shop With Us',
     path: '/shop',
     getImage: (data) => {
       const list = Array.isArray(data.products) ? data.products : []
@@ -78,12 +78,6 @@ const NAV_ITEMS_MOBILE = [
     label: 'Socials',
     path: '/socials',
     getImage: (data) => data.about?.imageUrl || null,
-  },
-  {
-    key: 'contact',
-    label: 'Contact',
-    path: '#contact',
-    getImage: () => null,
   },
 ]
 

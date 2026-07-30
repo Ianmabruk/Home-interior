@@ -155,12 +155,8 @@ async function updateProduct(id, data, files, variantFiles = []) {
   const updateData = { ...data }
 
   if (Array.isArray(files) && files.length > 0) {
-    const oldPaths = (existing.storagePaths || []).filter(Boolean)
-    if (oldPaths.length > 0) {
-      try { await deleteFiles(oldPaths) } catch {}
-    }
-    const images = []
-    const storagePaths = []
+    const images = [...(existing.images || [])]
+    const storagePaths = [...(existing.storagePaths || []).filter(Boolean)]
     for (const f of files) {
       const uploaded = await uploadFile(f.buffer, f.mimetype, 'products')
       images.push(uploaded.url)

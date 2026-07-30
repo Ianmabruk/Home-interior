@@ -24,11 +24,14 @@ export const CheckoutPage = () => {
     phone: '',
     address: '',
     city: '',
-    state: '',
-    zipCode: '',
+    county: '',
     country: 'Kenya',
     paymentMethod: 'card',
-    saveInfo: false,
+    mpesaPhone: '',
+    cardNumber: '',
+    cardName: '',
+    cardExpiry: '',
+    cardCvv: '',
   })
 
   useEffect(() => {
@@ -65,6 +68,10 @@ export const CheckoutPage = () => {
     setLoading(true)
     setError(null)
     try {
+      const paymentDetails = formData.paymentMethod === 'mpesa'
+        ? { mpesaPhone: formData.mpesaPhone }
+        : { cardNumber: formData.cardNumber, cardName: formData.cardName, expiry: formData.cardExpiry }
+
       const orderData = {
         items: cart.map(item => ({
           productId: item._id,
@@ -72,10 +79,17 @@ export const CheckoutPage = () => {
           quantity: item.quantity,
           price: item.selectedVariant?.price || item.discountPrice || item.price,
         })),
-        shipping: formData,
-        subtotal,
-        shippingCost: shipping,
-        tax,
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        email: formData.email,
+        phone: formData.phone,
+        shippingAddress: {
+          address: formData.address,
+          city: formData.city,
+          county: formData.county,
+          country: formData.country,
+        },
+        paymentMethod: formData.paymentMethod,
+        paymentDetails,
         total,
       }
       const res = await api.post('/orders', orderData)
@@ -99,9 +113,8 @@ export const CheckoutPage = () => {
   }
 
   const steps = [
-    { number: 1, title: 'Shipping', desc: 'Delivery details' },
-    { number: 2, title: 'Payment', desc: 'Payment method' },
-    { number: 3, title: 'Review', desc: 'Confirm order' },
+    { number: 1, title: 'Shipping', desc: 'Delivery & payment' },
+    { number: 2, title: 'Review', desc: 'Confirm order' },
   ]
 
   return (
@@ -119,11 +132,11 @@ export const CheckoutPage = () => {
           <div className="flex items-center justify-between">
             {steps.map((s, i) => (
               <div key={s.number} className="flex flex-col items-center relative">
-                <div className={`relative flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold transition-all duration-300 ${step > s.number ? 'bg-[var(--accent)] text-white' : step === s.number ? 'bg-[var(--accent)] text-white' : 'bg-[var(--secondary)]/30 text-[var(--primary)]/40'}`}>
+                <div className={`relative flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold transition-all duration-300 ${step >= s.number ? 'bg-[var(--accent)] text-white' : 'bg-[var(--secondary)]/30 text-[var(--primary)]/40'}`}>
                   {step > s.number ? <CheckCircle size={20} strokeWidth={2} /> : s.number}
                 </div>
                 {i < steps.length - 1 && (
-                  <div className={`absolute top-6 left-[calc(50%+6px)] right-[calc(50%+6px)] h-1 transition-colors duration-300 ${step > s.number + 1 ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`} />
+                  <div className={`absolute top-6 left-[calc(50%+6px)] right-[calc(50%+6px)] h-1 transition-colors duration-300 ${step > s.number ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`} />
                 )}
                 <p className="mt-2 text-center text-xs font-medium text-[var(--primary)]/60">{s.title}</p>
               </div>
@@ -172,82 +185,105 @@ export const CheckoutPage = () => {
                     <MapPin className="h-6 w-6 text-[var(--accent)]" />
                     Shipping Information
                   </h2>
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <div>
-                      <label htmlFor="firstName" className="block text-sm font-medium text-[var(--primary)] mb-1">First Name</label>
-                      <input type="text" id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required className="input-luxury" />
-                    </div>
-                    <div>
-                      <label htmlFor="lastName" className="block text-sm font-medium text-[var(--primary)] mb-1">Last Name</label>
-                      <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required className="input-luxury" />
-                    </div>
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-[var(--primary)] mb-1">Email</label>
-                      <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} required className="input-luxury" />
-                    </div>
-                    <div>
-                      <label htmlFor="phone" className="block text-sm font-medium text-[var(--primary)] mb-1">Phone</label>
-                      <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} required className="input-luxury" />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label htmlFor="address" className="block text-sm font-medium text-[var(--primary)] mb-1">Address</label>
-                      <input type="text" id="address" name="address" value={formData.address} onChange={handleChange} required className="input-luxury" placeholder="Street address, apartment, suite, etc." />
-                    </div>
-                    <div>
-                      <label htmlFor="city" className="block text-sm font-medium text-[var(--primary)] mb-1">City</label>
-                      <input type="text" id="city" name="city" value={formData.city} onChange={handleChange} required className="input-luxury" />
-                    </div>
-                    <div>
-                      <label htmlFor="state" className="block text-sm font-medium text-[var(--primary)] mb-1">State/Province</label>
-                      <input type="text" id="state" name="state" value={formData.state} onChange={handleChange} required className="input-luxury" />
-                    </div>
-                    <div>
-                      <label htmlFor="zipCode" className="block text-sm font-medium text-[var(--primary)] mb-1">ZIP Code</label>
-                      <input type="text" id="zipCode" name="zipCode" value={formData.zipCode} onChange={handleChange} required className="input-luxury" />
-                    </div>
-                    <div>
-                      <label htmlFor="country" className="block text-sm font-medium text-[var(--primary)] mb-1">Country</label>
-                      <select id="country" name="country" value={formData.country} onChange={handleChange} required className="input-luxury">
-                        <option value="Kenya">Kenya</option>
-                        <option value="Uganda">Uganda</option>
-                        <option value="Tanzania">Tanzania</option>
-                        <option value="Rwanda">Rwanda</option>
-                        <option value="United States">United States</option>
-                        <option value="United Kingdom">United Kingdom</option>
-                        <option value="United Arab Emirates">United Arab Emirates</option>
-                      </select>
-                    </div>
-                  </div>
-                </section>
+                   <div className="grid gap-6 md:grid-cols-2">
+                     <div>
+                       <label htmlFor="firstName" className="block text-sm font-medium text-[var(--primary)] mb-1">First Name</label>
+                       <input type="text" id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required className="input-luxury" />
+                     </div>
+                     <div>
+                       <label htmlFor="lastName" className="block text-sm font-medium text-[var(--primary)] mb-1">Last Name</label>
+                       <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required className="input-luxury" />
+                     </div>
+                     <div>
+                       <label htmlFor="email" className="block text-sm font-medium text-[var(--primary)] mb-1">Email</label>
+                       <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} required className="input-luxury" />
+                     </div>
+                     <div>
+                       <label htmlFor="phone" className="block text-sm font-medium text-[var(--primary)] mb-1">Phone</label>
+                       <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} required className="input-luxury" />
+                     </div>
+                     <div className="md:col-span-2">
+                       <label htmlFor="address" className="block text-sm font-medium text-[var(--primary)] mb-1">Delivery Address</label>
+                       <input type="text" id="address" name="address" value={formData.address} onChange={handleChange} required className="input-luxury" placeholder="Street address, apartment, suite, etc." />
+                     </div>
+                     <div>
+                       <label htmlFor="city" className="block text-sm font-medium text-[var(--primary)] mb-1">City</label>
+                       <input type="text" id="city" name="city" value={formData.city} onChange={handleChange} required className="input-luxury" />
+                     </div>
+                     <div>
+                       <label htmlFor="county" className="block text-sm font-medium text-[var(--primary)] mb-1">County</label>
+                       <input type="text" id="county" name="county" value={formData.county} onChange={handleChange} required className="input-luxury" />
+                     </div>
+                     <div>
+                       <label htmlFor="country" className="block text-sm font-medium text-[var(--primary)] mb-1">Country</label>
+                       <select id="country" name="country" value={formData.country} onChange={handleChange} required className="input-luxury">
+                         <option value="Kenya">Kenya</option>
+                         <option value="Uganda">Uganda</option>
+                         <option value="Tanzania">Tanzania</option>
+                         <option value="Rwanda">Rwanda</option>
+                       </select>
+                     </div>
+                   </div>
+                 </section>
 
-                <section>
-                  <h2 className="font-display text-xl font-medium text-[var(--primary)] mb-6 flex items-center gap-3">
-                    <CreditCard className="h-6 w-6 text-[var(--accent)]" />
-                    Payment Method
-                  </h2>
-                  <div className="space-y-4">
-                    <label className="flex items-center gap-4 p-4 rounded-2xl border border-[var(--border)]/40 hover:border-[var(--accent)]/40 cursor-pointer transition-colors">
-                      <input type="radio" name="paymentMethod" value="card" checked={formData.paymentMethod === 'card'} onChange={handleChange} className="sr-only" />
-                      <div className={`h-5 w-5 rounded border-2 flex items-center justify-center text-[var(--accent)] transition-colors ${formData.paymentMethod === 'card' ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--border)]'}`}>
-                        {formData.paymentMethod === 'card' && <CheckCircle size={12} strokeWidth={2} />}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-[var(--primary)]">Credit / Debit Card</p>
-                        <p className="text-sm text-[var(--primary)]/50">Pay securely with Visa, Mastercard, or Amex</p>
-                      </div>
-                    </label>
-                    <label className="flex items-center gap-4 p-4 rounded-2xl border border-[var(--border)]/40 hover:border-[var(--accent)]/40 cursor-pointer transition-colors">
-                      <input type="radio" name="paymentMethod" value="mpesa" checked={formData.paymentMethod === 'mpesa'} onChange={handleChange} className="sr-only" />
-                      <div className={`h-5 w-5 rounded border-2 flex items-center justify-center text-[var(--accent)] transition-colors ${formData.paymentMethod === 'mpesa' ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--border)]'}`}>
-                        {formData.paymentMethod === 'mpesa' && <CheckCircle size={12} strokeWidth={2} />}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-[var(--primary)]">M-Pesa</p>
-                        <p className="text-sm text-[var(--primary)]/50">Pay via M-Pesa mobile money</p>
-                      </div>
-                    </label>
-                  </div>
-                </section>
+                 <section>
+                   <h2 className="font-display text-xl font-medium text-[var(--primary)] mb-6 flex items-center gap-3">
+                     <CreditCard className="h-6 w-6 text-[var(--accent)]" />
+                     Payment Method
+                   </h2>
+                   <div className="space-y-4">
+                     <label className="flex items-center gap-4 p-4 rounded-2xl border border-[var(--border)]/40 hover:border-[var(--accent)]/40 cursor-pointer transition-colors">
+                       <input type="radio" name="paymentMethod" value="card" checked={formData.paymentMethod === 'card'} onChange={handleChange} className="sr-only" />
+                       <div className={`h-5 w-5 rounded border-2 flex items-center justify-center text-[var(--accent)] transition-colors ${formData.paymentMethod === 'card' ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--border)]'}`}>
+                         {formData.paymentMethod === 'card' && <CheckCircle size={12} strokeWidth={2} />}
+                       </div>
+                       <div className="flex-1">
+                         <p className="font-medium text-[var(--primary)]">Credit / Debit Card</p>
+                         <p className="text-sm text-[var(--primary)]/50">Pay securely with Visa, Mastercard, or Amex</p>
+                       </div>
+                     </label>
+                     <label className="flex items-center gap-4 p-4 rounded-2xl border border-[var(--border)]/40 hover:border-[var(--accent)]/40 cursor-pointer transition-colors">
+                       <input type="radio" name="paymentMethod" value="mpesa" checked={formData.paymentMethod === 'mpesa'} onChange={handleChange} className="sr-only" />
+                       <div className={`h-5 w-5 rounded border-2 flex items-center justify-center text-[var(--accent)] transition-colors ${formData.paymentMethod === 'mpesa' ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--border)]'}`}>
+                         {formData.paymentMethod === 'mpesa' && <CheckCircle size={12} strokeWidth={2} />}
+                       </div>
+                       <div className="flex-1">
+                         <p className="font-medium text-[var(--primary)]">M-Pesa</p>
+                         <p className="text-sm text-[var(--primary)]/50">Pay via M-Pesa mobile money</p>
+                       </div>
+                     </label>
+                   </div>
+
+                   {formData.paymentMethod === 'mpesa' && (
+                     <div className="mt-6">
+                       <label htmlFor="mpesaPhone" className="block text-sm font-medium text-[var(--primary)] mb-1">M-Pesa Phone Number</label>
+                       <input type="tel" id="mpesaPhone" name="mpesaPhone" value={formData.mpesaPhone} onChange={handleChange} placeholder="e.g. 254712345678" className="input-luxury" />
+                     </div>
+                   )}
+
+                   {formData.paymentMethod === 'card' && (
+                     <div className="mt-6 space-y-4">
+                       <div>
+                         <label htmlFor="cardNumber" className="block text-sm font-medium text-[var(--primary)] mb-1">Card Number</label>
+                         <input type="text" id="cardNumber" name="cardNumber" value={formData.cardNumber} onChange={handleChange} placeholder="1234 5678 9012 3456" className="input-luxury" />
+                       </div>
+                       <div>
+                         <label htmlFor="cardName" className="block text-sm font-medium text-[var(--primary)] mb-1">Cardholder Name</label>
+                         <input type="text" id="cardName" name="cardName" value={formData.cardName} onChange={handleChange} className="input-luxury" />
+                       </div>
+                       <div className="grid grid-cols-2 gap-4">
+                         <div>
+                           <label htmlFor="cardExpiry" className="block text-sm font-medium text-[var(--primary)] mb-1">Expiry Date</label>
+                           <input type="text" id="cardExpiry" name="cardExpiry" value={formData.cardExpiry} onChange={handleChange} placeholder="MM/YY" className="input-luxury" />
+                         </div>
+                         <div>
+                           <label htmlFor="cardCvv" className="block text-sm font-medium text-[var(--primary)] mb-1">CVV</label>
+                           <input type="text" id="cardCvv" name="cardCvv" value={formData.cardCvv} onChange={handleChange} className="input-luxury" />
+                         </div>
+                       </div>
+                     </div>
+                   )}
+                 </section>
 
                 <section>
                   <h2 className="font-display text-xl font-medium text-[var(--primary)] mb-6 flex items-center gap-3">
@@ -327,11 +363,9 @@ export const CheckoutPage = () => {
                         <Loader2 className="h-5 w-5 animate-spin" />
                         Processing...
                       </>
-                    ) : step === 3 ? (
-                      'Place Order'
                     ) : (
                       <>
-                        Continue to Review
+                        Place Order
                         <ChevronRight size={14} strokeWidth={1.5} />
                       </>
                     )}

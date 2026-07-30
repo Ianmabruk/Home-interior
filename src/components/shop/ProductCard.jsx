@@ -55,8 +55,8 @@ export const ProductCard = memo(({ product, onQuickView }) => {
           >
             <Heart size={16} strokeWidth={1.5} fill={isWishlisted ? 'currentColor' : 'none'} />
           </button>
-          <button
-            onClick={() => addToCart(product, 1, defaultVariant ? { color: defaultVariant.color, colorHex: defaultVariant.colorHex, image: defaultVariant.image } : null)}
+            <button
+             onClick={() => addToCart(product, defaultVariant ? { color: defaultVariant.color, colorHex: defaultVariant.colorHex, image: defaultVariant.image } : null, 1)}
             disabled={product.stock === 0}
             className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center bg-white rounded-full shadow-md text-[var(--primary)]/50 transition hover:bg-[var(--secondary)] disabled:opacity-40"
             aria-label="Add to cart"

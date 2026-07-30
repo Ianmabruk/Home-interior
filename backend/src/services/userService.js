@@ -1,18 +1,9 @@
-
-const cartStore = new Map()
-const wishlistStore = new Map()
-
-function getCartKey(email) {
-  return `cart:${email}`
-}
-
-function getWishlistKey(email) {
-  return `wishlist:${email}`
-}
+import { prisma } from '../config/database.js'
 
 export const userService = {
   getWishlist,
   toggleWishlist,
+  removeFromWishlist,
   getCart,
   addToCart,
   removeFromCart,
@@ -20,83 +11,114 @@ export const userService = {
   clearCart,
 }
 
-function getWishlist(email) {
-  const key = getWishlistKey(email)
-  if (!wishlistStore.has(key)) {
-    wishlistStore.set(key, [])
-  }
-  return wishlistStore.get(key)
+async function getWishlist(email) {
+  const items = await prisma.wishlistItem.findMany({
+    where: { adminEmail: email },
+    orderBy: { createdAt: 'desc' },
+  })
+  return items.map((item) => ({
+    _id: item.productId,
+    id: item.productId,
+    variant: item.variant ? JSON.parse(item.variant) : null,
+  }))
 }
 
-function toggleWishlist(email, productId) {
-  const key = getWishlistKey(email)
-  const current = wishlistStore.get(key) || []
-  const exists = current.some((item) => item._id === productId || item.id === productId)
-  const updated = exists
-    ? current.filter((item) => item._id !== productId && item.id !== productId)
-    : [...current, { _id: productId, id: productId }]
-  wishlistStore.set(key, updated)
-  return { products: updated }
-}
-
-function getCart(email) {
-  const key = getCartKey(email)
-  if (!cartStore.has(key)) {
-    cartStore.set(key, [])
-  }
-  return { items: cartStore.get(key) || [] }
-}
-
-function addToCart(email, productId, quantity = 1, variant) {
-  const key = getCartKey(email)
-  const current = cartStore.get(key) || []
-  const selectedVariant = variant || null
-  const existing = current.find(
-    (item) => (item._id === productId || item.id === productId) && (item.selectedVariant?.colorName === selectedVariant?.colorName || item.selectedVariant?.color === selectedVariant?.color),
-  )
-  let updated
+async function toggleWishlist(email, productId) {
+  const existing = await prisma.wishlistItem.findFirst({
+    where: { adminEmail: email, productId },
+  })
   if (existing) {
-    updated = current.map((item) =>
-      (item._id === productId || item.id === productId) && (item.selectedVariant?.colorName === selectedVariant?.colorName || item.selectedVariant?.color === selectedVariant?.color)
-        ? { ...item, quantity: item.quantity + quantity }
-        : item,
-    )
-  } else {
-    updated = [...current, { _id: productId, id: productId, quantity, selectedVariant }]
+    await prisma.wishlistItem.delete({ where: { id: existing.id } })
+    return { products: await getWishlist(email) }
   }
-  cartStore.set(key, updated)
-  return { items: updated }
+  await prisma.wishlistItem.create({
+    data: { adminEmail: email, productId },
+  })
+  return { products: await getWishlist(email) }
 }
 
-function removeFromCart(email, productId, variant) {
-  const key = getCartKey(email)
-  const selectedVariant = variant || null
-  const current = cartStore.get(key) || []
-  const updated = current.filter(
-    (item) => !((item._id === productId || item.id === productId) && (item.selectedVariant?.colorName === selectedVariant?.colorName || item.selectedVariant?.color === selectedVariant?.color)),
-  )
-  cartStore.set(key, updated)
-  return { items: updated }
+async function removeFromWishlist(email, productId) {
+  await prisma.wishlistItem.deleteMany({
+    where: { adminEmail: email, productId },
+  })
+  return { products: await getWishlist(email) }
 }
 
-function updateCart(email, productId, quantity, variant) {
-  const key = getCartKey(email)
-  const selectedVariant = variant || null
-  const current = cartStore.get(key) || []
+async function getCart(email) {
+  const items = await prisma.cartItem.findMany({
+    where: { adminEmail: email },
+    orderBy: { createdAt: 'desc' },
+  })
+  return {
+    items: items.map((item) => ({
+      _id: item.productId,
+      id: item.productId,
+      quantity: item.quantity,
+      selectedVariant: item.variant ? JSON.parse(item.variant) : null,
+    })),
+  }
+}
+
+async function addToCart(email, productId, quantity = 1, variant) {
+  const variantStr = variant ? JSON.stringify(variant) : null
+  const existing = await prisma.cartItem.findFirst({
+    where: {
+      adminEmail: email,
+      productId,
+      variant: variantStr,
+    },
+  })
+  if (existing) {
+    await prisma.cartItem.update({
+      where: { id: existing.id },
+      data: { quantity: existing.quantity + quantity },
+    })
+  } else {
+    await prisma.cartItem.create({
+      data: { adminEmail: email, productId, variant: variantStr, quantity },
+    })
+  }
+  return getCart(email)
+}
+
+async function removeFromCart(email, productId, variant) {
+  const variantStr = variant ? JSON.stringify(variant) : null
+  if (variantStr) {
+    await prisma.cartItem.deleteMany({
+      where: { adminEmail: email, productId, variant: variantStr },
+    })
+  } else {
+    await prisma.cartItem.deleteMany({
+      where: { adminEmail: email, productId },
+    })
+  }
+  return getCart(email)
+}
+
+async function updateCart(email, productId, quantity, variant) {
   if (quantity <= 0) {
     return removeFromCart(email, productId, variant)
   }
-  const updated = current.map((item) =>
-    (item._id === productId || item.id === productId) && (item.selectedVariant?.colorName === selectedVariant?.colorName || item.selectedVariant?.color === selectedVariant?.color)
-      ? { ...item, quantity }
-      : item,
-  )
-  cartStore.set(key, updated)
-  return { items: updated }
+  const variantStr = variant ? JSON.stringify(variant) : null
+  const existing = await prisma.cartItem.findFirst({
+    where: {
+      adminEmail: email,
+      productId,
+      variant: variantStr,
+    },
+  })
+  if (existing) {
+    await prisma.cartItem.update({
+      where: { id: existing.id },
+      data: { quantity },
+    })
+  }
+  return getCart(email)
 }
 
-function clearCart(email) {
-  const key = getCartKey(email)
-  cartStore.set(key, [])
+async function clearCart(email) {
+  await prisma.cartItem.deleteMany({
+    where: { adminEmail: email },
+  })
   return { items: [] }
 }
