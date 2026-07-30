@@ -8,6 +8,11 @@ export const blogController = {
     res.json({ success: true, data: items })
   }),
 
+  listPublished: asyncHandler(async (req, res) => {
+    const items = await blogService.listPublishedBlogs()
+    res.json({ success: true, data: items })
+  }),
+
   getAll: asyncHandler(async (req, res) => {
     const items = await blogService.getAllBlogs()
     res.json({ success: true, data: items })
@@ -15,6 +20,11 @@ export const blogController = {
 
   get: asyncHandler(async (req, res) => {
     const item = await blogService.getBlog(req.params.id)
+    res.json({ success: true, data: item })
+  }),
+
+  getPublished: asyncHandler(async (req, res) => {
+    const item = await blogService.getPublishedBlog(req.params.id)
     res.json({ success: true, data: item })
   }),
 

@@ -14,6 +14,7 @@ import contactRoutes from './contactRoutes.js'
 import consultationRoutes from './consultationRoutes.js'
 import adminConsultationRoutes from './adminConsultationRoutes.js'
 import chatRoutes from './chatRoutes.js'
+import publicBlogRoutes from './publicBlogRoutes.js'
 import blogRoutes from './blogRoutes.js'
 import { portfolioRoutes as adminPortfolioRoutes, virtualDesignRoutes as adminVDRoutes } from './adminContentRoutes.js'
 import contentRoutes, { portfolioRoutes as contentPortfolioRoutes, virtualDesignRoutes as contentVDRoutes } from './contentRoutes.js'
@@ -54,9 +55,8 @@ router.use('/messages', messageRoutes)
 router.use('/chat', chatRoutes)
 router.use('/socials', socialsRoutes)
 router.use('/content/socials', socialsRoutes)
+router.use('/blog', publicBlogRoutes)
 router.use('/admin/blog', blogRoutes)
-router.use('/content/blog', blogRoutes)
-router.use('/blog', blogRoutes)
 
 router.post('/test-upload', authenticate, uploadSingle('media'), async (req, res) => {
   if (!req.file) {

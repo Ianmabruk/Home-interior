@@ -17,7 +17,9 @@ function mapBlog(item) {
 
 export const blogService = {
   listBlogs,
+  listPublishedBlogs,
   getBlog,
+  getPublishedBlog,
   createBlog,
   updateBlog,
   deleteBlog,
@@ -28,6 +30,18 @@ async function listBlogs() {
     const items = await prisma.blog.findMany({
       where: { published: true },
       orderBy: { createdAt: 'desc' },
+    })
+    return items.map(mapBlog)
+  } catch {
+    return []
+  }
+}
+
+async function listPublishedBlogs() {
+  try {
+    const items = await prisma.blog.findMany({
+      where: { published: true },
+      orderBy: { displayOrder: 'asc', createdAt: 'desc' },
     })
     return items.map(mapBlog)
   } catch {
@@ -49,6 +63,19 @@ async function getAllBlogs() {
 async function getBlog(id) {
   try {
     const item = await prisma.blog.findUnique({ where: { id } })
+    if (!item) throw failure(404, 'Blog not found')
+    return mapBlog(item)
+  } catch (err) {
+    if (err?.status === 404) throw err
+    throw failure(500, 'Failed to fetch blog')
+  }
+}
+
+async function getPublishedBlog(id) {
+  try {
+    const item = await prisma.blog.findFirst({
+      where: { id, published: true },
+    })
     if (!item) throw failure(404, 'Blog not found')
     return mapBlog(item)
   } catch (err) {
