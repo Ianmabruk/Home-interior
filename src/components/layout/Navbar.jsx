@@ -417,7 +417,7 @@ export const Navbar = memo(() => {
             </nav>
           </div>
 
-          {/* MOBILE HEADER - CENTERED LOGO + HAMBURGER */}
+          {/* MOBILE HEADER - LOGO CENTERED, CART + HAMBURGER ON SIDES */}
           <div className="flex md:hidden items-center justify-between h-16 px-4 relative">
             <Link
               to="/"
@@ -437,7 +437,22 @@ export const Navbar = memo(() => {
             </Link>
 
             <button
-              className="fixed top-5 right-5 z-[9998] flex h-14 w-14 items-center justify-center rounded-full text-[#8B5E3C] bg-white/95 backdrop-blur-sm shadow-xl transition-all duration-300 hover:bg-[#E6D8C9]/60 active:scale-95"
+              onClick={() => setCartOpen((p) => !p)}
+              className="relative p-2 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 active:scale-95 z-[9999]"
+              aria-label={`Shopping cart${totalItems > 0 ? ` with ${totalItems} items` : ''}`}
+              aria-expanded={cartOpen}
+              aria-haspopup="true"
+            >
+              <ShoppingCart size={22} strokeWidth={1.5} aria-hidden="true" />
+              {totalItems > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-5 rounded-full bg-[#E89A43] text-white text-[10px] font-semibold flex items-center justify-center px-1.5">
+                  {totalItems > 99 ? '99+' : totalItems}
+                </span>
+              )}
+            </button>
+
+            <button
+              className="flex h-14 w-14 items-center justify-center rounded-full text-[#8B5E3C] bg-white/95 backdrop-blur-sm shadow-xl transition-all duration-300 hover:bg-[#E6D8C9]/60 active:scale-95 z-[9999]"
               onClick={() => setMobileOpen((p) => !p)}
               aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileOpen}

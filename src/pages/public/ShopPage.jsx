@@ -160,27 +160,27 @@ export const ShopPage = ({ category }) => {
                     className="group flex flex-col items-center"
                   >
                     <Link to={`/shop/${product._id || product.id}`} className="block w-full">
-                      <div className="relative w-full max-w-sm mx-auto mb-6">
-                        <div className="relative rounded-full overflow-hidden bg-[var(--secondary)]/30 group-hover:shadow-[0_20px_40px_rgba(42,36,31,0.15)] transition-all duration-500">
-                          {product.images?.[0] ? (
-                            <img
-                              src={getOptimizedUrl(typeof product.images[0] === 'string' ? product.images[0] : product.images[0]?.url, { width: 600, crop: 'limit' })}
-                              alt={product.name}
-                              className="h-[320px] w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                              loading="lazy"
-                              decoding="async"
-                            />
-                          ) : (
-                            <div className="h-[320px] w-full flex items-center justify-center text-[var(--primary)]/30">
-                              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                                <circle cx="9" cy="9" r="2" />
-                                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                         <div className="relative w-full max-w-sm mx-auto mb-6">
+                           <div className="relative rounded-full overflow-hidden bg-[var(--secondary)]/30 group-hover:shadow-[0_20px_40px_rgba(42,36,31,0.15)] transition-all duration-500 aspect-square">
+                             {product.images?.[0] ? (
+                               <img
+                                 src={getOptimizedUrl(typeof product.images[0] === 'string' ? product.images[0] : product.images[0]?.url, { width: 600, crop: 'limit' })}
+                                 alt={product.name}
+                                 className="h-full w-full object-contain transition-transform duration-700 group-hover:scale-105 bg-[var(--bg)]"
+                                 loading="lazy"
+                                 decoding="async"
+                               />
+                             ) : (
+                               <div className="h-full w-full flex items-center justify-center text-[var(--primary)]/30">
+                                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                                   <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                                   <circle cx="9" cy="9" r="2" />
+                                   <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                                 </svg>
+                               </div>
+                             )}
+                           </div>
+                         </div>
                       <div className="text-center w-full max-w-xs">
                         <p className="text-2xs font-medium uppercase tracking-widest text-[var(--accent)] mb-1">{product.category}</p>
                          <h3 className="font-display text-base md:text-lg font-medium text-[var(--primary)] leading-tight mb-3 group-hover:text-[var(--accent)] transition-colors">

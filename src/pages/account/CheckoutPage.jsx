@@ -36,10 +36,10 @@ export const CheckoutPage = () => {
   })
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && cart?.length === 0) {
       navigate('/login')
     }
-  }, [isAuthenticated, navigate])
+  }, [isAuthenticated, cart, navigate])
 
   if (!cart?.length) {
     return (
