@@ -54,6 +54,7 @@ router.use('/messages', messageRoutes)
 router.use('/chat', chatRoutes)
 router.use('/socials', socialsRoutes)
 router.use('/content/socials', socialsRoutes)
+router.use('/admin/blog', blogRoutes)
 router.use('/content/blog', blogRoutes)
 router.use('/blog', blogRoutes)
 

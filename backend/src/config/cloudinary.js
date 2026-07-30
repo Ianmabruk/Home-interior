@@ -4,26 +4,21 @@ const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME
 const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY
 const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET
 
-if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
-  throw new Error(
-    `Cloudinary is not configured. Missing: ${
-      !CLOUDINARY_CLOUD_NAME ? 'CLOUDINARY_CLOUD_NAME ' : ''
-    }${
-      !CLOUDINARY_API_KEY ? 'CLOUDINARY_API_KEY ' : ''
-    }${
-      !CLOUDINARY_API_SECRET ? 'CLOUDINARY_API_SECRET' : ''
-    }`.trim()
-  )
+const isConfigured = Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET)
+
+if (isConfigured) {
+  cloudinary.config({
+    cloud_name: CLOUDINARY_CLOUD_NAME,
+    api_key: CLOUDINARY_API_KEY,
+    api_secret: CLOUDINARY_API_SECRET,
+    secure: true,
+  })
 }
 
-cloudinary.config({
-  cloud_name: CLOUDINARY_CLOUD_NAME,
-  api_key: CLOUDINARY_API_KEY,
-  api_secret: CLOUDINARY_API_SECRET,
-  secure: true,
-})
-
 export const uploadToCloudinary = async (buffer, mimetype, folder) => {
+  if (!isConfigured) {
+    throw new Error('Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.')
+  }
   const ext = mimetype.split('/')[1] || 'bin'
   const publicId = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}`
 
@@ -62,7 +57,7 @@ export const uploadToCloudinary = async (buffer, mimetype, folder) => {
       http_code: err?.http_code,
       name: err?.name,
       folder,
-      mimeType: mimetype,
+      mimetype,
       bufferLength: buffer?.length || buffer?.byteLength || 'unknown',
     })
     throw err
@@ -70,7 +65,7 @@ export const uploadToCloudinary = async (buffer, mimetype, folder) => {
 }
 
 export const deleteFromCloudinary = async (publicId) => {
-  if (!publicId) return
+  if (!publicId || !isConfigured) return
   try {
     await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' })
   } catch (error) {
