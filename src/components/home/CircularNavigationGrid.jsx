@@ -18,6 +18,16 @@ const NAV_ITEMS = [
     },
   },
   {
+    key: 'services',
+    label: 'Services',
+    path: '/services',
+    getImage: (data) => {
+      const item = data.services?.[0]
+      if (!item) return null
+      return item.imageUrl || item.mediaUrl || item.galleryImages?.[0] || null
+    },
+  },
+  {
     key: 'virtualDesigns',
     label: 'Virtual Designs',
     path: '/virtual-design',
@@ -26,16 +36,6 @@ const NAV_ITEMS = [
       const item = list[0]
       if (!item) return null
       return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
-    },
-  },
-  {
-    key: 'services',
-    label: 'Services',
-    path: '/services',
-    getImage: (data) => {
-      const item = data.services?.[0]
-      if (!item) return null
-      return item.imageUrl || item.mediaUrl || item.galleryImages?.[0] || null
     },
   },
   {
@@ -69,7 +69,7 @@ const NAV_ITEMS = [
   },
   {
     key: 'about',
-    label: 'About',
+    label: 'About Us',
     path: '/about',
     getImage: (data) => data.about?.imageUrl || null,
   },

@@ -1,12 +1,7 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { HeroSection } from '@components/home/HeroSection'
 import { CircularNavigationGrid } from '@components/home/CircularNavigationGrid'
-import { PortfolioSection } from '@components/home/PortfolioSection'
-import { VirtualDesignSection } from '@components/home/VirtualDesignSection'
-import { ShopSection } from '@components/home/ShopSection'
-import { BlogSection } from '@components/home/BlogSection'
-import { AboutSection } from '@components/home/AboutSection'
-import { SocialSection } from '@components/home/SocialSection'
+import { MobileCircularNavigation } from '@components/home/MobileCircularNavigation'
 import { EDesignPackages } from '@components/home/EDesignPackages'
 import { ContactSection } from '@components/home/ContactSection'
 import { SectionErrorBoundary } from '@components/home/SectionErrorBoundary'
@@ -28,10 +23,13 @@ EmptySection.displayName = 'EmptySection'
 
 export const HomePage = () => {
   const [portfolio, setPortfolio] = useState([])
+  const [services, setServices] = useState([])
   const [virtualDesigns, setVirtualDesigns] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [heroImages, setHeroImages] = useState([])
+  const [about, setAbout] = useState(null)
+  const [blog, setBlog] = useState([])
   const [contactInfo, setContactInfo] = useState(null)
 
   const loadData = useCallback(async () => {
@@ -44,9 +42,12 @@ export const HomePage = () => {
       if (!cancelled) {
         const data = homeRes.data || {}
         setPortfolio(data.portfolio || [])
+        setServices(data.services || [])
         setVirtualDesigns(data.virtualInteriorDesign || data.virtualDesigns || [])
         setHeroImages(data.heroImages || data.heroMedia || [])
         setProducts(data.products || [])
+        setAbout(data.about || null)
+        setBlog(data.blog || [])
         setContactInfo(contactRes?.data || null)
       }
     } catch (err) {
@@ -67,9 +68,12 @@ export const HomePage = () => {
       const payload = getAdminDataChangedPayload(event)
       if (
         payload?.type === 'portfolio-changed' ||
+        payload?.type === 'services-changed' ||
         payload?.type === 'virtual-changed' ||
         payload?.type === 'hero-images-changed' ||
         payload?.type === 'products-changed' ||
+        payload?.type === 'about-changed' ||
+        payload?.type === 'blog-changed' ||
         payload?.type === 'contact-changed'
       ) {
         import('@services/api').then(({ clearApiCache }) => clearApiCache('/homepage'))
@@ -105,39 +109,33 @@ export const HomePage = () => {
         <HeroSection heroImages={heroImages} className="w-full" />
       </SectionErrorBoundary>
 
-      {/* PORTFOLIO */}
-      <SectionErrorBoundary sectionName="Portfolio" fallback={<EmptySection />}>
-        <PortfolioSection portfolio={portfolio} />
+      {/* CIRCULAR NAVIGATION */}
+      <SectionErrorBoundary sectionName="CircularNavigation" fallback={<EmptySection />}>
+        <CircularNavigationGrid
+          portfolio={portfolio}
+          virtualDesigns={virtualDesigns}
+          services={services}
+          products={products}
+          about={about}
+          blog={blog}
+        />
       </SectionErrorBoundary>
 
-      {/* VIRTUAL DESIGN */}
-      <SectionErrorBoundary sectionName="VirtualDesign" fallback={<EmptySection />}>
-        <VirtualDesignSection virtualDesigns={virtualDesigns} />
-      </SectionErrorBoundary>
-
-      {/* SHOP */}
-      <SectionErrorBoundary sectionName="Shop" fallback={<EmptySection />}>
-        <ShopSection products={products} />
+      {/* MOBILE CIRCULAR NAVIGATION */}
+      <SectionErrorBoundary sectionName="MobileCircularNavigation" fallback={<EmptySection />}>
+        <MobileCircularNavigation
+          portfolio={portfolio}
+          virtualDesigns={virtualDesigns}
+          services={services}
+          products={products}
+          about={about}
+          blog={blog}
+        />
       </SectionErrorBoundary>
 
       {/* E-DESIGN PACKAGES */}
       <SectionErrorBoundary sectionName="EDesignPackages" fallback={<EmptySection />}>
         <EDesignPackages />
-      </SectionErrorBoundary>
-
-      {/* BLOG */}
-      <SectionErrorBoundary sectionName="Blog" fallback={<EmptySection />}>
-        <BlogSection />
-      </SectionErrorBoundary>
-
-      {/* ABOUT */}
-      <SectionErrorBoundary sectionName="About" fallback={<EmptySection />}>
-        <AboutSection />
-      </SectionErrorBoundary>
-
-      {/* SOCIALS */}
-      <SectionErrorBoundary sectionName="Socials" fallback={<EmptySection />}>
-        <SocialSection />
       </SectionErrorBoundary>
 
       {/* CONTACT SECTION */}

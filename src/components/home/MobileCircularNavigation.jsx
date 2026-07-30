@@ -69,7 +69,7 @@ const NAV_ITEMS_MOBILE = [
   },
   {
     key: 'about',
-    label: 'About',
+    label: 'About Us',
     path: '/about',
     getImage: (data) => data.about?.imageUrl || null,
   },
