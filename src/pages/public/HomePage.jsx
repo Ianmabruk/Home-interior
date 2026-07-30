@@ -3,6 +3,7 @@ import { HeroSection } from '@components/home/HeroSection'
 import { CircularNavigationGrid } from '@components/home/CircularNavigationGrid'
 import { MobileCircularNavigation } from '@components/home/MobileCircularNavigation'
 import { ContactSection } from '@components/home/ContactSection'
+import { EDesignPackages } from '@components/home/EDesignPackages'
 import { SectionErrorBoundary } from '@components/home/SectionErrorBoundary'
 import { api } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
@@ -130,6 +131,11 @@ export const HomePage = () => {
           about={about}
           blog={blog}
         />
+      </SectionErrorBoundary>
+
+      {/* E-DESIGN PACKAGES */}
+      <SectionErrorBoundary sectionName="EDesignPackages" fallback={<EmptySection />}>
+        <EDesignPackages />
       </SectionErrorBoundary>
 
       {/* CONTACT SECTION */}
