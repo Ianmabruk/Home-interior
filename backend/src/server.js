@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import { app } from './app.js'
 import { validateEnv } from './config/env.js'
-import { prisma } from './config/database.js'
+import { prisma, connectDatabase } from './config/database.js'
 import { uploadToCloudinary } from './config/cloudinary.js'
 import cloudinary from './config/cloudinary.js'
 import { isSupabaseConfigured } from './config/supabase.js'
@@ -16,7 +16,7 @@ for (const dir of subDirs) {
   fs.mkdirSync(path.join(uploadsDir, dir), { recursive: true })
 }
 
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 10000
 
 let server = null
 
@@ -43,23 +43,37 @@ async function start() {
     console.error('Startup check failed:', err)
   }
 
+  try {
+    await connectDatabase()
+    console.log('Database connected')
+  } catch (err) {
+    console.error('Database connection failed:', err?.message || err)
+  }
+
   server = app.listen(PORT, () => {
     console.log(`Backend server running on port ${PORT} (${process.env.NODE_ENV || 'development'})`)
   })
+
+  server.on('error', (err) => {
+    console.error('Server error:', err)
+  })
 }
 
-start()
+start().catch((err) => {
+  console.error('Failed to start server:', err)
+  process.exit(1)
+})
 
 process.on('SIGINT', async () => {
   console.log('Shutting down gracefully...')
-  server.close()
-  await prisma.$disconnect()
+  if (server) server.close()
+  try { await prisma.$disconnect() } catch {}
   process.exit(0)
 })
 
 process.on('SIGTERM', async () => {
   console.log('Shutting down gracefully...')
-  server.close()
-  await prisma.$disconnect()
+  if (server) server.close()
+  try { await prisma.$disconnect() } catch {}
   process.exit(0)
 })
