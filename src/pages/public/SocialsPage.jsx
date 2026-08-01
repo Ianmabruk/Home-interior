@@ -37,15 +37,18 @@ const SkeletonSocials = () => (
 
 export const SocialsPage = () => {
   const [socialLinks, setSocialLinks] = useState({})
+  const [socialImage, setSocialImage] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const loadSocials = useCallback(async () => {
     try {
       const res = await api.get('/socials')
       setSocialLinks(res.data || {})
+      setSocialImage(res.data?.image || null)
     } catch (err) {
       console.warn('[SOCIALS] Failed to load:', err?.message)
       setSocialLinks({})
+      setSocialImage(null)
     } finally {
       setLoading(false)
     }
@@ -76,6 +79,13 @@ export const SocialsPage = () => {
       />
       <section className="relative min-h-[50vh] md:min-h-[60vh] flex items-center justify-center">
         <div className="absolute inset-0 bg-gradient-to-b from-[var(--primary)] via-[var(--primary)]/80 to-[var(--bg)]" />
+        {socialImage && (
+          <img
+            src={socialImage}
+            alt="Social media"
+            className="absolute inset-0 w-full h-full object-cover opacity-20"
+          />
+        )}
         <div className="relative z-10 container-wide px-6 md:px-12 lg:px-20 text-center">
           <motion.h1
             initial={{ opacity: 0, y: 30 }}

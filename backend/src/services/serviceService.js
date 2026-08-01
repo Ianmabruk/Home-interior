@@ -10,6 +10,8 @@ function mapService(item) {
     id: item.id,
     imageUrl: item.imageUrl,
     mediaUrl: item.imageUrl,
+    buttonText: item.buttonText,
+    buttonUrl: item.buttonUrl,
     displayOrder: item.displayOrder,
     isActive: item.isActive,
   }

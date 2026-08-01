@@ -12,6 +12,8 @@ function mapAbout(item) {
     contactEmail: item.contactEmail,
     imageUrl: item.imageUrl,
     cloudinaryId: item.cloudinaryId,
+    socialImage: item.socialImage,
+    socialImageId: item.socialImageId,
   }
 }
 
@@ -29,7 +31,7 @@ async function getAbout() {
   }
 }
 
-async function createOrUpdateAbout(data, file) {
+async function createOrUpdateAbout(data, file, socialFile) {
   const existing = await prisma.about.findFirst({ orderBy: { createdAt: 'desc' } })
   const createData = { ...data }
 
@@ -40,6 +42,13 @@ async function createOrUpdateAbout(data, file) {
     createData.cloudinaryId = uploaded.path
   } else if (!existing?.imageUrl) {
     createData.imageUrl = null
+  }
+
+  if (socialFile) {
+    if (existing?.socialImageId) await deleteFile(existing.socialImageId)
+    const uploaded = await uploadFile(socialFile.buffer, socialFile.mimetype, 'about')
+    createData.socialImage = uploaded.url
+    createData.socialImageId = uploaded.path
   }
 
   if (existing) {

@@ -1,12 +1,13 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { api } from '@services/api'
-import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
+import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { clearApiCache } from '@services/api'
 import { PageMeta } from '@hooks/usePageMeta'
 import { useCurrency } from '@context/CurrencyContext'
+import { useIsMobile } from '@hooks/useIsMobile'
 
 const SkeletonShop = () => (
   <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 px-6 md:px-12 lg:px-20 py-20 md:py-32">
@@ -32,11 +33,12 @@ const SkeletonShop = () => (
 
 const ALLOWED_CATEGORIES = ['Wall Artwork', 'Mirrors', 'Throw Pillows']
 
-export const ShopPage = ({ category }) => {
+export const ShopPage = memo(({ category }) => {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState(category || 'all')
   const { formatPrice } = useCurrency()
+  const reduceMotion = useIsMobile()
 
   const loadProducts = useCallback(async () => {
     try {
@@ -124,7 +126,7 @@ export const ShopPage = ({ category }) => {
                   key={product._id || product.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.5, delay: reduceMotion ? 0 : index * 0.08, ease: [0.22, 1, 0.36, 1] }}
                   className="group flex flex-col bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500 hover:-translate-y-2"
                 >
                   <Link to={`/shop/${product._id || product.id}`} className="block w-full">
@@ -132,10 +134,14 @@ export const ShopPage = ({ category }) => {
                       {product.images?.[0] ? (
                         <img
                           src={getOptimizedUrl(typeof product.images[0] === 'string' ? product.images[0] : product.images[0]?.url, { width: 600, crop: 'limit' })}
+                          srcSet={buildSrcSet(typeof product.images[0] === 'string' ? product.images[0] : product.images[0]?.url) || undefined}
+                          sizes={buildSrcSet(typeof product.images[0] === 'string' ? product.images[0] : product.images[0]?.url) ? '(max-width: 1280px) 50vw, (max-width: 1024px) 33vw, 25vw' : undefined}
                           alt={product.name}
                           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                           loading="lazy"
                           decoding="async"
+                          width={600}
+                          height={450}
                         />
                       ) : (
                         <div className="h-full w-full flex items-center justify-center text-[var(--primary)]/30">
@@ -168,6 +174,8 @@ export const ShopPage = ({ category }) => {
       </section>
     </main>
   )
-}
+})
+
+ShopPage.displayName = 'ShopPage'
 
 export default ShopPage

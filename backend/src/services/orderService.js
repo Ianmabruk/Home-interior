@@ -56,38 +56,43 @@ async function createOrder(data) {
     }
   })
 
-  const order = await prisma.order.create({
-    data: {
-      ...data,
-      items: JSON.stringify(finalItems),
-    },
-  })
+  const stockOperations = []
+  for (const item of finalItems) {
+    if (!item.productId) continue
+    const product = productMap.get(item.productId)
+    if (!product) continue
 
-  try {
-    for (const item of finalItems) {
-      if (!item.productId) continue
-      const product = productMap.get(item.productId)
-      if (!product) continue
-
-      const qty = Number(item.quantity) || 1
-      if (product.variants && item.variantId) {
-        const variant = product.variants.find((v) => v.id === item.variantId)
-        if (variant && variant.stock >= qty) {
-          await prisma.productVariant.update({
+    const qty = Number(item.quantity) || 1
+    if (product.variants && item.variantId) {
+      const variant = product.variants.find((v) => v.id === item.variantId)
+      if (variant && variant.stock >= qty) {
+        stockOperations.push(
+          prisma.productVariant.update({
             where: { id: variant.id },
             data: { stock: { decrement: qty } },
           })
-        }
-      } else if (product.stock >= qty) {
-        await prisma.product.update({
+        )
+      }
+    } else if (product.stock >= qty) {
+      stockOperations.push(
+        prisma.product.update({
           where: { id: product.id },
           data: { stock: { decrement: qty } },
         })
-      }
+      )
     }
-  } catch (stockErr) {
-    console.error('[orderService] Failed to reduce stock:', stockErr)
   }
+
+  const order = await prisma.$transaction(async (tx) => {
+    const created = await tx.order.create({
+      data: {
+        ...data,
+        items: JSON.stringify(finalItems),
+      },
+    })
+    if (stockOperations.length) await tx.$transaction(stockOperations)
+    return created
+  })
 
   return parseOrder(order)
 }

@@ -9,7 +9,8 @@ export const aboutController = {
   }),
 
   update: asyncHandler(async (req, res) => {
-    const file = req.file
+    const aboutFile = req.files?.media?.[0] || req.file
+    const socialFile = req.files?.socialMedia?.[0] || null
     const data = {}
     if (req.body.story !== undefined) data.story = req.body.story
     if (req.body.companyDescription !== undefined) data.companyDesc = req.body.companyDescription
@@ -26,7 +27,7 @@ export const aboutController = {
     }
     if (req.body.values !== undefined) data.values = req.body.values
     if (req.body.statistics !== undefined) data.statistics = req.body.statistics
-    const item = await aboutService.createOrUpdateAbout(data, file)
+    const item = await aboutService.createOrUpdateAbout(data, aboutFile, socialFile)
     res.json({ success: true, data: item })
   }),
 }

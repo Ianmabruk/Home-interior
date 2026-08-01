@@ -22,6 +22,8 @@ export const serviceController = {
       featured: req.body.featured === 'true' || req.body.featured === true,
       displayOrder: Number(req.body.displayOrder) || 0,
       isActive: req.body.isActive !== 'false' && req.body.isActive !== false,
+      buttonText: req.body.buttonText || 'Request This Service',
+      buttonUrl: req.body.buttonUrl || '',
     }
     const item = await serviceService.createService(data, file)
     res.status(201).json({ success: true, data: item })
@@ -36,6 +38,8 @@ export const serviceController = {
     if (req.body.featured !== undefined) data.featured = req.body.featured === 'true' || req.body.featured === true
     if (req.body.displayOrder !== undefined) data.displayOrder = Number(req.body.displayOrder) || 0
     if (req.body.isActive !== undefined) data.isActive = req.body.isActive === 'true' || req.body.isActive === true
+    if (req.body.buttonText !== undefined) data.buttonText = req.body.buttonText
+    if (req.body.buttonUrl !== undefined) data.buttonUrl = req.body.buttonUrl
     const item = await serviceService.updateService(req.params.id, data, file)
     res.json({ success: true, data: item })
   }),

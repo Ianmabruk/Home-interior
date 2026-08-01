@@ -20,6 +20,7 @@ import { useShop } from '@context/ShopContext'
 import hokLogoWebP from '@assets/hok-logo.webp'
 import { prefetchMap } from '@app/prefetchMap'
 import { FULLSCREEN_MENU_ITEMS } from '@constants/navItems'
+import { useIsMobile } from '@hooks/useIsMobile'
 
 const handlePrefetch = (to) => {
   const prefetchFn = prefetchMap[to]
@@ -39,6 +40,7 @@ export const Navbar = memo(() => {
   const navRef = useRef(null)
   const userMenuRef = useRef(null)
   const cartRef = useRef(null)
+  const reduceMotion = useIsMobile()
 
   useEffect(() => {
     const onScroll = () => {
@@ -133,6 +135,10 @@ export const Navbar = memo(() => {
                           src={item.selectedVariant?.image || item.image || item.images?.[0]?.url}
                           alt={item.name}
                           className="h-full w-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                          width={64}
+                          height={64}
                         />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -324,9 +330,9 @@ export const Navbar = memo(() => {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.06, delayChildren: 0.1 },
+      transition: { staggerChildren: reduceMotion ? 0 : 0.06, delayChildren: reduceMotion ? 0 : 0.1 },
     },
-    exit: { opacity: 0, transition: { staggerChildren: 0.04, staggerDirection: -1 } },
+    exit: { opacity: 0, transition: { staggerChildren: reduceMotion ? 0 : 0.04, staggerDirection: -1 } },
   }
 
   const itemVariants = {

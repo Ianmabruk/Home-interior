@@ -5,9 +5,10 @@ import { MobileCircularNavigation } from '@components/home/MobileCircularNavigat
 import { EDesignPackages } from '@components/home/EDesignPackages'
 import { ContactSection } from '@components/home/ContactSection'
 import { SectionErrorBoundary } from '@components/home/SectionErrorBoundary'
-import { api } from '@services/api'
+import { api, clearApiCache } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
+import { useIsMobile } from '@hooks/useIsMobile'
 
 const SkeletonHero = memo(() => (
   <section className="relative w-full h-screen min-h-[700px] overflow-hidden bg-[var(--primary)]" role="region" aria-label="Hero image">
@@ -21,7 +22,7 @@ const EmptySection = memo(() => null)
 
 EmptySection.displayName = 'EmptySection'
 
-export const HomePage = () => {
+export const HomePage = memo(() => {
   const [portfolio, setPortfolio] = useState([])
   const [services, setServices] = useState([])
   const [virtualDesigns, setVirtualDesigns] = useState([])
@@ -31,36 +32,32 @@ export const HomePage = () => {
   const [about, setAbout] = useState(null)
   const [blog, setBlog] = useState([])
   const [contactInfo, setContactInfo] = useState(null)
+  const reduceMotion = useIsMobile()
 
   const loadData = useCallback(async () => {
-    let cancelled = false
     try {
       const [homeRes, contactRes] = await Promise.all([
         api.get('/homepage'),
         api.get('/contact').catch(() => ({ data: null })),
       ])
-      if (!cancelled) {
-        const data = homeRes.data || {}
-        setPortfolio(data.portfolio || [])
-        setServices(data.services || [])
-        setVirtualDesigns(data.virtualInteriorDesign || data.virtualDesigns || [])
-        setHeroImages(data.heroImages || data.heroMedia || [])
-        setProducts(data.products || [])
-        setAbout(data.about || null)
-        setBlog(data.blog || [])
-        setContactInfo(contactRes?.data || null)
-      }
+      const data = homeRes.data || {}
+      setPortfolio(data.portfolio || [])
+      setServices(data.services || [])
+      setVirtualDesigns(data.virtualInteriorDesign || data.virtualDesigns || [])
+      setHeroImages(data.heroImages || data.heroMedia || [])
+      setProducts(data.products || [])
+      setAbout(data.about || null)
+      setBlog(data.blog || [])
+      setContactInfo(contactRes?.data || null)
     } catch (err) {
-      if (!cancelled) console.warn('[HOME] Failed to load data:', err?.message)
+      console.warn('[HOME] Failed to load data:', err?.message)
     } finally {
-      if (!cancelled) setLoading(false)
+      setLoading(false)
     }
-    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
     loadData()
-    return () => { loadData()?.catch(() => {}) }
   }, [loadData])
 
   useEffect(() => {
@@ -76,7 +73,7 @@ export const HomePage = () => {
         payload?.type === 'blog-changed' ||
         payload?.type === 'contact-changed'
       ) {
-        import('@services/api').then(({ clearApiCache }) => clearApiCache('/homepage'))
+        clearApiCache('/homepage')
         loadData()
       }
     }
@@ -144,6 +141,8 @@ export const HomePage = () => {
       </SectionErrorBoundary>
     </main>
   )
-}
+})
+
+HomePage.displayName = 'HomePage'
 
 export default HomePage

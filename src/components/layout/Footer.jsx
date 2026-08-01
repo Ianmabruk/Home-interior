@@ -8,13 +8,16 @@ export const Footer = memo(() => {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState('')
   const [socialLinks, setSocialLinks] = useState({})
+  const [socialImage, setSocialImage] = useState(null)
 
   const loadSocials = async () => {
     try {
       const res = await api.get('/socials')
       setSocialLinks(res.data || {})
+      setSocialImage(res.data?.image || null)
     } catch {
       setSocialLinks({})
+      setSocialImage(null)
     }
   }
 
@@ -66,9 +69,13 @@ export const Footer = memo(() => {
           {/* Section 1: Branding - Centered */}
           <div className="text-center animate-fade-up" style={{ animationDelay: '0s' }}>
             <Link to="/" className="inline-block group" aria-label="HOK Interiors - Home">
-              <p className="font-display text-3xl md:text-4xl lg:text-5xl font-medium tracking-[0.25em] leading-tight text-white transition-colors duration-300 group-hover:text-[var(--accent)]">
-                HOK Interiors
-              </p>
+              {socialImage ? (
+                <img src={socialImage} alt="HOK Interiors" className="h-16 md:h-20 mx-auto object-contain" loading="lazy" decoding="async" width={160} height={80} />
+              ) : (
+                <p className="font-display text-3xl md:text-4xl lg:text-5xl font-medium tracking-[0.25em] leading-tight text-white transition-colors duration-300 group-hover:text-[var(--accent)]">
+                  HOK Interiors
+                </p>
+              )}
             </Link>
           </div>
 

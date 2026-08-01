@@ -1,14 +1,16 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { motion } from 'framer-motion'
 import { api } from '@services/api'
-import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
+import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
+import { useIsMobile } from '@hooks/useIsMobile'
 
-export const AboutPage = () => {
+export const AboutPage = memo(() => {
   const [aboutData, setAboutData] = useState(null)
   const [team, setTeam] = useState([])
   const [loading, setLoading] = useState(true)
+  const reduceMotion = useIsMobile()
 
   const loadAbout = useCallback(async () => {
     try {
@@ -135,11 +137,15 @@ export const AboutPage = () => {
                 {imageUrl && (
                   <img
                     src={getOptimizedUrl(imageUrl, { width: 960, crop: 'limit' })}
+                    srcSet={buildSrcSet(imageUrl) || undefined}
+                    sizes={buildSrcSet(imageUrl) ? '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw' : undefined}
                     alt="Luxury interior design studio"
                     className="relative z-10 h-full w-full object-cover transition duration-[1.2s] hover:scale-105 rounded-3xl"
                     loading="lazy"
                     decoding="async"
                     fetchPriority="high"
+                    width={960}
+                    height={1200}
                   />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/10 to-transparent pointer-events-none rounded-3xl" />
@@ -203,7 +209,7 @@ export const AboutPage = () => {
                   key={member.id || index}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.5, delay: reduceMotion ? 0 : index * 0.08, ease: [0.22, 1, 0.36, 1] }}
                   className="group text-center"
                 >
                   <div className="relative mb-6">
@@ -211,8 +217,14 @@ export const AboutPage = () => {
                       {member.imageUrl ? (
                         <img
                           src={getOptimizedUrl(member.imageUrl, { width: 300, crop: 'fill' })}
+                          srcSet={buildSrcSet(member.imageUrl) || undefined}
+                          sizes={buildSrcSet(member.imageUrl) ? '(max-width: 768px) 192px, 192px' : undefined}
                           alt={member.name}
                           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          loading="lazy"
+                          decoding="async"
+                          width={300}
+                          height={300}
                         />
                       ) : (
                         <div className="h-full w-full flex items-center justify-center text-[var(--primary)]/30">
@@ -235,6 +247,8 @@ export const AboutPage = () => {
       )}
     </main>
   )
-}
+})
+
+AboutPage.displayName = 'AboutPage'
 
 export default AboutPage

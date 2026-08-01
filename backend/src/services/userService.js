@@ -11,6 +11,15 @@ export const userService = {
   clearCart,
 }
 
+function safeParseVariant(value) {
+  if (!value) return null
+  try {
+    return JSON.parse(value)
+  } catch {
+    return null
+  }
+}
+
 async function getWishlist(email) {
   const items = await prisma.wishlistItem.findMany({
     where: { adminEmail: email },
@@ -19,7 +28,7 @@ async function getWishlist(email) {
   return items.map((item) => ({
     _id: item.productId,
     id: item.productId,
-    variant: item.variant ? JSON.parse(item.variant) : null,
+    variant: safeParseVariant(item.variant),
   }))
 }
 
@@ -61,7 +70,7 @@ async function getCart(email) {
   return {
     items: items.map((item) => {
       const product = productMap.get(item.productId)
-      const variant = item.variant ? JSON.parse(item.variant) : null
+      const variant = safeParseVariant(item.variant)
       return {
         _id: item.productId,
         id: item.productId,

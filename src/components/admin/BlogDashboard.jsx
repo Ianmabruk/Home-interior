@@ -8,6 +8,8 @@ import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 const INITIAL_FORM = {
   title: '',
   description: '',
+  category: '',
+  tags: '',
   published: false,
   featured: false,
   displayOrder: 0,
@@ -80,6 +82,8 @@ export const BlogDashboard = () => {
     setForm({
       title: item.title || '',
       description: item.description || '',
+      category: item.category || '',
+      tags: (item.tags || []).join(', '),
       published: item.published !== false,
       featured: item.featured || false,
       displayOrder: item.displayOrder || 0,
@@ -108,6 +112,8 @@ export const BlogDashboard = () => {
       const payload = new FormData()
       payload.append('title', form.title)
       if (form.description) payload.append('description', form.description)
+      payload.append('category', form.category || '')
+      payload.append('tags', JSON.stringify(form.tags.split(',').map((t) => t.trim()).filter(Boolean)))
       payload.append('published', String(form.published))
       payload.append('featured', String(form.featured))
       payload.append('displayOrder', String(form.displayOrder || 0))
@@ -243,6 +249,27 @@ export const BlogDashboard = () => {
                 placeholder="Describe this blog post..."
                 rows={3}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Category</label>
+                <input
+                  value={form.category}
+                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                  placeholder="Design Tips"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Tags (comma separated)</label>
+                <input
+                  value={form.tags}
+                  onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                  placeholder="interior, design, luxury"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

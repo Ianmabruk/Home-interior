@@ -25,9 +25,12 @@ export const AboutDashboard = () => {
   const [form, setForm] = useState(INITIAL_FORM)
   const [aboutImagePreview, setAboutImagePreview] = useState(null)
   const [aboutImageFile, setAboutImageFile] = useState(null)
+  const [socialImagePreview, setSocialImagePreview] = useState(null)
+  const [socialImageFile, setSocialImageFile] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const aboutImageRef = useRef(null)
+  const socialImageRef = useRef(null)
 
   const loadAbout = useCallback(async () => {
     try {
@@ -49,6 +52,7 @@ export const AboutDashboard = () => {
           process: JSON.stringify(res.data?.process || [], null, 2),
         })
         setAboutImagePreview(res.data?.aboutImageUrl || null)
+        setSocialImagePreview(res.data?.socialImage || null)
       }
     } catch {
       setForm(INITIAL_FORM)
@@ -75,10 +79,26 @@ export const AboutDashboard = () => {
     }
   }
 
+  const handleSocialImage = (e) => {
+    const f = e.target.files?.[0] || null
+    setSocialImageFile(f)
+    if (f?.type?.startsWith('image/')) {
+      setSocialImagePreview(URL.createObjectURL(f))
+    } else {
+      setSocialImagePreview(null)
+    }
+  }
+
   const removeAboutImage = () => {
     setAboutImageFile(null)
     setAboutImagePreview(null)
     aboutImageRef.current.value = ''
+  }
+
+  const removeSocialImage = () => {
+    setSocialImageFile(null)
+    setSocialImagePreview(null)
+    socialImageRef.current.value = ''
   }
 
   const submit = async (e) => {
@@ -101,6 +121,7 @@ export const AboutDashboard = () => {
       payload.append('team', form.team || '[]')
       payload.append('process', form.process || '[]')
       if (aboutImageFile) payload.append('media', aboutImageFile)
+      if (socialImageFile) payload.append('socialMedia', socialImageFile)
       await api.put('/admin/about', payload)
       await loadAbout()
       dispatchAdminDataChanged('about-changed')
@@ -122,21 +143,47 @@ export const AboutDashboard = () => {
         <div>
           <h2 className="font-display text-3xl text-[var(--primary)]">About Page</h2>
           <p className="text-sm text-[var(--primary)]/50 mt-1">Manage all about page content including hero, story, team, process and more</p>
-        </div>
-      </motion.div>
-
-      <div className="grid gap-8 lg:grid-cols-[420px_1fr]">
-        <motion.form
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
-          onSubmit={submit}
-          className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)] space-y-5 self-start max-h-[calc(100vh-120px)] overflow-y-auto"
-        >
-          <div>
-            <h3 className="font-display text-xl text-[var(--primary)]">Hero Section</h3>
-            <p className="text-[10px] text-[var(--primary)]/50 mt-1">Main heading and subtitle</p>
           </div>
+        </motion.div>
+
+        <motion.div className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)]">
+          <div className="flex items-center gap-2 mb-6">
+            <ImageIcon size={20} className="text-[var(--accent)]" />
+            <h3 className="font-display text-2xl text-[var(--primary)]">Social Media Image</h3>
+          </div>
+          <p className="text-xs text-[var(--primary)]/50 mb-4">Upload a custom social media logo or image for the footer and socials page</p>
+          <input ref={socialImageRef} type="file" accept="image/*" onChange={handleSocialImage} className="hidden" />
+          {socialImagePreview && (
+            <div className="relative rounded-xl overflow-hidden mb-4">
+              <img
+                src={socialImagePreview}
+                alt="Social media preview"
+                className="h-48 w-full object-cover"
+              />
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                type="button"
+                onClick={removeSocialImage}
+                className="absolute top-3 right-3 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-2 rounded-full hover:bg-[var(--primary)] shadow-lg"
+              >
+                <X size={14} />
+              </motion.button>
+            </div>
+          )}
+          <label className="flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-white/50 px-4 py-3 text-[10px] font-medium uppercase tracking-[0.15em] text-[var(--primary)]/70 hover:text-[var(--accent)] hover:border-[var(--accent)] hover:bg-white transition-all duration-200 cursor-pointer">
+            <Plus size={14} />
+            {socialImagePreview ? 'Replace Social Image' : 'Upload Social Image'}
+            <input
+              ref={socialImageRef}
+              type="file"
+              accept="image/*"
+              onChange={handleSocialImage}
+              className="hidden"
+            />
+          </label>
+        </motion.div>
+      </div>
 
           <div className="border-t border-[var(--border)] pt-5 space-y-5">
             <div>

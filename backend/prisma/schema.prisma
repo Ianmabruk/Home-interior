@@ -113,6 +113,8 @@ model Service {
   icon         String?  @db.Text
   imageUrl     String?  @db.Text @map("image_url")
   cloudinaryId String?  @db.Text @map("cloudinary_id")
+  buttonText   String?  @default("Request This Service") @db.Text @map("button_text")
+  buttonUrl    String?  @db.Text @map("button_url")
   featured     Boolean  @default(false)
   displayOrder Int      @default(0) @map("display_order")
   isActive     Boolean  @default(true) @map("is_active")
@@ -167,6 +169,8 @@ model About {
   statistics      String   @default("") @db.Text
   imageUrl        String?  @db.Text @map("image_url")
   cloudinaryId    String?  @db.Text @map("cloudinary_id")
+  socialImage     String?  @db.Text @map("social_image")
+  socialImageId   String?  @db.Text @map("social_image_id")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -175,19 +179,29 @@ model About {
 }
 
 model Consultation {
-  id        String   @id @default(cuid())
-  name      String   @db.Text
-  email     String   @db.Text
-  phone     String?  @db.Text
-  message   String   @db.Text
-  status    String   @default("pending") @db.Text
-  preferredDate String? @map("preferred_date") @db.Text
-  preferredTime String? @map("preferred_time") @db.Text
-  createdAt DateTime @default(now()) @map("created_at")
+  id            String   @id @default(cuid())
+  type          String   @default("consultation") @db.Text
+  name          String   @db.Text
+  email         String   @db.Text
+  phone         String?  @db.Text
+  message       String   @db.Text
+  status        String   @default("pending") @db.Text
+  preferredDate String?  @map("preferred_date") @db.Text
+  preferredTime String?  @map("preferred_time") @db.Text
+  projectType   String?  @db.Text @map("project_type")
+  budget        String?  @db.Text
+  timeline      String?  @db.Text
+  packageName   String?  @db.Text @map("package_name")
+  packagePrice  Float?   @map("package_price")
+  paymentStatus String?  @default("pending") @db.Text @map("payment_status")
+  orderId       String?  @db.Text @map("order_id")
+  purchaseDate  DateTime? @map("purchase_date") @db.Timestamp
+  createdAt     DateTime @default(now()) @map("created_at")
 
   @@map("consultations")
   @@index([status, createdAt(desc)])
   @@index([email, createdAt(desc)])
+  @@index([type, createdAt(desc)])
 }
 
 model SiteSetting {
@@ -253,6 +267,8 @@ model Blog {
   id           String   @id @default(cuid())
   title        String   @db.Text
   description  String?  @db.Text
+  category     String?  @db.Text
+  tags         String[] @default([]) @db.Text
   image        String?  @db.Text
   video        String?  @db.Text
   cloudinaryId String?  @db.Text @map("cloudinary_id")
@@ -265,6 +281,7 @@ model Blog {
   @@map("blogs")
   @@index([published, featured, createdAt(desc)])
   @@index([displayOrder(asc)])
+  @@index([category])
 }
 
 model Message {

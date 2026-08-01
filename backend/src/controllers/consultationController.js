@@ -1,6 +1,5 @@
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import { consultationService } from '../services/consultationService.js'
-import { failure } from '../utils/response.js'
 import { uploadFile } from '../uploads/uploadService.js'
 
 function buildMessageWithImages(originalMessage, imageUrls, extraData = {}) {
@@ -41,6 +40,7 @@ export const consultationController = {
     const budget = req.body.budget || ''
     const timeline = req.body.timeline || ''
     const projectType = req.body.projectType || ''
+    const type = req.body.type || 'consultation'
 
     const imageUrls = []
     if (file) {
@@ -52,25 +52,43 @@ export const consultationController = {
       imageUrls.push(uploaded.url)
     }
 
+    const extraData = { budget, timeline, projectType, name, email, phone }
+    if (type === 'e-design') {
+      extraData.packageName = req.body.packageName || ''
+      extraData.packagePrice = req.body.packagePrice ? Number(req.body.packagePrice) : null
+      extraData.paymentStatus = req.body.paymentStatus || 'pending'
+      extraData.orderId = req.body.orderId || null
+      extraData.purchaseDate = req.body.purchaseDate ? new Date(req.body.purchaseDate) : null
+    }
+
     const enrichedMessage = buildMessageWithImages(
       originalMessage,
       imageUrls,
-      { budget, timeline, projectType, name, email, phone }
+      extraData
     )
 
     const data = {
+      type,
       name,
       email,
       phone,
       message: enrichedMessage,
+      projectType,
+      budget,
+      timeline,
+      packageName: type === 'e-design' ? (req.body.packageName || null) : null,
+      packagePrice: type === 'e-design' ? (req.body.packagePrice ? Number(req.body.packagePrice) : null) : null,
+      paymentStatus: type === 'e-design' ? (req.body.paymentStatus || 'pending') : null,
+      orderId: type === 'e-design' ? (req.body.orderId || null) : null,
+      purchaseDate: type === 'e-design' ? (req.body.purchaseDate ? new Date(req.body.purchaseDate) : null) : null,
     }
     const consultation = await consultationService.createConsultation(data)
     res.status(201).json({ success: true, data: consultation })
   }),
 
   list: asyncHandler(async (req, res) => {
-    const { status, search, page = 1, pageSize = 10 } = req.query
-    const result = await consultationService.listConsultations({ status, search, page, pageSize })
+    const { status, search, page = 1, pageSize = 10, type } = req.query
+    const result = await consultationService.listConsultations({ status, search, page, pageSize, type })
     res.json({ success: true, data: result })
   }),
 
@@ -85,14 +103,14 @@ export const consultationController = {
   }),
 
   exportCsv: asyncHandler(async (req, res) => {
-    const { status, search } = req.query
-    const result = await consultationService.listConsultations({ status, search, page: 1, pageSize: 10000 })
+    const { status, search, type } = req.query
+    const result = await consultationService.listConsultations({ status, search, page: 1, pageSize: 10000, type })
 
-    const headers = 'Name,Email,Phone,Budget,Timeline,Project Type,Message,Status,Date\n'
+    const headers = 'Type,Name,Email,Phone,Project Type,Budget,Timeline,Package,Price,Payment Status,Order ID,Message,Status,Date\n'
     const rows = result.items
       .map((c) => {
         const parsed = parseConsultationMessage(c.message || '')
-        return `"${(c.name || '').replace(/"/g, '""')}","${(c.email || '').replace(/"/g, '""')}","${(c.phone || '').replace(/"/g, '""')}","${parsed.extraData.budget || ''}","${parsed.extraData.timeline || ''}","${parsed.extraData.projectType || ''}","${(parsed.text || '').replace(/"/g, '""')}","${c.status}","${new Date(c.createdAt).toISOString()}"`
+        return `"${(c.type || '').replace(/"/g, '""')}","${(c.name || '').replace(/"/g, '""')}","${(c.email || '').replace(/"/g, '""')}","${(c.phone || '').replace(/"/g, '""')}","${(parsed.extraData.projectType || '').replace(/"/g, '""')}","${(parsed.extraData.budget || '').replace(/"/g, '""')}","${(parsed.extraData.timeline || '').replace(/"/g, '""')}","${(c.packageName || '').replace(/"/g, '""')}",${c.packagePrice || 0},"${(c.paymentStatus || '').replace(/"/g, '""')}","${(c.orderId || '').replace(/"/g, '""')}","${(parsed.text || '').replace(/"/g, '""')}","${c.status}","${new Date(c.createdAt).toISOString()}"`
       })
       .join('\n')
 

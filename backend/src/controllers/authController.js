@@ -57,6 +57,9 @@ export const authController = {
   }),
 
   register: asyncHandler(async (req, res) => {
+    if (process.env.ADMIN_REGISTRATION_ENABLED !== 'true') {
+      return res.status(403).json({ success: false, message: 'Admin registration is disabled' })
+    }
     const { fullName, email, password } = req.body
     if (!fullName || !email || !password) {
       return res.status(400).json({ success: false, message: 'Full name, email, and password are required' })

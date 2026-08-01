@@ -19,6 +19,7 @@ export const app = express()
 
 app.set('trust proxy', 1)
 app.use(compression())
+app.use(helmet())
 app.use(morgan('dev'))
 app.use(cookieParser())
 app.use(express.json({ limit: '1mb' }))
@@ -91,16 +92,6 @@ app.get(['/api/health', '/health'], async (req, res) => {
 })
 
 app.use('/uploads', express.static(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public', 'uploads')))
-
-// TEMP DEV BYPASS - allows frontend to work without real auth in development
-if (process.env.NODE_ENV !== 'production') {
-  app.use((req, res, next) => {
-    if (req.headers['x-dev-bypass-auth'] === 'true') {
-      req.admin = { id: 'temp-admin', email: 'admin@hokinterior.com', fullName: 'Admin', role: 'ADMIN' }
-    }
-    next()
-  })
-}
 
 app.use('/api', routes)
 

@@ -1,31 +1,36 @@
 import { Router } from 'express'
 import { authenticate } from '../middleware/auth.js'
+import { asyncHandler } from '../middleware/asyncHandler.js'
 import { uploadFile, deleteFile } from '../uploads/uploadService.js'
 import { uploadSingle } from '../middleware/upload.js'
-import { failure } from '../utils/response.js'
+import { ApiError } from '../utils/ApiError.js'
 
 const router = Router()
 
-router.post('/upload', authenticate, uploadSingle('media'), async (req, res) => {
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg']
+
+router.post('/upload', authenticate, uploadSingle('media'), asyncHandler(async (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ success: false, message: 'No file uploaded' })
+    throw new ApiError(400, 'No file uploaded')
   }
   const folder = req.body.folder || 'uploads'
   const type = req.body.resourceType || 'image'
-  const allowedImage = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-  const allowedVideo = ['video/mp4', 'video/webm', 'video/ogg']
-  const allowed = type === 'video' ? allowedVideo : allowedImage
+  const allowed = type === 'video' ? [...IMAGE_TYPES, ...VIDEO_TYPES] : IMAGE_TYPES
   if (!allowed.includes(req.file.mimetype)) {
-    return res.status(400).json({ success: false, message: 'Invalid file type' })
+    throw new ApiError(400, 'Invalid file type')
   }
   const uploaded = await uploadFile(req.file.buffer, req.file.mimetype, folder)
   res.status(201).json({ success: true, data: { url: uploaded.url, path: uploaded.path } })
-})
+}))
 
-router.post('/delete', authenticate, async (req, res) => {
+router.post('/delete', authenticate, asyncHandler(async (req, res) => {
   const { publicId, resourceType } = req.body
+  if (!publicId) {
+    throw new ApiError(400, 'publicId is required')
+  }
   await deleteFile(publicId)
   res.json({ success: true, data: { message: 'Deleted' } })
-})
+}))
 
 export default router

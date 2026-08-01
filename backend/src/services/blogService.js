@@ -12,6 +12,8 @@ function mapBlog(item) {
     mediaUrl: item.image,
     mediaUrls: item.video ? [item.video] : [],
     mediaType: item.video ? 'video' : 'image',
+    category: item.category,
+    tags: item.tags || [],
   }
 }
 

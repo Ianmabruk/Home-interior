@@ -19,7 +19,7 @@ import {
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
-
+import { useIsMobile } from '@hooks/useIsMobile'
 import { SHOP_CATEGORIES } from '../../utils/constants'
 
 const INITIAL_FORM = {
@@ -34,6 +34,7 @@ const INITIAL_FORM = {
   tags: '',
   isFeatured: false,
   isPublished: true,
+  displayOrder: 0,
   variants: [],
 }
 
@@ -55,6 +56,7 @@ export const ShopDashboard = () => {
   const [variantFiles, setVariantFiles] = useState([])
   const [variantPreviews, setVariantPreviews] = useState([])
   const [error, setError] = useState('')
+  const reduceMotion = useIsMobile()
   const fileRef = useRef(null)
 
   useEffect(() => {
@@ -106,6 +108,7 @@ export const ShopDashboard = () => {
       payload.append('tags', JSON.stringify(form.tags.split(',').map((t) => t.trim()).filter(Boolean)))
       payload.append('isFeatured', String(form.isFeatured))
       payload.append('isPublished', String(form.isPublished))
+      payload.append('displayOrder', String(form.displayOrder || 0))
 
       imageFiles.forEach((file) => payload.append('images', file))
 
@@ -190,6 +193,7 @@ export const ShopDashboard = () => {
       tags: (item.tags || []).join(', '),
       isFeatured: item.featured || false,
       isPublished: item.isPublished ?? item.published ?? true,
+      displayOrder: item.displayOrder || 0,
       variants: (item.variants || []).map((v) => ({
         color: v.color || '',
         image: v.image || '',
@@ -503,6 +507,17 @@ export const ShopDashboard = () => {
             </label>
           </div>
 
+          <div className="space-y-1">
+            <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Display Order</label>
+            <input
+              value={form.displayOrder}
+              onChange={(e) => setForm((f) => ({ ...f, displayOrder: Number(e.target.value) || 0 }))}
+              type="number"
+              className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+              placeholder="0"
+            />
+          </div>
+
           <input
             ref={fileRef}
             type="file"
@@ -657,7 +672,7 @@ export const ShopDashboard = () => {
               key={item._id || item.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
+              transition={{ delay: reduceMotion ? 0 : i * 0.05 }}
               className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)] overflow-hidden group"
             >
               <div className="relative overflow-hidden">
@@ -666,6 +681,10 @@ export const ShopDashboard = () => {
                     src={typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url}
                     alt={item.name}
                     className="h-44 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
+                    decoding="async"
+                    width={400}
+                    height={300}
                   />
                 ) : (
                   <div className="h-44 w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">

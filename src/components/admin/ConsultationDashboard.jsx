@@ -14,6 +14,7 @@ import {
   Calendar,
   MessageSquare,
   Image,
+  Tag,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
@@ -78,6 +79,7 @@ function ContactViewModal({ viewItem, onClose }) {
             { icon: Calendar, label: 'Date', value: viewItem.preferredDate ? new Date(viewItem.preferredDate).toLocaleDateString() : '—' },
             { icon: Clock, label: 'Time', value: viewItem.preferredTime || '—' },
             { icon: CheckCircle2, label: 'Status', value: viewItem.status || 'new' },
+            { icon: Tag, label: 'Type', value: viewItem.type || 'consultation' },
           ].map((field, i) => (
             <div
               key={i}
@@ -149,6 +151,8 @@ function ContactViewModal({ viewItem, onClose }) {
 }
 
 const STATUSES = ['pending', 'in review', 'quoted', 'approved', 'completed', 'archived']
+const TYPES = ['all', 'consultation', 'e-design']
+const PAYMENT_STATUSES = ['all', 'pending', 'paid', 'unpaid']
 
 const STATUS_CONFIG = {
   pending: { label: 'New', color: 'text-[var(--primary)]/70 bg-[var(--primary)]/5 border-[var(--primary)]/10' },
@@ -162,6 +166,8 @@ const STATUS_CONFIG = {
 export const ConsultationDashboard = () => {
   const [consultations, setConsultations] = useState([])
   const [filter, setFilter] = useState('all')
+  const [typeFilter, setTypeFilter] = useState('all')
+  const [paymentFilter, setPaymentFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [deleteId, setDeleteId] = useState(null)
   const [viewItem, setViewItem] = useState(null)
@@ -176,6 +182,7 @@ export const ConsultationDashboard = () => {
           search: search || undefined,
           page,
           pageSize: 10,
+          type: typeFilter === 'all' ? undefined : typeFilter,
         }
         const res = await api.get('/admin/consultations', { params })
         setConsultations(res.data?.items || [])
@@ -185,7 +192,7 @@ export const ConsultationDashboard = () => {
       }
     }
     loadData()
-  }, [filter, search, page])
+  }, [filter, typeFilter, search, page])
 
   useEffect(() => {
     const handler = () => {
@@ -194,6 +201,7 @@ export const ConsultationDashboard = () => {
         search: search || undefined,
         page,
         pageSize: 10,
+        type: typeFilter === 'all' ? undefined : typeFilter,
       }
       api.get('/admin/consultations', { params })
         .then((res) => {
@@ -204,7 +212,7 @@ export const ConsultationDashboard = () => {
     }
     window.addEventListener('admin-data-changed', handler)
     return () => window.removeEventListener('admin-data-changed', handler)
-  }, [filter, search, page])
+  }, [filter, typeFilter, search, page])
 
   const refresh = async () => {
     try {
@@ -213,6 +221,7 @@ export const ConsultationDashboard = () => {
         search: search || undefined,
         page,
         pageSize: 10,
+        type: typeFilter === 'all' ? undefined : typeFilter,
       }
       const res = await api.get('/admin/consultations', { params })
       setConsultations(res.data?.items || [])
@@ -314,6 +323,38 @@ export const ConsultationDashboard = () => {
               ))}
             </select>
           </motion.div>
+          <motion.div whileHover={{ scale: 1.02 }}>
+            <select
+              value={typeFilter}
+              onChange={(e) => {
+                setTypeFilter(e.target.value)
+                setPage(1)
+              }}
+              className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition cursor-pointer"
+            >
+              {TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t === 'all' ? 'All Types' : t === 'e-design' ? 'E-Design' : 'Consultation'}
+                </option>
+              ))}
+            </select>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.02 }}>
+            <select
+              value={paymentFilter}
+              onChange={(e) => {
+                setPaymentFilter(e.target.value)
+                setPage(1)
+              }}
+              className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition cursor-pointer"
+            >
+              {PAYMENT_STATUSES.map((p) => (
+                <option key={p} value={p}>
+                  {p === 'all' ? 'All Payments' : p === 'paid' ? 'Paid' : 'Unpaid'}
+                </option>
+              ))}
+            </select>
+          </motion.div>
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -344,12 +385,13 @@ export const ConsultationDashboard = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr>
+                  <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Type</th>
                   <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Name</th>
                   <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Email</th>
                   <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Phone</th>
-                  <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Message</th>
+                  <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Package</th>
+                  <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Payment</th>
                   <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Date</th>
-                  <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Time</th>
                   <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Status</th>
                   <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Actions</th>
                 </tr>
@@ -364,6 +406,11 @@ export const ConsultationDashboard = () => {
                     className="group border-b border-[var(--border)]/50 transition-colors duration-150 hover:bg-[var(--bg)]/40"
                   >
                     <td className="px-4 py-3.5 text-[var(--primary)]">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${c.type === 'e-design' ? 'text-[var(--accent)] bg-[var(--accent)]/5 border-[var(--accent)]/10' : 'text-[var(--primary)]/70 bg-[var(--primary)]/5 border-[var(--primary)]/10'}`}>
+                        {c.type === 'e-design' ? 'E-Design' : 'Consultation'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-[var(--primary)]">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--accent)]/10 to-[var(--secondary)]/40 flex items-center justify-center text-[var(--accent)] text-xs font-semibold">
                           {(c.name || 'U').charAt(0).toUpperCase()}
@@ -372,15 +419,20 @@ export const ConsultationDashboard = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3.5 text-[var(--primary)]/50">{c.email}</td>
-                    <td className="px-4 py-3.5 text-[var(--primary)]/50 max-w-xs truncate">{c.message}</td>
+                    <td className="px-4 py-3.5 text-[var(--primary)]/50 max-w-xs truncate">{c.phone || '—'}</td>
+                    <td className="px-4 py-3.5 text-[var(--primary)]/50 max-w-xs truncate">{c.packageName || '—'}</td>
                     <td className="px-4 py-3.5 text-[var(--primary)]/50">
-                      {c.preferredDate
-                        ? new Date(c.preferredDate).toLocaleDateString()
-                        : c.createdAt
+                      {c.paymentStatus ? (
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${c.paymentStatus === 'paid' ? 'text-[var(--success)] bg-[var(--success)]/5 border-[var(--success)]/10' : 'text-[var(--primary)]/70 bg-[var(--primary)]/5 border-[var(--primary)]/10'}`}>
+                          {c.paymentStatus}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td className="px-4 py-3.5 text-[var(--primary)]/50">
+                      {c.createdAt
                         ? new Date(c.createdAt).toLocaleDateString()
                         : '—'}
                     </td>
-                    <td className="px-4 py-3.5 text-[var(--primary)]/50">{c.preferredTime || '—'}</td>
                     <td className="px-4 py-3.5">{statusBadge(c.status || 'pending')}</td>
                     <td className="px-4 py-3.5">
                       <div className="flex gap-1.5">

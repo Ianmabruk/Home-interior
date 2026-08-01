@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UploadCloud, X, Edit, Trash2, Eye, Plus, Sparkles, LayoutGrid, Brush, MonitorSmartphone, Armchair, Search, Star, ArrowUp, ArrowDown, ToggleLeft } from 'lucide-react'
+import { UploadCloud, X, Edit, Trash2, Eye, Plus, Sparkles, Star, ArrowUp, ArrowDown, ToggleLeft } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
+import { useIsMobile } from '@hooks/useIsMobile'
 
 const ICON_OPTIONS = [
   { value: 'LayoutGrid', label: 'Layout Grid', icon: LayoutGrid },
@@ -21,6 +22,8 @@ const INITIAL_FORM = {
   featured: false,
   displayOrder: 0,
   isActive: true,
+  buttonText: 'Request This Service',
+  buttonUrl: '',
 }
 
 export const ServicesDashboard = () => {
@@ -33,6 +36,7 @@ export const ServicesDashboard = () => {
   const [deleteId, setDeleteId] = useState(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const reduceMotion = useIsMobile()
   const fileRef = useRef(null)
 
   useEffect(() => {
@@ -94,6 +98,8 @@ export const ServicesDashboard = () => {
       featured: item.featured || false,
       displayOrder: item.displayOrder || 0,
       isActive: item.isActive !== false,
+      buttonText: item.buttonText || 'Request This Service',
+      buttonUrl: item.buttonUrl || '',
     })
     setMediaFiles(item.imageUrl ? [{ url: item.imageUrl }] : [])
     setMediaPreviews(item.imageUrl ? [item.imageUrl] : [])
@@ -119,6 +125,8 @@ export const ServicesDashboard = () => {
       payload.append('featured', String(form.featured))
       payload.append('displayOrder', String(form.displayOrder || 0))
       payload.append('isActive', String(form.isActive))
+      payload.append('buttonText', form.buttonText || 'Request This Service')
+      if (form.buttonUrl) payload.append('buttonUrl', form.buttonUrl)
 
       if (mediaFiles[0] && mediaFiles[0] instanceof File) {
         payload.append('media', mediaFiles[0])
@@ -316,6 +324,27 @@ export const ServicesDashboard = () => {
               </div>
             </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Button Text</label>
+                <input
+                  value={form.buttonText}
+                  onChange={(e) => setForm((f) => ({ ...f, buttonText: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                  placeholder="Request This Service"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Button URL</label>
+                <input
+                  value={form.buttonUrl}
+                  onChange={(e) => setForm((f) => ({ ...f, buttonUrl: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                  placeholder="/services or #consultation"
+                />
+              </div>
+            </div>
+
             <input ref={fileRef} type="file" accept="image/*" onChange={(e) => handleFiles(e.target.files)} className="hidden" />
             <motion.div
               whileHover={{ scale: 1.01 }}
@@ -411,7 +440,7 @@ export const ServicesDashboard = () => {
             key={item.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ delay: reduceMotion ? 0 : i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             className="group bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500"
           >
             <div className="relative aspect-[3/4] overflow-hidden">
@@ -421,6 +450,9 @@ export const ServicesDashboard = () => {
                   alt={item.title}
                   className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
                   loading="lazy"
+                  decoding="async"
+                  width={600}
+                  height={800}
                 />
               ) : (
                 <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">

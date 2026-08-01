@@ -34,6 +34,8 @@ export const blogController = {
     const data = {
       title: req.body.title || 'Untitled',
       description: req.body.description || '',
+      category: req.body.category || '',
+      tags: req.body.tags || [],
       published: req.body.published === 'true' || req.body.published === true,
       featured: req.body.featured === 'true' || req.body.featured === true,
       displayOrder: Number(req.body.displayOrder) || 0,
@@ -48,6 +50,8 @@ export const blogController = {
     const data = {}
     if (req.body.title !== undefined) data.title = req.body.title
     if (req.body.description !== undefined) data.description = req.body.description
+    if (req.body.category !== undefined) data.category = req.body.category
+    if (req.body.tags !== undefined) data.tags = req.body.tags
     if (req.body.published !== undefined) data.published = req.body.published === 'true' || req.body.published === true
     if (req.body.featured !== undefined) data.featured = req.body.featured === 'true' || req.body.featured === true
     if (req.body.displayOrder !== undefined) data.displayOrder = Number(req.body.displayOrder) || 0

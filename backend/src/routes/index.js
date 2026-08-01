@@ -12,14 +12,13 @@ import heroRoutes from './heroMediaRoutes.js'
 import aboutRoutes from './aboutRoutes.js'
 import contactRoutes from './contactRoutes.js'
 import consultationRoutes from './consultationRoutes.js'
-import adminConsultationRoutes from './adminConsultationRoutes.js'
 import chatRoutes from './chatRoutes.js'
 import publicBlogRoutes from './publicBlogRoutes.js'
 import blogRoutes from './blogRoutes.js'
-import { portfolioRoutes as adminPortfolioRoutes, virtualDesignRoutes as adminVDRoutes } from './adminContentRoutes.js'
 import contentRoutes, { portfolioRoutes as contentPortfolioRoutes, virtualDesignRoutes as contentVDRoutes } from './contentRoutes.js'
 import messageRoutes from './messageRoutes.js'
 import socialsRoutes from './socialsRoutes.js'
+import { asyncHandler } from '../middleware/asyncHandler.js'
 import { uploadSingle } from '../middleware/upload.js'
 import { uploadFile } from '../uploads/uploadService.js'
 import { authenticate } from '../middleware/auth.js'
@@ -58,15 +57,15 @@ router.use('/content/socials', socialsRoutes)
 router.use('/blog', publicBlogRoutes)
 router.use('/admin/blog', blogRoutes)
 
-router.post('/test-upload', authenticate, uploadSingle('media'), async (req, res) => {
+router.post('/test-upload', authenticate, uploadSingle('media'), asyncHandler(async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ success: false, message: 'No file uploaded' })
   }
   const uploaded = await uploadFile(req.file.buffer, req.file.mimetype, 'test-uploads')
   res.status(201).json({ success: true, data: { url: uploaded.url, path: uploaded.path } })
-})
+}))
 
-router.get('/settings/shop-banner', async (req, res) => {
+router.get('/settings/shop-banner', asyncHandler(async (req, res) => {
   try {
     const settings = await prisma.siteSetting.findMany()
     const result = {}
@@ -75,6 +74,6 @@ router.get('/settings/shop-banner', async (req, res) => {
   } catch {
     res.json({ success: true, data: { shopBannerImage: '' } })
   }
-})
+}))
 
 export default router

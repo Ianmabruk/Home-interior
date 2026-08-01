@@ -29,7 +29,7 @@ async function getHomepage() {
         }),
         prisma.about.findFirst({
           orderBy: { createdAt: 'desc' },
-          select: { id: true, imageUrl: true },
+          select: { id: true, imageUrl: true, socialImage: true },
         }),
         prisma.testimonial.findMany({
           where: { isActive: true },
@@ -44,15 +44,15 @@ async function getHomepage() {
           select: { id: true, title: true, subtitle: true, imageUrl: true, mediaUrls: true },
         }),
         prisma.product.findMany({
-          orderBy: { displayOrder: 'asc' },
+          orderBy: { createdAt: 'desc' },
           take: 1,
-          select: { id: true, name: true, price: true, originalPrice: true, mainImage: true, images: true, discountPrice: true },
+          select: { id: true, name: true, price: true, originalPrice: true, mainImage: true, images: true },
         }),
         prisma.blog.findMany({
           where: { published: true },
           orderBy: { createdAt: 'desc' },
           take: 6,
-          select: { id: true, title: true, imageUrl: true, mediaUrls: true },
+          select: { id: true, title: true, image: true, video: true, description: true, category: true },
         }),
         contactService.getContact(),
       ])
@@ -72,6 +72,14 @@ async function getHomepage() {
 
     const featuredPortfolio = portfolio.filter((p) => p.featured).slice(0, 3)
 
+    const mappedBlog = (blog || []).map((item) => ({
+      ...item,
+      imageUrl: item.image,
+      mediaUrl: item.image,
+      mediaUrls: item.video ? [item.video] : [],
+      mediaType: item.video ? 'video' : 'image',
+    }))
+
     return {
       portfolio,
       virtualDesigns,
@@ -85,7 +93,7 @@ async function getHomepage() {
       heroMedia,
       featuredProject: featuredPortfolio[0] || portfolio[0] || null,
       products: featuredProducts,
-      blog,
+      blog: mappedBlog,
       contact,
     }
   } catch (err) {

@@ -47,29 +47,17 @@ export async function getSettings() {
 }
 
 export async function updateSettings(data) {
-  const entries = []
-  for (const [key, value] of Object.entries(data)) {
-    entries.push({
-      key,
-      value: typeof value === 'boolean' ? String(value) : String(value),
-    })
-  }
+  const entries = Object.entries(data)
 
-  for (const entry of entries) {
-    const existing = await prisma.siteSetting.findUnique({
-      where: { key: entry.key },
-    })
-    if (existing) {
-      await prisma.siteSetting.update({
-        where: { key: entry.key },
-        data: { value: entry.value },
+  await prisma.$transaction(
+    entries.map(([key, value]) =>
+      prisma.siteSetting.upsert({
+        where: { key },
+        update: { value: typeof value === 'boolean' ? String(value) : String(value) },
+        create: { key, value: typeof value === 'boolean' ? String(value) : String(value) },
       })
-    } else {
-      await prisma.siteSetting.create({
-        data: entry,
-      })
-    }
-  }
+    )
+  )
 
   return getSettings()
 }

@@ -1,6 +1,8 @@
 import { useState, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Loader2, Send, Check, ChevronDown, ChevronUp, Sparkles, Shield, Wifi } from 'lucide-react'
+import { api } from '@services/api'
+import { toast } from 'react-hot-toast'
 
 const packages = [
   {
@@ -122,9 +124,23 @@ export const EDesignPackages = memo(() => {
     e.preventDefault()
     setSubmitting(true)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const payload = new FormData()
+      payload.append('fullName', formData.name)
+      payload.append('email', formData.email)
+      payload.append('phoneNumber', formData.phone)
+      payload.append('projectDescription', formData.message)
+      payload.append('service', formData.service)
+      payload.append('type', 'e-design')
+      payload.append('packageName', selectedPackage)
+      payload.append('packagePrice', '0')
+      payload.append('paymentStatus', 'pending')
+
+      await api.post('/consultations', payload)
+      toast.success('E-design package request submitted successfully!')
       setModalOpen(false)
       setFormData({ name: '', email: '', phone: '', service: '', message: '' })
+    } catch (err) {
+      toast.error(err?.message || 'Failed to submit. Please try again.')
     } finally {
       setSubmitting(false)
     }

@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { api } from '@services/api'
-import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
+import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 import { SectionErrorBoundary } from '@components/home/SectionErrorBoundary'
+import { useIsMobile } from '@hooks/useIsMobile'
 
 const SkeletonBlog = () => (
   <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-20 md:py-32">
@@ -29,9 +30,10 @@ const SkeletonBlog = () => (
   </section>
 )
 
-export const BlogPage = () => {
+export const BlogPage = memo(() => {
   const [blogs, setBlogs] = useState([])
   const [loading, setLoading] = useState(true)
+  const reduceMotion = useIsMobile()
 
   const loadBlogs = useCallback(async () => {
     try {
@@ -102,25 +104,30 @@ export const BlogPage = () => {
                 <p className="text-sm text-[var(--primary)]/40 mt-2">Check back soon for new content</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
-                 {blogs.map((item, i) => (
-                   <motion.article
-                     key={item._id || item.id}
-                     initial={{ opacity: 0, y: 20 }}
-                     animate={{ opacity: 1, y: 0 }}
-                     transition={{ delay: i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                     className="group bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500"
-                   >
-                    <Link to={`/blog/${item.id || item._id}`} className="block">
-                      <div className="relative aspect-[4/3] overflow-hidden">
-                      {item.imageUrl ? (
-                        <img
-                          src={getOptimizedUrl(item.imageUrl, { width: 800, crop: 'limit' })}
-                          alt={item.title}
-                          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                          loading="lazy"
-                        />
-                      ) : (
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
+                  {blogs.map((item, i) => (
+                    <motion.article
+                      key={item._id || item.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: reduceMotion ? 0 : i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                      className="group bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500"
+                    >
+                     <Link to={`/blog/${item.id || item._id}`} className="block">
+                       <div className="relative aspect-[4/3] overflow-hidden">
+                       {item.imageUrl ? (
+                         <img
+                           src={getOptimizedUrl(item.imageUrl, { width: 800, crop: 'limit' })}
+                           srcSet={buildSrcSet(item.imageUrl) || undefined}
+                           sizes={buildSrcSet(item.imageUrl) ? '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw' : undefined}
+                           alt={item.title}
+                           className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                           loading="lazy"
+                           decoding="async"
+                           width={800}
+                           height={600}
+                         />
+                       ) : (
                         <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
                           <div className="w-16 h-16 rounded-full bg-[var(--secondary)]/40 flex items-center justify-center text-[var(--primary)]/20">
                             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -162,6 +169,8 @@ export const BlogPage = () => {
       </SectionErrorBoundary>
     </main>
   )
-}
+})
+
+BlogPage.displayName = 'BlogPage'
 
 export default BlogPage

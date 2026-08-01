@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { api } from '@services/api'
-import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
+import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 import { getProjectImage } from '@utils/homepageHelpers'
+import { useIsMobile } from '@hooks/useIsMobile'
 
 const SkeletonPortfolio = () => (
   <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-20 md:py-32">
@@ -25,9 +26,10 @@ const SkeletonPortfolio = () => (
   </section>
 )
 
-export const PortfolioPage = () => {
+export const PortfolioPage = memo(() => {
   const [portfolio, setPortfolio] = useState([])
   const [loading, setLoading] = useState(true)
+  const reduceMotion = useIsMobile()
 
   const loadPortfolio = useCallback(async () => {
     try {
@@ -99,17 +101,21 @@ export const PortfolioPage = () => {
                   key={item._id || item.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.5, delay: reduceMotion ? 0 : index * 0.08, ease: [0.22, 1, 0.36, 1] }}
                   className="group relative bg-white border border-[var(--border)]/40 overflow-hidden rounded-3xl hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(42,36,31,0.1)] transition-all duration-500"
                 >
                   <Link to={`/portfolio/${item.id}`} className="block">
                     <div className="relative aspect-[3/4] overflow-hidden">
                       <img
                         src={getOptimizedUrl(getProjectImage(item), { width: 600, crop: 'limit' })}
+                        srcSet={buildSrcSet(getProjectImage(item)) || undefined}
+                        sizes={buildSrcSet(getProjectImage(item)) ? '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw' : undefined}
                         alt={item.title}
                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                         loading="lazy"
                         decoding="async"
+                        width={600}
+                        height={800}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       {item.category && (
@@ -134,6 +140,8 @@ export const PortfolioPage = () => {
       </section>
     </main>
   )
-}
+})
+
+PortfolioPage.displayName = 'PortfolioPage'
 
 export default PortfolioPage

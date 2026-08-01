@@ -5,6 +5,18 @@ import { useShop } from '../../context/ShopContext'
 import { useCurrency } from '../../context/CurrencyContext'
 import PositionedImage from '../common/PositionedImage'
 
+const areEqual = (prev, next) => {
+  if (prev.product._id !== next.product._id) return false
+  if (prev.product.name !== next.product.name) return false
+  if (prev.product.price !== next.product.price) return false
+  if (prev.product.discountPrice !== next.product.discountPrice) return false
+  if (prev.product.stock !== next.product.stock) return false
+  if (prev.product.category !== next.product.category) return false
+  if (prev.product.images?.length !== next.product.images?.length) return false
+  if (prev.onQuickView !== next.onQuickView) return false
+  return true
+}
+
 export const ProductCard = memo(({ product, onQuickView }) => {
   const { addToCart, toggleWishlist, wishlist } = useShop()
   const { formatPrice } = useCurrency()
@@ -123,3 +135,7 @@ export const ProductCard = memo(({ product, onQuickView }) => {
     </article>
   )
 })
+
+ProductCard.displayName = 'ProductCard'
+
+export default ProductCard

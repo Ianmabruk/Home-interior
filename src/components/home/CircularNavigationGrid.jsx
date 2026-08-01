@@ -1,7 +1,8 @@
 import { useMemo, memo } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
+import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 const CIRCLE_SIZE = 300
 
@@ -77,7 +78,7 @@ const NAV_ITEMS = [
     key: 'socials',
     label: 'Socials',
     path: '/socials',
-    getImage: (data) => data.about?.imageUrl || null,
+    getImage: (data) => data.about?.socialImage || data.about?.imageUrl || null,
   },
 ]
 
@@ -134,7 +135,7 @@ const PlaceholderIcons = {
   ),
 }
 
-const CircleItem = memo(({ item, data }) => {
+const CircleItem = memo(({ item, data, reduceMotion }) => {
   const imageUrl = useMemo(() => item.getImage(data), [item, data])
   const placeholder = PlaceholderIcons[item.key]
   const circleSize = CIRCLE_SIZE
@@ -155,25 +156,33 @@ const CircleItem = memo(({ item, data }) => {
           background: '#F5EFE8',
           flexShrink: 0,
         }}
-        whileHover={{ scale: 1.03, y: -4 }}
-        animate={{ y: [0, -6, 0] }}
-        transition={{ 
-          type: 'spring', 
-          stiffness: 300, 
-          damping: 20,
-          repeat: Infinity,
-          repeatType: 'reverse',
-          duration: 4,
-          repeatDelay: 2
-        }}
+        whileHover={reduceMotion ? {} : { scale: 1.03, y: -4 }}
+        animate={reduceMotion ? {} : { y: [0, -6, 0] }}
+        transition={
+          reduceMotion
+            ? { duration: 0.4 }
+            : {
+                type: 'spring',
+                stiffness: 300,
+                damping: 20,
+                repeat: Infinity,
+                repeatType: 'reverse',
+                duration: 4,
+                repeatDelay: 2,
+              }
+        }
       >
         {imageUrl ? (
           <img
             src={getOptimizedUrl(imageUrl, { width: 800, crop: 'limit' })}
+            srcSet={buildSrcSet(imageUrl) || undefined}
+            sizes={buildSrcSet(imageUrl) ? '(max-width: 768px) 80vw, 300px' : undefined}
             alt={item.label}
             className="h-full w-full object-cover"
             loading="lazy"
             decoding="async"
+            width={circleSize}
+            height={circleSize}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-[var(--primary)]/20">
@@ -219,6 +228,7 @@ export const CircularNavigationGrid = memo(({ portfolio = [], virtualDesigns = [
     about,
     blog,
   }), [portfolio, virtualDesigns, services, products, about, blog])
+  const reduceMotion = useIsMobile()
 
   return (
     <section className="bg-[var(--secondary)]/30 py-12 md:py-16 lg:py-20">
@@ -229,7 +239,7 @@ export const CircularNavigationGrid = memo(({ portfolio = [], virtualDesigns = [
           aria-label="Navigation"
         >
           {NAV_ITEMS.map((item) => (
-            <CircleItem key={item.key} item={item} data={data} />
+            <CircleItem key={item.key} item={item} data={data} reduceMotion={reduceMotion} />
           ))}
         </div>
       </div>

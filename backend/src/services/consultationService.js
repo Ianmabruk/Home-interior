@@ -7,10 +7,19 @@ function mapConsultation(item) {
     ...item,
     _id: item.id,
     id: item.id,
+    type: item.type,
     status: item.status,
     createdAt: item.createdAt,
     preferredDate: item.preferredDate,
     preferredTime: item.preferredTime,
+    projectType: item.projectType,
+    budget: item.budget,
+    timeline: item.timeline,
+    packageName: item.packageName,
+    packagePrice: item.packagePrice,
+    paymentStatus: item.paymentStatus,
+    orderId: item.orderId,
+    purchaseDate: item.purchaseDate,
   }
 }
 
@@ -22,10 +31,11 @@ export const consultationService = {
   deleteConsultation,
 }
 
-async function listConsultations({ status, search, page = 1, pageSize = 10 } = {}) {
+async function listConsultations({ status, search, page = 1, pageSize = 10, type } = {}) {
   try {
     const where = {}
     if (status && status !== 'all') where.status = status
+    if (type && type !== 'all') where.type = type
     if (search) {
       where.OR = [
         { name: { contains: search } },

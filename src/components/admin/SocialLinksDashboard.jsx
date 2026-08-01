@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, Check } from 'lucide-react'
-import { SiTiktok, SiInstagram, SiFacebook, SiPinterest } from 'react-icons/si'
+import { Loader2, Check, ImageIcon, X } from 'lucide-react'
+import { SiTiktok, SiInstagram, SiFacebook, SiPinterest, SiLinkedin, SiYoutube } from 'react-icons/si'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
@@ -12,6 +12,8 @@ const SOCIAL_PLATFORMS = [
   { key: 'instagram', label: 'Instagram', icon: SiInstagram, placeholder: 'https://instagram.com/yourhandle', color: '#E4405F' },
   { key: 'facebook', label: 'Facebook', icon: SiFacebook, placeholder: 'https://facebook.com/yourpage', color: '#1877F2' },
   { key: 'pinterest', label: 'Pinterest', icon: SiPinterest, placeholder: 'https://pinterest.com/yourprofile', color: '#BD081C' },
+  { key: 'linkedin', label: 'LinkedIn', icon: SiLinkedin, placeholder: 'https://linkedin.com/company/yourcompany', color: '#0A66C2' },
+  { key: 'youtube', label: 'YouTube', icon: SiYoutube, placeholder: 'https://youtube.com/@yourchannel', color: '#FF0000' },
 ]
 
 const INITIAL_SOCIALS = SOCIAL_LINKS.reduce((acc, link) => {
@@ -19,16 +21,26 @@ const INITIAL_SOCIALS = SOCIAL_LINKS.reduce((acc, link) => {
   return acc
 }, {})
 
+INITIAL_SOCIALS.linkedin = ''
+INITIAL_SOCIALS.youtube = ''
+
 export const SocialLinksDashboard = () => {
   const [socials, setSocials] = useState(INITIAL_SOCIALS)
+  const [socialImage, setSocialImage] = useState(null)
+  const [socialImagePreview, setSocialImagePreview] = useState(null)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState({ type: '', message: '' })
+  const socialImageRef = useRef(null)
 
   const loadSocials = useCallback(async () => {
     try {
       const res = await api.get('/socials')
       const data = res.data || {}
       setSocials({ ...INITIAL_SOCIALS, ...data })
+      if (data.image) {
+        setSocialImage(data.image)
+        setSocialImagePreview(data.image)
+      }
     } catch {
       setSocials(INITIAL_SOCIALS)
     }
@@ -53,7 +65,17 @@ export const SocialLinksDashboard = () => {
     setSaving(true)
     setStatus({ type: '', message: '' })
     try {
-      await api.post('/admin/socials', socials)
+      const payload = new FormData()
+      payload.append('tiktok', socials.tiktok || '')
+      payload.append('instagram', socials.instagram || '')
+      payload.append('facebook', socials.facebook || '')
+      payload.append('pinterest', socials.pinterest || '')
+      payload.append('linkedin', socials.linkedin || '')
+      payload.append('youtube', socials.youtube || '')
+      if (socialImage && socialImage instanceof File) {
+        payload.append('socialImage', socialImage)
+      }
+      await api.post('/admin/socials', payload)
       setStatus({ type: 'success', message: 'Social links saved successfully' })
       dispatchAdminDataChanged('socials-changed')
       toast.success('Social links updated successfully')
@@ -162,6 +184,57 @@ export const SocialLinksDashboard = () => {
               </div>
             )
           })}
+        </div>
+
+        <div className="border-t border-[var(--border)] pt-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <ImageIcon size={16} className="text-[var(--accent)]" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Social Image / Logo</p>
+          </div>
+          <p className="text-xs text-[var(--primary)]/50">Upload a custom social media logo or image for the footer and socials page</p>
+          <input ref={socialImageRef} type="file" accept="image/*" onChange={(e) => {
+            const f = e.target.files?.[0] || null
+            setSocialImage(f)
+            if (f?.type?.startsWith('image/')) {
+              setSocialImagePreview(URL.createObjectURL(f))
+            } else {
+              setSocialImagePreview(null)
+            }
+          }} className="hidden" />
+          {socialImagePreview ? (
+            <div className="relative rounded-xl overflow-hidden">
+              <img src={socialImagePreview} alt="Social preview" className="h-40 w-full object-cover" />
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                type="button"
+                onClick={() => { setSocialImage(null); setSocialImagePreview(null); if (socialImageRef.current) socialImageRef.current.value = '' }}
+                className="absolute top-2 right-2 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-2 rounded-full hover:bg-[var(--primary)] shadow-lg"
+              >
+                <X size={14} />
+              </motion.button>
+            </div>
+          ) : (
+            <motion.div
+              whileHover={{ scale: 1.01 }}
+              onClick={() => socialImageRef.current?.click()}
+              className="border-2 border-dashed rounded-2xl transition-all duration-300 border-[var(--border)] bg-[var(--bg)]/30"
+            >
+              <div className="flex flex-col items-center gap-3 py-8">
+                <motion.div
+                  animate={{ y: [0, -5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--accent)]/10 to-[var(--secondary)]/10 flex items-center justify-center text-[var(--accent)]"
+                >
+                  <ImageIcon size={28} />
+                </motion.div>
+                <div>
+                  <p className="text-sm font-medium text-[var(--primary)]">Drop social image here or click to browse</p>
+                  <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG, WebP up to 10MB</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </div>
 
         <motion.button

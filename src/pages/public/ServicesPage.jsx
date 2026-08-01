@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, memo } from 'react'
 import { motion } from 'framer-motion'
 import { Loader2, X, Send } from 'lucide-react'
 import { api } from '@services/api'
-import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
+import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 import { toast } from 'react-hot-toast'
+import { useIsMobile } from '@hooks/useIsMobile'
 
 const SkeletonServices = () => (
   <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-20 md:py-32">
@@ -29,21 +30,24 @@ const SkeletonServices = () => (
   </section>
 )
 
-export const ServicesPage = () => {
+export const ServicesPage = memo(() => {
   const [services, setServices] = useState([])
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
+  const [selectedService, setSelectedService] = useState(null)
   const [formData, setFormData] = useState({
     fullName: '',
     phoneNumber: '',
     email: '',
     projectDescription: '',
+    service: '',
     image1: null,
     image2: null,
   })
   const [image1Preview, setImage1Preview] = useState(null)
   const [image2Preview, setImage2Preview] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const reduceMotion = useIsMobile()
   const fileInput1Ref = useRef(null)
   const fileInput2Ref = useRef(null)
 
@@ -108,6 +112,8 @@ export const ServicesPage = () => {
       payload.append('phoneNumber', formData.phoneNumber)
       payload.append('email', formData.email)
       payload.append('projectDescription', formData.projectDescription)
+      payload.append('service', formData.service || '')
+      payload.append('type', 'consultation')
 
       if (formData.image1) payload.append('images', formData.image1)
       if (formData.image2) payload.append('images', formData.image2)
@@ -116,11 +122,13 @@ export const ServicesPage = () => {
 
       toast.success('Consultation request submitted successfully!')
       setFormOpen(false)
+      setSelectedService(null)
       setFormData({
         fullName: '',
         phoneNumber: '',
         email: '',
         projectDescription: '',
+        service: '',
         image1: null,
         image2: null,
       })
@@ -166,7 +174,7 @@ export const ServicesPage = () => {
                 key={service.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ duration: 0.5, delay: reduceMotion ? 0 : index * 0.08, ease: [0.22, 1, 0.36, 1] }}
                 className="group flex flex-col items-center text-center"
               >
                 <div className="relative mb-8">
@@ -174,8 +182,14 @@ export const ServicesPage = () => {
                     {service.imageUrl || service.mediaUrl ? (
                       <img
                         src={getOptimizedUrl(service.imageUrl || service.mediaUrl, { width: 120, crop: 'limit' })}
+                        srcSet={buildSrcSet(service.imageUrl || service.mediaUrl) || undefined}
+                        sizes={buildSrcSet(service.imageUrl || service.mediaUrl) ? '120px' : undefined}
                         alt={service.title}
                         className="h-full w-full object-cover rounded-3xl"
+                        loading="lazy"
+                        decoding="async"
+                        width={120}
+                        height={120}
                       />
                     ) : (
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -193,10 +207,10 @@ export const ServicesPage = () => {
                   {service.description || 'Premium interior design service tailored to your unique vision and requirements.'}
                 </p>
                 <button
-                  onClick={() => setFormOpen(true)}
+                  onClick={() => { setSelectedService(service); setFormOpen(true); setFormData(prev => ({ ...prev, service: service.title })) }}
                   className="btn-luxury-primary group inline-flex items-center gap-2 w-full max-w-xs"
                 >
-                  Book Consultation
+                  {service.buttonText || 'Request This Service'}
                   <Send size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
                 </button>
               </motion.article>
@@ -424,6 +438,8 @@ export const ServicesPage = () => {
       </motion.div>
     </main>
   )
-}
+})
+
+ServicesPage.displayName = 'ServicesPage'
 
 export default ServicesPage
