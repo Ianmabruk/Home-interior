@@ -15,6 +15,9 @@ export function validateZod(schema, source = 'body') {
         errors,
       })
     }
+    if (source === 'body') {
+      req.body = result.data
+    }
     next()
   }
 }
