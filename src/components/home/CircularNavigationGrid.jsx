@@ -231,7 +231,7 @@ export const CircularNavigationGrid = memo(({ portfolio = [], virtualDesigns = [
   const reduceMotion = useIsMobile()
 
   return (
-    <section className="bg-[var(--secondary)]/30 py-12 md:py-16 lg:py-20">
+    <section className="hidden md:block bg-[var(--secondary)]/30 py-12 md:py-16 lg:py-20">
       <div className="container-wide md:px-12 lg:px-20">
         <div
           className="grid gap-8 md:gap-10 lg:gap-12 justify-items-center grid-cols-1 md:grid-cols-3"

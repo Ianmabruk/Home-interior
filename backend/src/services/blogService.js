@@ -20,6 +20,7 @@ function mapBlog(item) {
 export const blogService = {
   listBlogs,
   listPublishedBlogs,
+  getAllBlogs,
   getBlog,
   getPublishedBlog,
   createBlog,

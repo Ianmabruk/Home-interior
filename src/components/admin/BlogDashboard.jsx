@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { UploadCloud, X, Edit, Trash2, Video, Image, ToggleLeft } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
+import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 
 const INITIAL_FORM = {
@@ -113,7 +114,7 @@ export const BlogDashboard = () => {
       payload.append('title', form.title)
       if (form.description) payload.append('description', form.description)
       payload.append('category', form.category || '')
-      payload.append('tags', JSON.stringify(form.tags.split(',').map((t) => t.trim()).filter(Boolean)))
+      payload.append('tags', form.tags.split(',').map((t) => t.trim()).filter(Boolean).join(','))
       payload.append('published', String(form.published))
       payload.append('featured', String(form.featured))
       payload.append('displayOrder', String(form.displayOrder || 0))
@@ -335,7 +336,14 @@ export const BlogDashboard = () => {
                         <X size={14} strokeWidth={1.5} />
                       </motion.button>
                     </div>
-                    <img src={imagePreview} alt="Blog preview" className="h-32 w-full object-cover rounded-xl" />
+                    <img
+                      src={getOptimizedUrl(imagePreview, { width: 800, crop: 'limit' })}
+                      alt="Blog preview"
+                      className="h-32 w-full object-cover rounded-xl"
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => { e.target.style.display = 'none' }}
+                    />
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-3 py-6">
@@ -369,7 +377,11 @@ export const BlogDashboard = () => {
                         <X size={14} strokeWidth={1.5} />
                       </motion.button>
                     </div>
-                    <video src={videoPreview} className="h-32 w-full object-cover rounded-xl" />
+                    <video
+                      src={videoPreview}
+                      className="h-32 w-full object-cover rounded-xl"
+                      onError={(e) => { e.target.style.display = 'none' }}
+                    />
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-3 py-6">
@@ -425,10 +437,12 @@ export const BlogDashboard = () => {
             <div className="relative aspect-[4/3] overflow-hidden">
               {item.imageUrl ? (
                 <img
-                  src={item.imageUrl}
+                  src={getOptimizedUrl(item.imageUrl, { width: 800, crop: 'limit' })}
                   alt={item.title}
                   className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
                   loading="lazy"
+                  decoding="async"
+                  onError={(e) => { e.target.style.display = 'none' }}
                 />
               ) : (
                 <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
