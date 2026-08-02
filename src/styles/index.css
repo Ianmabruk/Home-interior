@@ -844,6 +844,37 @@ section > .container-wide {
       max-width: 100%;
     }
   }
+
+  /* Mobile Safari viewport height fix — use dvh instead of vh */
+  /* iOS Safari reports 100vh as the full viewport height including the
+     address bar. When the bar collapses on scroll, content gets cut off.
+     Dynamic viewport units (dvh) fix this on all modern browsers. */
+  @supports (height: 100dvh) {
+    .h-screen {
+      height: 100dvh !important;
+    }
+    .min-h-screen {
+      min-height: 100dvh !important;
+    }
+  }
+
+  @supports (height: 0dvh) {
+    .h-\[85vh\] {
+      height: 85dvh !important;
+    }
+    .h-\[90vh\] {
+      height: 90dvh !important;
+    }
+    .min-h-\[50vh\] {
+      min-height: 50dvh !important;
+    }
+    .min-h-\[60vh\] {
+      min-height: 60dvh !important;
+    }
+    .min-h-\[70vh\] {
+      min-height: 70dvh !important;
+    }
+  }
   
   /* Aspect ratio utilities */
   .aspect-square {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { api } from '@services/api'
+import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 import { SOCIAL_ICONS, SOCIAL_LINKS } from '@constants/socialLinks'
@@ -81,9 +82,12 @@ export const SocialsPage = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-[var(--primary)] via-[var(--primary)]/80 to-[var(--bg)]" />
         {socialImage && (
           <img
-            src={socialImage}
+            src={getOptimizedUrl(socialImage, { width: 1920, crop: 'limit' })}
             alt="Social media"
             className="absolute inset-0 w-full h-full object-cover opacity-20"
+            loading="lazy"
+            decoding="async"
+            onError={(e) => { e.target.style.display = 'none' }}
           />
         )}
         <div className="relative z-10 container-wide px-6 md:px-12 lg:px-20 text-center">

@@ -156,7 +156,7 @@ export default function ProjectVideoShowcase({ videos, className = '' }) {
             muted
             loop={list.length === 1}
             playsInline
-            preload="auto"
+            preload="metadata"
             fetchPriority="high"
             crossOrigin="anonymous"
             onEnded={() => {

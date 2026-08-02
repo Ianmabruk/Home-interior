@@ -19,7 +19,7 @@ export const AboutPage = memo(() => {
         api.get('/about/team'),
       ])
       setAboutData(aboutRes.data || null)
-      setTeam(teamRes.data || [])
+      setTeam(Array.isArray(teamRes.data) ? teamRes.data : [])
     } catch {
       setAboutData(null)
       setTeam([])

@@ -1,6 +1,7 @@
 import { useState, useEffect, memo, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '@services/api'
+import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
 import { SOCIAL_ICONS } from '@constants/socialLinks'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 
@@ -70,7 +71,16 @@ export const Footer = memo(() => {
           <div className="text-center animate-fade-up" style={{ animationDelay: '0s' }}>
             <Link to="/" className="inline-block group" aria-label="HOK Interiors - Home">
               {socialImage ? (
-                <img src={socialImage} alt="HOK Interiors" className="h-16 md:h-20 mx-auto object-contain" loading="lazy" decoding="async" width={160} height={80} />
+                <img
+                  src={getOptimizedUrl(socialImage, { width: 400, crop: 'limit' })}
+                  alt="HOK Interiors"
+                  className="h-16 md:h-20 mx-auto object-contain"
+                  loading="lazy"
+                  decoding="async"
+                  width={160}
+                  height={80}
+                  onError={(e) => { e.target.style.display = 'none' }}
+                />
               ) : (
                 <p className="font-display text-3xl md:text-4xl lg:text-5xl font-medium tracking-[0.25em] leading-tight text-white transition-colors duration-300 group-hover:text-[var(--accent)]">
                   HOK Interiors

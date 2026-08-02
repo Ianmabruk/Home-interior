@@ -92,8 +92,8 @@ export const BlogDetailPage = () => {
     )
   }
 
-  const imageUrl = blog.imageUrl || blog.mediaUrl || blog.mediaUrls?.[0] || null
-  const videoUrl = blog.videoUrl || blog.video || null
+  const imageUrl = blog.imageUrl || blog.mediaUrl || blog.mediaUrls?.[0] || blog.image || null
+  const videoUrl = blog.videoUrl || blog.video || blog.mediaUrls?.[0] || null
   const content = blog.description || blog.content || blog.body || ''
 
   return (
@@ -112,6 +112,7 @@ export const BlogDetailPage = () => {
             className="h-full w-full object-contain"
             loading="eager"
             decoding="async"
+            onError={(e) => { e.target.style.display = 'none' }}
           />
         ) : (
           <div className="absolute inset-0 bg-[var(--primary)]" />
@@ -156,7 +157,15 @@ export const BlogDetailPage = () => {
 
             {videoUrl && (
               <div className="mt-8 rounded-2xl overflow-hidden bg-[var(--secondary)]/30">
-                <video src={videoUrl} controls className="w-full" preload="metadata" />
+                <video
+                  src={videoUrl}
+                  controls
+                  playsInline
+                  muted
+                  preload="metadata"
+                  className="w-full"
+                  onError={(e) => { e.target.style.display = 'none' }}
+                />
               </div>
             )}
           </motion.article>

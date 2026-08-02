@@ -166,6 +166,13 @@ api.delete = function (url, config) {
   })
 }
 
+export function getCacheStats() {
+  return {
+    size: requestCache.size,
+    keys: Array.from(requestCache.keys()),
+  }
+}
+
 export function clearApiCache(pattern) {
   if (!pattern) {
     requestCache.clear()
@@ -178,10 +185,12 @@ export function clearApiCache(pattern) {
   }
 }
 
-export function getCacheStats() {
+export function getCancelable(url, config = {}) {
+  const controller = new AbortController()
+  const merged = { ...config, signal: controller.signal }
   return {
-    size: requestCache.size,
-    keys: Array.from(requestCache.keys()),
+    data: api.get(url, merged),
+    controller,
   }
 }
 

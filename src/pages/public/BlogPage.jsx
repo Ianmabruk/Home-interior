@@ -115,19 +115,20 @@ export const BlogPage = memo(() => {
                     >
                      <Link to={`/blog/${item.id || item._id}`} className="block">
                        <div className="relative aspect-[4/3] overflow-hidden">
-                       {item.imageUrl ? (
-                         <img
-                           src={getOptimizedUrl(item.imageUrl, { width: 800, crop: 'limit' })}
-                           srcSet={buildSrcSet(item.imageUrl) || undefined}
-                           sizes={buildSrcSet(item.imageUrl) ? '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw' : undefined}
-                           alt={item.title}
-                           className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                           loading="lazy"
-                           decoding="async"
-                           width={800}
-                           height={600}
-                         />
-                       ) : (
+                        {item.imageUrl ? (
+                          <img
+                            src={getOptimizedUrl(item.imageUrl, { width: 800, crop: 'limit' })}
+                            srcSet={buildSrcSet(item.imageUrl) || undefined}
+                            sizes={buildSrcSet(item.imageUrl) ? '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw' : undefined}
+                            alt={item.title}
+                            className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                            loading="lazy"
+                            decoding="async"
+                            width={800}
+                            height={600}
+                            onError={(e) => { e.target.style.display = 'none' }}
+                          />
+                        ) : (
                         <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
                           <div className="w-16 h-16 rounded-full bg-[var(--secondary)]/40 flex items-center justify-center text-[var(--primary)]/20">
                             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -150,11 +151,22 @@ export const BlogPage = memo(() => {
                           {item.description}
                         </p>
                       )}
-                      {item.videoUrl && (
-                        <div className="mt-4">
-                          <video src={item.videoUrl} className="w-full rounded-xl" controls preload="metadata" />
-                        </div>
-                      )}
+                      {(() => {
+                        const videoSrc = item.videoUrl || item.video || item.mediaUrls?.[0] || null
+                        return videoSrc && (
+                          <div className="mt-4">
+                            <video
+                              src={videoSrc}
+                              className="w-full rounded-xl"
+                              controls
+                              preload="metadata"
+                              playsInline
+                              muted
+                              onError={(e) => { e.target.style.display = 'none' }}
+                            />
+                          </div>
+                        )
+                      })()}
                       <div className="mt-5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--accent)]">
                         {item.published && <span className="px-2 py-1 rounded-full bg-green-100 text-green-700">Published</span>}
                         {item.featured && <span className="px-2 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">Featured</span>}

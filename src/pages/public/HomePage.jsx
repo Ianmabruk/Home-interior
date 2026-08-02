@@ -36,10 +36,7 @@ export const HomePage = memo(() => {
 
   const loadData = useCallback(async () => {
     try {
-      const [homeRes, contactRes] = await Promise.all([
-        api.get('/homepage'),
-        api.get('/contact').catch(() => ({ data: null })),
-      ])
+      const homeRes = await api.get('/homepage')
       const data = homeRes.data || {}
       setPortfolio(data.portfolio || [])
       setServices(data.services || [])
@@ -48,7 +45,7 @@ export const HomePage = memo(() => {
       setProducts(data.products || [])
       setAbout(data.about || null)
       setBlog(data.blog || [])
-      setContactInfo(contactRes?.data || null)
+      setContactInfo(data.contact || null)
     } catch (err) {
       console.warn('[HOME] Failed to load data:', err?.message)
     } finally {
