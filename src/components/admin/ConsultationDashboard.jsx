@@ -183,16 +183,17 @@ export const ConsultationDashboard = () => {
           page,
           pageSize: 10,
           type: typeFilter === 'all' ? undefined : typeFilter,
+          paymentStatus: paymentFilter === 'all' ? undefined : paymentFilter,
         }
         const res = await api.get('/admin/consultations', { params })
-        setConsultations(res.data?.items || [])
-        setTotal(res.data?.total || 0)
+        setConsultations(res.data?.data?.items || res.data?.items || [])
+        setTotal(res.data?.data?.total || res.data?.total || 0)
       } catch {
         setConsultations([])
       }
     }
     loadData()
-  }, [filter, typeFilter, search, page])
+  }, [filter, typeFilter, paymentFilter, search, page])
 
   useEffect(() => {
     const handler = () => {
@@ -202,17 +203,18 @@ export const ConsultationDashboard = () => {
         page,
         pageSize: 10,
         type: typeFilter === 'all' ? undefined : typeFilter,
+        paymentStatus: paymentFilter === 'all' ? undefined : paymentFilter,
       }
       api.get('/admin/consultations', { params })
         .then((res) => {
-          setConsultations(res.data?.items || [])
-          setTotal(res.data?.total || 0)
+          setConsultations(res.data?.data?.items || res.data?.items || [])
+          setTotal(res.data?.data?.total || res.data?.total || 0)
         })
         .catch(() => {})
     }
     window.addEventListener('admin-data-changed', handler)
     return () => window.removeEventListener('admin-data-changed', handler)
-  }, [filter, typeFilter, search, page])
+  }, [filter, typeFilter, paymentFilter, search, page])
 
   const refresh = async () => {
     try {
@@ -222,10 +224,11 @@ export const ConsultationDashboard = () => {
         page,
         pageSize: 10,
         type: typeFilter === 'all' ? undefined : typeFilter,
+        paymentStatus: paymentFilter === 'all' ? undefined : paymentFilter,
       }
       const res = await api.get('/admin/consultations', { params })
-      setConsultations(res.data?.items || [])
-      setTotal(res.data?.total || 0)
+      setConsultations(res.data?.data?.items || res.data?.items || [])
+      setTotal(res.data?.data?.total || res.data?.total || 0)
     } catch {
       setConsultations([])
     }

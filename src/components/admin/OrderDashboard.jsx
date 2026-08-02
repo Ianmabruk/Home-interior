@@ -5,12 +5,13 @@ import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 
-const STATUSES = ['Pending', 'Being Delivered', 'Delivered']
+const STATUSES = ['pending', 'processing', 'completed', 'cancelled']
 
 const STATUS_COLORS = {
-  Pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  'Being Delivered': 'bg-orange-100 text-orange-700 border-orange-200',
-  Delivered: 'bg-green-100 text-green-700 border-green-200',
+  pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  processing: 'bg-blue-100 text-blue-700 border-blue-200',
+  completed: 'bg-green-100 text-green-700 border-green-200',
+  cancelled: 'bg-red-100 text-red-700 border-red-200',
 }
 
 export const OrderDashboard = () => {
@@ -26,7 +27,7 @@ export const OrderDashboard = () => {
       setLoading(true)
       try {
         const res = await api.get('/orders', { params: { sort: '-createdAt', limit: 100 } })
-        if (!cancelled) setOrders(res.data || [])
+        if (!cancelled) setOrders(res.data?.data || res.data || [])
       } catch {
         if (!cancelled) setOrders([])
       } finally {
@@ -44,7 +45,7 @@ export const OrderDashboard = () => {
         setLoading(true)
         try {
           const res = await api.get('/orders', { params: { sort: '-createdAt', limit: 100 } })
-          if (!cancelled) setOrders(res.data || [])
+          if (!cancelled) setOrders(res.data?.data || res.data || [])
         } catch {
           if (!cancelled) setOrders([])
         } finally {

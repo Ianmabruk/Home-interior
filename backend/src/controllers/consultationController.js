@@ -41,6 +41,8 @@ export const consultationController = {
     const timeline = req.body.timeline || ''
     const projectType = req.body.projectType || ''
     const type = req.body.type || 'consultation'
+    const preferredDate = req.body.preferredDate || null
+    const preferredTime = req.body.preferredTime || null
 
     const imageUrls = []
     if (file) {
@@ -76,6 +78,8 @@ export const consultationController = {
       projectType,
       budget,
       timeline,
+      preferredDate,
+      preferredTime,
       packageName: type === 'e-design' ? (req.body.packageName || null) : null,
       packagePrice: type === 'e-design' ? (req.body.packagePrice ? Number(req.body.packagePrice) : null) : null,
       paymentStatus: type === 'e-design' ? (req.body.paymentStatus || 'pending') : null,

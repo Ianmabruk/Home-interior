@@ -154,7 +154,7 @@ export const DashboardOverview = () => {
       ])
         .then(([portfolioRes, ordersRes]) => {
           setRecentUploads(Array.isArray(portfolioRes.data) ? portfolioRes.data : portfolioRes.data?.items || [])
-          setRecentOrders(Array.isArray(ordersRes.data) ? ordersRes.data : ordersRes.data?.items || [])
+        setRecentOrders(Array.isArray(ordersRes.data) ? ordersRes.data : Array.isArray(ordersRes.data?.data) ? ordersRes.data.data : ordersRes.data?.items || [])
         })
         .catch(() => {})
     }

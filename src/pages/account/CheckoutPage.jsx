@@ -6,6 +6,7 @@ import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { useShop } from '../../context/ShopContext'
 import { useCurrency } from '../../context/CurrencyContext'
+import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { PageMeta } from '../../hooks/usePageMeta'
 
 export const CheckoutPage = () => {
@@ -95,9 +96,10 @@ export const CheckoutPage = () => {
       }
       const res = await api.post('/orders', orderData)
       await clearCart()
-      const newOrderId = res.data?._id || res.data?.id
+      const newOrderId = res.data?.data?._id || res.data?.data?.id || res.data?._id || res.data?.id
       setOrderId(newOrderId)
       setSuccess(true)
+      dispatchAdminDataChanged('orders-changed')
       if (newOrderId) {
         setTimeout(() => navigate(`/account/orders/${newOrderId}`), 2500)
       } else {

@@ -4,7 +4,7 @@ import { failure } from '../utils/response.js'
 
 export const orderController = {
   create: asyncHandler(async (req, res) => {
-    const shipping = req.body.shipping || {}
+    const shipping = req.body.shipping || req.body.shippingAddress || {}
     const name = shipping.fullName || shipping.name || req.body.name || ''
     const email = shipping.email || req.body.email || ''
     const phone = shipping.phone || req.body.phone || ''

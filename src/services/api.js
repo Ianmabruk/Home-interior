@@ -112,6 +112,9 @@ const shouldCache = (config) => {
   if (url.includes('/delete')) return false
   if (url.includes('/newsletter')) return false
   if (url.startsWith('/content/auth')) return false
+  if (url.includes('/admin/')) return false
+  if (url.includes('/orders')) return false
+  if (url.includes('/consultations')) return false
   return true
 }
 

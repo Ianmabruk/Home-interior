@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Loader2, Send, Check, ChevronDown, ChevronUp, Sparkles, Shield, Wifi } from 'lucide-react'
 import { api } from '@services/api'
 import { toast } from 'react-hot-toast'
+import { dispatchAdminDataChanged } from '@utils/adminEvents'
 
 const packages = [
   {
@@ -112,6 +113,8 @@ export const EDesignPackages = memo(() => {
     phone: '',
     service: '',
     message: '',
+    preferredDate: '',
+    preferredTime: '',
   })
 
   const openBooking = (packageId, packageName) => {
@@ -125,20 +128,23 @@ export const EDesignPackages = memo(() => {
     setSubmitting(true)
     try {
       const payload = new FormData()
-      payload.append('fullName', formData.name)
+      payload.append('name', formData.name)
       payload.append('email', formData.email)
-      payload.append('phoneNumber', formData.phone)
-      payload.append('projectDescription', formData.message)
-      payload.append('service', formData.service)
+      payload.append('phone', formData.phone)
+      payload.append('message', formData.message)
+      payload.append('projectType', formData.service || 'e-design')
       payload.append('type', 'e-design')
       payload.append('packageName', selectedPackage)
       payload.append('packagePrice', '0')
       payload.append('paymentStatus', 'pending')
+      payload.append('preferredDate', formData.preferredDate || '')
+      payload.append('preferredTime', formData.preferredTime || '')
 
       await api.post('/consultations', payload)
       toast.success('E-design package request submitted successfully!')
       setModalOpen(false)
-      setFormData({ name: '', email: '', phone: '', service: '', message: '' })
+      setFormData({ name: '', email: '', phone: '', service: '', message: '', preferredDate: '', preferredTime: '' })
+      dispatchAdminDataChanged('consultations-changed')
     } catch (err) {
       toast.error(err?.message || 'Failed to submit. Please try again.')
     } finally {
@@ -525,6 +531,35 @@ export const EDesignPackages = memo(() => {
                       className="input-luxury resize-none min-h-[120px]"
                       placeholder="Tell us about your space, timeline, and budget..."
                     />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="preferredDate" className="block text-sm font-medium text-[var(--primary)] mb-1">
+                        Preferred Date
+                      </label>
+                      <input
+                        type="date"
+                        id="preferredDate"
+                        name="preferredDate"
+                        value={formData.preferredDate}
+                        onChange={handleChange}
+                        className="input-luxury"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="preferredTime" className="block text-sm font-medium text-[var(--primary)] mb-1">
+                        Preferred Time
+                      </label>
+                      <input
+                        type="time"
+                        id="preferredTime"
+                        name="preferredTime"
+                        value={formData.preferredTime}
+                        onChange={handleChange}
+                        className="input-luxury"
+                      />
+                    </div>
                   </div>
 
                   <button

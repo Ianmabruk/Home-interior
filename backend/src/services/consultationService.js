@@ -31,11 +31,12 @@ export const consultationService = {
   deleteConsultation,
 }
 
-async function listConsultations({ status, search, page = 1, pageSize = 10, type } = {}) {
+async function listConsultations({ status, search, page = 1, pageSize = 10, type, paymentStatus } = {}) {
   try {
     const where = {}
     if (status && status !== 'all') where.status = status
     if (type && type !== 'all') where.type = type
+    if (paymentStatus && paymentStatus !== 'all') where.paymentStatus = paymentStatus
     if (search) {
       where.OR = [
         { name: { contains: search } },

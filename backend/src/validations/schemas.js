@@ -58,6 +58,8 @@ export const consultationSchemas = {
     paymentStatus: z.string().optional(),
     orderId: z.string().optional(),
     purchaseDate: z.string().optional(),
+    preferredDate: z.string().optional(),
+    preferredTime: z.string().optional(),
   }),
   updateStatus: z.object({
     status: z.string().min(1, 'Status is required'),

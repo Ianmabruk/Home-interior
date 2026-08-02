@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { Loader2, X, Send } from 'lucide-react'
 import { api } from '@services/api'
 import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
-import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
+import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload, dispatchAdminDataChanged } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 import { toast } from 'react-hot-toast'
 import { useIsMobile } from '@hooks/useIsMobile'
@@ -108,11 +108,11 @@ export const ServicesPage = memo(() => {
     setSubmitting(true)
     try {
       const payload = new FormData()
-      payload.append('fullName', formData.fullName)
-      payload.append('phoneNumber', formData.phoneNumber)
+      payload.append('name', formData.fullName)
+      payload.append('phone', formData.phoneNumber)
       payload.append('email', formData.email)
-      payload.append('projectDescription', formData.projectDescription)
-      payload.append('service', formData.service || '')
+      payload.append('message', formData.projectDescription)
+      payload.append('projectType', formData.service || '')
       payload.append('type', 'consultation')
 
       if (formData.image1) payload.append('images', formData.image1)
@@ -134,6 +134,7 @@ export const ServicesPage = memo(() => {
       })
       setImage1Preview(null)
       setImage2Preview(null)
+      dispatchAdminDataChanged('consultations-changed')
     } catch (err) {
       toast.error(err?.message || 'Failed to submit. Please try again.')
     } finally {
