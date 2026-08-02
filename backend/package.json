@@ -14,8 +14,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
-    "migrate:deploy": "prisma migrate deploy"
+    "db:deploy": "node scripts/migrate-deploy.js",
+    "migrate:deploy": "node scripts/migrate-deploy.js",
   },
   "dependencies": {
     "@prisma/client": "^6.8.2",
