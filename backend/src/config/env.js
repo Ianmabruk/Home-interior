@@ -1,5 +1,6 @@
 import dotenv from 'dotenv'
-dotenv.config()
+
+dotenv.config({ override: false })
 
 export const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -29,5 +30,12 @@ export function validateEnv() {
   }
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`)
+  }
+
+  if (env.databaseUrl && process.env.NODE_ENV === 'production') {
+    const dbHost = new URL(env.databaseUrl).hostname
+    if (dbHost.includes('summer-fog')) {
+      console.warn('[WARNING] Using development database URL in production. Update DATABASE_URL in Render dashboard.')
+    }
   }
 }
