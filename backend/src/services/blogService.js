@@ -44,7 +44,7 @@ async function listPublishedBlogs() {
   try {
     const items = await prisma.blog.findMany({
       where: { published: true },
-      orderBy: { displayOrder: 'asc', createdAt: 'desc' },
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
     })
     return items.map(mapBlog)
   } catch {
@@ -55,7 +55,7 @@ async function listPublishedBlogs() {
 async function getAllBlogs() {
   try {
     const items = await prisma.blog.findMany({
-      orderBy: { displayOrder: 'asc', createdAt: 'desc' },
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
     })
     return items.map(mapBlog)
   } catch {
