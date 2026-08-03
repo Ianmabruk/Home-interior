@@ -266,15 +266,23 @@ model WishlistItem {
 model Blog {
   id           String   @id @default(cuid())
   title        String   @db.Text
+  subtitle     String?  @db.Text
+  slug         String?  @db.Text
   description  String?  @db.Text
+  content      String?  @db.Text
   category     String?  @db.Text
   tags         String[] @default([]) @db.Text
-  image        String?  @db.Text
-  video        String?  @db.Text
-  cloudinaryId String?  @db.Text @map("cloudinary_id")
-  published    Boolean  @default(false)
-  featured     Boolean  @default(false)
-  displayOrder Int      @default(0) @map("display_order")
+  author       String?  @db.Text
+  metaDescription String? @db.Text @map("meta_description")
+   image        String?  @db.Text
+   video        String?  @db.Text
+   mediaUrls    String[] @default([]) @db.Text @map("media_urls")
+   cloudinaryId String?  @db.Text @map("cloudinary_id")
+   published    Boolean  @default(false)
+   featured     Boolean  @default(false)
+   displayOrder Int      @default(0) @map("display_order")
+   views        Int      @default(0) @map("views")
+   publishDate  DateTime? @map("publish_date")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -282,6 +290,7 @@ model Blog {
   @@index([published, featured, createdAt(desc)])
   @@index([displayOrder(asc)])
   @@index([category])
+  @@index([slug])
 }
 
 model Message {

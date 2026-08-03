@@ -26,18 +26,7 @@ async function start() {
       console.warn('[WARNING] Both Cloudinary and Supabase are configured. Cloudinary will be used for uploads. Remove SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY if you want to use Supabase.')
     }
     if (process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
-      try {
-        await new Promise((resolve, reject) => {
-          cloudinary.api.ping((error) => {
-            if (error) reject(error)
-            else resolve()
-          })
-        })
-        console.log(`Cloudinary connected (cloud: ${process.env.CLOUDINARY_CLOUD_NAME})`)
-      } catch (err) {
-        console.error('Cloudinary ping failed:', err?.message || err)
-        console.error('Check CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET')
-      }
+      console.log(`Cloudinary configured (cloud: ${process.env.CLOUDINARY_CLOUD_NAME}). Uploads will use Cloudinary with local fallback.`)
     }
   } catch (err) {
     console.error('Startup check failed:', err)

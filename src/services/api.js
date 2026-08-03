@@ -51,7 +51,9 @@ api.interceptors.response.use(
   (response) => {
     const data = response.data
     if (data && typeof data === 'object' && 'success' in data && data.success === true) {
-      return { ...response, data: data.data ?? null }
+      const result = { ...response, data: data.data ?? null }
+      if (data.meta) result.meta = data.meta
+      return result
     }
     return response
   },

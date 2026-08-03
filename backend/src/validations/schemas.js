@@ -79,24 +79,48 @@ export const messageSchemas = {
 export const blogSchemas = {
   create: z.object({
     title: z.string().min(1, 'Title is required'),
+    subtitle: z.string().optional(),
+    slug: z.string().optional(),
     description: z.string().optional(),
+    content: z.string().optional(),
     category: z.string().optional(),
     tags: z.union([
       z.array(z.string()),
       z.string().transform((s) => s.split(',').map((x) => x.trim()).filter(Boolean)),
     ]).optional(),
-    published: z.union([z.boolean(), z.string()]).optional(),
-    featured: z.union([z.boolean(), z.string()]).optional(),
+    author: z.string().optional(),
+    metaDescription: z.string().optional(),
+    published: z.union([z.boolean(), z.string()]).transform((v) => v === 'true' || v === true).optional(),
+    featured: z.union([z.boolean(), z.string()]).transform((v) => v === 'true' || v === true).optional(),
     displayOrder: z.coerce.number().int().nonnegative().optional(),
+    publishDate: z.string().optional().nullable().transform((v) => {
+      if (!v) return null
+      // Accept both date-only (YYYY-MM-DD) and full ISO datetime
+      const d = new Date(v)
+      return isNaN(d.getTime()) ? null : d.toISOString()
+    }),
   }),
   update: z.object({
     title: z.string().min(1).optional(),
+    subtitle: z.string().optional(),
+    slug: z.string().optional(),
     description: z.string().optional(),
+    content: z.string().optional(),
     category: z.string().optional(),
-    tags: z.array(z.string()).optional(),
-    published: z.union([z.boolean(), z.string()]).optional(),
-    featured: z.union([z.boolean(), z.string()]).optional(),
+    tags: z.union([
+      z.array(z.string()),
+      z.string().transform((s) => s.split(',').map((x) => x.trim()).filter(Boolean)),
+    ]).optional(),
+    author: z.string().optional(),
+    metaDescription: z.string().optional(),
+    published: z.union([z.boolean(), z.string()]).transform((v) => v === 'true' || v === true).optional(),
+    featured: z.union([z.boolean(), z.string()]).transform((v) => v === 'true' || v === true).optional(),
     displayOrder: z.coerce.number().int().nonnegative().optional(),
+    publishDate: z.string().optional().nullable().transform((v) => {
+      if (!v) return null
+      const d = new Date(v)
+      return isNaN(d.getTime()) ? null : d.toISOString()
+    }),
   }),
 }
 

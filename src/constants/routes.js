@@ -12,6 +12,8 @@ export const PUBLIC_ROUTES = {
   CONTACT: '/contact',
   SOCIALS: '/socials',
   CHAT: '/chat',
+  BLOG: '/blog',
+  BLOG_DETAIL: '/blog/:id',
   NOT_FOUND: '*',
 }
 
@@ -34,6 +36,7 @@ export const ADMIN_ROUTES = {
   ADMIN_CHAT: '/admin/chat',
   ADMIN_ORDERS: '/admin/orders',
   ADMIN_SETTINGS: '/admin/settings',
+  ADMIN_BLOG: '/admin/blog',
 }
 
 export const ALL_ROUTES = {
@@ -57,4 +60,5 @@ export const PRELOAD_ROUTES = [
   PUBLIC_ROUTES.VIRTUAL_DESIGN,
   PUBLIC_ROUTES.ABOUT,
   PUBLIC_ROUTES.CONTACT,
+  PUBLIC_ROUTES.BLOG,
 ]

@@ -364,7 +364,7 @@ section > .container-wide {
 
   .metric-card::before {
     content: '';
-    @apply absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent to-champagne opacity-0 transition-opacity duration-200;
+    @apply absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent to-soft-cream opacity-0 transition-opacity duration-200;
   }
 
   .metric-card:hover::before {

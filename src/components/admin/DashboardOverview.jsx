@@ -14,6 +14,11 @@ import {
   Newspaper,
   Package,
   Sparkles,
+  ImageIcon,
+  Video,
+  DollarSign,
+  Users,
+  Eye,
 } from 'lucide-react'
 import { api } from '../../services/api'
 
@@ -23,38 +28,35 @@ const AnimatedCounter = ({ value, delay = 0, prefix = '', suffix = '' }) => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      animate(count, value || 0, {
-        duration: 1.5,
-        ease: [0.4, 0, 0.2, 1],
-      })
+      animate(count, value || 0, { duration: 1.5, ease: [0.4, 0, 0.2, 1] })
     }, delay)
     return () => clearTimeout(timer)
   }, [value, delay, count])
 
   return (
     <span className="flex items-baseline gap-1">
-      <span className="text-[var(--primary)]/40 text-xl font-medium">{prefix}</span>
+      {prefix && <span className="text-[var(--primary)]/40 text-xl font-medium">{prefix}</span>}
       <motion.span className="font-display text-3xl font-semibold text-[var(--primary)]">{rounded}</motion.span>
-      <span className="text-[var(--primary)]/40 text-xl font-medium">{suffix}</span>
+      {suffix && <span className="text-[var(--primary)]/40 text-xl font-medium">{suffix}</span>}
     </span>
   )
 }
 
-const StatCard = ({ title, value, icon: Icon, delay, trend, trendUp, color, onClick }) => (
+const StatCard = ({ title, value, icon: Icon, delay, trend, trendUp, color, onClick, prefix }) => (
   <motion.div
     initial={{ opacity: 0, y: 30 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay, duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
     whileHover={{ y: -4, transition: { duration: 0.2 } }}
-    className={`group cursor-pointer relative overflow-hidden rounded-2xl border border-[var(--border)] bg-white/80 backdrop-blur-xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)] transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 ${onClick ? 'cursor-pointer' : ''}`}
+    className="group cursor-pointer relative overflow-hidden rounded-2xl border border-[var(--border)] bg-white/80 backdrop-blur-xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)] transition-all duration-200 hover:shadow-lg"
     onClick={onClick}
   >
     <div className="absolute inset-0 bg-gradient-to-r from-[var(--accent)]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
     <div className="relative flex items-center justify-between">
       <div className="flex-1">
         <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/50">{title}</p>
-        <p className="mt-3 flex items-baseline gap-1">
-          <AnimatedCounter value={value ?? 0} delay={delay * 1000} />
+        <p className="mt-3">
+          <AnimatedCounter value={value ?? 0} delay={delay * 1000} prefix={prefix} />
         </p>
         {trend !== undefined && (
           <p className="mt-2 flex items-center gap-1 font-medium text-[10px]">
@@ -74,12 +76,10 @@ const StatCard = ({ title, value, icon: Icon, delay, trend, trendUp, color, onCl
             : 'bg-gradient-to-br from-[var(--primary)]/10 to-[var(--accent)]/10 text-[var(--primary)]'
         }`}
       >
-        {Icon ? <Icon size={24} /> : <span className="inline-block h-6 w-6 rounded-full bg-white/10" />}
+        {Icon && <Icon size={24} />}
       </motion.div>
     </div>
-    <motion.div
-      className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[var(--accent)]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-    />
+    <motion.div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[var(--accent)]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
   </motion.div>
 )
 
@@ -97,7 +97,7 @@ const QuickActionCard = ({ label, icon: Icon, color, onClick }) => (
       whileHover={{ rotate: 10, scale: 1.1 }}
       className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center text-white shadow-lg`}
     >
-      {Icon ? <Icon size={22} /> : <span className="inline-block h-5 w-5 rounded-full bg-white/10" />}
+      {Icon && <Icon size={22} />}
     </motion.div>
     <span className="text-xs font-medium text-[var(--primary)] group-hover:text-[var(--accent)] transition-colors">
       {label}
@@ -125,38 +125,32 @@ export const DashboardOverview = () => {
 
         if (cancelled) return
 
-        setOverview(overviewRes.data?.data || null)
+        // The api interceptor already unwraps success.data → response.data
+        setOverview(overviewRes.data || null)
         setRecentOrders(Array.isArray(ordersRes.data) ? ordersRes.data : ordersRes.data?.items || [])
         setRecentUploads(Array.isArray(uploadsRes.data) ? uploadsRes.data : uploadsRes.data?.items || [])
       } catch {
-        if (!cancelled) {
-          setOverview(null)
-        }
+        if (!cancelled) setOverview(null)
       } finally {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
+        if (!cancelled) setIsLoading(false)
       }
     }
 
     loadAll()
-
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
     const handler = () => {
       Promise.all([
-        api.get('/portfolio', { params: { sort: '-createdAt', limit: 6 } }),
+        api.get('/admin/overview').catch(() => ({ data: null })),
+        api.get('/portfolio', { params: { sort: '-createdAt', limit: 6 } }).catch(() => ({ data: [] })),
         api.get('/orders').catch(() => ({ data: [] })),
-      ])
-        .then(([portfolioRes, ordersRes]) => {
-          setRecentUploads(Array.isArray(portfolioRes.data) ? portfolioRes.data : portfolioRes.data?.items || [])
-        setRecentOrders(Array.isArray(ordersRes.data) ? ordersRes.data : Array.isArray(ordersRes.data?.data) ? ordersRes.data.data : ordersRes.data?.items || [])
-        })
-        .catch(() => {})
+      ]).then(([overviewRes, portfolioRes, ordersRes]) => {
+        setOverview(overviewRes.data || null)
+        setRecentUploads(Array.isArray(portfolioRes.data) ? portfolioRes.data : portfolioRes.data?.items || [])
+        setRecentOrders(Array.isArray(ordersRes.data) ? ordersRes.data : ordersRes.data?.items || [])
+      }).catch(() => {})
     }
     window.addEventListener('admin-data-changed', handler)
     return () => window.removeEventListener('admin-data-changed', handler)
@@ -170,71 +164,28 @@ export const DashboardOverview = () => {
         transition={{ duration: 0.5 }}
         className="mb-8"
       >
-        <h1 className="font-display text-4xl md:text-5xl text-[var(--primary)] tracking-tight">
-          Dashboard
-        </h1>
+        <h1 className="font-display text-4xl md:text-5xl text-[var(--primary)] tracking-tight">Dashboard</h1>
         <p className="text-sm text-[var(--primary)]/50 mt-2 max-w-xl">
           Welcome back. Here is what is happening across your store today.
         </p>
       </motion.div>
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Hero Images"
-          value={overview?.heroCount ?? 0}
-          icon={Images}
-          delay={0}
-          color="gold"
-          onClick={() => navigate('/admin/hero-images')}
-        />
-        <StatCard
-          title="Portfolio Items"
-          value={overview?.portfolioCount ?? 0}
-          icon={Images}
-          delay={0.05}
-          color="gold"
-          onClick={() => navigate('/admin/portfolio')}
-        />
-        <StatCard
-          title="Virtual Designs"
-          value={overview?.virtualCount ?? 0}
-          icon={Sparkles}
-          delay={0.1}
-          color="forest"
-          onClick={() => navigate('/admin/virtual-designs')}
-        />
-        <StatCard
-          title="Services"
-          value={overview?.serviceCount ?? 0}
-          icon={FileText}
-          delay={0.15}
-          color="gold"
-          onClick={() => navigate('/admin/services')}
-        />
-        <StatCard
-          title="Products"
-          value={overview?.productCount ?? 0}
-          icon={ShoppingBag}
-          delay={0.2}
-          color="forest"
-          onClick={() => navigate('/admin/shop')}
-        />
-        <StatCard
-          title="Orders"
-          value={overview?.orderCount ?? 0}
-          icon={Package}
-          delay={0.25}
-          color="gold"
-          onClick={() => navigate('/admin/orders')}
-        />
-        <StatCard
-          title="Consultations"
-          value={overview?.consultationCount ?? 0}
-          icon={MessageSquare}
-          delay={0.3}
-          color="forest"
-          onClick={() => navigate('/admin/consultations')}
-        />
+        <StatCard title="Hero Media" value={overview?.heroCount ?? 0} icon={Images} delay={0} color="gold" onClick={() => navigate('/admin/hero-images')} />
+        <StatCard title="Portfolio Items" value={overview?.portfolioCount ?? 0} icon={Images} delay={0.05} color="gold" onClick={() => navigate('/admin/portfolio')} />
+        <StatCard title="Virtual Designs" value={overview?.virtualCount ?? 0} icon={Sparkles} delay={0.1} color="forest" onClick={() => navigate('/admin/virtual-designs')} />
+        <StatCard title="Services" value={overview?.serviceCount ?? 0} icon={FileText} delay={0.15} color="gold" onClick={() => navigate('/admin/services')} />
+        <StatCard title="Products" value={overview?.productCount ?? 0} icon={ShoppingBag} delay={0.2} color="forest" onClick={() => navigate('/admin/shop')} />
+        <StatCard title="Orders" value={overview?.orderCount ?? 0} icon={Package} delay={0.25} color="gold" onClick={() => navigate('/admin/orders')} />
+        <StatCard title="Consultations" value={overview?.consultationCount ?? 0} icon={MessageSquare} delay={0.3} color="forest" onClick={() => navigate('/admin/consultations')} />
+        <StatCard title="Customers" value={overview?.customerCount ?? 0} icon={Users} delay={0.35} color="gold" onClick={() => navigate('/admin/orders')} />
+        <StatCard title="Blog Posts" value={overview?.blogCount ?? 0} icon={Newspaper} delay={0.4} color="forest" onClick={() => navigate('/admin/blog')} />
+        <StatCard title="Published" value={overview?.blogPublishedCount ?? 0} icon={FileText} delay={0.45} color="gold" onClick={() => navigate('/admin/blog')} />
+        <StatCard title="Drafts" value={overview?.blogDraftCount ?? 0} icon={FileText} delay={0.5} color="forest" onClick={() => navigate('/admin/blog')} />
+        <StatCard title="Blog Images" value={overview?.imageCount ?? 0} icon={ImageIcon} delay={0.55} color="gold" onClick={() => navigate('/admin/blog')} />
+        <StatCard title="Blog Videos" value={overview?.videoCount ?? 0} icon={Video} delay={0.6} color="forest" onClick={() => navigate('/admin/blog')} />
+        <StatCard title="Total Views" value={overview?.totalViews ?? 0} icon={Eye} delay={0.65} color="gold" />
+        <StatCard title="Revenue" value={overview?.revenue ?? 0} prefix="$" icon={DollarSign} delay={0.7} color="gold" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -259,7 +210,7 @@ export const DashboardOverview = () => {
           <div className="space-y-1">
             {(recentOrders || []).slice(0, 5).map((order, i) => (
               <motion.div
-                key={i}
+                key={order.id || i}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5 + i * 0.05 }}
@@ -274,10 +225,10 @@ export const DashboardOverview = () => {
                   </motion.div>
                   <div>
                     <p className="text-sm font-medium text-[var(--primary)]">
-                      {order.customerName || order.user?.fullName || 'Customer'}
+                      {order.name || order.customerName || 'Customer'}
                     </p>
                     <p className="text-[10px] text-[var(--primary)]/50">
-                      Order #{order._id?.slice(-6) || '—'}
+                      Order #{(order.id || order._id || '').slice(-6) || '—'}
                     </p>
                   </div>
                 </div>
@@ -330,7 +281,7 @@ export const DashboardOverview = () => {
                 ))
               : recentUploads.map((item, i) => (
                   <motion.div
-                    key={item._id || i}
+                    key={item.id || item._id || i}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 + i * 0.05 }}
@@ -340,10 +291,10 @@ export const DashboardOverview = () => {
                       <img
                         src={item.imageUrl}
                         alt={item.title}
-                        className="w-10 h-10 object-cover shadow-sm"
+                        className="w-10 h-10 object-cover rounded-lg shadow-sm"
                       />
                     ) : (
-                      <div className="w-10 h-10 bg-gradient-to-br from-[var(--secondary)]/40 to-[var(--accent)]/10 flex items-center justify-center text-[var(--primary)]/20">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--secondary)]/40 to-[var(--accent)]/10 flex items-center justify-center text-[var(--primary)]/20">
                         <Images size={16} />
                       </div>
                     )}
@@ -373,30 +324,10 @@ export const DashboardOverview = () => {
           <p className="text-xs text-[var(--primary)]/50 mt-1">Frequently used shortcuts</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <QuickActionCard
-            label="New Portfolio"
-            icon={Plus}
-            color="bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]"
-            onClick={() => navigate('/admin/portfolio')}
-          />
-          <QuickActionCard
-            label="Add Product"
-            icon={ShoppingBag}
-            color="bg-gradient-to-br from-[var(--primary)] to-[var(--primary)]"
-            onClick={() => navigate('/admin/shop')}
-          />
-          <QuickActionCard
-            label="View Messages"
-            icon={MessageSquare}
-            color="bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]"
-            onClick={() => navigate('/admin/consultations')}
-          />
-          <QuickActionCard
-            label="Virtual Design"
-            icon={Newspaper}
-            color="bg-gradient-to-br from-[var(--primary)] to-[var(--primary)]"
-            onClick={() => navigate('/admin/virtual-designs')}
-          />
+          <QuickActionCard label="New Portfolio" icon={Plus} color="bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]" onClick={() => navigate('/admin/portfolio')} />
+          <QuickActionCard label="Add Product" icon={ShoppingBag} color="bg-gradient-to-br from-[var(--primary)] to-[var(--primary)]" onClick={() => navigate('/admin/shop')} />
+          <QuickActionCard label="View Messages" icon={MessageSquare} color="bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]" onClick={() => navigate('/admin/consultations')} />
+          <QuickActionCard label="New Blog Post" icon={Newspaper} color="bg-gradient-to-br from-[var(--primary)] to-[var(--primary)]" onClick={() => navigate('/admin/blog')} />
         </div>
       </motion.div>
     </div>

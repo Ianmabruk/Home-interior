@@ -1,184 +1,364 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { motion } from 'framer-motion'
-import { Link } from 'react-router-dom'
-import { api } from '@services/api'
-import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
+import { Link, useSearchParams } from 'react-router-dom'
+import { Search, Tag, Grid3X3 } from 'lucide-react'
+import { api, clearApiCache } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 import { SectionErrorBoundary } from '@components/home/SectionErrorBoundary'
+import { getBlogImageUrl } from '@utils/blogHelpers'
+import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
+import BlogCard from '@components/blog/BlogCard'
 import { useIsMobile } from '@hooks/useIsMobile'
 
-const SkeletonBlog = () => (
-  <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-20 md:py-32">
-    <div className="container-wide">
-      <div className="mb-16 text-center">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Blog</p>
-        <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
-          Latest Insights
-        </h2>
+const SkeletonGrid = ({ count = 6 }) => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
+    {Array.from({ length: count }).map((_, i) => (
+      <div key={i} className="group flex flex-col">
+        <div className="aspect-[4/3] w-full rounded-3xl skeleton mb-4" />
+        <div className="skeleton h-5 w-3/4 rounded-lg mb-2" />
+        <div className="skeleton h-4 w-full rounded-lg mb-2" />
+        <div className="skeleton h-4 w-1/2 rounded-lg" />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="group flex flex-col items-center text-center">
-            <div className="mb-8 aspect-square w-full rounded-3xl bg-[var(--secondary)]/60 text-[var(--primary)] skeleton" />
-            <h3 className="font-display text-xl md:text-2xl font-medium text-[var(--primary)] leading-tight skeleton" />
-            <p className="mt-2 text-sm text-[var(--primary)]/60 leading-relaxed skeleton" />
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
+    ))}
+  </div>
 )
 
 export const BlogPage = memo(() => {
   const [blogs, setBlogs] = useState([])
+  const [featuredBlog, setFeaturedBlog] = useState(null)
+  const [categories, setCategories] = useState([])
+  const [tags, setTags] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMeta, setLoadingMeta] = useState(true)
+  const [meta, setMeta] = useState({ total: 0, totalPages: 1 })
+  const [searchParams, setSearchParams] = useSearchParams()
   const reduceMotion = useIsMobile()
+
+  const searchTerm = searchParams.get('search') || ''
+  const activeCategory = searchParams.get('category') || ''
+  const activeTag = searchParams.get('tag') || ''
+  const currentPage = parseInt(searchParams.get('page') || '1', 10)
+
+  const loadMeta = useCallback(async () => {
+    try {
+      const res = await api.get('/blog/categories')
+      if (res.data) {
+        setCategories(res.data.categories || [])
+        setTags(res.data.tags || [])
+      }
+    } catch (err) {
+      console.warn('[BlogPage] Failed to load categories/tags:', err?.message)
+    } finally {
+      setLoadingMeta(false)
+    }
+  }, [])
 
   const loadBlogs = useCallback(async () => {
     try {
-      const res = await api.get('/blog')
-      setBlogs(Array.isArray(res.data) ? res.data : [])
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: '12',
+      })
+      if (searchTerm) params.set('search', searchTerm)
+      if (activeCategory) params.set('category', activeCategory)
+      if (activeTag) params.set('tag', activeTag)
+      params.set('sort', 'createdAt:desc')
+
+      const res = await api.get(`/blog?${params.toString()}`)
+      const data = Array.isArray(res.data) ? res.data : res.data?.items || []
+      setBlogs(data)
+      setMeta({
+        total: res.meta?.total || data.length,
+        totalPages: res.meta?.totalPages || Math.ceil((res.meta?.total || data.length) / 12),
+      })
+
+      const featured = data.find((b) => b.featured) || data[0] || null
+      setFeaturedBlog(featured)
     } catch (err) {
-      console.warn('[BLOG] Failed to load:', err?.message)
+      console.warn('[BlogPage] Failed to load blogs:', err?.message)
       setBlogs([])
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [currentPage, searchTerm, activeCategory, activeTag])
 
   useEffect(() => {
     loadBlogs()
   }, [loadBlogs])
 
   useEffect(() => {
+    loadMeta()
+  }, [loadMeta])
+
+  useEffect(() => {
     const handler = (event) => {
       const payload = getAdminDataChangedPayload(event)
       if (payload?.type === 'blog-changed') {
-        import('@services/api').then(({ clearApiCache }) => clearApiCache('/blog'))
+        clearApiCache('/blog')
         loadBlogs()
+        loadMeta()
       }
     }
     window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-  }, [loadBlogs])
+  }, [loadBlogs, loadMeta])
 
-  if (loading) {
-    return (
-      <main>
-        <SectionErrorBoundary sectionName="Blog" fallback={<SkeletonBlog />}>
-          <SkeletonBlog />
-        </SectionErrorBoundary>
-      </main>
-    )
+  const handleSearch = (e) => {
+    const value = e.target.value.trim()
+    if (value) {
+      setSearchParams({ search: value, page: '1' })
+    } else {
+      const newParams = { ...searchParams }
+      delete newParams.search
+      newParams.page = '1'
+      setSearchParams(newParams)
+    }
   }
 
+  const handleCategory = (cat) => {
+    if (cat === activeCategory) {
+      const newParams = { ...searchParams }
+      delete newParams.category
+      setSearchParams(newParams)
+    } else {
+      setSearchParams({ category: cat, page: '1' })
+    }
+  }
+
+  const handleTag = (tag) => {
+    if (tag === activeTag) {
+      const newParams = { ...searchParams }
+      delete newParams.tag
+      setSearchParams(newParams)
+    } else {
+      setSearchParams({ tag, page: '1' })
+    }
+  }
+
+  const clearFilters = () => {
+    setSearchParams({})
+  }
+
+  const hasActiveFilters = searchTerm || activeCategory || activeTag
+  const displayBlogs = featuredBlog ? blogs.filter((b) => (b.id || b._id) !== (featuredBlog.id || featuredBlog._id)) : blogs
+
   return (
-    <main>
+    <main className="min-h-screen bg-[var(--bg)]">
       <PageMeta
         title="HOK Interiors Blog — Design Insights & Inspiration"
         description="Explore the latest trends in interior design, furniture, and virtual design from HOK Interiors."
       />
 
-      {/* Hero Section */}
-      <section className="relative w-full h-[60vh] min-h-[400px] overflow-hidden bg-[var(--primary)] flex items-center justify-center">
-        <div className="absolute inset-0 bg-[var(--primary)]" />
-        <div className="relative z-10 text-center px-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Blog</p>
-          <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight text-white">
-            Latest Insights
-          </h1>
-          <p className="mt-4 text-sm md:text-base text-white/60 max-w-lg mx-auto">
-            Discover the latest trends in interior design, furniture, and virtual design from HOK Interiors.
-          </p>
-        </div>
-      </section>
+      <SectionErrorBoundary sectionName="BlogHero">
+        <section className="relative w-full overflow-hidden bg-[var(--primary)] py-24 md:py-40">
+          <div className="absolute inset-0" />
+          <div className="container-wide mx-auto px-6 md:px-12 lg:px-20">
+            <div className="max-w-3xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-6">
+                The Journal
+              </p>
+              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight text-white mb-6">
+                Design Insights & Inspiration
+              </h1>
+              <p className="text-lg text-white/70 max-w-xl leading-relaxed">
+                Discover expert insights, trending designs, and curated inspiration from our interior designers.
+              </p>
+            </div>
+          </div>
+        </section>
+      </SectionErrorBoundary>
 
-      {/* Blog Grid */}
-      <SectionErrorBoundary sectionName="BlogGrid" fallback={<div className="py-20 text-center text-[var(--primary)]/50">No blog posts available yet.</div>}>
-        <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-20 md:py-32">
-          <div className="container-wide">
-            {blogs.length === 0 ? (
-              <div className="text-center py-20">
-                <p className="font-display text-2xl text-[var(--primary)]/30">No blog posts yet</p>
-                <p className="text-sm text-[var(--primary)]/40 mt-2">Check back soon for new content</p>
+      <div className="container-wide mx-auto px-6 md:px-12 lg:px-20 py-12 md:py-20">
+        {/* Featured Article */}
+        {!loading && featuredBlog && (
+          <SectionErrorBoundary sectionName="FeaturedArticle">
+            <motion.article
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              className="mb-16"
+            >
+              <Link to={`/blog/${featuredBlog.slug || featuredBlog.id}`} className="group block">
+                <div className="relative aspect-[2/1] w-full overflow-hidden rounded-3xl">
+                  {getBlogImageUrl(featuredBlog) ? (
+                    <>
+                      <img
+                        src={getOptimizedUrl(getBlogImageUrl(featuredBlog), { width: 1200, crop: 'limit' }) || getBlogImageUrl(featuredBlog)}
+                        srcSet={buildSrcSet(getBlogImageUrl(featuredBlog)) || undefined}
+                        sizes="100vw"
+                        alt={featuredBlog.title}
+                        className="h-full w-full object-cover transition duration-1000 group-hover:scale-105"
+                        loading="eager"
+                        decoding="async"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    </>
+                  ) : (
+                    <div className="h-full w-full bg-gradient-to-br from-[var(--secondary)]/20 to-[var(--accent)]/10 flex items-center justify-center">
+                      <Grid3X3 size={48} className="text-[var(--primary)]/20" />
+                    </div>
+                  )}
+                  <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12">
+                    <div className="mb-3 flex items-center gap-2">
+                      {featuredBlog.featured && (
+                        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
+                          Featured
+                        </span>
+                      )}
+                      {featuredBlog.category && (
+                        <span className="text-xs font-medium text-white/60">{featuredBlog.category}</span>
+                      )}
+                    </div>
+                    <h2 className="font-display text-2xl md:text-3xl lg:text-4xl font-semibold text-white leading-tight mb-3 line-clamp-2 group-hover:text-[var(--accent)]/80 transition-colors">
+                      {featuredBlog.title}
+                    </h2>
+                    {featuredBlog.description && (
+                      <p className="text-sm text-white/70 line-clamp-2 max-w-2xl">
+                        {featuredBlog.description}
+                      </p>
+                    )}
+                    <div className="mt-4 flex items-center gap-4 text-xs text-white/50">
+                      <span>{featuredBlog.author || 'HOK Interiors'}</span>
+                      <time dateTime={featuredBlog.publishDate || featuredBlog.createdAt}>
+                        {featuredBlog.published && featuredBlog.publishDate
+                          ? new Date(featuredBlog.publishDate).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })
+                          : 'Draft'}
+                      </time>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </motion.article>
+          </SectionErrorBoundary>
+        )}
+
+        {/* Search + Categories */}
+        <SectionErrorBoundary sectionName="BlogControls">
+          <div className="mb-8 space-y-6">
+            <div className="relative">
+              <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--primary)]/30" />
+              <input
+                type="text"
+                placeholder="Search articles..."
+                defaultValue={searchTerm}
+                onChange={handleSearch}
+                className="w-full rounded-xl border border-border/50 bg-white pl-12 pr-4 py-3 text-sm text-[var(--primary)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
+              />
+            </div>
+
+            {!loadingMeta && categories.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={clearFilters}
+                  className={`text-xs font-medium rounded-full px-4 py-2 transition-all ${
+                    !hasActiveFilters
+                      ? 'bg-[var(--accent)] text-white'
+                      : 'bg-[var(--secondary)]/20 text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30'
+                  }`}
+                >
+                  All
+                </button>
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => handleCategory(cat)}
+                    className={`text-xs font-medium rounded-full px-4 py-2 transition-all ${
+                      activeCategory === cat
+                        ? 'bg-[var(--accent)] text-white'
+                        : 'bg-[var(--secondary)]/20 text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
-            ) : (
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
-                  {blogs.map((item, i) => (
-                    <motion.article
-                      key={item._id || item.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: reduceMotion ? 0 : i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                      className="group bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500"
-                    >
-                     <Link to={`/blog/${item.id || item._id}`} className="block">
-                       <div className="relative aspect-[4/3] overflow-hidden">
-                        {item.imageUrl ? (
-                          <img
-                            src={getOptimizedUrl(item.imageUrl, { width: 800, crop: 'limit' })}
-                            srcSet={buildSrcSet(item.imageUrl) || undefined}
-                            sizes={buildSrcSet(item.imageUrl) ? '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw' : undefined}
-                            alt={item.title}
-                            className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                            loading="lazy"
-                            decoding="async"
-                            width={800}
-                            height={600}
-                            onError={(e) => { e.target.style.display = 'none' }}
-                          />
-                        ) : (
-                        <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
-                          <div className="w-16 h-16 rounded-full bg-[var(--secondary)]/40 flex items-center justify-center text-[var(--primary)]/20">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2h10" />
-                              <line x1="8" y1="7" x2="16" y2="7" />
-                              <line x1="8" y1="11" x2="13" y2="11" />
-                            </svg>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    </Link>
-                    <div className="p-6 md:p-8">
-                      <h3 className="font-display text-xl text-[var(--primary)] leading-tight line-clamp-2">
-                        {item.title}
-                      </h3>
-                      {item.description && (
-                        <p className="mt-3 text-sm leading-relaxed text-[var(--primary)]/60 line-clamp-3">
-                          {item.description}
-                        </p>
-                      )}
-                      {(() => {
-                        const videoSrc = item.videoUrl || item.video || item.mediaUrls?.[0] || null
-                        return videoSrc && (
-                          <div className="mt-4">
-                            <video
-                              src={videoSrc}
-                              className="w-full rounded-xl"
-                              controls
-                              preload="metadata"
-                              playsInline
-                              muted
-                              onError={(e) => { e.target.style.display = 'none' }}
-                            />
-                          </div>
-                        )
-                      })()}
-                      <div className="mt-5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--accent)]">
-                        {item.published && <span className="px-2 py-1 rounded-full bg-green-100 text-green-700">Published</span>}
-                        {item.featured && <span className="px-2 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">Featured</span>}
-                      </div>
-                    </div>
-                  </motion.article>
+            )}
+
+            {!loadingMeta && tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {tags.slice(0, 12).map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => handleTag(tag)}
+                    className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full transition-all ${
+                      activeTag === tag
+                        ? 'bg-[var(--accent)]/20 text-[var(--accent)] border border-[var(--accent)]/30'
+                        : 'bg-[var(--secondary)]/10 text-[var(--primary)]/50 hover:bg-[var(--secondary)]/20 hover:text-[var(--primary)]/70 border border-transparent'
+                    }`}
+                  >
+                    <Tag size={10} />
+                    {tag}
+                  </button>
                 ))}
               </div>
             )}
           </div>
-        </section>
-      </SectionErrorBoundary>
+        </SectionErrorBoundary>
+
+        {/* Blog Grid */}
+        <SectionErrorBoundary sectionName="BlogGrid">
+          {loading ? (
+            <SkeletonGrid />
+          ) : displayBlogs.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="font-display text-2xl text-[var(--primary)]/30 mb-3">No blog posts found</p>
+              <p className="text-sm text-[var(--primary)]/40">
+                {hasActiveFilters ? 'Try adjusting your search or filters.' : 'Check back soon for new content.'}
+              </p>
+              {hasActiveFilters && (
+                <button onClick={clearFilters} className="btn-luxury-primary mt-4 inline-flex items-center gap-2">
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
+              {displayBlogs.map((item, i) => (
+                <motion.div
+                  key={item.id || item._id || i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    delay: reduceMotion ? 0 : i * 0.05,
+                    duration: 0.5,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                >
+                  <BlogCard blog={item} priority={i < 6} />
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </SectionErrorBoundary>
+
+        {/* Pagination */}
+        {!loading && meta.totalPages > 1 && (
+          <div className="mt-12 flex items-center justify-center gap-2">
+            <button
+              onClick={() => setSearchParams({ ...searchParams, page: String(Math.max(1, currentPage - 1)) })}
+              disabled={currentPage <= 1}
+              className="rounded-xl px-4 py-2 text-sm font-medium text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-[var(--primary)]/50">
+              Page {currentPage} of {meta.totalPages}
+            </span>
+            <button
+              onClick={() => setSearchParams({ ...searchParams, page: String(currentPage + 1) })}
+              disabled={currentPage >= meta.totalPages}
+              className="rounded-xl px-4 py-2 text-sm font-medium text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        )}
+      </div>
     </main>
   )
 })

@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+
 export const ADMIN_DATA_CHANGED_EVENT = 'admin-data-changed'
 
 export function dispatchAdminDataChanged(type, data = {}) {
@@ -8,6 +10,19 @@ export function dispatchAdminDataChanged(type, data = {}) {
 
 export function getAdminDataChangedPayload(event) {
   return event?.detail || null
+}
+
+export function useAdminDataChangedListener(types, callback) {
+  useEffect(() => {
+    const handler = (event) => {
+      const payload = getAdminDataChangedPayload(event)
+      if (!payload) return
+      if (types && !types.includes(payload.type)) return
+      callback(payload)
+    }
+    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+    return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
+  }, [types, callback])
 }
 
 export const ADMIN_EVENT_TYPES = {
