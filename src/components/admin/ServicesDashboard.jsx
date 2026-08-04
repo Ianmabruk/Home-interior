@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UploadCloud, X, Edit, Trash2, Eye, Plus, Sparkles, Star, ArrowUp, ArrowDown, ToggleLeft } from 'lucide-react'
+import { UploadCloud, X, Edit, Trash2, Eye, Plus, Sparkles, Star, ArrowUp, ArrowDown, ToggleLeft, LayoutGrid, Brush, MonitorSmartphone, Armchair, Search } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
