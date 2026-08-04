@@ -13,16 +13,20 @@ import {
   ChevronDown,
   X,
   Book,
+  Users,
+  Globe,
 } from 'lucide-react'
 import { useAuth } from '@context/AuthContext'
 import { Sidebar } from '@components/admin/Sidebar'
 
 const ADMIN_NAV = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
+  { id: 'about', label: 'About', icon: Users, to: '/admin/about' },
   { id: 'hero-images', label: 'Hero Images', icon: Image, to: '/admin/hero-images' },
   { id: 'portfolio', label: 'Portfolio', icon: Image, to: '/admin/portfolio' },
   { id: 'virtual-design', label: 'Virtual Designs', icon: Video, to: '/admin/virtual-designs' },
   { id: 'services', label: 'Services', icon: Sparkles, to: '/admin/services' },
+  { id: 'socials', label: 'Socials', icon: Globe, to: '/admin/socials' },
   { id: 'shop', label: 'Shop', icon: ShoppingBag, to: '/admin/shop' },
   { id: 'blog', label: 'Blog', icon: Book, to: '/admin/blog' },
   { id: 'orders', label: 'Orders', icon: Package, to: '/admin/orders' },

@@ -72,13 +72,13 @@ const NAV_ITEMS_MOBILE = [
     key: 'about',
     label: 'About Us',
     path: '/about',
-    getImage: (data) => data.about?.imageUrl || null,
+    getImage: (data) => data.aboutImages?.[0]?.imageUrl || data.about?.imageUrl || null,
   },
   {
     key: 'socials',
     label: 'Socials',
     path: '/socials',
-    getImage: (data) => data.about?.socialImage || data.about?.imageUrl || null,
+    getImage: (data) => data.socialItems?.[0]?.imageUrl || data.about?.socialImage || data.about?.imageUrl || null,
   },
 ]
 
@@ -222,15 +222,17 @@ const CircleItemMobile = memo(({ item, data, reduceMotion }) => {
 
 CircleItemMobile.displayName = 'CircleItemMobile'
 
-export const MobileCircularNavigation = memo(({ portfolio = [], virtualDesigns = [], services = [], products = [], about = null, blog = [] }) => {
+export const MobileCircularNavigation = memo(({ portfolio = [], virtualDesigns = [], services = [], products = [], about = null, aboutImages = [], socialItems = [], blog = [] }) => {
   const data = useMemo(() => ({
     portfolio,
     virtualDesigns,
     services,
     products,
     about,
+    aboutImages,
+    socialItems,
     blog,
-  }), [portfolio, virtualDesigns, services, products, about, blog])
+  }), [portfolio, virtualDesigns, services, products, about, aboutImages, socialItems, blog])
   const reduceMotion = useIsMobile()
 
   return (

@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { motion } from 'framer-motion'
 import { api } from '@services/api'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
-import { SOCIAL_ICONS, SOCIAL_LINKS } from '@constants/socialLinks'
 
 const SkeletonSocials = () => (
   <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 md:px-12 lg:px-20 py-20 md:py-32">
@@ -36,20 +35,17 @@ const SkeletonSocials = () => (
   </section>
 )
 
-export const SocialsPage = () => {
-  const [socialLinks, setSocialLinks] = useState({})
-  const [socialImage, setSocialImage] = useState(null)
+export const SocialsPage = memo(() => {
+  const [socialItems, setSocialItems] = useState([])
   const [loading, setLoading] = useState(true)
 
   const loadSocials = useCallback(async () => {
     try {
       const res = await api.get('/socials')
-      setSocialLinks(res.data || {})
-      setSocialImage(res.data?.image || null)
+      setSocialItems(Array.isArray(res.data) ? res.data : [])
     } catch (err) {
       console.warn('[SOCIALS] Failed to load:', err?.message)
-      setSocialLinks({})
-      setSocialImage(null)
+      setSocialItems([])
     } finally {
       setLoading(false)
     }
@@ -68,6 +64,8 @@ export const SocialsPage = () => {
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
   }, [loadSocials])
 
+  const activeItems = socialItems.filter((item) => item.isActive !== false && item.link && item.link.trim() !== '')
+
   if (loading) {
     return <main><SkeletonSocials /></main>
   }
@@ -80,16 +78,6 @@ export const SocialsPage = () => {
       />
       <section className="relative min-h-[50vh] md:min-h-[60vh] flex items-center justify-center">
         <div className="absolute inset-0 bg-gradient-to-b from-[var(--primary)] via-[var(--primary)]/80 to-[var(--bg)]" />
-        {socialImage && (
-          <img
-            src={getOptimizedUrl(socialImage, { width: 1920, crop: 'limit' })}
-            alt="Social media"
-            className="absolute inset-0 w-full h-full object-cover opacity-20"
-            loading="lazy"
-            decoding="async"
-            onError={(e) => { e.target.style.display = 'none' }}
-          />
-        )}
         <div className="relative z-10 container-wide px-6 md:px-12 lg:px-20 text-center">
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
@@ -122,13 +110,15 @@ export const SocialsPage = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 lg:gap-12">
-            {SOCIAL_LINKS.map((platform, index) => {
-              const url = socialLinks[platform.icon.toLowerCase()] || platform.href
-              const hasLink = url && url.trim() !== ''
-              return (
+          {activeItems.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-[var(--primary)]/30 text-lg">No social links configured yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 lg:gap-12">
+              {activeItems.map((platform, index) => (
                 <motion.div
-                  key={platform.icon}
+                  key={platform.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
@@ -136,43 +126,48 @@ export const SocialsPage = () => {
                 >
                   <div className="relative w-full max-w-sm mx-auto mb-6">
                     <div className="relative rounded-full overflow-hidden bg-[var(--secondary)]/30">
-                      <div className="h-[320px] w-full flex items-center justify-center" style={{ color: platform.color }}>
-                        {SOCIAL_ICONS[platform.icon]}
-                      </div>
+                      {platform.imageUrl ? (
+                        <img
+                          src={getOptimizedUrl(platform.imageUrl, { width: 400, crop: 'limit' })}
+                          alt={platform.name}
+                          className="h-[320px] w-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <div className="h-[320px] w-full flex items-center justify-center bg-[var(--secondary)]/30">
+                          <span className="font-display text-4xl font-semibold text-[var(--primary)]/20">
+                            {platform.name?.charAt(0)?.toUpperCase()}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="text-center mb-4">
                     <h3 className="font-display text-xl font-medium text-[var(--primary)] group-hover:text-[var(--accent)] transition-colors">
-                      {platform.label}
+                      {platform.name}
                     </h3>
                   </div>
                   <div className="w-full max-w-xs">
-                    {hasLink ? (
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block w-full py-4 bg-[var(--primary)] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(42,36,31,0.2)] hover:bg-[var(--primary)]/90 hover:shadow-[0_8px_24px_rgba(42,36,31,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-                      >
-                        Give Us a Follow
-                      </a>
-                    ) : (
-                      <button
-                        disabled
-                        className="block w-full py-4 bg-[var(--primary)]/20 text-[var(--primary)]/40 text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap cursor-not-allowed"
-                      >
-                        Link Not Configured
-                      </button>
-                    )}
+                    <a
+                      href={platform.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full py-4 bg-[var(--primary)] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(42,36,31,0.2)] hover:bg-[var(--primary)]/90 hover:shadow-[0_8px_24px_rgba(42,36,31,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                    >
+                      Give Us a Follow
+                    </a>
                   </div>
                 </motion.div>
-              )
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </main>
   )
-}
+})
+
+SocialsPage.displayName = 'SocialsPage'
 
 export default SocialsPage

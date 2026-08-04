@@ -40,7 +40,7 @@ async function createOrUpdateAbout(data, file, socialFile) {
     const uploaded = await uploadFile(file.buffer, file.mimetype, 'about')
     createData.imageUrl = uploaded.url
     createData.cloudinaryId = uploaded.path
-  } else if (!existing?.imageUrl) {
+  } else if (!existing?.imageUrl && createData.imageUrl === undefined) {
     createData.imageUrl = null
   }
 

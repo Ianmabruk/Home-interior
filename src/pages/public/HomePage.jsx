@@ -8,7 +8,6 @@ import { SectionErrorBoundary } from '@components/home/SectionErrorBoundary'
 import { api, clearApiCache } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
-import { useIsMobile } from '@hooks/useIsMobile'
 
 const SkeletonHero = memo(() => (
   <section className="relative w-full h-screen min-h-[700px] overflow-hidden bg-[var(--primary)]" role="region" aria-label="Hero image">
@@ -30,9 +29,10 @@ export const HomePage = memo(() => {
   const [loading, setLoading] = useState(true)
   const [heroImages, setHeroImages] = useState([])
   const [about, setAbout] = useState(null)
+  const [aboutImages, setAboutImages] = useState([])
+  const [socialItems, setSocialItems] = useState([])
   const [blog, setBlog] = useState([])
   const [contactInfo, setContactInfo] = useState(null)
-  const reduceMotion = useIsMobile()
 
   const loadData = useCallback(async () => {
     try {
@@ -44,6 +44,8 @@ export const HomePage = memo(() => {
       setHeroImages(data.heroImages || data.heroMedia || [])
       setProducts(data.products || [])
       setAbout(data.about || null)
+      setAboutImages(data.aboutImages || [])
+      setSocialItems(data.socialItems || [])
       setBlog(data.blog || [])
       setContactInfo(data.contact || null)
     } catch (err) {
@@ -68,7 +70,8 @@ export const HomePage = memo(() => {
         payload?.type === 'products-changed' ||
         payload?.type === 'about-changed' ||
         payload?.type === 'blog-changed' ||
-        payload?.type === 'contact-changed'
+        payload?.type === 'contact-changed' ||
+        payload?.type === 'socials-changed'
       ) {
         clearApiCache('/homepage')
         loadData()
@@ -111,6 +114,8 @@ export const HomePage = memo(() => {
           services={services}
           products={products}
           about={about}
+          aboutImages={aboutImages}
+          socialItems={socialItems}
           blog={blog}
         />
       </SectionErrorBoundary>
@@ -123,6 +128,8 @@ export const HomePage = memo(() => {
           services={services}
           products={products}
           about={about}
+          aboutImages={aboutImages}
+          socialItems={socialItems}
           blog={blog}
         />
       </SectionErrorBoundary>

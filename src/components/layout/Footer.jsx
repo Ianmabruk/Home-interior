@@ -1,30 +1,26 @@
-import { useState, useEffect, memo, useMemo } from 'react'
+import { useState, useEffect, memo, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '@services/api'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
-import { SOCIAL_ICONS } from '@constants/socialLinks'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 
 export const Footer = memo(() => {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState('')
-  const [socialLinks, setSocialLinks] = useState({})
-  const [socialImage, setSocialImage] = useState(null)
+  const [socialItems, setSocialItems] = useState([])
 
-  const loadSocials = async () => {
+  const loadSocials = useCallback(async () => {
     try {
       const res = await api.get('/socials')
-      setSocialLinks(res.data || {})
-      setSocialImage(res.data?.image || null)
+      setSocialItems(Array.isArray(res.data) ? res.data : [])
     } catch {
-      setSocialLinks({})
-      setSocialImage(null)
+      setSocialItems([])
     }
-  }
+  }, [])
 
   useEffect(() => {
     loadSocials()
-  }, [])
+  }, [loadSocials])
 
   useEffect(() => {
     const handler = (event) => {
@@ -50,18 +46,8 @@ export const Footer = memo(() => {
   }
 
   const footerSocials = useMemo(() => {
-    return Object.entries(socialLinks)
-      .filter((entry) => entry[1] && entry[1].trim() !== '')
-      .map(([key, href]) => {
-        const label = key.charAt(0).toUpperCase() + key.slice(1)
-        return {
-          key,
-          href,
-          label,
-          ariaLabel: `Follow us on ${label}`,
-        }
-      })
-  }, [socialLinks])
+    return socialItems.filter((item) => item.isActive !== false && item.link && item.link.trim() !== '')
+  }, [socialItems])
 
   return (
     <footer className="relative bg-[var(--footer-bg)] text-[var(--footer-text)]" role="contentinfo">
@@ -70,22 +56,9 @@ export const Footer = memo(() => {
           {/* Section 1: Branding - Centered */}
           <div className="text-center animate-fade-up" style={{ animationDelay: '0s' }}>
             <Link to="/" className="inline-block group" aria-label="HOK Interiors - Home">
-              {socialImage ? (
-                <img
-                  src={getOptimizedUrl(socialImage, { width: 400, crop: 'limit' })}
-                  alt="HOK Interiors"
-                  className="h-16 md:h-20 mx-auto object-contain"
-                  loading="lazy"
-                  decoding="async"
-                  width={160}
-                  height={80}
-                  onError={(e) => { e.target.style.display = 'none' }}
-                />
-              ) : (
-                <p className="font-display text-3xl md:text-4xl lg:text-5xl font-medium tracking-[0.25em] leading-tight text-white transition-colors duration-300 group-hover:text-[var(--accent)]">
-                  HOK Interiors
-                </p>
-              )}
+              <p className="font-display text-3xl md:text-4xl lg:text-5xl font-medium tracking-[0.25em] leading-tight text-white transition-colors duration-300 group-hover:text-[var(--accent)]">
+                HOK Interiors
+              </p>
             </Link>
           </div>
 
@@ -95,16 +68,25 @@ export const Footer = memo(() => {
             <div className="flex items-center justify-center gap-4 md:gap-6">
               {footerSocials.map((social, index) => (
                 <a
-                  key={social.label}
-                  href={social.href}
+                  key={social.id}
+                  href={social.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={social.ariaLabel}
+                  aria-label={`Follow us on ${social.name}`}
                   className="social-icon group relative flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border border-white/20 transition-all duration-500 hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] hover:scale-110 active:scale-95"
                   style={{ animationDelay: `${index * 0.08}s` }}
                   role="listitem"
                 >
-                  {SOCIAL_ICONS[social.label]}
+                  {social.imageUrl ? (
+                    <img
+                      src={getOptimizedUrl(social.imageUrl, { width: 100, crop: 'limit' })}
+                      alt={social.name}
+                      className="h-6 w-6 md:h-7 md:w-7 object-contain"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span className="text-xs font-semibold uppercase">{social.name?.charAt(0)}</span>
+                  )}
                   <span className="absolute inset-0 rounded-full border border-transparent transition-all duration-300 group-hover:border-[var(--accent)] group-hover:scale-110" aria-hidden="true" />
                 </a>
               ))}

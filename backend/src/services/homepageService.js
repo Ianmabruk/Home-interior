@@ -29,7 +29,29 @@ async function getHomepage() {
         }),
         prisma.about.findFirst({
           orderBy: { createdAt: 'desc' },
-          select: { id: true, imageUrl: true, socialImage: true },
+          select: {
+            id: true,
+            title: true,
+            subtitle: true,
+            description: true,
+            story: true,
+            mission: true,
+            vision: true,
+            experience: true,
+            values: true,
+            buttonText: true,
+            buttonUrl: true,
+            projectsCompleted: true,
+            happyClients: true,
+            yearsExperience: true,
+            countriesServed: true,
+            imageUrl: true,
+            socialImage: true,
+          },
+        }),
+        prisma.aboutImage.findMany({
+          orderBy: { displayOrder: 'asc' },
+          select: { id: true, imageUrl: true, displayOrder: true, isActive: true },
         }),
         prisma.testimonial.findMany({
           where: { isActive: true },
@@ -54,6 +76,10 @@ async function getHomepage() {
           take: 6,
           select: { id: true, title: true, image: true, video: true, description: true, category: true },
         }),
+        prisma.socialItem.findMany({
+          orderBy: { displayOrder: 'asc' },
+          select: { id: true, name: true, platform: true, imageUrl: true, link: true, isActive: true },
+        }),
         contactService.getContact(),
       ])
     )
@@ -63,10 +89,12 @@ async function getHomepage() {
       virtualDesigns,
       services,
       about,
+      aboutImages,
       testimonials,
       heroMedia,
       featuredProducts,
       blog,
+      socialItems,
       contact,
     ] = data
 
@@ -80,12 +108,15 @@ async function getHomepage() {
       mediaType: item.video ? 'video' : 'image',
     }))
 
+    const activeAboutImages = (aboutImages || []).filter((img) => img.isActive)
+
     return {
       portfolio,
       virtualDesigns,
       virtualInteriorDesign: virtualDesigns,
       services,
-      about,
+      about: about ? { ...about, aboutImages: activeAboutImages } : null,
+      aboutImages: activeAboutImages,
       testimonials,
       featuredPortfolio,
       featuredVirtualDesigns: virtualDesigns.filter((v) => v.featured).slice(0, 3),
@@ -94,6 +125,7 @@ async function getHomepage() {
       featuredProject: featuredPortfolio[0] || portfolio[0] || null,
       products: featuredProducts,
       blog: mappedBlog,
+      socialItems: (socialItems || []).filter((item) => item.isActive),
       contact,
     }
   } catch (err) {
@@ -104,6 +136,7 @@ async function getHomepage() {
       virtualInteriorDesign: [],
       services: [],
       about: null,
+      aboutImages: [],
       testimonials: [],
       featuredPortfolio: [],
       featuredVirtualDesigns: [],
@@ -112,13 +145,13 @@ async function getHomepage() {
       featuredProject: null,
       products: [],
       blog: [],
+      socialItems: [],
       contact: {
         phoneNumbers: ['+254 700 000 000', '+254 711 111 111'],
         emails: ['info@hokinteriors.com', 'projects@hokinteriors.com'],
         addresses: ['Westlands, Nairobi, Kenya'],
         businessHours: 'Mon - Fri: 8:00 AM - 6:00 PM\nSat: 9:00 AM - 4:00 PM\nSun: Closed',
       },
-      blog: [],
     }
   }
 }

@@ -40,6 +40,8 @@ router.use('/content/hero-media', heroRoutes)
 router.use('/content/consultations', consultationRoutes)
 router.use('/content/media', mediaRoutes)
 router.use('/content/testimonials', testRoutes)
+router.use('/socials', socialsRoutes)
+router.use('/content/socials', socialsRoutes)
 
 router.use('/portfolio', contentPortfolioRoutes)
 router.use('/virtual-design', contentVDRoutes)

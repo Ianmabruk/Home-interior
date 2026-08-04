@@ -8,6 +8,7 @@ import { virtualDesignController } from '../controllers/virtualDesignController.
 import { serviceController } from '../controllers/serviceController.js'
 import { productController } from '../controllers/productController.js'
 import { aboutController } from '../controllers/aboutController.js'
+import { aboutImageController } from '../controllers/aboutImageController.js'
 import { heroMediaController } from '../controllers/heroMediaController.js'
 import { testimonialController } from '../controllers/testimonialController.js'
 import { consultationController } from '../controllers/consultationController.js'
@@ -69,6 +70,16 @@ router.delete('/shop/:id', authenticate, productController.delete)
 // Admin About
 router.get('/about', authenticate, aboutController.get)
 router.put('/about', authenticate, uploadSingle('media'), aboutController.update)
+
+// Admin About Images
+router.get('/about/images', authenticate, aboutImageController.list)
+router.post('/about/images', authenticate, uploadSingle('image'), aboutImageController.create)
+router.patch('/about/images/:id', authenticate, uploadSingle('image'), aboutImageController.update)
+router.delete('/about/images/:id', authenticate, aboutImageController.delete)
+router.patch('/about/images/reorder', authenticate, aboutImageController.reorder)
+
+// Admin Socials
+router.use('/socials', adminSocialRoutes)
 
 // Admin Hero Images
 router.get('/hero-images', authenticate, heroMediaController.list)

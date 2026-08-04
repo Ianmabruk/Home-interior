@@ -8,20 +8,24 @@ import { useIsMobile } from '@hooks/useIsMobile'
 
 export const AboutPage = memo(() => {
   const [aboutData, setAboutData] = useState(null)
+  const [aboutImages, setAboutImages] = useState([])
   const [team, setTeam] = useState([])
   const [loading, setLoading] = useState(true)
   const reduceMotion = useIsMobile()
 
   const loadAbout = useCallback(async () => {
     try {
-      const [aboutRes, teamRes] = await Promise.all([
+      const [aboutRes, imagesRes, teamRes] = await Promise.all([
         api.get('/about'),
+        api.get('/about/images'),
         api.get('/about/team'),
       ])
       setAboutData(aboutRes.data || null)
+      setAboutImages(Array.isArray(imagesRes.data) ? imagesRes.data : [])
       setTeam(Array.isArray(teamRes.data) ? teamRes.data : [])
     } catch {
       setAboutData(null)
+      setAboutImages([])
       setTeam([])
     } finally {
       setLoading(false)
@@ -55,8 +59,7 @@ export const AboutPage = memo(() => {
     aboutData?.vision ||
     'To be the leading luxury interior design studio recognized for creating iconic spaces that stand the test of time.'
 
-  const imageUrl =
-    aboutData?.aboutImageUrl || aboutData?.heroImage || ''
+  const activeImages = aboutImages.filter((img) => img.isActive !== false)
 
   if (loading) {
     return (
@@ -97,18 +100,53 @@ export const AboutPage = memo(() => {
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="font-display text-5xl md:text-7xl lg:text-8xl font-semibold text-white leading-tight"
           >
-            About Us
+            {aboutData?.title || 'About Us'}
           </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-6 text-lg md:text-xl text-white/70 max-w-3xl mx-auto"
-          >
-            Creating timeless interiors that tell your story through thoughtful design and exceptional craftsmanship.
-          </motion.p>
+          {aboutData?.subtitle && (
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className="mt-6 text-lg md:text-xl text-white/70 max-w-3xl mx-auto"
+            >
+              {aboutData.subtitle}
+            </motion.p>
+          )}
         </div>
       </section>
+
+      {activeImages.length > 0 && (
+        <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-12 md:py-20">
+          <div className="container-wide">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+              {activeImages.map((img, index) => (
+                <motion.div
+                  key={img.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+                  className="group relative rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500"
+                >
+                  <div className="aspect-[4/5] overflow-hidden">
+                    <img
+                      src={getOptimizedUrl(img.imageUrl, { width: 960, crop: 'limit' })}
+                      srcSet={buildSrcSet(img.imageUrl) || undefined}
+                      sizes={buildSrcSet(img.imageUrl) ? '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw' : undefined}
+                      alt={`About image ${index + 1}`}
+                      className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                      loading="lazy"
+                      decoding="async"
+                      width={600}
+                      height={750}
+                    />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <motion.section
         initial={{ opacity: 0 }}
@@ -134,19 +172,26 @@ export const AboutPage = memo(() => {
                 <div className="absolute -bottom-2 -left-2 w-8 h-8 border-b-2 border-l-2 border-[var(--accent)]/40 rounded-bl-3xl pointer-events-none" />
                 <div className="absolute -bottom-2 -right-2 w-8 h-8 border-b-2 border-r-2 border-[var(--accent)]/40 rounded-br-3xl pointer-events-none" />
 
-                {imageUrl && (
+                {activeImages.length > 0 ? (
                   <img
-                    src={getOptimizedUrl(imageUrl, { width: 960, crop: 'limit' })}
-                    srcSet={buildSrcSet(imageUrl) || undefined}
-                    sizes={buildSrcSet(imageUrl) ? '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw' : undefined}
+                    src={getOptimizedUrl(activeImages[0].imageUrl, { width: 960, crop: 'limit' })}
+                    srcSet={buildSrcSet(activeImages[0].imageUrl) || undefined}
+                    sizes={buildSrcSet(activeImages[0].imageUrl) ? '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw' : undefined}
                     alt="Luxury interior design studio"
                     className="relative z-10 h-full w-full object-cover transition duration-[1.2s] hover:scale-105 rounded-3xl"
                     loading="lazy"
                     decoding="async"
-                    fetchPriority="high"
                     width={960}
                     height={1200}
                   />
+                ) : (
+                  <div className="relative z-10 h-full w-full flex items-center justify-center text-[var(--primary)]/20">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} aria-hidden="true">
+                      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                      <circle cx="9" cy="9" r="2" />
+                      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                    </svg>
+                  </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/10 to-transparent pointer-events-none rounded-3xl" />
               </div>

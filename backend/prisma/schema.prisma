@@ -157,25 +157,68 @@ model HeroMedia {
 }
 
 model About {
-  id              String   @id @default(cuid())
-  story           String   @db.Text @default("")
-  companyDesc     String   @default("") @map("company_description") @db.Text
-  mission         String   @db.Text @default("")
-  vision          String   @db.Text @default("")
-  location        String   @db.Text @default("")
-  contactEmail    String   @default("") @map("contact_email") @db.Text
-  socials         String   @default("{}") @db.Text
-  values          String   @default("") @db.Text
-  statistics      String   @default("") @db.Text
-  imageUrl        String?  @db.Text @map("image_url")
-  cloudinaryId    String?  @db.Text @map("cloudinary_id")
-  socialImage     String?  @db.Text @map("social_image")
-  socialImageId   String?  @db.Text @map("social_image_id")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id                  String   @id @default(cuid())
+  title               String   @default("About Us") @db.Text @map("title")
+  subtitle            String   @default("") @db.Text @map("subtitle")
+  description         String   @default("") @db.Text @map("description")
+  story               String   @db.Text @default("")
+  companyDesc         String   @default("") @map("company_description") @db.Text
+  mission             String   @db.Text @default("")
+  vision              String   @db.Text @default("")
+  experience          String   @default("") @db.Text @map("experience")
+  values              String   @default("") @db.Text
+  location            String   @db.Text @default("")
+  contactEmail        String   @default("") @map("contact_email") @db.Text
+  buttonText          String   @default("") @db.Text @map("button_text")
+  buttonUrl           String   @default("") @db.Text @map("button_url")
+  projectsCompleted   Int      @default(0) @map("projects_completed")
+  happyClients        Int      @default(0) @map("happy_clients")
+  yearsExperience     Int      @default(0) @map("years_experience")
+  countriesServed     Int      @default(0) @map("countries_served")
+  socials             String   @default("{}") @db.Text
+  imageUrl            String?  @db.Text @map("image_url")
+  cloudinaryId        String?  @db.Text @map("cloudinary_id")
+  socialImage         String?  @db.Text @map("social_image")
+  socialImageId       String?  @db.Text @map("social_image_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  images              AboutImage[]
 
   @@map("abouts")
   @@index([createdAt(desc)])
+}
+
+model AboutImage {
+  id           String   @id @default(cuid())
+  aboutId      String   @map("about_id") @db.Text
+  imageUrl     String   @db.Text @map("image_url")
+  cloudinaryId String?  @db.Text @map("cloudinary_id")
+  displayOrder Int      @default(0) @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  about About @relation(fields: [aboutId], references: [id], onDelete: Cascade)
+
+  @@map("about_images")
+  @@index([aboutId, displayOrder(asc)])
+}
+
+model SocialItem {
+  id           String   @id @default(cuid())
+  name         String   @db.Text
+  platform     String   @db.Text
+  imageUrl     String?  @db.Text @map("image_url")
+  cloudinaryId String?  @db.Text @map("cloudinary_id")
+  link         String   @db.Text
+  displayOrder Int      @default(0) @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("social_items")
+  @@index([displayOrder(asc)])
+  @@index([isActive, displayOrder(asc)])
 }
 
 model Consultation {
