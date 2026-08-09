@@ -22,24 +22,30 @@ const SERVER_ID = process.env.SERVER_ID || 'hok-api-01'
 
 app.set('trust proxy', 1)
 app.use(compression())
-app.use(helmet())
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  }),
+)
 app.use(
   helmet.contentSecurityPolicy({
     directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      imgSrc: ["'self'", 'data:', 'https:'],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
+      defaultSrc: ["'self'"],
+      baseUri: ["'self'"],
       connectSrc: ["'self'", 'https:'],
       fontSrc: ["'self'", 'https:', 'data:'],
-      frameSrc: ["'none'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
       objectSrc: ["'none'"],
+      scriptSrc: ["'self'"],
+      scriptSrcAttr: ["'none'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
       upgradeInsecureRequests: [],
     },
   }),
 )
 app.use(helmet.referrerPolicy({ policy: 'strict-origin-when-cross-origin' }))
-app.use(helmet.crossOriginEmbedderPolicy({ policy: false }))
 app.use(helmet.crossOriginResourcePolicy({ policy: 'cross-origin' }))
 app.use(morgan((tokens, req, res) => {
   return [
