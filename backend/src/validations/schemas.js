@@ -237,7 +237,6 @@ export const aboutSchemas = {
     contactEmail: z.string().email('Invalid email').optional(),
     socials: z.any().optional(),
     values: z.string().optional(),
-    statistics: z.string().optional(),
   }),
 }
 

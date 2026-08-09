@@ -3,25 +3,36 @@ import { prisma } from '../config/database.js'
 import { env } from '../config/env.js'
 
 async function seed() {
-  await prisma.$connect()
-
-  const existingAdmin = await prisma.admin.findFirst()
-  if (!existingAdmin) {
-    const passwordHash = await bcrypt.hash(env.seedAdminPassword, 12)
-    await prisma.admin.create({
-      data: {
-        email: env.seedAdminEmail,
-        passwordHash,
-        fullName: 'Admin',
-        role: 'ADMIN',
-      },
-    })
-    console.log('Default admin created')
+  let critical = true
+  try {
+    await prisma.$connect()
+  } catch (err) {
+    console.error('Seeding: database connection failed:', err?.message || err)
+    process.exit(1)
   }
 
-  const aboutCount = await prisma.about.count()
-  if (aboutCount === 0) {
-    try {
+  try {
+    const existingAdmin = await prisma.admin.findFirst()
+    if (!existingAdmin) {
+      const passwordHash = await bcrypt.hash(env.seedAdminPassword, 12)
+      await prisma.admin.create({
+        data: {
+          email: env.seedAdminEmail,
+          passwordHash,
+          fullName: 'Admin',
+          role: 'ADMIN',
+        },
+      })
+      console.log('Default admin created')
+    }
+  } catch (err) {
+    console.error('Seeding: admin seed failed:', err?.message || err)
+    critical = false
+  }
+
+  try {
+    const aboutCount = await prisma.about.count()
+    if (aboutCount === 0) {
       await prisma.about.create({
         data: {
           story: 'We are HOK Interiors, dedicated to creating beautiful spaces.',
@@ -34,68 +45,85 @@ async function seed() {
         },
       })
       console.log('Default about created')
-    } catch (err) {
-      console.warn('Seeding: default about skipped:', err?.message || err)
     }
+  } catch (err) {
+    console.warn('Seeding: default about skipped:', err?.message || err)
   }
 
-  const settingsToSeed = [
-    { key: 'siteName', value: 'HOK Interiors' },
-    { key: 'supportEmail', value: 'info@hokinteriors.com' },
-    { key: 'currency', value: 'USD' },
-    { key: 'maintenanceMode', value: 'false' },
-    { key: 'shippingPolicy', value: '' },
-    { key: 'returnPolicy', value: '' },
-    { key: 'socialLinks', value: '' },
-  ]
+  try {
+    const settingsToSeed = [
+      { key: 'siteName', value: 'HOK Interiors' },
+      { key: 'supportEmail', value: 'info@hokinteriors.com' },
+      { key: 'currency', value: 'USD' },
+      { key: 'maintenanceMode', value: 'false' },
+      { key: 'shippingPolicy', value: '' },
+      { key: 'returnPolicy', value: '' },
+      { key: 'socialLinks', value: '' },
+    ]
 
-  for (const s of settingsToSeed) {
-    const existing = await prisma.siteSetting.findUnique({ where: { key: s.key } })
-    if (!existing) {
-      await prisma.siteSetting.create({ data: s })
+    for (const s of settingsToSeed) {
+      const existing = await prisma.siteSetting.findUnique({ where: { key: s.key } })
+      if (!existing) {
+        await prisma.siteSetting.create({ data: s })
+      }
     }
-  }
-  console.log('Default settings created')
-
-  const serviceCount = await prisma.service.count()
-  if (serviceCount === 0) {
-    await prisma.service.createMany({
-      data: [
-        { title: 'Interior Design', description: 'Full-service interior design tailored to your lifestyle.', icon: 'LayoutGrid', displayOrder: 0 },
-        { title: 'Virtual Consultation', description: 'Online design consultations from anywhere in the world.', icon: 'MonitorSmartphone', displayOrder: 1 },
-        { title: 'Furniture Curation', description: 'Handpicked furniture and decor for timeless elegance.', icon: 'Armchair', displayOrder: 2 },
-      ],
-    })
-    console.log('Default services created')
+    console.log('Default settings created')
+  } catch (err) {
+    console.warn('Seeding: settings seed skipped:', err?.message || err)
   }
 
-  const testimonialCount = await prisma.testimonial.count()
-  if (testimonialCount === 0) {
-    await prisma.testimonial.createMany({
-      data: [
-        { clientName: 'Sarah Mitchell', content: 'HOK transformed our home into a sanctuary. Absolutely stunning work!', displayOrder: 0 },
-        { clientName: 'James Chen', content: 'Professional, creative, and detail-oriented. Highly recommend their virtual design service.', displayOrder: 1 },
-        { clientName: 'Elena Rodriguez', content: 'The team understood our vision perfectly and brought it to life beyond expectations.', displayOrder: 2 },
-      ],
-    })
-    console.log('Default testimonials created')
+  try {
+    const serviceCount = await prisma.service.count()
+    if (serviceCount === 0) {
+      await prisma.service.createMany({
+        data: [
+          { title: 'Interior Design', description: 'Full-service interior design tailored to your lifestyle.', icon: 'LayoutGrid', displayOrder: 0 },
+          { title: 'Virtual Consultation', description: 'Online design consultations from anywhere in the world.', icon: 'MonitorSmartphone', displayOrder: 1 },
+          { title: 'Furniture Curation', description: 'Handpicked furniture and decor for timeless elegance.', icon: 'Armchair', displayOrder: 2 },
+        ],
+      })
+      console.log('Default services created')
+    }
+  } catch (err) {
+    console.warn('Seeding: services seed skipped:', err?.message || err)
   }
 
-  const heroCount = await prisma.heroMedia.count()
-  if (heroCount === 0) {
-    await prisma.heroMedia.create({
-      data: {
-        title: 'Luxury Interior Design',
-        subtitle: 'Crafting spaces that inspire',
-        isActive: true,
-        displayOrder: 0,
-      },
-    })
-    console.log('Default hero media created')
+  try {
+    const testimonialCount = await prisma.testimonial.count()
+    if (testimonialCount === 0) {
+      await prisma.testimonial.createMany({
+        data: [
+          { clientName: 'Sarah Mitchell', content: 'HOK transformed our home into a sanctuary. Absolutely stunning work!', displayOrder: 0 },
+          { clientName: 'James Chen', content: 'Professional, creative, and detail-oriented. Highly recommend their virtual design service.', displayOrder: 1 },
+          { clientName: 'Elena Rodriguez', content: 'The team understood our vision perfectly and brought it to life beyond expectations.', displayOrder: 2 },
+        ],
+      })
+      console.log('Default testimonials created')
+    }
+  } catch (err) {
+    console.warn('Seeding: testimonials seed skipped:', err?.message || err)
+  }
+
+  try {
+    const heroCount = await prisma.heroMedia.count()
+    if (heroCount === 0) {
+      await prisma.heroMedia.create({
+        data: {
+          title: 'Luxury Interior Design',
+          subtitle: 'Crafting spaces that inspire',
+          isActive: true,
+          displayOrder: 0,
+        },
+      })
+      console.log('Default hero media created')
+    }
+  } catch (err) {
+    console.warn('Seeding: hero media seed skipped:', err?.message || err)
   }
 
   console.log('Seeding complete')
   await prisma.$disconnect()
+  if (!critical) process.exit(1)
 }
 
 seed().catch((err) => {
