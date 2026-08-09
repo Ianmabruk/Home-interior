@@ -50,6 +50,7 @@ async function getHomepage() {
           },
         }),
         prisma.aboutImage.findMany({
+          where: { isActive: true },
           orderBy: { displayOrder: 'asc' },
           select: { id: true, imageUrl: true, displayOrder: true, isActive: true },
         }),
