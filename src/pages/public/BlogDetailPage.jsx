@@ -11,6 +11,9 @@ import { SectionErrorBoundary } from '@components/home/SectionErrorBoundary'
 import BlogCard from '@components/blog/BlogCard'
 import { useIsMobile } from '@hooks/useIsMobile'
 
+const SITE_URL = 'https://hokinteriors.com'
+const DEFAULT_OG_IMAGE = `${SITE_URL}/images/og-default.jpg`
+
 const SkeletonDetail = () => (
   <main className="min-h-screen bg-[var(--bg)]">
     <div className="aspect-[2/1] w-full skeleton" />
@@ -26,6 +29,30 @@ const SkeletonDetail = () => (
     </div>
   </main>
 )
+
+function sanitizeHtml(html) {
+  if (!html) return html
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(html, 'text/html')
+  const walker = document.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT)
+  let node
+  while ((node = walker.nextNode())) {
+    const attrs = Array.from(node.attributes || [])
+    for (const attr of attrs) {
+      const name = attr.name.toLowerCase()
+      if (name.startsWith('on')) {
+        node.removeAttribute(name)
+      }
+      if (name === 'href' || name === 'src' || name === 'action' || name === 'data') {
+        const val = attr.value.trim().toLowerCase()
+        if (val.startsWith('javascript:') || val.startsWith('data:text/html')) {
+          node.removeAttribute(name)
+        }
+      }
+    }
+  }
+  return doc.body.innerHTML
+}
 
 function renderContent(content) {
   if (!content) return null
@@ -47,7 +74,7 @@ function renderContent(content) {
   return (
     <div
       className="prose prose-lg max-w-none"
-      dangerouslySetInnerHTML={{ __html: content }}
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
     />
   )
 }
@@ -158,6 +185,49 @@ export const BlogDetailPage = () => {
   const imageUrl = blog?.imageUrl || blog?.image || null
   const videoUrl = blog?.videoUrl || blog?.video || null
   const mediaUrls = blog?.mediaUrls || []
+
+  useEffect(() => {
+    if (!blog) return
+    const articleSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: blog.title,
+      description: blog.metaDescription || blog.description || '',
+      image: blog.imageUrl || blog.image || DEFAULT_OG_IMAGE,
+      author: {
+        '@type': 'Person',
+        name: blog.author || 'HOK Interiors',
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'HOK Interiors',
+        logo: {
+          '@type': 'ImageObject',
+          url: `${SITE_URL}/images/logo.png`,
+        },
+      },
+      datePublished: blog.publishDate || blog.createdAt,
+      dateModified: blog.updatedAt || blog.publishDate || blog.createdAt,
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': `${SITE_URL}/blog/${blog.slug || blog.id}`,
+      },
+    }
+
+    const script = document.createElement('script')
+    script.type = 'application/ld+json'
+    script.text = JSON.stringify(articleSchema)
+    script.setAttribute('data-structured-data', 'blog-article')
+    document.head.appendChild(script)
+
+    const existing = document.querySelector('script[data-structured-data="blog-article"]')
+    if (existing && existing !== script) existing.remove()
+
+    return () => {
+      const el = document.querySelector('script[data-structured-data="blog-article"]')
+      if (el) el.remove()
+    }
+  }, [blog])
 
   if (loading) {
     return (
@@ -479,6 +549,21 @@ export const BlogDetailPage = () => {
               </div>
             </motion.section>
           )}
+
+          {/* INTERNAL LINKS */}
+          <motion.section
+            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.7 }}
+            className="mt-16 text-center"
+          >
+            <p className="text-[var(--primary)]/60 mb-4">Explore more from HOK Interiors</p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Link to="/portfolio" className="btn-luxury-secondary">View Portfolio</Link>
+              <Link to="/services" className="btn-luxury-secondary">Our Services</Link>
+              <Link to="/contact" className="btn-luxury-primary">Start a Project</Link>
+            </div>
+          </motion.section>
         </div>
       </article>
     </main>

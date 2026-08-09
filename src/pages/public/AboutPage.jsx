@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import { api } from '@services/api'
 import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
@@ -290,6 +291,24 @@ export const AboutPage = memo(() => {
           </div>
         </motion.section>
       )}
+
+      {/* INTERNAL LINKS */}
+      <motion.section
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-16 md:py-24"
+      >
+        <div className="container-wide text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Explore More</p>
+          <h2 className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-8">Discover Our Work</h2>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link to="/portfolio" className="btn-luxury-primary">View Portfolio</Link>
+            <Link to="/services" className="btn-luxury-secondary">Our Services</Link>
+            <Link to="/contact" className="btn-luxury-secondary">Get In Touch</Link>
+          </div>
+        </div>
+      </motion.section>
     </main>
   )
 })

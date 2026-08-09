@@ -4,6 +4,18 @@ import { api } from '@services/api'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
+import { SiInstagram, SiFacebook, SiTiktok, SiPinterest, SiYoutube, SiWhatsapp, SiX, SiGlobus } from 'react-icons/si'
+
+const platformIconMap = {
+  instagram: SiInstagram,
+  facebook: SiFacebook,
+  tiktok: SiTiktok,
+  pinterest: SiPinterest,
+  youtube: SiYoutube,
+  whatsapp: SiWhatsapp,
+  x: SiX,
+  custom: SiGlobus,
+}
 
 const SkeletonSocials = () => (
   <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 md:px-12 lg:px-20 py-20 md:py-32">
@@ -136,9 +148,10 @@ export const SocialsPage = memo(() => {
                         />
                       ) : (
                         <div className="h-[320px] w-full flex items-center justify-center bg-[var(--secondary)]/30">
-                          <span className="font-display text-4xl font-semibold text-[var(--primary)]/20">
-                            {platform.name?.charAt(0)?.toUpperCase()}
-                          </span>
+                          {(() => {
+                            const Icon = platformIconMap[(platform.platform || '').toLowerCase()] || SiGlobus
+                            return <Icon size={64} className="text-[var(--primary)]/20" />
+                          })()}
                         </div>
                       )}
                     </div>

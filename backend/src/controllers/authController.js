@@ -3,6 +3,7 @@ import { failure } from '../utils/response.js'
 import { authService } from '../services/authService.js'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../config/database.js'
+import { generateCsrfToken } from '../middleware/csrf.js'
 
 export const authController = {
   login: asyncHandler(async (req, res) => {
@@ -11,6 +12,7 @@ export const authController = {
       return res.status(400).json({ success: false, message: 'Email and password are required' })
     }
     const result = await authService.login(email, password)
+    const csrfToken = generateCsrfToken()
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -18,12 +20,13 @@ export const authController = {
       path: '/',
       maxAge: 30 * 24 * 60 * 60 * 1000,
     })
-    res.json({ success: true, data: { user: result.user, accessToken: result.accessToken } })
+    res.json({ success: true, data: { user: result.user, accessToken: result.accessToken, csrfToken } })
   }),
 
   refresh: asyncHandler(async (req, res) => {
     const token = req.cookies?.refreshToken || req.headers['x-refresh-token']
     const result = await authService.refresh(token)
+    const csrfToken = generateCsrfToken()
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -31,7 +34,7 @@ export const authController = {
       path: '/',
       maxAge: 30 * 24 * 60 * 60 * 1000,
     })
-    res.json({ success: true, data: { accessToken: result.accessToken } })
+    res.json({ success: true, data: { accessToken: result.accessToken, csrfToken } })
   }),
 
   logout: asyncHandler(async (req, res) => {
@@ -73,7 +76,17 @@ export const authController = {
       data: { email, fullName, passwordHash, role: 'ADMIN' },
       select: { id: true, email: true, fullName: true, role: true },
     })
-    res.status(201).json({ success: true, data: admin })
+
+    const result = await authService.login(email, password)
+    const csrfToken = generateCsrfToken()
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    })
+    res.status(201).json({ success: true, data: { user: result.user, accessToken: result.accessToken, csrfToken } })
   }),
 
   forgotPassword: asyncHandler(async (req, res) => {

@@ -1,8 +1,8 @@
 import { useState, useEffect, memo, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '@services/api'
-import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
+import { SocialIcons } from '@components/common/SocialIcons'
 
 export const Footer = memo(() => {
   const [email, setEmail] = useState('')
@@ -65,32 +65,7 @@ export const Footer = memo(() => {
           {/* Section 2: Follow Us */}
           <div className="text-center animate-fade-up" style={{ animationDelay: '0.1s' }}>
             <h3 className="font-display text-xl md:text-2xl font-normal text-white mb-6">Follow Us</h3>
-            <div className="flex items-center justify-center gap-4 md:gap-6">
-              {footerSocials.map((social, index) => (
-                <a
-                  key={social.id}
-                  href={social.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`Follow us on ${social.name}`}
-                  className="social-icon group relative flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border border-white/20 transition-all duration-500 hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] hover:scale-110 active:scale-95"
-                  style={{ animationDelay: `${index * 0.08}s` }}
-                  role="listitem"
-                >
-                  {social.imageUrl ? (
-                    <img
-                      src={getOptimizedUrl(social.imageUrl, { width: 100, crop: 'limit' })}
-                      alt={social.name}
-                      className="h-6 w-6 md:h-7 md:w-7 object-contain"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <span className="text-xs font-semibold uppercase">{social.name?.charAt(0)}</span>
-                  )}
-                  <span className="absolute inset-0 rounded-full border border-transparent transition-all duration-300 group-hover:border-[var(--accent)] group-hover:scale-110" aria-hidden="true" />
-                </a>
-              ))}
-            </div>
+            <SocialIcons items={footerSocials} className="justify-center" />
           </div>
 
           {/* Section 3: Contact Us */}

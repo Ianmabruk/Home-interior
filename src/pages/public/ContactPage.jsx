@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Mail, MapPin, Phone, Loader2, Send, CheckCircle, AlertCircle } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { api } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
+
+const SITE_URL = 'https://hokinteriors.com'
 
 export const ContactPage = () => {
   const [contactInfo, setContactInfo] = useState(null)
@@ -55,6 +58,43 @@ export const ContactPage = () => {
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
+
+  useEffect(() => {
+    const orgSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'LocalBusiness',
+      name: 'HOK Interiors',
+      description: 'Timeless luxury interior design, curated furniture, and premium virtual design services in Nairobi, Kenya.',
+      url: SITE_URL,
+      telephone: '+254700000000',
+      email: 'info@hokinteriors.com',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Nairobi',
+        addressCountry: 'KE',
+        streetAddress: 'Westlands, Nairobi, Kenya',
+      },
+      sameAs: [
+        'https://www.facebook.com/hokinteriors',
+        'https://www.instagram.com/hokinteriors',
+        'https://www.linkedin.com/company/hokinteriors',
+      ],
+    }
+
+    const script = document.createElement('script')
+    script.type = 'application/ld+json'
+    script.text = JSON.stringify(orgSchema)
+    script.setAttribute('data-structured-data', 'contact-org')
+    document.head.appendChild(script)
+
+    const existing = document.querySelector('script[data-structured-data="contact-org"]')
+    if (existing && existing !== script) existing.remove()
+
+    return () => {
+      const el = document.querySelector('script[data-structured-data="contact-org"]')
+      if (el) el.remove()
+    }
+  }, [])
 
   if (loading) {
     return (
@@ -293,6 +333,22 @@ export const ContactPage = () => {
                 )}
               </button>
             </form>
+          </motion.div>
+
+          {/* INTERNAL LINKS */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4 }}
+            className="mt-12 text-center"
+          >
+            <p className="text-[var(--primary)]/60 mb-4">Prefer to explore first?</p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Link to="/portfolio" className="btn-luxury-secondary">View Portfolio</Link>
+              <Link to="/services" className="btn-luxury-secondary">Our Services</Link>
+              <Link to="/shop" className="btn-luxury-secondary">Shop Collection</Link>
+            </div>
           </motion.div>
         </div>
       </section>

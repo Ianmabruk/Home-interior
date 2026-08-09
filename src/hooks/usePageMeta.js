@@ -4,6 +4,8 @@ import { useLocation } from 'react-router-dom'
 const DEFAULT_TITLE = 'HOK INTERIOR DESIGNS'
 const DEFAULT_DESCRIPTION = 'Timeless luxury interior design, curated furniture, and premium virtual design services.'
 const SITE_URL = 'https://hokinteriors.com'
+const SITE_NAME = 'HOK Interiors'
+const DEFAULT_OG_IMAGE = `${SITE_URL}/images/og-default.jpg`
 
 const pageMeta = {
   '/': {
@@ -46,6 +48,7 @@ export function usePageMeta({ title, description, image, path }) {
   const meta = pageMeta[currentPath] || {}
   const pageTitle = title || meta.title || DEFAULT_TITLE
   const pageDescription = description || meta.description || DEFAULT_DESCRIPTION
+  const pageImage = image || DEFAULT_OG_IMAGE
 
   useEffect(() => {
     document.title = pageTitle
@@ -70,23 +73,36 @@ export function usePageMeta({ title, description, image, path }) {
       element.setAttribute('content', content)
     }
 
+    const setLink = (rel, href) => {
+      let element = document.querySelector(`link[rel="${rel}"]`)
+      if (!element) {
+        element = document.createElement('link')
+        element.setAttribute('rel', rel)
+        document.head.appendChild(element)
+      }
+      element.setAttribute('href', href)
+    }
+
     setMeta('description', pageDescription)
     setMeta('robots', 'index,follow')
+    setLink('canonical', `${SITE_URL}${currentPath}`)
     setProperty('og:title', pageTitle)
     setProperty('og:description', pageDescription)
     setProperty('og:url', `${SITE_URL}${currentPath}`)
     setProperty('og:type', 'website')
-    if (image) {
-      setProperty('og:image', image)
-      setProperty('twitter:image', image)
-    }
+    setProperty('og:site_name', SITE_NAME)
+    setProperty('og:image', pageImage)
+    setProperty('og:image:width', '1200')
+    setProperty('og:image:height', '630')
+    setMeta('twitter:card', 'summary_large_image')
     setMeta('twitter:title', pageTitle)
     setMeta('twitter:description', pageDescription)
+    setMeta('twitter:image', pageImage)
 
     return () => {
       document.title = DEFAULT_TITLE
     }
-  }, [pageTitle, pageDescription, image, currentPath])
+  }, [pageTitle, pageDescription, pageImage, currentPath])
 }
 
 export function PageMeta({ title, description, image }) {

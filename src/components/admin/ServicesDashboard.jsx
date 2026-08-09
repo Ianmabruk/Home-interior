@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UploadCloud, X, Edit, Trash2, Eye, Plus, Sparkles, Star, ArrowUp, ArrowDown, ToggleLeft, LayoutGrid, Brush, MonitorSmartphone, Armchair, Search } from 'lucide-react'
 import { toast } from 'react-hot-toast'
@@ -417,7 +417,7 @@ export const ServicesDashboard = () => {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="flex-1 rounded-full bg-[var(--primary)] text-white py-3 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--primary)]/90 hover:shadow-lg"
+                className="flex-1 rounded-full bg-[var(--primary)] text-white py-3 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--primary)]/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={loading}
               >
                 {loading ? 'Saving...' : editingId ? 'Update Service' : 'Upload Service'}

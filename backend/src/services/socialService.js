@@ -18,6 +18,16 @@ function mapSocialItem(item) {
   }
 }
 
+function isValidUrl(value) {
+  if (!value || typeof value !== 'string') return false
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 export const socialService = {
   getSocialItems,
   createSocialItem,
@@ -40,6 +50,9 @@ async function getSocialItems() {
 async function createSocialItem(data, file) {
   if (!data.name || !data.platform || !data.link) {
     throw failure(400, 'Name, platform, and link are required')
+  }
+  if (!isValidUrl(data.link)) {
+    throw failure(400, 'Invalid URL format')
   }
   let imageUrl = null
   let cloudinaryId = null

@@ -112,6 +112,12 @@ export const SocialDashboard = () => {
       toast.error('Name and link are required.')
       return
     }
+    try {
+      new URL(form.link)
+    } catch {
+      toast.error('Please enter a valid URL (including https://).')
+      return
+    }
     setSubmitting(true)
     try {
       const payload = new FormData()
@@ -238,10 +244,15 @@ export const SocialDashboard = () => {
         className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)]"
       >
         {items.length === 0 ? (
-          <div className="py-16 text-center">
-            <Globe size={48} className="mx-auto text-[var(--primary)]/20 mb-4" />
-            <p className="font-display text-xl text-[var(--primary)]/30">No social items yet</p>
-            <p className="text-sm text-[var(--primary)]/40 mt-2">Click "Add Social Item" to get started</p>
+          <div className="py-20 text-center">
+            <div className="relative w-20 h-20 mx-auto mb-5">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[var(--secondary)]/40 to-[var(--accent)]/10 animate-pulse" />
+              <div className="relative w-full h-full flex items-center justify-center">
+                <Globe size={32} className="text-[var(--primary)]/40" />
+              </div>
+            </div>
+            <p className="font-display text-xl text-[var(--primary)]/30 mb-1">No social items yet</p>
+            <p className="text-sm text-[var(--primary)]/40">Click "Add Social Item" to get started</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -487,7 +498,7 @@ export const SocialDashboard = () => {
                     whileTap={{ scale: 0.98 }}
                     type="submit"
                     disabled={submitting}
-                    className="flex-1 rounded-full bg-[var(--primary)] text-white py-3 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--primary)]/90 hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-1 rounded-full bg-[var(--primary)] text-white py-3 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--primary)]/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {submitting && <Save size={14} className="animate-pulse" />}
                     {submitting ? 'Saving...' : editingId ? 'Update Item' : 'Add Item'}

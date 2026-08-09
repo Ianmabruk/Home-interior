@@ -1,38 +1,46 @@
 import { SiTiktok, SiInstagram, SiFacebook, SiPinterest } from 'react-icons/si'
 
 export const SOCIAL_LINKS = [
-  { 
-    icon: 'TikTok', 
-    href: 'https://www.tiktok.com/@esther.k.musa?_r=1&_t=ZS-98PsIlPUwey', 
-    label: 'TikTok', 
-    ariaLabel: 'Follow us on TikTok' 
+  {
+    name: 'TikTok',
+    platform: 'tiktok',
+    link: 'https://www.tiktok.com/@esther.k.musa?_r=1&_t=ZS-98PsIlPUwey',
+    icon: 'TikTok',
+    ariaLabel: 'Follow us on TikTok',
   },
-  { 
-    icon: 'Instagram', 
-    href: 'https://www.instagram.com/hokinteriors?igsh=OG1tZ2xuOG9mMWRl&utm_source=qr', 
-    label: 'Instagram', 
-    ariaLabel: 'Follow us on Instagram' 
+  {
+    name: 'Instagram',
+    platform: 'instagram',
+    link: 'https://www.instagram.com/hokinteriors?igsh=OG1tZ2xuOG9mMWRl&utm_source=qr',
+    icon: 'Instagram',
+    ariaLabel: 'Follow us on Instagram',
   },
-  { 
-    icon: 'Facebook', 
-    href: 'https://www.facebook.com/profile.php?id=61589240250994', 
-    label: 'Facebook', 
-    ariaLabel: 'Follow us on Facebook' 
+  {
+    name: 'Facebook',
+    platform: 'facebook',
+    link: 'https://www.facebook.com/profile.php?id=61589240250994',
+    icon: 'Facebook',
+    ariaLabel: 'Follow us on Facebook',
   },
-  { 
-    icon: 'Pinterest', 
-    href: 'https://pin.it/47AUIIl9v', 
-    label: 'Pinterest', 
-    ariaLabel: 'Follow us on Pinterest' 
+  {
+    name: 'Pinterest',
+    platform: 'pinterest',
+    link: 'https://pin.it/47AUIIl9v',
+    icon: 'Pinterest',
+    ariaLabel: 'Follow us on Pinterest',
   },
 ]
 
+export const getDefaultSocialItems = () => {
+  return SOCIAL_LINKS.filter((link) => link.link && link.link.trim() !== '')
+}
+
 export const getSocialLinks = () => {
-  return SOCIAL_LINKS.filter(link => link.href && link.href.trim() !== '')
+  return SOCIAL_LINKS.filter((link) => link.link && link.link.trim() !== '')
 }
 
 export const getSocialLink = (icon) => {
-  return SOCIAL_LINKS.find(link => link.icon === icon)
+  return SOCIAL_LINKS.find((link) => link.icon === icon)
 }
 
 export const SOCIAL_ICONS = {

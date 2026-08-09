@@ -1,91 +1,151 @@
-# HOK Interior Designs Deployment Guide
+# Deployment Guide — HOK Interiors Backend
 
-## 1. Local Development
+This document describes how to deploy the HOK Interiors backend for horizontal scaling.
 
-### Frontend
-- Install dependencies: `yarn` (this repo is standardized on Yarn — root and `server/` both commit `yarn.lock`. Do not reintroduce `package-lock.json`.)
-- Copy env file: create `.env` from `.env.example`
-- Start app: `npm run dev`
+## Architecture
 
-### Backend
-- Install dependencies: `cd server && npm install`
-- Copy env file: create `server/.env` from `server/.env.example`
-- Start API: `cd server && npm run dev`
+The application is stateless and supports running multiple backend instances behind a load balancer. All persistent state is stored in PostgreSQL via Prisma. File uploads go to Cloudinary or Supabase. Authentication uses JWT with refresh tokens stored in the database.
 
-### Seed Initial Data
-- Ensure `server/.env` contains a valid `DATABASE_URL`.
-- Optional seed admin overrides:
-  - `SEED_ADMIN_EMAIL=admin@hokinterior.com`
-  - `SEED_ADMIN_PASSWORD=admin123!`
-- Run seeder: `cd server && npm run seed`
-- Seeder is idempotent and safe to run multiple times.
+## Required Environment Variables
 
-> Note: the database is **PostgreSQL (Neon)** accessed through **Supabase**. There is no MongoDB in this project.
+### Core
+| Variable | Description |
+|----------|-------------|
+| `NODE_ENV` | Set to `production` |
+| `PORT` | Port the server listens on (Render sets this automatically) |
+| `BASE_URL` | Public URL of the backend |
+| `CLIENT_URL` | Public URL of the frontend (for CORS) |
+| `SERVER_ID` | Unique identifier for this instance (e.g., `hok-api-01`) |
 
-## 2. cPanel (Frontend — current hosting)
+### Database
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string with `connection_limit` param |
 
-The React + Vite SPA is built statically and served from cPanel.
+### File Storage
+| Variable | Description |
+|----------|-------------|
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret |
 
-- Build command (run locally or in cPanel's Node/JS build step): `npm run build`
-- Publish directory: `dist`
-- **Required build env var** (must be set *before* `npm run build`, Vite inlines it at build time):
-  - `VITE_API_URL=https://<your-render-backend>/api`
-  - If `VITE_API_URL` is left empty the app calls a relative `/api` path, which does **not** exist on cPanel and breaks every request. This is the most common "blank site / no data" failure.
-- SPA fallback: configure cPanel rewrite so all unknown paths serve `dist/index.html` (e.g. a `.htaccess` with `RewriteRule ^ index.html [L]`).
+**OR**
 
-## 3. Netlify (Frontend — alternative)
-- Build command: `yarn build`
-- Publish directory: `dist`
-- Environment variable:
-  - `VITE_API_URL=https://<your-render-backend>/api`
-- Add SPA redirect rule if needed:
-  - `_redirects` file with `/* /index.html 200`
+| Variable | Description |
+|----------|-------------|
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
 
-## 3. Docker (Backend)
+### Authentication
+| Variable | Description |
+|----------|-------------|
+| `JWT_ACCESS_SECRET` | Secret for JWT access tokens (min 32 chars) |
+| `JWT_REFRESH_SECRET` | Secret for JWT refresh tokens (min 32 chars) |
+| `ACCESS_TOKEN_TTL` | Access token TTL (default: `15m`) |
+| `REFRESH_TOKEN_TTL` | Refresh token TTL (default: `30d`) |
 
-- Build:
-  - `docker build -t hok-interior-backend .`
-- Run:
-  - `docker run -p 5000:5000 --env-file server/.env hok-interior-backend`
+### Optional: Redis
+| Variable | Description |
+|----------|-------------|
+| `REDIS_URL` | Redis connection string (recommended for production with multiple instances) |
 
-- Required environment variables (via `server/.env` or `--env-file`):
-  - `NODE_ENV=production`
-  - `PORT=5000`
-  - `DATABASE_URL=...`
-  - `JWT_ACCESS_SECRET=...`
-  - `JWT_REFRESH_SECRET=...`
-  - `CLOUDINARY_CLOUD_NAME=...`
-  - `CLOUDINARY_API_KEY=...`
-  - `CLOUDINARY_API_SECRET=...`
-  - `SENDGRID_API_KEY=...`
-  - `EMAIL_FROM=info@hokinterior.com`
-  - `CLIENT_URL=https://<your-frontend-domain>`
+Redis enables shared rate limiting across instances. Without Redis, rate limiting still works but is per-instance.
 
-## 4. Render (Backend)
-- Root directory: `server`
-- Build command: `yarn install`
-- Start command: `npm run start` — the `start` script runs `node src/index.js` at boot. **Schema changes must be applied directly to the database during a planned deploy window.**
-- **If you ever see database schema errors after a deploy:** verify the database schema matches the application expectations. Do not clear the build cache and hope automatic migrations fix it.
-- Required environment variables:
-  - `NODE_ENV=production`
-  - `PORT=5000`
-  - `CLIENT_URL=https://<your-netlify-domain>`
-  - `DATABASE_URL=...`
-  - `JWT_ACCESS_SECRET=...`
-  - `JWT_REFRESH_SECRET=...`
-  - `ACCESS_TOKEN_TTL=15m`
-  - `REFRESH_TOKEN_TTL=30d`
-  - `CLOUDINARY_CLOUD_NAME=...`
-  - `CLOUDINARY_API_KEY=...`
-  - `CLOUDINARY_API_SECRET=...`
-  - `SENDGRID_API_KEY=...`
-  - `EMAIL_FROM=info@hokinterior.com`
+### Admin Seeding
+| Variable | Description |
+|----------|-------------|
+| `SEED_ADMIN_EMAIL` | Default admin email |
+| `SEED_ADMIN_PASSWORD` | Default admin password |
 
-## 5. Production Hardening Checklist
-- Configure Neon database access and SSL.
-- Configure domain-level CORS in `CLIENT_URL`.
-- Rotate JWT secrets and API keys before launch.
-- Set Cloudinary upload presets and moderation if required.
-- Set SendGrid verified sender identity for `EMAIL_FROM`.
-- Monitor API logs and configure uptime monitoring.
-- After first deploy, run the seed once to bootstrap admin credentials and core homepage data.
+## Render Multi-Instance Configuration
+
+The `render.yaml` is configured for up to 3 instances:
+
+```yaml
+scaling:
+  minInstances: 1
+  maxInstances: 3
+```
+
+### Scaling Procedure
+
+1. **Verify Database Connection Pooling**
+   - The `DATABASE_URL` should include `connection_limit`. The app adds `connection_limit=5` if not present.
+   - For Render + Neon, each instance uses up to 5 connections. With 3 instances, max 15 concurrent connections.
+
+2. **Deploy to Render**
+   - Push changes to trigger a deployment.
+   - Render will build and start the service.
+
+3. **Scale Instances**
+   - Go to the Render dashboard.
+   - Navigate to your web service.
+   - Click "Scaling" and adjust the instance count (1–3).
+   - Or use the Render CLI:
+     ```bash
+     render services scale home-interior-backend --instances 3
+     ```
+
+4. **Verify Health**
+   - Check `/api/health` — all instances return the same database status.
+   - Check `/api/ready` — returns 200 if database is ready.
+
+## Database Connection Pooling
+
+Prisma manages the connection pool automatically. For multiple instances:
+
+- **Production**: `connection_limit=5` per instance
+- **Development**: `connection_limit=2` per instance
+
+The app automatically appends `connection_limit` to `DATABASE_URL` if missing.
+
+## Redis (Optional but Recommended)
+
+Redis provides:
+- Shared rate limiting across instances
+- Distributed cache for frequently accessed data
+- Future session storage
+
+### Setting up Redis on Render
+
+1. Create a new Redis service in Render.
+2. Copy the connection URL.
+3. Add `REDIS_URL` to your backend service environment variables.
+
+## Graceful Shutdown
+
+The server handles `SIGTERM` and `SIGINT` signals:
+
+1. Stops accepting new connections
+2. Disconnects from PostgreSQL
+3. Disconnects from Redis
+4. Exits with code 0
+
+If shutdown takes longer than 30 seconds, it forces exit.
+
+## Health Checks
+
+| Endpoint | Purpose |
+|----------|---------|
+| `/api/health` | Checks database connectivity |
+| `/api/ready` | Checks database + Redis availability |
+
+Both endpoints return `X-Server-ID` header for tracing.
+
+## Logging
+
+All log messages include the instance `SERVER_ID` for tracing across instances. Configure `SERVER_ID` in Render environment variables (e.g., `hok-api-01`, `hok-api-02`, etc.).
+
+## Load Balancer Notes
+
+- The app uses `process.env.PORT` (Render sets this automatically).
+- Health checks use `/api/health`.
+- No instance-specific data is stored in memory.
+- JWT authentication is stateless — any instance can validate tokens.
+- Refresh tokens are stored in PostgreSQL, shared across all instances.
+
+## Troubleshooting
+
+- **Rate limiting not working across instances**: Enable Redis.
+- **Database connection errors**: Check `connection_limit` and max connections on Neon.
+- **Instance-specific state**: Ensure no in-memory caches hold critical state.

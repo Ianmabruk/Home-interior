@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, memo } from 'react'
+import { Link } from 'react-router-dom'
 import { HeroSection } from '@components/home/HeroSection'
 import { CircularNavigationGrid } from '@components/home/CircularNavigationGrid'
 import { MobileCircularNavigation } from '@components/home/MobileCircularNavigation'
@@ -99,6 +100,7 @@ export const HomePage = memo(() => {
       <PageMeta
         title="HOK INTERIOR DESIGNS — Timeless Interiors, Designed for a Life Well Lived"
         description="Luxury interior design, curated furniture, and premium virtual design services."
+        image={heroImages?.[0]?.imageUrl || heroImages?.[0] || undefined}
       />
 
       {/* HERO - Full Width */}
@@ -143,6 +145,21 @@ export const HomePage = memo(() => {
       <SectionErrorBoundary sectionName="Contact" fallback={<EmptySection />}>
         <ContactSection contactInfo={contactInfo} />
       </SectionErrorBoundary>
+
+      {/* INTERNAL LINKS */}
+      <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-12">
+        <div className="container-wide">
+          <div className="flex flex-wrap justify-center gap-6 text-sm">
+            <Link to="/portfolio" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Portfolio</Link>
+            <Link to="/services" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Services</Link>
+            <Link to="/shop" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Shop</Link>
+            <Link to="/blog" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Blog</Link>
+            <Link to="/virtual-design" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Virtual Design</Link>
+            <Link to="/about" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">About</Link>
+            <Link to="/contact" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Contact</Link>
+          </div>
+        </div>
+      </section>
     </main>
   )
 })

@@ -7,21 +7,24 @@ services:
     preDeployCommand: npm run migrate:deploy && npm run seed
     startCommand: npm start
     healthCheckPath: /api/health
+    scaling:
+      minInstances: 1
+      maxInstances: 3
     envVars:
       - key: NODE_ENV
         value: production
       - key: BASE_URL
         value: https://home-interior-backend.onrender.com
       - key: JWT_ACCESS_SECRET
-        value: 4549201ef63a5517aa42bf414e7f7d4d
+        value: f58b727f799892fa21cc7c922bb4ffa2b820d79e46acbe22d6f6f6347786bb52
       - key: JWT_REFRESH_SECRET
-        value: 7a29ae8f489a3252be841287f383543a
+        value: 008703ee3e309b782e90bd62aedd2566e22a19237852d60da085eae773ec6391
       - key: CLIENT_URL
         value: https://homy-comfy.netlify.app
       - key: SEED_ADMIN_EMAIL
         value: admin@chatgpt.com
       - key: SEED_ADMIN_PASSWORD
-        value: admin123.
+        value: enSU4K4Zh89RD_r0TDUqiw
       - key: DATABASE_URL
         value: postgresql://neondb_owner:npg_8g1kJfADurxe@ep-red-cake-aya2hje0-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
       - key: PRISMA_MIGRATE_LOCK_TIMEOUT

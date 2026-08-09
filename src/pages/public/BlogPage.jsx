@@ -31,7 +31,6 @@ export const BlogPage = memo(() => {
   const [tags, setTags] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingMeta, setLoadingMeta] = useState(true)
-  const [meta, setMeta] = useState({ total: 0, totalPages: 1 })
   const [searchParams, setSearchParams] = useSearchParams()
   const reduceMotion = useIsMobile()
 
@@ -68,10 +67,6 @@ export const BlogPage = memo(() => {
       const res = await api.get(`/blog?${params.toString()}`)
       const data = Array.isArray(res.data) ? res.data : res.data?.items || []
       setBlogs(data)
-      setMeta({
-        total: res.meta?.total || data.length,
-        totalPages: res.meta?.totalPages || Math.ceil((res.meta?.total || data.length) / 12),
-      })
 
       const featured = data.find((b) => b.featured) || data[0] || null
       setFeaturedBlog(featured)
@@ -142,6 +137,36 @@ export const BlogPage = memo(() => {
 
   const hasActiveFilters = searchTerm || activeCategory || activeTag
   const displayBlogs = featuredBlog ? blogs.filter((b) => (b.id || b._id) !== (featuredBlog.id || featuredBlog._id)) : blogs
+
+  useEffect(() => {
+    const blogListSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: 'HOK Interiors Blog',
+      description: 'Design insights, trends, and inspiration from HOK Interiors.',
+      url: 'https://hokinteriors.com/blog',
+      itemListElement: displayBlogs.slice(0, 12).map((blog, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        url: `https://hokinteriors.com/blog/${blog.slug || blog.id}`,
+        name: blog.title,
+      })),
+    }
+
+    const script = document.createElement('script')
+    script.type = 'application/ld+json'
+    script.text = JSON.stringify(blogListSchema)
+    script.setAttribute('data-structured-data', 'blog-list')
+    document.head.appendChild(script)
+
+    const existing = document.querySelector('script[data-structured-data="blog-list"]')
+    if (existing && existing !== script) existing.remove()
+
+    return () => {
+      const el = document.querySelector('script[data-structured-data="blog-list"]')
+      if (el) el.remove()
+    }
+  }, [displayBlogs])
 
   return (
     <main className="min-h-screen bg-[var(--bg)]">
@@ -336,28 +361,15 @@ export const BlogPage = memo(() => {
           )}
         </SectionErrorBoundary>
 
-        {/* Pagination */}
-        {!loading && meta.totalPages > 1 && (
-          <div className="mt-12 flex items-center justify-center gap-2">
-            <button
-              onClick={() => setSearchParams({ ...searchParams, page: String(Math.max(1, currentPage - 1)) })}
-              disabled={currentPage <= 1}
-              className="rounded-xl px-4 py-2 text-sm font-medium text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <span className="text-sm text-[var(--primary)]/50">
-              Page {currentPage} of {meta.totalPages}
-            </span>
-            <button
-              onClick={() => setSearchParams({ ...searchParams, page: String(currentPage + 1) })}
-              disabled={currentPage >= meta.totalPages}
-              className="rounded-xl px-4 py-2 text-sm font-medium text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30 disabled:opacity-50"
-            >
-              Next
-            </button>
+        {/* INTERNAL LINKS */}
+        <section className="mt-16 text-center">
+          <p className="text-[var(--primary)]/60 mb-4">Looking for more inspiration?</p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link to="/portfolio" className="btn-luxury-secondary">View Portfolio</Link>
+            <Link to="/services" className="btn-luxury-secondary">Our Services</Link>
+            <Link to="/contact" className="btn-luxury-primary">Get In Touch</Link>
           </div>
-        )}
+        </section>
       </div>
     </main>
   )

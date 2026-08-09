@@ -9,6 +9,8 @@ import { PageMeta } from '@hooks/usePageMeta'
 import { useCurrency } from '@context/CurrencyContext'
 import { useIsMobile } from '@hooks/useIsMobile'
 
+const SITE_URL = 'https://hokinteriors.com'
+
 const SkeletonShop = () => (
   <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 px-6 md:px-12 lg:px-20 py-20 md:py-32">
     <div className="container-wide">
@@ -78,6 +80,43 @@ export const ShopPage = memo(({ category }) => {
     if (filter === 'all') return products.filter((p) => ALLOWED_CATEGORIES.includes(p.category))
     return products.filter((p) => p.category === filter)
   }, [products, filter])
+
+  useEffect(() => {
+    const productSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: 'HOK Interiors Shop Collection',
+      description: 'Timeless furniture and decor pieces curated for luxury living.',
+      url: `${SITE_URL}/shop`,
+      itemListElement: displayProducts.slice(0, 12).map((product, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        url: `${SITE_URL}/shop/${product._id || product.id}`,
+        name: product.name,
+        image: product.images?.[0] || '',
+        offers: {
+          '@type': 'Offer',
+          price: product.discountPrice || product.price || 0,
+          priceCurrency: 'KES',
+          availability: product.inStock !== false ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+        },
+      })),
+    }
+
+    const script = document.createElement('script')
+    script.type = 'application/ld+json'
+    script.text = JSON.stringify(productSchema)
+    script.setAttribute('data-structured-data', 'shop-products')
+    document.head.appendChild(script)
+
+    const existing = document.querySelector('script[data-structured-data="shop-products"]')
+    if (existing && existing !== script) existing.remove()
+
+    return () => {
+      const el = document.querySelector('script[data-structured-data="shop-products"]')
+      if (el) el.remove()
+    }
+  }, [displayProducts])
 
   if (loading) {
     return <main><SkeletonShop /></main>
@@ -170,6 +209,16 @@ export const ShopPage = memo(({ category }) => {
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* INTERNAL LINKS */}
+      <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-12">
+        <div className="container-wide text-center">
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link to="/portfolio" className="btn-luxury-secondary">View Portfolio</Link>
+            <Link to="/contact" className="btn-luxury-primary">Design Consultation</Link>
+          </div>
         </div>
       </section>
     </main>

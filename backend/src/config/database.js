@@ -3,11 +3,18 @@ import { PrismaClient } from '@prisma/client'
 const globalForPrisma = globalThis
 
 function createPrismaClient() {
+  const url = new URL(process.env.DATABASE_URL || '')
+  if (!url.searchParams.has('connection_limit')) {
+    const limit = process.env.NODE_ENV === 'production' ? 5 : 2
+    url.searchParams.set('connection_limit', String(limit))
+  }
+  const finalUrl = url.toString()
+
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     datasources: {
       db: {
-        url: process.env.DATABASE_URL,
+        url: finalUrl,
       },
     },
   })
@@ -46,9 +53,9 @@ export async function connectDatabase() {
 }
 
 process.on('unhandledRejection', (reason) => {
-  console.error('[unhandledRejection]', reason)
+  console.error('[database] [unhandledRejection]', reason)
 })
 
 process.on('uncaughtException', (err) => {
-  console.error('[uncaughtException]', err)
+  console.error('[database] [uncaughtException]', err)
 })

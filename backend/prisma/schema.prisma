@@ -34,10 +34,11 @@ model PortfolioProject {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  @@map("portfolios")
-  @@index([published, featured, displayOrder(asc)])
-  @@index([displayOrder(asc)])
-}
+   @@map("portfolios")
+   @@index([published, featured, displayOrder(asc)])
+   @@index([displayOrder(asc)])
+   @@index([featured, createdAt(desc)])
+ }
 
 model VirtualDesign {
   id           String   @id @default(cuid())
@@ -54,10 +55,11 @@ model VirtualDesign {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  @@map("virtual_designs")
-  @@index([published, featured, createdAt(desc)])
-  @@index([featured])
-}
+   @@map("virtual_designs")
+   @@index([published, featured, createdAt(desc)])
+   @@index([featured])
+   @@index([published, displayOrder(asc)])
+ }
 
 model Product {
   id            String   @id @default(cuid())
@@ -83,11 +85,13 @@ model Product {
 
   variants ProductVariant[]
 
-  @@map("products")
-  @@index([featured, inStock, createdAt(desc)])
-  @@index([category])
-  @@index([displayOrder(asc)])
-}
+   @@map("products")
+   @@index([featured, inStock, createdAt(desc)])
+   @@index([category])
+   @@index([displayOrder(asc)])
+   @@index([inStock, featured, displayOrder(asc)])
+   @@index([createdAt(desc)])
+ }
 
 model ProductVariant {
   id           String   @id @default(cuid())
@@ -121,9 +125,10 @@ model Service {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  @@map("services")
-  @@index([isActive, displayOrder(asc)])
-}
+   @@map("services")
+   @@index([isActive, displayOrder(asc)])
+   @@index([displayOrder(asc), isActive])
+ }
 
 model Testimonial {
   id           String   @id @default(cuid())
@@ -136,9 +141,10 @@ model Testimonial {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  @@map("testimonials")
-  @@index([isActive, displayOrder(asc)])
-}
+   @@map("testimonials")
+   @@index([isActive, displayOrder(asc)])
+   @@index([displayOrder(asc), isActive])
+ }
 
 model HeroMedia {
   id           String   @id @default(cuid())
@@ -152,9 +158,10 @@ model HeroMedia {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  @@map("hero_media")
-  @@index([isActive, displayOrder(asc)])
-}
+   @@map("hero_media")
+   @@index([isActive, displayOrder(asc)])
+   @@index([displayOrder(asc), isActive])
+ }
 
 model About {
   id                  String   @id @default(cuid())
@@ -329,12 +336,13 @@ model Blog {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  @@map("blogs")
-  @@index([published, featured, createdAt(desc)])
-  @@index([displayOrder(asc)])
-  @@index([category])
-  @@index([slug])
-}
+   @@map("blogs")
+   @@index([published, featured, createdAt(desc)])
+   @@index([displayOrder(asc)])
+   @@index([category])
+   @@index([slug])
+   @@index([publishDate(desc)])
+ }
 
 model Message {
   id        String   @id @default(cuid())
@@ -346,9 +354,10 @@ model Message {
   isRead    Boolean  @default(false) @map("is_read")
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@map("messages")
-  @@index([createdAt(desc)])
-}
+   @@map("messages")
+   @@index([createdAt(desc)])
+   @@index([isRead, createdAt(desc)])
+ }
 
 model PasswordReset {
   id        String   @id @default(cuid())

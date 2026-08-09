@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from 'react'
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus,
@@ -15,10 +15,11 @@ import {
   Palette,
   Tag,
   Box,
+  Loader2,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { api } from '../../services/api'
-import { dispatchAdminDataChanged } from '../../utils/adminEvents'
+import { api, clearApiCache } from '../../services/api'
+import { dispatchAdminDataChanged, ADMIN_EVENT_TYPES, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import { useIsMobile } from '@hooks/useIsMobile'
 import { SHOP_CATEGORIES } from '../../utils/constants'
 
@@ -41,12 +42,24 @@ const INITIAL_FORM = {
 const PAGE_SIZE = 12
 
 export const ShopDashboard = () => {
-  const [allProducts, setAllProducts] = useState([])
+  const [allProducts, setAllProducts] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('hok_shop_products')
+      const ts = sessionStorage.getItem('hok_shop_products_ts')
+      if (cached && ts && Date.now() - Number(ts) < 30000) {
+        return JSON.parse(cached)
+      }
+    } catch {
+      // ignore parse errors
+    }
+    return []
+  })
   const [form, setForm] = useState(INITIAL_FORM)
   const [editingId, setEditingId] = useState(null)
   const [imageFiles, setImageFiles] = useState([])
   const [imagePreviews, setImagePreviews] = useState([])
   const [loading, setLoading] = useState(false)
+  const [productsLoading, setProductsLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [deleteId, setDeleteId] = useState(null)
@@ -59,22 +72,40 @@ export const ShopDashboard = () => {
   const reduceMotion = useIsMobile()
   const fileRef = useRef(null)
 
-  useEffect(() => {
-    api
-      .get('/products/admin/all', { params: { sort: '-createdAt', limit: 500 } })
-      .then((res) => setAllProducts(res.data?.items || []))
-      .catch(() => setAllProducts([]))
+  const refetch = useCallback(async () => {
+    try {
+      setProductsLoading(true)
+      const res = await api.get('/products/admin/all', { params: { sort: '-createdAt', limit: 50 } })
+      const items = res.data?.items || []
+      setAllProducts(items)
+      try {
+        sessionStorage.setItem('hok_shop_products', JSON.stringify(items))
+        sessionStorage.setItem('hok_shop_products_ts', String(Date.now()))
+      } catch {
+        // ignore sessionStorage errors
+      }
+    } catch {
+      setAllProducts([])
+    } finally {
+      setProductsLoading(false)
+    }
   }, [])
 
   useEffect(() => {
-    const handler = () => {
-      api.get('/products/admin/all', { params: { sort: '-createdAt', limit: 500 } })
-        .then((res) => setAllProducts(res.data?.items || []))
-        .catch(() => {})
+    if (allProducts.length > 0) return
+    refetch()
+  }, [allProducts.length, refetch])
+
+  useEffect(() => {
+    const handler = (event) => {
+      const payload = getAdminDataChangedPayload(event)
+      if (!payload || payload.type !== ADMIN_EVENT_TYPES.PRODUCTS_CHANGED) return
+      clearApiCache('/products')
+      refetch()
     }
     window.addEventListener('admin-data-changed', handler)
     return () => window.removeEventListener('admin-data-changed', handler)
-  }, [])
+  }, [refetch])
 
   const showError = (msg) => setError(msg)
 
@@ -127,8 +158,49 @@ export const ShopDashboard = () => {
       if (editingId) {
         await api.patch(`/products/${editingId}`, payload)
         setEditingId(null)
+        setAllProducts((prev) =>
+          prev.map((p) =>
+            (p._id || p.id) === editingId
+              ? {
+                  ...p,
+                  name: form.name,
+                  description: form.description,
+                  price: String(form.price),
+                  discountPrice: form.discountPrice,
+                  category: form.category,
+                  vendor: form.vendor || '',
+                  stock: Number(form.stock),
+                  sku: form.sku,
+                  tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
+                  isFeatured: form.isFeatured,
+                  isPublished: form.isPublished,
+                  displayOrder: Number(form.displayOrder || 0),
+                  variants: form.variants,
+                  images: imagePreviews,
+                }
+              : p
+          )
+        )
       } else {
         await api.post('/products', payload)
+        const newItem = {
+          _id: `temp_${Date.now()}`,
+          name: form.name,
+          description: form.description,
+          price: String(form.price),
+          discountPrice: form.discountPrice,
+          category: form.category,
+          vendor: form.vendor || '',
+          stock: Number(form.stock),
+          sku: form.sku,
+          tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
+          isFeatured: form.isFeatured,
+          isPublished: form.isPublished,
+          displayOrder: Number(form.displayOrder || 0),
+          variants: form.variants,
+          images: imagePreviews,
+        }
+        setAllProducts((prev) => [newItem, ...prev])
       }
 
       setForm(INITIAL_FORM)
@@ -136,8 +208,7 @@ export const ShopDashboard = () => {
       setImagePreviews([])
       setVariantFiles([])
       setVariantPreviews([])
-      const res = await api.get('/products/admin/all', { params: { sort: '-createdAt', limit: 500 } })
-      setAllProducts(res.data?.items || [])
+      clearApiCache('/products')
       dispatchAdminDataChanged('products-changed')
       toast.success(editingId ? 'Product updated successfully.' : 'Product uploaded successfully.')
     } catch (err) {
@@ -212,8 +283,8 @@ export const ShopDashboard = () => {
     try {
       await api.delete(`/products/${deleteId}`)
       setDeleteId(null)
-      const res = await api.get('/products/admin/all', { params: { sort: '-createdAt', limit: 500 } })
-      setAllProducts(res.data?.items || [])
+      setAllProducts((prev) => prev.filter((p) => (p._id || p.id) !== deleteId))
+      clearApiCache('/products')
       dispatchAdminDataChanged('products-changed')
     } catch (err) {
       toast.error(err?.message || 'Failed to delete product. Please try again.')
@@ -658,15 +729,21 @@ export const ShopDashboard = () => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             type="submit"
-            className="w-full rounded-full bg-[var(--accent)] text-white py-3 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--accent)] hover:shadow-lg disabled:opacity-50"
+            className="w-full rounded-full bg-[var(--accent)] text-white py-3 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--accent)] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={loading}
           >
             {loading ? 'Saving…' : editingId ? 'Update Product' : 'Add Product'}
           </motion.button>
         </motion.form>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {paginated.map((item, i) => (
+        {productsLoading && allProducts.length === 0 ? (
+          <div className="col-span-full flex flex-col items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)] mb-3" />
+            <p className="text-sm text-[var(--primary)]/50 font-medium">Loading products...</p>
+          </div>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {paginated.map((item, i) => (
             <motion.div
               layout
               key={item._id || item.id}
@@ -767,8 +844,9 @@ export const ShopDashboard = () => {
                 No products found
               </p>
             </motion.div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {totalPages > 1 && (

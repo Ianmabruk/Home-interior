@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react'
 import { motion } from 'framer-motion'
 import { Loader2, X, Send } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { api } from '@services/api'
 import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload, dispatchAdminDataChanged } from '@utils/adminEvents'
@@ -34,7 +35,7 @@ export const ServicesPage = memo(() => {
   const [services, setServices] = useState([])
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
-  const [selectedService, setSelectedService] = useState(null)
+  const [_selectedService, setSelectedService] = useState(null)
   const [formData, setFormData] = useState({
     fullName: '',
     phoneNumber: '',
@@ -223,6 +224,15 @@ export const ServicesPage = memo(() => {
               <p className="font-display text-xl text-[var(--primary)]/60">No services available at the moment.</p>
             </div>
           )}
+
+          {/* INTERNAL LINKS */}
+          <div className="mt-16 text-center">
+            <p className="text-[var(--primary)]/60 mb-4">Ready to transform your space?</p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Link to="/portfolio" className="btn-luxury-secondary">View Our Work</Link>
+              <Link to="/contact" className="btn-luxury-primary">Book a Consultation</Link>
+            </div>
+          </div>
         </div>
       </section>
 

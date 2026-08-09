@@ -5,6 +5,7 @@ dev-dist/
 .env.local
 .env.*.local
 backend/.env
+server/.env
 *.log
 .DS_Store
 

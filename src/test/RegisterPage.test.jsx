@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from '../context/AuthContext'
 import { ShopProvider } from '../context/ShopContext'
@@ -30,6 +31,7 @@ vi.mock('@services/api', () => ({
   },
 }))
 
+import { api } from '@services/api'
 import { RegisterPage } from '../pages/auth/RegisterPage'
 
 const renderWithProviders = (ui, { route = '/' } = {}) => {
@@ -49,6 +51,7 @@ describe('RegisterPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    api.get.mockResolvedValue({ data: null })
   })
 
   it('renders registration form inputs', () => {
@@ -62,5 +65,34 @@ describe('RegisterPage', () => {
   it('renders create account button', () => {
     renderWithProviders(<RegisterPage />)
     expect(screen.getByRole('button', { name: /create account/i })).toBeDefined()
+  })
+
+  it('shows error when passwords do not match', async () => {
+    renderWithProviders(<RegisterPage />)
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText(/full name/i), 'Test User')
+    await user.type(screen.getByLabelText(/email address/i), 'test@test.com')
+    await user.type(screen.getByLabelText(/^password$/i), 'password123')
+    await user.type(screen.getByLabelText(/confirm password/i), 'different456')
+    await user.click(screen.getByRole('button', { name: /create account/i }))
+    expect(await screen.findByText('Passwords do not match')).toBeDefined()
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('submits registration correctly', async () => {
+    api.post.mockResolvedValue({ data: { user: { id: '1', email: 'test@test.com' } } })
+    renderWithProviders(<RegisterPage />)
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText(/full name/i), 'Test User')
+    await user.type(screen.getByLabelText(/email address/i), 'test@test.com')
+    await user.type(screen.getByLabelText(/^password$/i), 'password123')
+    await user.type(screen.getByLabelText(/confirm password/i), 'password123')
+    await user.click(screen.getByRole('button', { name: /create account/i }))
+    expect(await screen.findByText('Account created successfully! Redirecting...')).toBeDefined()
+    expect(api.post).toHaveBeenCalledWith('/auth/register', {
+      fullName: 'Test User',
+      email: 'test@test.com',
+      password: 'password123',
+    })
   })
 })

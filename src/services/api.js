@@ -22,10 +22,39 @@ const CONTENT_PATHS = [
 const requestCache = new Map()
 const CACHE_TTL = 5 * 60 * 1000
 
+let refreshingPromise = null
+let refreshFailed = false
+let csrfToken = null
+
+function getStoredCsrfToken() {
+  if (csrfToken) return csrfToken
+  try {
+    const stored = localStorage.getItem('hok_csrf_token')
+    if (stored) csrfToken = stored
+  } catch {
+    // localStorage unavailable
+  }
+  return csrfToken
+}
+
+function setStoredCsrfToken(token) {
+  csrfToken = token
+  try {
+    localStorage.setItem('hok_csrf_token', token)
+  } catch {
+    // localStorage unavailable
+  }
+}
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('hok_access_token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+
+  const csrf = getStoredCsrfToken()
+  if (csrf) {
+    config.headers['x-csrf-token'] = csrf
   }
 
   const url = config.url || ''
@@ -34,7 +63,7 @@ api.interceptors.request.use((config) => {
   }
 
   if (config.method === 'get') {
-    const cacheKey = `${config.url}:${JSON.stringify(config.params || {})}`
+    const cacheKey = `get:${config.url}:${JSON.stringify(config.params || {})}`
     const cached = requestCache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       config.meta = { ...config.meta, __cachedResponse: cached.data }
@@ -44,64 +73,72 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-let refreshingPromise = null
-let refreshFailed = false
-
 api.interceptors.response.use(
   (response) => {
     const data = response.data
     if (data && typeof data === 'object' && 'success' in data && data.success === true) {
       const result = { ...response, data: data.data ?? null }
       if (data.meta) result.meta = data.meta
+      if (data.data?.csrfToken) setStoredCsrfToken(data.data.csrfToken)
       return result
     }
+    if (data?.csrfToken) setStoredCsrfToken(data.csrfToken)
     return response
   },
   async (error) => {
     const status = error?.response?.status
     const originalRequest = error.config
 
-    if (status !== 401 || originalRequest._retry || originalRequest.url?.includes('/auth/refresh')) {
-      const message = error?.response?.data?.message || error?.message || 'Request failed'
-      return Promise.reject(new Error(message))
+    if (status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh')) {
+      if (refreshFailed) {
+        refreshFailed = false
+        const message = error?.response?.data?.message || error?.message || 'Session expired'
+        return Promise.reject(new Error(message))
+      }
+
+      if (!refreshingPromise) {
+        console.info('[auth] access token expired — attempting refresh')
+        refreshingPromise = api
+          .post('/auth/refresh')
+          .then((res) => {
+            const accessToken = res.data?.accessToken
+            if (!accessToken) throw new Error('No access token in refresh response')
+            localStorage.setItem('hok_access_token', accessToken)
+            if (res.data?.csrfToken) setStoredCsrfToken(res.data.csrfToken)
+            console.info('[auth] access token refreshed')
+            return accessToken
+          })
+          .catch((refreshErr) => {
+            console.warn('[auth] refresh failed:', refreshErr?.response?.status, refreshErr?.message)
+            localStorage.removeItem('hok_access_token')
+            refreshFailed = true
+            return Promise.reject(refreshErr)
+          })
+          .finally(() => {
+            refreshingPromise = null
+          })
+      }
+
+      try {
+        await new Promise((r) => setTimeout(r, 200))
+        const newToken = await refreshingPromise
+        originalRequest._retry = true
+        originalRequest.headers.Authorization = `Bearer ${newToken}`
+        return api(originalRequest)
+      } catch {
+        return Promise.reject(error)
+      }
     }
 
-    if (refreshFailed) {
-      refreshFailed = false
-      const message = error?.response?.data?.message || error?.message || 'Session expired'
-      return Promise.reject(new Error(message))
+    let message
+    if (status === 401) {
+      message = 'Unauthorized. Please log in again.'
+    } else if (status === 403) {
+      message = 'Access forbidden. You do not have permission to perform this action.'
+    } else {
+      message = error?.response?.data?.message || error?.message || 'Request failed'
     }
-
-    if (!refreshingPromise) {
-      console.info('[auth] access token expired — attempting refresh')
-      refreshingPromise = api
-        .post('/auth/refresh')
-        .then((res) => {
-          const accessToken = res.data?.accessToken
-          if (!accessToken) throw new Error('No access token in refresh response')
-          localStorage.setItem('hok_access_token', accessToken)
-          console.info('[auth] access token refreshed')
-          return accessToken
-        })
-        .catch((refreshErr) => {
-          console.warn('[auth] refresh failed:', refreshErr?.response?.status, refreshErr?.message)
-          localStorage.removeItem('hok_access_token')
-          refreshFailed = true
-          return Promise.reject(refreshErr)
-        })
-        .finally(() => {
-          refreshingPromise = null
-        })
-    }
-
-    try {
-      const newToken = await refreshingPromise
-      originalRequest._retry = true
-      originalRequest.headers.Authorization = `Bearer ${newToken}`
-      return api(originalRequest)
-    } catch {
-      return Promise.reject(error)
-    }
+    return Promise.reject(new Error(message))
   },
 )
 

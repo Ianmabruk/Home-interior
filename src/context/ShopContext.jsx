@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { api } from '../services/api'
 import { useAuth } from './AuthContext'
 
@@ -37,9 +37,13 @@ export function ShopProvider({ children }) {
   const [wishlist, setWishlist] = useState([])
   const [loading, setLoading] = useState(false)
   const { isAuthenticated } = useAuth()
+  const isAuthRef = useRef(isAuthenticated)
+  useEffect(() => {
+    isAuthRef.current = isAuthenticated
+  }, [isAuthenticated])
 
   const fetchCart = useCallback(async () => {
-    if (!isAuthenticated) {
+    if (!isAuthRef.current) {
       setCart(getLocalCart())
       return
     }
@@ -51,10 +55,10 @@ export function ShopProvider({ children }) {
     } catch {
       setCart(getLocalCart())
     }
-  }, [isAuthenticated])
+  }, [])
 
   const fetchWishlist = useCallback(async () => {
-    if (!isAuthenticated) {
+    if (!isAuthRef.current) {
       setWishlist(getLocalWishlist())
       return
     }
@@ -64,7 +68,7 @@ export function ShopProvider({ children }) {
     } catch {
       setWishlist(getLocalWishlist())
     }
-  }, [isAuthenticated])
+  }, [])
 
   useEffect(() => {
     fetchCart()

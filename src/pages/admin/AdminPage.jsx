@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -39,6 +39,26 @@ export const AdminPage = () => {
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+
+  useEffect(() => {
+    const idleCallback = window.requestIdleCallback || ((cb) => setTimeout(cb, 1000))
+    const id = idleCallback(() => {
+      const prefetches = [
+        () => import('@components/admin/ShopDashboard').then((m) => ({ default: m.default })),
+        () => import('@components/admin/OrderDashboard').then((m) => ({ default: m.default })),
+        () => import('@components/admin/BlogDashboard').then((m) => ({ default: m.default })),
+        () => import('@components/admin/DashboardOverview').then((m) => ({ default: m.default })),
+      ]
+      prefetches.forEach((fn) => fn().catch(() => {}))
+    })
+    return () => {
+      if (window.cancelIdleCallback) {
+        window.cancelIdleCallback(id)
+      } else {
+        clearTimeout(id)
+      }
+    }
+  }, [])
 
   if (!isAdmin) {
     return (

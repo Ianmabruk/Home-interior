@@ -8,6 +8,8 @@ import { PageMeta } from '@hooks/usePageMeta'
 import { getProjectImage } from '@utils/homepageHelpers'
 import { useIsMobile } from '@hooks/useIsMobile'
 
+const SITE_URL = 'https://hokinteriors.com'
+
 const SkeletonPortfolio = () => (
   <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-20 md:py-32">
     <div className="container-wide">
@@ -55,6 +57,41 @@ export const PortfolioPage = memo(() => {
     window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
   }, [loadPortfolio])
+
+  useEffect(() => {
+    const breadcrumbSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Home',
+          item: SITE_URL,
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Portfolio',
+          item: `${SITE_URL}/portfolio`,
+        },
+      ],
+    }
+
+    const script = document.createElement('script')
+    script.type = 'application/ld+json'
+    script.text = JSON.stringify(breadcrumbSchema)
+    script.setAttribute('data-structured-data', 'portfolio-breadcrumb')
+    document.head.appendChild(script)
+
+    const existing = document.querySelector('script[data-structured-data="portfolio-breadcrumb"]')
+    if (existing && existing !== script) existing.remove()
+
+    return () => {
+      const el = document.querySelector('script[data-structured-data="portfolio-breadcrumb"]')
+      if (el) el.remove()
+    }
+  }, [])
 
   if (loading) {
     return <main><SkeletonPortfolio /></main>
@@ -136,6 +173,16 @@ export const PortfolioPage = memo(() => {
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* INTERNAL LINKS */}
+      <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-12">
+        <div className="container-wide text-center">
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link to="/services" className="btn-luxury-secondary">Our Services</Link>
+            <Link to="/contact" className="btn-luxury-primary">Start Your Project</Link>
+          </div>
         </div>
       </section>
     </main>
