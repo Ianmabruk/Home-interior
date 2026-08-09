@@ -31,26 +31,6 @@ async function seed() {
   }
 
   try {
-    const aboutCount = await prisma.about.count()
-    if (aboutCount === 0) {
-      await prisma.about.create({
-        data: {
-          story: 'We are HOK Interiors, dedicated to creating beautiful spaces.',
-          companyDesc: 'HOK Interiors provides premium interior design services.',
-          mission: 'To transform spaces into inspiring environments.',
-          vision: 'To be the leading interior design studio.',
-          location: '',
-          contactEmail: 'info@hokinteriors.com',
-          socials: '{}',
-        },
-      })
-      console.log('Default about created')
-    }
-  } catch (err) {
-    console.warn('Seeding: default about skipped:', err?.message || err)
-  }
-
-  try {
     const settingsToSeed = [
       { key: 'siteName', value: 'HOK Interiors' },
       { key: 'supportEmail', value: 'info@hokinteriors.com' },
