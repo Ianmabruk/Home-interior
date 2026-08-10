@@ -22,6 +22,8 @@ import { asyncHandler } from '../middleware/asyncHandler.js'
 import { uploadSingle } from '../middleware/upload.js'
 import { uploadFile } from '../uploads/uploadService.js'
 import { authenticate } from '../middleware/auth.js'
+import { cacheHeaders } from '../middleware/cacheHeaders.js'
+import { contentController } from '../controllers/contentController.js'
 import { prisma } from '../config/database.js'
 
 const router = Router()
@@ -30,6 +32,7 @@ router.use('/auth', authRoutes)
 router.use('/admin', adminRoutes)
 
 router.use('/content', contentRoutes)
+router.get('/homepage', cacheHeaders(5, 30), contentController.homepage)
 router.use('/content/portfolio', contentPortfolioRoutes)
 router.use('/content/virtual-design', contentVDRoutes)
 router.use('/content/services', serviceRoutes)
