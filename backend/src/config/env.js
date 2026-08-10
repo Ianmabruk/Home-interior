@@ -16,8 +16,8 @@ export const env = {
   databaseUrl: process.env.DATABASE_URL,
   supabaseUrl: process.env.SUPABASE_URL,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-  seedAdminEmail: process.env.SEED_ADMIN_EMAIL || 'admin@chatgpt.com',
-  seedAdminPassword: process.env.SEED_ADMIN_PASSWORD || 'enSU4K4Zh89RD_r0TDUqiw',
+  seedAdminEmail: process.env.SEED_ADMIN_EMAIL,
+  seedAdminPassword: process.env.SEED_ADMIN_PASSWORD,
 }
 
 export function validateEnv() {

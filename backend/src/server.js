@@ -18,10 +18,12 @@ const log = {
 
 validateEnv()
 
-const uploadsDir = path.join(process.cwd(), 'uploads')
-const subDirs = ['portfolio', 'products', 'services', 'virtual-designs', 'testimonials', 'about', 'consultations']
-for (const dir of subDirs) {
-  fs.mkdirSync(path.join(uploadsDir, dir), { recursive: true })
+if (process.env.NODE_ENV !== 'production') {
+  const uploadsDir = path.join(process.cwd(), 'uploads')
+  const subDirs = ['portfolio', 'products', 'services', 'virtual-designs', 'testimonials', 'about', 'consultations']
+  for (const dir of subDirs) {
+    fs.mkdirSync(path.join(uploadsDir, dir), { recursive: true })
+  }
 }
 
 const PORT = process.env.PORT || 10000
@@ -35,7 +37,11 @@ async function start() {
       log.warn('Both Cloudinary and Supabase are configured. Cloudinary will be used for uploads. Remove SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY if you want to use Supabase.')
     }
     if (process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
-      log.info(`Cloudinary configured (cloud: ${process.env.CLOUDINARY_CLOUD_NAME}). Uploads will use Cloudinary with local fallback.`)
+      log.info(`Cloudinary configured (cloud: ${process.env.CLOUDINARY_CLOUD_NAME}). Uploads will use Cloudinary.`)
+    } else if (isSupabaseConfigured()) {
+      log.info('Supabase configured. Uploads will use Supabase Storage.')
+    } else {
+      log.warn('No permanent object storage configured. Uploads will fail in production.')
     }
   } catch (err) {
     log.error('Startup check failed: ' + (err?.message || err))

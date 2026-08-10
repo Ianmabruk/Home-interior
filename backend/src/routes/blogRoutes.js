@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { authenticate } from '../middleware/auth.js'
+import { authenticate, authorize } from '../middleware/auth.js'
 import { uploadFields } from '../middleware/upload.js'
 import { blogController } from '../controllers/blogController.js'
 import { validateZod } from '../middleware/validateZod.js'
@@ -7,14 +7,15 @@ import { blogSchemas } from '../validations/schemas.js'
 
 const router = Router()
 
-router.get('/', authenticate, blogController.getAll)
-router.get('/stats', authenticate, blogController.stats)
+router.use(authenticate, authorize('ADMIN'))
+
+router.get('/', blogController.getAll)
+router.get('/stats', blogController.stats)
 router.get('/slug/:slug', blogController.getBySlug)
-router.get('/:id', authenticate, blogController.get)
+router.get('/:id', blogController.get)
 router.get('/:id/related', blogController.related)
 router.post(
   '/',
-  authenticate,
   uploadFields([
     { name: 'image', maxCount: 1 },
     { name: 'video', maxCount: 1 },
@@ -25,7 +26,6 @@ router.post(
 )
 router.patch(
   '/:id',
-  authenticate,
   uploadFields([
     { name: 'image', maxCount: 1 },
     { name: 'video', maxCount: 1 },
@@ -34,6 +34,6 @@ router.patch(
   validateZod(blogSchemas.update),
   blogController.update,
 )
-router.delete('/:id', authenticate, blogController.delete)
+router.delete('/:id', blogController.delete)
 
 export default router

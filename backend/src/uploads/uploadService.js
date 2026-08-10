@@ -50,6 +50,10 @@ export async function uploadFile(buffer, mimetype, folder) {
       const uploaded = await uploadToCloudinary(buffer, mimetype, folder)
       return { url: uploaded.url, path: uploaded.publicId, mimeType: mimetype, isLocal: false }
     } catch (cloudErr) {
+      if (process.env.NODE_ENV === 'production') {
+        console.error('[uploadService] Cloudinary upload failed in production:', cloudErr?.message || cloudErr)
+        throw failure(500, 'File upload failed. Please try again later.')
+      }
       console.warn(`[uploadService] Cloudinary upload failed, falling back to local storage: ${cloudErr?.message || cloudErr}`)
     }
   }
@@ -58,8 +62,17 @@ export async function uploadFile(buffer, mimetype, folder) {
     try {
       return await uploadToSupabase(buffer, mimetype, folder)
     } catch (supErr) {
+      if (process.env.NODE_ENV === 'production') {
+        console.error('[uploadService] Supabase upload failed in production:', supErr?.message || supErr)
+        throw failure(500, 'File upload failed. Please try again later.')
+      }
       console.warn(`[uploadService] Supabase upload failed, falling back to local storage: ${supErr?.message || supErr}`)
     }
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[uploadService] No permanent storage configured in production')
+    throw failure(500, 'File upload service is not configured. Contact support.')
   }
 
   return uploadToLocal(buffer, mimetype, folder)

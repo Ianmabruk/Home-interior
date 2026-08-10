@@ -34,10 +34,10 @@ async function getContact() {
     }
   } catch {
     return {
-      phoneNumbers: ['+254 700 000 000', '+254 711 111 111'],
-      emails: ['info@hokinteriors.com', 'projects@hokinteriors.com'],
-      addresses: ['Westlands, Nairobi, Kenya'],
-      businessHours: 'Mon - Fri: 8:00 AM - 6:00 PM\nSat: 9:00 AM - 4:00 PM\nSun: Closed',
+      phoneNumbers: [],
+      emails: [],
+      addresses: [],
+      businessHours: '',
     }
   }
 }

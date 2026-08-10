@@ -29,38 +29,9 @@ for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     if (attempt < MAX_RETRIES && isLockTimeout) {
       console.log(`[migrate:deploy] Lock contention detected. Waiting ${RETRY_DELAY / 1000}s before retry...`)
       await sleep(RETRY_DELAY)
-    } else if (isLockTimeout) {
-      console.error('[migrate:deploy] migrate deploy failed after all retries, falling back to db push')
-      try {
-        execSync('prisma db push --accept-data-loss', {
-          stdio: 'inherit',
-          env: {
-            ...process.env,
-            PRISMA_MIGRATE_LOCK_TIMEOUT: '0',
-          },
-        })
-        console.log('[migrate:deploy] db push completed successfully')
-        process.exit(0)
-      } catch (pushErr) {
-        console.error('[migrate:deploy] db push also failed:', pushErr?.message || String(pushErr).slice(0, 300))
-        process.exit(1)
-      }
     } else {
-      console.error('[migrate:deploy] Non-lock error, falling back to db push')
-      try {
-        execSync('prisma db push --accept-data-loss', {
-          stdio: 'inherit',
-          env: {
-            ...process.env,
-            PRISMA_MIGRATE_LOCK_TIMEOUT: '0',
-          },
-        })
-        console.log('[migrate:deploy] db push completed successfully')
-        process.exit(0)
-      } catch (pushErr) {
-        console.error('[migrate:deploy] db push also failed:', pushErr?.message || String(pushErr).slice(0, 300))
-        process.exit(1)
-      }
+      console.error('[migrate:deploy] Migration failed after all retries')
+      process.exit(1)
     }
   }
 }

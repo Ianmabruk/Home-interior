@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { authenticate } from '../middleware/auth.js'
+import { authenticate, authorize } from '../middleware/auth.js'
 import { uploadSingle, uploadFields, uploadProductImages } from '../middleware/upload.js'
 import { uploadFile } from '../uploads/uploadService.js'
 import { prisma } from '../config/database.js'
@@ -19,10 +19,12 @@ import adminSocialRoutes from './adminSocialRoutes.js'
 
 const router = Router()
 
-router.get('/overview', authenticate, adminOverviewController.getStats)
-router.get('/settings', authenticate, adminOverviewController.getSettings)
-router.put('/settings', authenticate, adminOverviewController.updateSettings)
-router.post('/settings/shop-banner', authenticate, uploadSingle('image'), asyncHandler(async (req, res) => {
+router.use(authenticate, authorize('ADMIN'))
+
+router.get('/overview', adminOverviewController.getStats)
+router.get('/settings', adminOverviewController.getSettings)
+router.put('/settings', adminOverviewController.updateSettings)
+router.post('/settings/shop-banner', uploadSingle('image'), asyncHandler(async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ success: false, message: 'No image uploaded' })
   }
@@ -39,70 +41,70 @@ router.post('/settings/shop-banner', authenticate, uploadSingle('image'), asyncH
 router.use('/socials', adminSocialRoutes)
 
 // Admin Portfolio
-router.get('/portfolio', authenticate, portfolioController.list)
-router.get('/portfolio/:id', authenticate, portfolioController.get)
-router.post('/portfolio', authenticate, uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), portfolioController.create)
-router.patch('/portfolio/:id', authenticate, uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), portfolioController.update)
-router.delete('/portfolio/:id', authenticate, portfolioController.delete)
+router.get('/portfolio', portfolioController.list)
+router.get('/portfolio/:id', portfolioController.get)
+router.post('/portfolio', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), portfolioController.create)
+router.patch('/portfolio/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), portfolioController.update)
+router.delete('/portfolio/:id', portfolioController.delete)
 
 // Admin Virtual Designs
-router.get('/virtual-designs', authenticate, virtualDesignController.list)
-router.get('/virtual-designs/:id', authenticate, virtualDesignController.get)
-router.post('/virtual-designs', authenticate, uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), virtualDesignController.create)
-router.patch('/virtual-designs/:id', authenticate, uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), virtualDesignController.update)
-router.delete('/virtual-designs/:id', authenticate, virtualDesignController.delete)
+router.get('/virtual-designs', virtualDesignController.list)
+router.get('/virtual-designs/:id', virtualDesignController.get)
+router.post('/virtual-designs', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), virtualDesignController.create)
+router.patch('/virtual-designs/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), virtualDesignController.update)
+router.delete('/virtual-designs/:id', virtualDesignController.delete)
 
 // Admin Services
-router.get('/services', authenticate, serviceController.list)
-router.get('/services/:id', authenticate, serviceController.get)
-router.post('/services', authenticate, uploadSingle('media'), serviceController.create)
-router.patch('/services/:id', authenticate, uploadSingle('media'), serviceController.update)
-router.delete('/services/:id', authenticate, serviceController.delete)
-router.post('/services/reorder', authenticate, serviceController.reorder)
+router.get('/services', serviceController.list)
+router.get('/services/:id', serviceController.get)
+router.post('/services', uploadSingle('media'), serviceController.create)
+router.patch('/services/:id', uploadSingle('media'), serviceController.update)
+router.delete('/services/:id', serviceController.delete)
+router.post('/services/reorder', serviceController.reorder)
 
 // Admin Shop (Products)
-router.get('/shop', authenticate, productController.list)
-router.get('/shop/:id', authenticate, productController.get)
-router.post('/shop', authenticate, uploadProductImages(60), productController.create)
-router.patch('/shop/:id', authenticate, uploadProductImages(60), productController.update)
-router.delete('/shop/:id', authenticate, productController.delete)
+router.get('/shop', productController.list)
+router.get('/shop/:id', productController.get)
+router.post('/shop', uploadProductImages(60), productController.create)
+router.patch('/shop/:id', uploadProductImages(60), productController.update)
+router.delete('/shop/:id', productController.delete)
 
 // Admin About
-router.get('/about', authenticate, aboutController.get)
-router.put('/about', authenticate, uploadSingle('media'), aboutController.update)
+router.get('/about', aboutController.get)
+router.put('/about', uploadSingle('media'), aboutController.update)
 
 // Admin About Images
-router.get('/about/images', authenticate, aboutImageController.list)
-router.post('/about/images', authenticate, uploadSingle('image'), aboutImageController.create)
-router.patch('/about/images/:id', authenticate, uploadSingle('image'), aboutImageController.update)
-router.delete('/about/images/:id', authenticate, aboutImageController.delete)
-router.patch('/about/images/reorder', authenticate, aboutImageController.reorder)
+router.get('/about/images', aboutImageController.list)
+router.post('/about/images', uploadSingle('image'), aboutImageController.create)
+router.patch('/about/images/:id', uploadSingle('image'), aboutImageController.update)
+router.delete('/about/images/:id', aboutImageController.delete)
+router.patch('/about/images/reorder', aboutImageController.reorder)
 
 // Admin Socials
 router.use('/socials', adminSocialRoutes)
 
 // Admin Hero Images
-router.get('/hero-images', authenticate, heroMediaController.list)
-router.get('/hero-images/:id', authenticate, heroMediaController.get)
-router.post('/hero-images', authenticate, uploadFields([{ name: 'media', maxCount: 10 }]), heroMediaController.create)
-router.patch('/hero-images/:id', authenticate, uploadFields([{ name: 'media', maxCount: 10 }]), heroMediaController.update)
-router.delete('/hero-images/:id', authenticate, heroMediaController.delete)
+router.get('/hero-images', heroMediaController.list)
+router.get('/hero-images/:id', heroMediaController.get)
+router.post('/hero-images', uploadFields([{ name: 'media', maxCount: 10 }]), heroMediaController.create)
+router.patch('/hero-images/:id', uploadFields([{ name: 'media', maxCount: 10 }]), heroMediaController.update)
+router.delete('/hero-images/:id', heroMediaController.delete)
 
 // Admin Testimonials
-router.get('/testimonials', authenticate, testimonialController.list)
-router.get('/testimonials/:id', authenticate, testimonialController.get)
-router.post('/testimonials', authenticate, uploadSingle('photo'), testimonialController.create)
-router.patch('/testimonials/:id', authenticate, uploadSingle('photo'), testimonialController.update)
-router.delete('/testimonials/:id', authenticate, testimonialController.delete)
+router.get('/testimonials', testimonialController.list)
+router.get('/testimonials/:id', testimonialController.get)
+router.post('/testimonials', uploadSingle('photo'), testimonialController.create)
+router.patch('/testimonials/:id', uploadSingle('photo'), testimonialController.update)
+router.delete('/testimonials/:id', testimonialController.delete)
 
 // Admin Consultations
-router.get('/consultations', authenticate, consultationController.list)
-router.patch('/consultations/:id/status', authenticate, consultationController.updateStatus)
-router.delete('/consultations/:id', authenticate, consultationController.delete)
-router.get('/consultations/export', authenticate, consultationController.exportCsv)
+router.get('/consultations', consultationController.list)
+router.patch('/consultations/:id/status', consultationController.updateStatus)
+router.delete('/consultations/:id', consultationController.delete)
+router.get('/consultations/export', consultationController.exportCsv)
 
 // Admin Orders
-router.get('/orders', authenticate, orderController.listAll)
-router.patch('/orders/:id/status', authenticate, orderController.updateStatus)
+router.get('/orders', orderController.listAll)
+router.patch('/orders/:id/status', orderController.updateStatus)
 
 export default router

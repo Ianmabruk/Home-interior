@@ -60,20 +60,17 @@ export const authController = {
   }),
 
   register: asyncHandler(async (req, res) => {
-    if (process.env.ADMIN_REGISTRATION_ENABLED !== 'true') {
-      return res.status(403).json({ success: false, message: 'Admin registration is disabled' })
-    }
     const { fullName, email, password } = req.body
     if (!fullName || !email || !password) {
       return res.status(400).json({ success: false, message: 'Full name, email, and password are required' })
     }
     const existing = await prisma.admin.findUnique({ where: { email } })
     if (existing) {
-      return res.status(409).json({ success: false, message: 'Admin already exists with this email' })
+      return res.status(409).json({ success: false, message: 'An account with this email already exists' })
     }
     const passwordHash = await bcrypt.hash(password, 12)
     const admin = await prisma.admin.create({
-      data: { email, fullName, passwordHash, role: 'ADMIN' },
+      data: { email, fullName, passwordHash, role: 'USER' },
       select: { id: true, email: true, fullName: true, role: true },
     })
 

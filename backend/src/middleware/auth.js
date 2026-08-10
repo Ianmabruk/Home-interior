@@ -47,6 +47,18 @@ export async function authenticate(req, res, next) {
   }
 }
 
+export const authorize = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.admin) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' })
+    }
+    if (allowedRoles.length === 0 || allowedRoles.includes(req.admin.role)) {
+      return next()
+    }
+    return res.status(403).json({ success: false, message: 'Insufficient permissions' })
+  }
+}
+
 export const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization

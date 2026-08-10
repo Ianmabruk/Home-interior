@@ -16,9 +16,6 @@ function fileExists(path) {
 }
 
 try {
-  run('npx prisma generate')
-  run('npx prisma db push')
-  run('node src/seeds/seed.js')
   run('node src/server.js')
 } catch (err) {
   console.error('Startup failed:', err)

@@ -16,14 +16,13 @@ export const AboutPage = memo(() => {
 
   const loadAbout = useCallback(async () => {
     try {
-      const [aboutRes, imagesRes, teamRes] = await Promise.all([
+      const [aboutRes, imagesRes] = await Promise.all([
         api.get('/about'),
         api.get('/about/images'),
-        api.get('/about/team'),
       ])
       setAboutData(aboutRes.data || null)
       setAboutImages(Array.isArray(imagesRes.data) ? imagesRes.data : [])
-      setTeam(Array.isArray(teamRes.data) ? teamRes.data : [])
+      setTeam([])
     } catch {
       setAboutData(null)
       setAboutImages([])

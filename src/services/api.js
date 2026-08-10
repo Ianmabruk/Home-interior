@@ -182,28 +182,28 @@ api.get = function (url, config) {
 
 api.post = function (url, data, config) {
   return originals.post.call(api, url, data, config).then((response) => {
-    clearApiCache(url)
+    clearApiCache()
     return response
   })
 }
 
 api.put = function (url, data, config) {
   return originals.put.call(api, url, data, config).then((response) => {
-    clearApiCache(url)
+    clearApiCache()
     return response
   })
 }
 
 api.patch = function (url, data, config) {
   return originals.patch.call(api, url, data, config).then((response) => {
-    clearApiCache(url)
+    clearApiCache()
     return response
   })
 }
 
 api.delete = function (url, config) {
   return originals.delete.call(api, url, config).then((response) => {
-    clearApiCache(url)
+    clearApiCache()
     return response
   })
 }

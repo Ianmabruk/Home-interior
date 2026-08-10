@@ -18,7 +18,11 @@ const SkeletonHero = memo(() => (
 
 SkeletonHero.displayName = 'SkeletonHero'
 
-const EmptySection = memo(() => null)
+const EmptySection = memo(() => (
+  <div className="py-20 text-center text-[var(--primary)]/40">
+    <p>No content available</p>
+  </div>
+))
 
 EmptySection.displayName = 'EmptySection'
 
