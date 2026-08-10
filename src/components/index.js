@@ -1,7 +1,6 @@
 export { Navbar } from './Navbar'
 export { Footer } from './Footer'
 export { Hero } from './Hero'
-export { Services } from './Services'
 export { AboutPreview } from './AboutPreview'
 export { FeaturedProjects } from './FeaturedProjects'
 export { ShopCollection } from './ShopCollection'
