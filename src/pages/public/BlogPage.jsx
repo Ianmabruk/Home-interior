@@ -171,28 +171,9 @@ export const BlogPage = memo(() => {
   return (
     <main className="min-h-screen bg-[var(--bg)]">
       <PageMeta
-        title="HOK Interiors Blog — Design Insights & Inspiration"
+        title="HOK Interiors Blog"
         description="Explore the latest trends in interior design, furniture, and virtual design from HOK Interiors."
       />
-
-      <SectionErrorBoundary sectionName="BlogHero">
-        <section className="relative w-full overflow-hidden bg-[var(--primary)] py-24 md:py-40">
-          <div className="absolute inset-0" />
-          <div className="container-wide mx-auto px-6 md:px-12 lg:px-20">
-            <div className="max-w-3xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-6">
-                The Journal
-              </p>
-              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight text-white mb-6">
-                Design Insights & Inspiration
-              </h1>
-              <p className="text-lg text-white/70 max-w-xl leading-relaxed">
-                Discover expert insights, trending designs, and curated inspiration from our interior designers.
-              </p>
-            </div>
-          </div>
-        </section>
-      </SectionErrorBoundary>
 
       <div className="container-wide mx-auto px-6 md:px-12 lg:px-20 py-12 md:py-20">
         {/* Featured Article */}
@@ -360,16 +341,6 @@ export const BlogPage = memo(() => {
             </div>
           )}
         </SectionErrorBoundary>
-
-        {/* INTERNAL LINKS */}
-        <section className="mt-16 text-center">
-          <p className="text-[var(--primary)]/60 mb-4">Looking for more inspiration?</p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link to="/portfolio" className="btn-luxury-secondary">View Portfolio</Link>
-            <Link to="/services" className="btn-luxury-secondary">Our Services</Link>
-            <Link to="/contact" className="btn-luxury-primary">Get In Touch</Link>
-          </div>
-        </section>
       </div>
     </main>
   )

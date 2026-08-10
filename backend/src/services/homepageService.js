@@ -150,4 +150,5 @@ async function getHomepage() {
       contact: null,
     }
   }
+  }
 }

@@ -3,35 +3,15 @@ import { Link } from 'react-router-dom'
 import { api } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { SocialIcons } from '@components/common/SocialIcons'
+import { SOCIAL_LINKS } from '@constants/socialLinks'
 
 export const Footer = memo(() => {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState('')
-  const [socialItems, setSocialItems] = useState([])
 
-  const loadSocials = useCallback(async () => {
-    try {
-      const res = await api.get('/socials')
-      setSocialItems(Array.isArray(res.data) ? res.data : [])
-    } catch {
-      setSocialItems([])
-    }
+  const footerSocials = useMemo(() => {
+    return SOCIAL_LINKS.filter((link) => link.link && link.link.trim() !== '')
   }, [])
-
-  useEffect(() => {
-    loadSocials()
-  }, [loadSocials])
-
-  useEffect(() => {
-    const handler = (event) => {
-      const payload = getAdminDataChangedPayload(event)
-      if (payload?.type === 'socials-changed') {
-        loadSocials()
-      }
-    }
-    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-    return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-  }, [loadSocials])
 
   const handleSubscribe = async (e) => {
     e.preventDefault()
@@ -44,10 +24,6 @@ export const Footer = memo(() => {
       setStatus('error')
     }
   }
-
-  const footerSocials = useMemo(() => {
-    return socialItems.filter((item) => item.isActive !== false && item.link && item.link.trim() !== '')
-  }, [socialItems])
 
   return (
     <footer className="relative bg-[var(--footer-bg)] text-[var(--footer-text)]" role="contentinfo">

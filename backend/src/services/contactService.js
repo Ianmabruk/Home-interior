@@ -27,10 +27,10 @@ async function getContact() {
     }
 
     return {
-      phoneNumbers: result['contact.phoneNumbers'] || ['+254 700 000 000', '+254 711 111 111'],
-      emails: result['contact.emails'] || ['info@hokinteriors.com', 'projects@hokinteriors.com'],
-      addresses: result['contact.addresses'] || ['Westlands, Nairobi, Kenya'],
-      businessHours: result['contact.businessHours'] || 'Mon - Fri: 8:00 AM - 6:00 PM\nSat: 9:00 AM - 4:00 PM\nSun: Closed',
+      phoneNumbers: result['contact.phoneNumbers'] || [],
+      emails: result['contact.emails'] || [],
+      addresses: result['contact.addresses'] || [],
+      businessHours: result['contact.businessHours'] || '',
     }
   } catch {
     return {

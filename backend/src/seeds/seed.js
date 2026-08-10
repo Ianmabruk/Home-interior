@@ -11,6 +11,16 @@ async function seed() {
     process.exit(1)
   }
 
+  const forceSeed = process.env.FORCE_SEED === 'true'
+  const isProduction = process.env.NODE_ENV === 'production'
+
+  if (isProduction && !forceSeed) {
+    console.log('Seeding: skipped in production (set FORCE_SEED=true to override)')
+    console.log('Seeding complete')
+    await prisma.$disconnect()
+    return
+  }
+
   try {
     const existingAdmin = await prisma.admin.findFirst()
     if (!existingAdmin) {
