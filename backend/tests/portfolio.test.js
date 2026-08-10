@@ -74,4 +74,26 @@ describe('Portfolio', () => {
     expect(res.status).toBe(200)
     expect(res.body.success).toBe(true)
   })
+
+  it('should persist portfolio data across requests (simulated session)', async () => {
+    const uniqueTitle = `test_PERSIST-${Date.now()}`
+    const createRes = await request(app)
+      .post(`${API}/admin/portfolio`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ title: uniqueTitle, description: 'Persistence test', category: 'Test', featured: false, displayOrder: 0 })
+
+    expect(createRes.status).toBe(201)
+    const id = createRes.body.data.id
+
+    const freshRes = await request(app).get(`${API}/portfolio/${id}`)
+    expect(freshRes.status).toBe(200)
+    expect(freshRes.body.data.title).toBe(uniqueTitle)
+    expect(freshRes.body.data.id).toBe(id)
+
+    const listRes = await request(app).get(`${API}/portfolio`)
+    expect(listRes.status).toBe(200)
+    const found = listRes.body.data.find((p) => (p.id || p._id) === id)
+    expect(found).toBeDefined()
+    expect(found.title).toBe(uniqueTitle)
+  })
 })
