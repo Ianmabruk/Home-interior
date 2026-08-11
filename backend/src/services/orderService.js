@@ -28,74 +28,89 @@ function parseOrder(order) {
 }
 
 async function createOrder(data) {
-  const enrichedItems = Array.isArray(data.items) ? data.items : (() => { try { return JSON.parse(data.items || '[]') } catch { return [] } })()
-  const productIds = enrichedItems.map((i) => i.productId).filter(Boolean)
-  const products = productIds.length > 0 ? await prisma.product.findMany({
-    where: { id: { in: productIds } },
-    include: { variants: true },
-  }) : []
-  const productMap = new Map(products.map((p) => [p.id, p]))
-
-  const finalItems = enrichedItems.map((item) => {
-    const product = productMap.get(item.productId)
-    const variant = product?.variants?.find((v) => v.id === item.variantId)
-    return {
-      productId: item.productId,
-      variantId: item.variantId,
-      quantity: item.quantity,
-      price: item.price,
-      name: product?.name || 'Unknown Product',
-      image: variant?.image || product?.mainImage || product?.images?.[0] || '',
-      selectedVariant: variant ? {
-        id: variant.id,
-        color: variant.color,
-        colorHex: variant.colorHex,
-        image: variant.image,
-        price: variant.price,
-        stock: variant.stock,
-      } : null,
+  try {
+    const enrichedItems = Array.isArray(data.items) ? data.items : (() => { try { return JSON.parse(data.items || '[]') } catch { return [] } })()
+    if (!enrichedItems.length) {
+      throw failure(400, 'Order must contain at least one item')
     }
-  })
 
-  const stockOperations = []
-  for (const item of finalItems) {
-    if (!item.productId) continue
-    const product = productMap.get(item.productId)
-    if (!product) continue
+    const productIds = enrichedItems.map((i) => i.productId).filter(Boolean)
+    const products = productIds.length > 0 ? await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      include: { variants: true },
+    }) : []
+    const productMap = new Map(products.map((p) => [p.id, p]))
 
-    const qty = Number(item.quantity) || 1
-    if (product.variants && item.variantId) {
-      const variant = product.variants.find((v) => v.id === item.variantId)
-      if (variant && variant.stock >= qty) {
+    const finalItems = enrichedItems.map((item) => {
+      const product = productMap.get(item.productId)
+      const variant = product?.variants?.find((v) => v.id === item.variantId)
+      return {
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        price: item.price,
+        name: product?.name || 'Unknown Product',
+        image: variant?.image || product?.mainImage || (Array.isArray(product?.images) ? product.images[0] : '') || '',
+        selectedVariant: variant ? {
+          id: variant.id,
+          color: variant.color,
+          colorHex: variant.colorHex,
+          image: variant.image,
+          price: variant.price,
+          stock: variant.stock,
+        } : null,
+      }
+    })
+
+    const missingProducts = enrichedItems.filter((i) => i.productId && !productMap.has(i.productId))
+    if (missingProducts.length > 0) {
+      console.warn(`[orders] Missing products for IDs: ${missingProducts.map((i) => i.productId).join(', ')}`)
+    }
+
+    const stockOperations = []
+    for (const item of finalItems) {
+      if (!item.productId) continue
+      const product = productMap.get(item.productId)
+      if (!product) continue
+
+      const qty = Number(item.quantity) || 1
+      if (product.variants && item.variantId) {
+        const variant = product.variants.find((v) => v.id === item.variantId)
+        if (variant && variant.stock >= qty) {
+          stockOperations.push(
+            prisma.productVariant.update({
+              where: { id: variant.id },
+              data: { stock: { decrement: qty } },
+            })
+          )
+        }
+      } else if (product.stock >= qty) {
         stockOperations.push(
-          prisma.productVariant.update({
-            where: { id: variant.id },
+          prisma.product.update({
+            where: { id: product.id },
             data: { stock: { decrement: qty } },
           })
         )
       }
-    } else if (product.stock >= qty) {
-      stockOperations.push(
-        prisma.product.update({
-          where: { id: product.id },
-          data: { stock: { decrement: qty } },
-        })
-      )
     }
-  }
 
-  const order = await prisma.$transaction(async (tx) => {
-    const created = await tx.order.create({
-      data: {
-        ...data,
-        items: JSON.stringify(finalItems),
-      },
+    let created
+    const order = await prisma.$transaction(async (tx) => {
+      created = await tx.order.create({
+        data: {
+          ...data,
+          items: JSON.stringify(finalItems),
+        },
+      })
+      if (stockOperations.length) await tx.$transaction(stockOperations)
+      return created
     })
-    if (stockOperations.length) await tx.$transaction(stockOperations)
-    return created
-  })
 
-  return parseOrder(order)
+    return parseOrder(created)
+  } catch (err) {
+    console.error('[orders] createOrder failed:', err)
+    throw failure(500, err?.message || 'Failed to create order')
+  }
 }
 
 async function getOrder(id) {
