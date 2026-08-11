@@ -24,7 +24,7 @@ export const LoginPage = () => {
       const result = await login(formData.email, formData.password)
       const isAdminUser = result?.user?.role === 'ADMIN'
       const from = location.state?.from
-      const target = from || (isAdminUser ? '/admin' : '/account')
+      const target = from || (isAdminUser ? '/admin' : '/')
       setSuccess('Welcome back!')
       setTimeout(() => navigate(target, { replace: true }), 1000)
     } catch (err) {
@@ -135,9 +135,6 @@ export const LoginPage = () => {
               <input type="checkbox" className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]" />
               <span className="text-sm text-[var(--primary)]/70">Remember me</span>
             </label>
-            <Link to="/forgot-password" className="text-sm text-[var(--accent)] hover:underline">
-              Forgot password?
-            </Link>
           </div>
 
           <button
@@ -155,20 +152,6 @@ export const LoginPage = () => {
             )}
           </button>
         </form>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mt-8 text-center"
-        >
-          <p className="text-[var(--primary)]/60">
-            Don&apos;t have an account?{' '}
-            <Link to="/register" className="text-[var(--accent)] font-medium hover:underline">
-              Sign Up
-            </Link>
-          </p>
-        </motion.div>
       </div>
     </>
   )

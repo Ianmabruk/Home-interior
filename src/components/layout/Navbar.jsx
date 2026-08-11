@@ -5,8 +5,6 @@ import {
   ShoppingBag,
   ShoppingCart,
   User,
-  LogIn,
-  UserPlus,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -251,25 +249,16 @@ export const Navbar = memo(() => {
             className="fixed right-4 md:right-8 top-[104px] md:top-[112px] w-56 md:w-64 bg-white rounded-2xl shadow-[0_20px_60px_rgba(42,36,31,0.18)] border border-[#E6D8C9]/60 overflow-hidden z-[9991] backdrop-blur-xl bg-white/95 animate-fade-in"
             role="menu"
           >
-            {isAuthenticated && user ? (
+            {isAuthenticated && user?.role === 'ADMIN' ? (
               <>
                 <Link
-                  to="/cart"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
-                  role="menuitem"
-                >
-                  <ShoppingCart size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                  Cart
-                </Link>
-                <Link
-                  to="/account"
+                  to="/admin"
                   onClick={() => setUserMenuOpen(false)}
                   className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
                   role="menuitem"
                 >
                   <LayoutDashboard size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                  My Account
+                  Admin Dashboard
                 </Link>
                 <hr className="my-2 border-[#E6D8C9]/40" />
                 <button
@@ -282,36 +271,15 @@ export const Navbar = memo(() => {
                 </button>
               </>
             ) : (
-              <>
-                <Link
-                  to="/login"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
-                  role="menuitem"
-                >
-                  <LayoutDashboard size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                  My Account
-                </Link>
-                <hr className="my-2 border-[#E6D8C9]/40" />
-                <Link
-                  to="/register"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
-                  role="menuitem"
-                >
-                  <UserPlus size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                  Sign Up
-                </Link>
-                <Link
-                  to="/login"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors border-t border-[#E6D8C9]/40"
-                  role="menuitem"
-                >
-                  <LogIn size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                  Log In
-                </Link>
-              </>
+              <Link
+                to="/login"
+                onClick={() => setUserMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
+                role="menuitem"
+              >
+                <LayoutDashboard size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
+                Admin Login
+              </Link>
             )}
           </motion.div>
         </>
@@ -547,18 +515,18 @@ export const Navbar = memo(() => {
                   </div>
 
                     <div className="mt-10 space-y-4">
-                      {isAuthenticated && user ? (
+                      {isAuthenticated && user?.role === 'ADMIN' ? (
                         <>
                           <motion.div variants={itemVariants}>
                             <Link
-                              to="/cart"
+                              to="/admin"
                               onClick={() => setMobileOpen(false)}
                               className="flex items-center gap-5 rounded-2xl px-5 py-4.5 text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-all duration-300"
                             >
                               <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E6D8C9]/40 text-[#2A241F]/70">
-                                <ShoppingCart size={20} strokeWidth={1.5} aria-hidden="true" />
+                                <LayoutDashboard size={20} strokeWidth={1.5} aria-hidden="true" />
                               </span>
-                              <span className="font-display text-lg md:text-xl font-normal tracking-wide">Cart</span>
+                              <span className="font-display text-lg md:text-xl font-normal tracking-wide">Admin Dashboard</span>
                             </Link>
                           </motion.div>
                           <motion.button
@@ -571,28 +539,20 @@ export const Navbar = memo(() => {
                            </span>
                            <span className="font-display text-lg md:text-xl font-normal tracking-wide">Logout</span>
                          </motion.button>
-                       </>
-                     ) : (
-                      <motion.div variants={itemVariants} className="space-y-3">
-                        <Link
-                          to="/login"
-                          onClick={() => setMobileOpen(false)}
-                          className="flex items-center justify-center gap-2 rounded-full border border-[#2A241F]/20 bg-white px-6 py-3.5 text-sm font-medium text-[#2A241F] transition-all duration-300 hover:border-[#E89A43] hover:text-[#E89A43]"
-                        >
-                          <LogIn size={16} strokeWidth={1.5} aria-hidden="true" />
-                          Log In
-                        </Link>
-                        <Link
-                          to="/register"
-                          onClick={() => setMobileOpen(false)}
-                          className="flex items-center justify-center gap-2 rounded-full bg-[#2A241F] px-6 py-3.5 text-sm font-medium text-white transition-all duration-300 hover:bg-[#2A241F]/90"
-                        >
-                          <UserPlus size={16} strokeWidth={1.5} aria-hidden="true" />
-                          Sign Up
-                        </Link>
-                      </motion.div>
-                    )}
-                  </div>
+                        </>
+                      ) : (
+                        <motion.div variants={itemVariants} className="space-y-3">
+                          <Link
+                            to="/login"
+                            onClick={() => setMobileOpen(false)}
+                            className="flex items-center justify-center gap-2 rounded-full border border-[#2A241F]/20 bg-white px-6 py-3.5 text-sm font-medium text-[#2A241F] transition-all duration-300 hover:border-[#E89A43] hover:text-[#E89A43]"
+                          >
+                            <LayoutDashboard size={16} strokeWidth={1.5} aria-hidden="true" />
+                            Admin Login
+                          </Link>
+                        </motion.div>
+                      )}
+                    </div>
                 </motion.nav>
               </div>
             </motion.div>

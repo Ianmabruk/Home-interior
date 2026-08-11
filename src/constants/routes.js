@@ -19,9 +19,6 @@ export const PUBLIC_ROUTES = {
 
 export const AUTH_ROUTES = {
   LOGIN: '/login',
-  REGISTER: '/register',
-  FORGOT_PASSWORD: '/forgot-password',
-  RESET_PASSWORD: '/reset-password/:token',
 }
 
 export const ACCOUNT_ROUTES = {
@@ -29,6 +26,8 @@ export const ACCOUNT_ROUTES = {
   WISHLIST: '/wishlist',
   CART: '/cart',
   CHECKOUT: '/checkout',
+  ORDERS: '/account/orders',
+  ORDER_CONFIRMATION: '/order-confirmation',
 }
 
 export const ADMIN_ROUTES = {

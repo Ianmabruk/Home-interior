@@ -17,45 +17,12 @@ async function createTestAdmin(email) {
   })
 }
 
-async function createTestUser(email) {
-  const passwordHash = await bcrypt.hash('TestPass123!', 12)
-  return prisma.admin.create({
-    data: { email, fullName: 'Test User', passwordHash, role: 'USER' },
-    select: { id: true, email: true, fullName: true, role: true },
-  })
-}
-
 async function getAuthToken(email, password = 'TestPass123!') {
   const res = await request(app).post(`${API}/auth/login`).send({ email, password })
   return res.body?.data?.accessToken || null
 }
 
 describe('Auth', () => {
-  it('should signup a new user with USER role', async () => {
-    const email = generateTestEmail()
-    const res = await request(app)
-      .post(`${API}/auth/register`)
-      .send({ fullName: 'Test User', email, password: 'TestPass123!' })
-
-    expect(res.status).toBe(201)
-    expect(res.body.success).toBe(true)
-    expect(res.body.data.user.role).toBe('USER')
-    expect(res.body.data.user.email).toBe(email)
-    expect(res.body.data.accessToken).toBeDefined()
-  })
-
-  it('should reject signup with duplicate email', async () => {
-    const email = generateTestEmail()
-    await createTestUser(email)
-
-    const res = await request(app)
-      .post(`${API}/auth/register`)
-      .send({ fullName: 'Test User', email, password: 'TestPass123!' })
-
-    expect(res.status).toBe(409)
-    expect(res.body.success).toBe(false)
-  })
-
   it('should login with valid credentials', async () => {
     const email = generateTestEmail()
     await createTestAdmin(email)

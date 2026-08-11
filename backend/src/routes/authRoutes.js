@@ -8,13 +8,9 @@ import { authSchemas } from '../validations/schemas.js'
 const router = Router()
 
 router.post('/login', validateZod(authSchemas.login), authController.login)
-router.post('/register', validateZod(authSchemas.register), authController.register)
 router.post('/refresh', validateCsrfToken, authController.refresh)
 router.post('/logout', authController.logout)
 router.get('/me', authenticate, authController.me)
 router.patch('/me', authenticate, validateZod(authSchemas.updateProfile), authController.updateProfile)
-router.post('/forgot-password', validateZod(authSchemas.forgotPassword), authController.forgotPassword)
-router.post('/verify-reset-token', authController.verifyResetToken)
-router.post('/reset-password', validateZod(authSchemas.resetPassword), authController.resetPassword)
 
 export default router

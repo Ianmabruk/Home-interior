@@ -6,7 +6,7 @@ const router = Router()
 
 router.post('/', orderController.create)
 router.get('/me', authenticate, orderController.listMine)
-router.get('/:id', authenticate, orderController.get)
+router.get('/:id', orderController.get)
 router.get('/', authenticate, authorize('ADMIN'), orderController.listAll)
 router.patch('/:id/status', authenticate, authorize('ADMIN'), orderController.updateStatus)
 

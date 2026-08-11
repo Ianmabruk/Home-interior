@@ -3,10 +3,8 @@ import { motion } from 'framer-motion'
 import { Send, Loader2, User, Bot } from 'lucide-react'
 import { api } from '@services/api'
 import { PageMeta } from '@hooks/usePageMeta'
-import { useAuth } from '@context/AuthContext'
 
 export const ChatPage = () => {
-  const { isAuthenticated, loading: authLoading } = useAuth()
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
@@ -14,7 +12,6 @@ export const ChatPage = () => {
   const messagesEndRef = useRef(null)
 
   const loadMessages = useCallback(async () => {
-    if (!isAuthenticated) return
     try {
       const res = await api.get('/chat')
       setMessages(res.data || [])
@@ -24,15 +21,11 @@ export const ChatPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [isAuthenticated])
+  }, [])
 
   useEffect(() => {
-    if (isAuthenticated) {
-      loadMessages()
-    } else {
-      setLoading(false)
-    }
-  }, [isAuthenticated, loadMessages])
+    loadMessages()
+  }, [loadMessages])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -68,38 +61,10 @@ export const ChatPage = () => {
     }
   }
 
-  if (authLoading) {
+  if (loading) {
     return (
       <main className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
-      </main>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <main className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-[var(--secondary)]/30 text-[var(--accent)]"
-          >
-            <Bot size={48} strokeWidth={1.5} />
-          </motion.div>
-          <h1 className="font-display text-3xl font-semibold text-[var(--primary)] mb-3">Sign In to Chat</h1>
-          <p className="text-[var(--primary)]/60 mb-6">You need to be logged in to access the chat. Please sign in or create an account.</p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="/login" className="btn-luxury-primary inline-flex items-center gap-2">
-              <User size={14} strokeWidth={1.5} />
-              Sign In
-            </a>
-            <a href="/register" className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg)] px-8 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--primary)] transition-all duration-300 hover:border-[var(--accent)] hover:text-[var(--accent)]">
-              <User size={14} strokeWidth={1.5} />
-              Sign Up
-            </a>
-          </div>
-        </div>
       </main>
     )
   }

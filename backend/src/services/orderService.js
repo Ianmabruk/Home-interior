@@ -3,6 +3,7 @@ import { failure } from '../utils/response.js'
 
 export const orderService = {
   createOrder,
+  getOrder,
   getUserOrders,
   getAllOrders,
   updateOrderStatus,

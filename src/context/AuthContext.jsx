@@ -46,11 +46,6 @@ export function AuthProvider({ children }) {
     return res.data
   }, [])
 
-  const register = useCallback(async (fullName, email, password) => {
-    const res = await api.post('/auth/register', { fullName, email, password })
-    return res.data
-  }, [])
-
   const logout = useCallback(async () => {
     try {
       await api.post('/auth/logout')
@@ -74,14 +69,10 @@ export function AuthProvider({ children }) {
       isAuthenticated: !!user,
       isAdmin: user?.role === 'ADMIN',
       login,
-      register,
       logout,
-      resetPassword: async (token, password) => {
-        await api.post('/auth/reset-password', { token, password })
-      },
       refreshUser,
     }),
-    [user, loading, login, register, logout, refreshUser],
+    [user, loading, login, logout, refreshUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

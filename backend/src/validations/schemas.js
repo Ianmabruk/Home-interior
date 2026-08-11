@@ -5,21 +5,11 @@ const email = z.string().min(1, 'Email is required').email('Invalid email addres
 
 export const authSchemas = {
   login: z.object({
-    email,
+    email: z.string().email('Invalid email address'),
     password: z.string().min(1, 'Password is required'),
   }),
-  register: z.object({
-    fullName: z.string().min(1, 'Full name is required'),
-    email,
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-  }),
-  forgotPassword: z.object({ email }),
-  resetPassword: z.object({
-    token: z.string().min(1, 'Token is required'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-  }),
   updateProfile: z.object({
-    fullName: z.string().min(1, 'Full name is required').optional(),
+    fullName: z.string().min(1, 'Full name is required'),
   }),
 }
 

@@ -62,15 +62,10 @@ const NotFoundPage = lazyWithCache(() => import('@pages/public/NotFoundPage').th
 // Auth pages
 const AuthShell = lazyWithCache(() => import('@pages/auth/AuthShell').then(m => ({ default: m.AuthShell })), 'auth-shell')
 const LoginPage = lazyWithCache(() => import('@pages/auth/LoginPage').then(m => ({ default: m.LoginPage })), 'login')
-const RegisterPage = lazyWithCache(() => import('@pages/auth/RegisterPage').then(m => ({ default: m.RegisterPage })), 'register')
-const ForgotPasswordPage = lazyWithCache(() => import('@pages/auth/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage })), 'forgot-password')
-const ResetPasswordPage = lazyWithCache(() => import('@pages/auth/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage })), 'reset-password')
 
 // Account pages
-const AccountPage = lazyWithCache(() => import('@pages/account/AccountPage').then(m => ({ default: m.AccountPage })), 'account')
 const CartPage = lazyWithCache(() => import('@pages/account/CartPage').then(m => ({ default: m.CartPage })), 'cart')
 const CheckoutPage = lazyWithCache(() => import('@pages/account/CheckoutPage').then(m => ({ default: m.CheckoutPage })), 'checkout')
-const OrdersPage = lazyWithCache(() => import('@pages/account/OrdersPage').then(m => ({ default: m.OrdersPage })), 'orders')
 const OrderConfirmationPage = lazyWithCache(() => import('@pages/account/OrderConfirmationPage').then(m => ({ default: m.OrderConfirmationPage })), 'order-confirmation')
 const WishlistPage = lazyWithCache(() => import('@pages/account/WishlistPage').then(m => ({ default: m.WishlistPage })), 'wishlist')
 
@@ -146,18 +141,10 @@ export const AppRouter = () => {
           <Route path="/blog/:id" element={<ErrorBoundaryRoute element={<BlogDetailPage />} />} />
           <Route path="/contact" element={<ErrorBoundaryRoute element={<ContactPage />} />} />
           <Route path="/chat" element={<ErrorBoundaryRoute element={<ChatPage />} />} />
-
-          <Route element={<ProtectedRoute />}>
-            <Route path="/account" element={<ErrorBoundaryRoute element={<AccountPage />} />}>
-              <Route path="wishlist" element={<ErrorBoundaryRoute element={<AccountPage />} />} />
-            </Route>
-            <Route path="/wishlist" element={<ErrorBoundaryRoute element={<WishlistPage />} />} />
-            <Route path="/cart" element={<ErrorBoundaryRoute element={<CartPage />} />} />
-            <Route path="/checkout" element={<ErrorBoundaryRoute element={<CheckoutPage />} />} />
-            <Route path="/account/orders" element={<ErrorBoundaryRoute element={<OrdersPage />} />} />
-            <Route path="/account/orders/:id" element={<ErrorBoundaryRoute element={<OrderConfirmationPage />} />} />
-            <Route path="/order-confirmation" element={<ErrorBoundaryRoute element={<OrderConfirmationPage />} />} />
-          </Route>
+          <Route path="/cart" element={<ErrorBoundaryRoute element={<CartPage />} />} />
+          <Route path="/checkout" element={<ErrorBoundaryRoute element={<CheckoutPage />} />} />
+          <Route path="/account/orders/:id" element={<ErrorBoundaryRoute element={<OrderConfirmationPage />} />} />
+          <Route path="/order-confirmation" element={<ErrorBoundaryRoute element={<OrderConfirmationPage />} />} />
 
           <Route element={<ProtectedRoute adminOnly />}>
             <Route path="/admin" element={<ErrorBoundaryRoute element={<AdminPage />} />}>
@@ -175,13 +162,11 @@ export const AppRouter = () => {
               <Route path="settings" element={<ErrorBoundaryRoute element={<SettingsDashboard />} />} />
             </Route>
           </Route>
-        </Route>
 
-        <Route element={<AuthShell />}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+          <Route element={<AuthShell />}>
+            <Route path="/login" element={<LoginPage />} />
+          </Route>
+
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

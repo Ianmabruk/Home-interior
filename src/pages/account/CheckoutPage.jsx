@@ -3,14 +3,12 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Loader2, AlertCircle, CheckCircle, ChevronRight, MapPin, CreditCard, Truck, Shield, Mail, Lock, ShoppingBag } from 'lucide-react'
 import { api } from '../../services/api'
-import { useAuth } from '../../context/AuthContext'
 import { useShop } from '../../context/ShopContext'
 import { useCurrency } from '../../context/CurrencyContext'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { PageMeta } from '../../hooks/usePageMeta'
 
 export const CheckoutPage = () => {
-  const { user, isAuthenticated } = useAuth()
   const { cart, clearCart } = useShop()
   const { formatPrice } = useCurrency()
   const navigate = useNavigate()
@@ -20,9 +18,9 @@ export const CheckoutPage = () => {
   const [success, setSuccess] = useState(false)
   const [orderId, setOrderId] = useState(null)
   const [formData, setFormData] = useState({
-    firstName: user?.fullName?.split(' ')[0] || '',
-    lastName: user?.fullName?.split(' ').slice(1).join(' ') || '',
-    email: user?.email || '',
+    firstName: '',
+    lastName: '',
+    email: '',
     phone: '',
     address: '',
     city: '',
@@ -37,10 +35,10 @@ export const CheckoutPage = () => {
   })
 
   useEffect(() => {
-    if (!isAuthenticated && cart?.length === 0) {
-      navigate('/login')
+    if (cart?.length === 0) {
+      navigate('/cart')
     }
-  }, [isAuthenticated, cart, navigate])
+  }, [cart, navigate])
 
   if (!cart?.length) {
     return (
@@ -101,9 +99,9 @@ export const CheckoutPage = () => {
       setSuccess(true)
       dispatchAdminDataChanged('orders-changed')
       if (newOrderId) {
-        setTimeout(() => navigate(`/account/orders/${newOrderId}`), 2500)
+        setTimeout(() => navigate(`/order-confirmation/${newOrderId}`), 2500)
       } else {
-        setTimeout(() => navigate('/account/orders'), 2500)
+        setTimeout(() => navigate('/shop'), 2500)
       }
     } catch (err) {
       setError(err?.message || 'Failed to place order')

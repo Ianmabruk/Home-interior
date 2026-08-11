@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import crypto from 'crypto'
 import { prisma } from '../config/database.js'
 import { failure } from '../utils/response.js'
 import { env } from '../config/env.js'
@@ -10,9 +9,6 @@ export const authService = {
   refresh,
   logout,
   me,
-  requestPasswordReset,
-  verifyResetToken,
-  resetPassword,
 }
 
 async function login(email, password) {
@@ -99,54 +95,4 @@ async function me(adminId) {
   })
   if (!admin) throw failure(404, 'Admin not found')
   return admin
-}
-
-async function requestPasswordReset(email) {
-  const admin = await prisma.admin.findUnique({ where: { email } })
-  if (!admin) {
-    return { message: 'If the email exists, a reset link has been sent' }
-  }
-
-  const token = crypto.randomBytes(32).toString('hex')
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000)
-
-  await prisma.passwordReset.deleteMany({ where: { adminId: admin.id } }).catch(() => {})
-  await prisma.passwordReset.create({
-    data: {
-      adminId: admin.id,
-      token,
-      expiresAt,
-    },
-  })
-
-  return { message: 'If the email exists, a reset link has been sent' }
-}
-
-async function verifyResetToken(token) {
-  const reset = await prisma.passwordReset.findFirst({
-    where: { token },
-  })
-  if (!reset || new Date(reset.expiresAt) < new Date()) {
-    throw failure(400, 'Invalid or expired reset token')
-  }
-  return { valid: true }
-}
-
-async function resetPassword(token, newPassword) {
-  const reset = await prisma.passwordReset.findFirst({
-    where: { token },
-  })
-  if (!reset || new Date(reset.expiresAt) < new Date()) {
-    throw failure(400, 'Invalid or expired reset token')
-  }
-
-  const passwordHash = await bcrypt.hash(newPassword, 12)
-  await prisma.admin.update({
-    where: { id: reset.adminId },
-    data: { passwordHash },
-  })
-
-  await prisma.passwordReset.deleteMany({ where: { adminId: reset.adminId } })
-
-  return { message: 'Password has been reset successfully' }
 }
