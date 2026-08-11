@@ -108,12 +108,14 @@ describe('Auth', () => {
       .post(`${API}/auth/login`)
       .send({ email, password: 'TestPass123!' })
 
+    const csrfToken = loginRes.body?.data?.csrfToken
     const cookieHeader = loginRes.headers['set-cookie']?.find(c => c.startsWith('refreshToken='))
     const refreshToken = cookieHeader?.split(';')[0]?.split('=').slice(1).join('=')
 
     const res = await request(app)
       .post(`${API}/auth/refresh`)
       .set('Cookie', `refreshToken=${encodeURIComponent(refreshToken || '')}`)
+      .set('x-csrf-token', csrfToken || '')
 
     expect(res.status).toBe(200)
     expect(res.body.success).toBe(true)

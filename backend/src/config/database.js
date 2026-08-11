@@ -8,6 +8,7 @@ function createPrismaClient() {
     const limit = process.env.NODE_ENV === 'production' ? 5 : 2
     url.searchParams.set('connection_limit', String(limit))
   }
+  url.searchParams.set('connect_timeout', '10')
   const finalUrl = url.toString()
 
   return new PrismaClient({
@@ -44,8 +45,12 @@ let connectPromise = null
 
 export async function connectDatabase() {
   if (connectPromise) return connectPromise
-  connectPromise = prisma.$connect().catch((err) => {
-    console.error('[database] initial connect failed:', err?.message || err)
+  connectPromise = withRetry(
+    () => prisma.$connect(),
+    5,
+    1000,
+  ).catch((err) => {
+    console.error('[database] initial connect failed after retries:', err?.message || err)
     connectPromise = null
     throw err
   })

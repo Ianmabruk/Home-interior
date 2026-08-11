@@ -46,6 +46,9 @@ export const orderController = {
 
   get: asyncHandler(async (req, res) => {
     const order = await orderService.getOrder(req.params.id)
+    if (req.admin.role !== 'ADMIN' && order.email !== req.admin.email) {
+      return res.status(403).json({ success: false, message: 'Access denied' })
+    }
     res.json({ success: true, data: order })
   }),
 
