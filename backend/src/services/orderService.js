@@ -67,40 +67,46 @@ async function createOrder(data) {
       console.warn(`[orders] Missing products for IDs: ${missingProducts.map((i) => i.productId).join(', ')}`)
     }
 
-    const order = await prisma.$transaction(async (tx) => {
-      const created = await tx.order.create({
+    let created
+    try {
+      created = await prisma.order.create({
         data: {
           ...data,
           items: JSON.stringify(finalItems),
         },
       })
+    } catch (err) {
+      console.error('[orders] order create failed:', err)
+      throw failure(500, err?.message || 'Failed to create order')
+    }
 
-      for (const item of finalItems) {
-        if (!item.productId) continue
-        const product = productMap.get(item.productId)
-        if (!product) continue
+    for (const item of finalItems) {
+      if (!item.productId) continue
+      const product = productMap.get(item.productId)
+      if (!product) continue
 
-        const qty = Number(item.quantity) || 1
+      const qty = Number(item.quantity) || 1
+      try {
         if (product.variants && item.variantId) {
           const variant = product.variants.find((v) => v.id === item.variantId)
           if (variant && variant.stock >= qty) {
-            await tx.productVariant.update({
+            await prisma.productVariant.update({
               where: { id: variant.id },
               data: { stock: { decrement: qty } },
             })
           }
         } else if (product.stock >= qty) {
-          await tx.product.update({
+          await prisma.product.update({
             where: { id: product.id },
             data: { stock: { decrement: qty } },
           })
         }
+      } catch (stockErr) {
+        console.error(`[orders] stock update failed for product ${item.productId}:`, stockErr)
       }
+    }
 
-      return created
-    })
-
-    return parseOrder(order)
+    return parseOrder(created)
   } catch (err) {
     console.error('[orders] createOrder failed:', err)
     throw failure(500, err?.message || 'Failed to create order')

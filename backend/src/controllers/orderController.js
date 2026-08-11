@@ -5,11 +5,25 @@ import { failure } from '../utils/response.js'
 export const orderController = {
   create: asyncHandler(async (req, res) => {
     const shipping = req.body.shipping || req.body.shippingAddress || {}
-    const name = shipping.fullName || shipping.name || req.body.name || ''
-    const email = shipping.email || req.body.email || ''
-    const phone = shipping.phone || req.body.phone || ''
+    const name = String(shipping.fullName || shipping.name || req.body.name || '').trim()
+    const email = String(shipping.email || req.body.email || '').trim()
+    const phone = String(shipping.phone || req.body.phone || '').trim()
 
-    const rawItems = typeof req.body.items === 'string' ? req.body.items : JSON.stringify(req.body.items || [])
+    if (!email || !name) {
+      return res.status(400).json({ success: false, message: 'Name and email are required' })
+    }
+
+    const rawItems = typeof req.body.items === 'string' ? req.body.items : JSON.stringify(Array.isArray(req.body.items) ? req.body.items : [])
+    let parsedItems
+    try {
+      parsedItems = JSON.parse(rawItems)
+    } catch {
+      return res.status(400).json({ success: false, message: 'Invalid items format' })
+    }
+    if (!Array.isArray(parsedItems) || parsedItems.length === 0) {
+      return res.status(400).json({ success: false, message: 'Order must contain at least one item' })
+    }
+
     const rawShipping = typeof shipping === 'string' ? shipping : JSON.stringify(shipping)
     const rawPayment = typeof req.body.paymentDetails === 'string' ? req.body.paymentDetails : JSON.stringify(req.body.paymentDetails || {})
 

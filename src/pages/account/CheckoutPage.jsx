@@ -78,10 +78,12 @@ export const CheckoutPage = () => {
         total,
       }
       const res = await api.post('/orders', orderData)
+      await clearCart()
       const newOrderId = res.data?.data?._id || res.data?.data?.id || res.data?._id || res.data?.id
       setOrderId(newOrderId)
       setSuccess(true)
       dispatchAdminDataChanged('orders-changed')
+      try { localStorage.setItem('hok_order_placed', '1') } catch {}
       if (newOrderId) {
         setTimeout(() => navigate(`/order-confirmation/${newOrderId}`), 2500)
       } else {

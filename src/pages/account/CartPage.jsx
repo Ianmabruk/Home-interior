@@ -13,6 +13,21 @@ export const CartPage = () => {
   const [updating, setUpdating] = useState(null)
   const [orderPlaced, setOrderPlaced] = useState(false)
 
+  useEffect(() => {
+    try {
+      const flag = localStorage.getItem('hok_order_placed')
+      if (flag === '1') {
+        setOrderPlaced(true)
+        localStorage.removeItem('hok_order_placed')
+        setTimeout(() => setOrderPlaced(false), 6000)
+      }
+    } catch {}
+
+    return () => {
+      try { localStorage.removeItem('hok_order_placed') } catch {}
+    }
+  }, [])
+
   useAdminDataChangedListener([ADMIN_EVENT_TYPES.ORDERS_CHANGED], () => {
     setOrderPlaced(true)
     setTimeout(() => setOrderPlaced(false), 6000)
