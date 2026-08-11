@@ -58,6 +58,7 @@ export const CheckoutPage = () => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    await clearCart()
     try {
       const orderData = {
         items: cart.map(item => ({
@@ -77,7 +78,6 @@ export const CheckoutPage = () => {
         total,
       }
       const res = await api.post('/orders', orderData)
-      await clearCart()
       const newOrderId = res.data?.data?._id || res.data?.data?.id || res.data?._id || res.data?.id
       setOrderId(newOrderId)
       setSuccess(true)
