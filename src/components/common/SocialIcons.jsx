@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { SiFacebook, SiInstagram, SiPinterest, SiTiktok, SiWhatsapp, SiX, SiYoutube, SiGlobus } from 'react-icons/si'
-import { SOCIAL_LINKS } from '@constants/socialLinks'
+import { SOCIAL_LINKS, getDefaultSocialItems } from '@constants/socialLinks'
 
 const platformIconMap = {
   instagram: SiInstagram,
@@ -15,10 +15,15 @@ const platformIconMap = {
 
 export const SocialIcons = ({ className = '', items: externalItems, dark = false }) => {
   const defaultItems = useMemo(() => {
-    return SOCIAL_LINKS.filter((link) => link.link && link.link.trim() !== '')
+    return getDefaultSocialItems()
   }, [])
 
-  const items = externalItems !== undefined ? externalItems : defaultItems
+  const items = useMemo(() => {
+    if (externalItems !== undefined) {
+      return externalItems.filter((item) => item && item.link && item.link.trim() !== '')
+    }
+    return defaultItems
+  }, [externalItems])
 
   const getIconForPlatform = (platform) => {
     if (!platform) return SiGlobus

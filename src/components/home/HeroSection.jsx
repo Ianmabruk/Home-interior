@@ -42,18 +42,26 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
   const [opacityB, setOpacityB] = useState(0)
   const [nextImage, setNextImage] = useState(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const firstImageLoadedRef = useRef(false)
   const transitionTimeoutRef = useRef(null)
 
   const images = useMemo(() => {
     if (!heroImages || heroImages.length === 0) return []
-    return heroImages
-      .filter(item => item)
-      .map(item => ({
-        url: typeof item === 'string' ? item : (item.imageUrl || item.mediaUrls?.[0] || item.url),
-        alt: item.title || item.alt || 'Luxury interior design project',
-      }))
-      .filter(item => item.url)
+    const allImages = []
+    heroImages.forEach(item => {
+      if (!item) return
+      const urls = item.mediaUrls?.length > 0 ? item.mediaUrls : (item.imageUrl ? [item.imageUrl] : [])
+      urls.forEach(url => {
+        if (url) {
+          allImages.push({
+            url,
+            alt: item.title || item.alt || 'Luxury interior design project',
+          })
+        }
+      })
+    })
+    return allImages
   }, [heroImages])
 
   const firstImageUrl = images[0]?.url
@@ -74,12 +82,21 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
   }, [firstImageUrl])
 
   useEffect(() => {
-    if (images.length <= 1) return
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setPrefersReducedMotion(mq.matches)
+    const handler = (e) => setPrefersReducedMotion(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  useEffect(() => {
+    if (images.length <= 1 || prefersReducedMotion) return
+    const interval = 5000
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % images.length)
-    }, 8000)
+    }, interval)
     return () => clearInterval(timer)
-  }, [images.length])
+  }, [images.length, prefersReducedMotion])
 
   useEffect(() => {
     if (currentIndex === displayIndex) return
@@ -90,19 +107,20 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
     if (transitionTimeoutRef.current) {
       clearTimeout(transitionTimeoutRef.current)
     }
+    const duration = prefersReducedMotion ? 300 : 1200
     transitionTimeoutRef.current = setTimeout(() => {
       setDisplayIndex(currentIndex)
       setOpacityA(1)
       setOpacityB(0)
       setNextImage(null)
-    }, 1200)
+    }, duration)
 
     return () => {
       if (transitionTimeoutRef.current) {
         clearTimeout(transitionTimeoutRef.current)
       }
     }
-  }, [currentIndex, displayIndex, images])
+  }, [currentIndex, displayIndex, images, prefersReducedMotion])
 
   const currentImage = images[displayIndex]
   const activeImage = currentImage?.url
@@ -136,7 +154,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
         className="absolute inset-0 will-change-transform"
         initial={{ scale: 1.08 }}
         animate={{ scale: 1 }}
-        transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: prefersReducedMotion ? 0.3 : 1.6, ease: [0.22, 1, 0.36, 1] }}
       >
         <img
           src={getOptimizedUrl(activeImage, { width: 1920, crop: 'limit' })}

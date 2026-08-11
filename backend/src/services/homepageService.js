@@ -1,10 +1,6 @@
 import { prisma, withRetry } from '../config/database.js'
 import { contactService } from './contactService.js'
 
-export const homepageService = {
-  getHomepage,
-}
-
 async function getHomepage() {
   try {
     const data = await withRetry(() =>
@@ -150,5 +146,8 @@ async function getHomepage() {
       contact: null,
     }
   }
-  }
+}
+
+export const homepageService = {
+  getHomepage,
 }

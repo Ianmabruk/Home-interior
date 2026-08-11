@@ -1,15 +1,17 @@
 import { Router } from 'express'
-import { authenticate } from '../middleware/auth.js'
+import { authenticate, authorize } from '../middleware/auth.js'
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import { socialController } from '../controllers/socialController.js'
 import { uploadSingle } from '../middleware/upload.js'
 
 const router = Router()
 
-router.get('/', authenticate, socialController.get)
-router.post('/', authenticate, uploadSingle('image'), socialController.create)
-router.patch('/:id', authenticate, uploadSingle('image'), socialController.update)
-router.delete('/:id', authenticate, socialController.delete)
-router.patch('/reorder', authenticate, socialController.reorder)
+router.use(authenticate, authorize('ADMIN'))
+
+router.get('/', socialController.get)
+router.post('/', uploadSingle('image'), socialController.create)
+router.patch('/:id', uploadSingle('image'), socialController.update)
+router.delete('/:id', socialController.delete)
+router.patch('/reorder', socialController.reorder)
 
 export default router
