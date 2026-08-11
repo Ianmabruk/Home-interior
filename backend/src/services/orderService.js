@@ -67,46 +67,40 @@ async function createOrder(data) {
       console.warn(`[orders] Missing products for IDs: ${missingProducts.map((i) => i.productId).join(', ')}`)
     }
 
-    const stockOperations = []
-    for (const item of finalItems) {
-      if (!item.productId) continue
-      const product = productMap.get(item.productId)
-      if (!product) continue
-
-      const qty = Number(item.quantity) || 1
-      if (product.variants && item.variantId) {
-        const variant = product.variants.find((v) => v.id === item.variantId)
-        if (variant && variant.stock >= qty) {
-          stockOperations.push(
-            prisma.productVariant.update({
-              where: { id: variant.id },
-              data: { stock: { decrement: qty } },
-            })
-          )
-        }
-      } else if (product.stock >= qty) {
-        stockOperations.push(
-          prisma.product.update({
-            where: { id: product.id },
-            data: { stock: { decrement: qty } },
-          })
-        )
-      }
-    }
-
-    let created
     const order = await prisma.$transaction(async (tx) => {
-      created = await tx.order.create({
+      const created = await tx.order.create({
         data: {
           ...data,
           items: JSON.stringify(finalItems),
         },
       })
-      if (stockOperations.length) await tx.$transaction(stockOperations)
+
+      for (const item of finalItems) {
+        if (!item.productId) continue
+        const product = productMap.get(item.productId)
+        if (!product) continue
+
+        const qty = Number(item.quantity) || 1
+        if (product.variants && item.variantId) {
+          const variant = product.variants.find((v) => v.id === item.variantId)
+          if (variant && variant.stock >= qty) {
+            await tx.productVariant.update({
+              where: { id: variant.id },
+              data: { stock: { decrement: qty } },
+            })
+          }
+        } else if (product.stock >= qty) {
+          await tx.product.update({
+            where: { id: product.id },
+            data: { stock: { decrement: qty } },
+          })
+        }
+      }
+
       return created
     })
 
-    return parseOrder(created)
+    return parseOrder(order)
   } catch (err) {
     console.error('[orders] createOrder failed:', err)
     throw failure(500, err?.message || 'Failed to create order')
