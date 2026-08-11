@@ -67,7 +67,6 @@ const LoginPage = lazyWithCache(() => import('@pages/auth/LoginPage').then(m => 
 const CartPage = lazyWithCache(() => import('@pages/account/CartPage').then(m => ({ default: m.CartPage })), 'cart')
 const CheckoutPage = lazyWithCache(() => import('@pages/account/CheckoutPage').then(m => ({ default: m.CheckoutPage })), 'checkout')
 const OrderConfirmationPage = lazyWithCache(() => import('@pages/account/OrderConfirmationPage').then(m => ({ default: m.OrderConfirmationPage })), 'order-confirmation')
-const WishlistPage = lazyWithCache(() => import('@pages/account/WishlistPage').then(m => ({ default: m.WishlistPage })), 'wishlist')
 
 // Admin pages
 const AdminPage = lazyWithCache(() => import('@pages/admin/AdminPage').then(m => ({ default: m.AdminPage })), 'admin')

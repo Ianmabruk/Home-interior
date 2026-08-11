@@ -97,6 +97,27 @@ export const ProductDetailPage = () => {
     }
   }
 
+  const handleAddToCartClick = async () => {
+    if (!product) return
+    setAddingToCart(true)
+    try {
+      await addToCart(product, selectedVariant, quantity)
+    } finally {
+      setAddingToCart(false)
+    }
+  }
+
+  const handleBuyNowClick = async () => {
+    if (!product) return
+    setAddingToCart(true)
+    try {
+      await addToCart(product, selectedVariant, quantity)
+      navigate('/checkout')
+    } finally {
+      setAddingToCart(false)
+    }
+  }
+
   const handleAddToWishlist = async () => {
     if (!product) return
     await addToWishlist(product._id)
@@ -153,7 +174,7 @@ export const ProductDetailPage = () => {
   }
 
   return (
-    <main>
+    <main className="pb-20 md:pb-0">
       <PageMeta
         title={`${product.name} — HOK Interior Designs`}
         description={product.description || `Discover ${product.name} at HOK Interior Designs.`}
@@ -361,94 +382,129 @@ export const ProductDetailPage = () => {
                     <p className="text-[var(--primary)]/70">{product.materials}</p>
                   </div>
                 )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Fullscreen Lightbox */}
-      <AnimatePresence>
-        {lightboxOpen && images.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-[var(--primary)]/95 backdrop-blur-sm flex items-center justify-center"
-            onClick={() => setLightboxOpen(false)}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Fullscreen gallery"
-          >
-            <button
+        {/* Fullscreen Lightbox */}
+        <AnimatePresence>
+          {lightboxOpen && images.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-[var(--primary)]/95 backdrop-blur-sm flex items-center justify-center"
               onClick={() => setLightboxOpen(false)}
-              className="absolute top-6 right-6 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-              aria-label="Close gallery"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Fullscreen gallery"
             >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
+              <button
+                onClick={() => setLightboxOpen(false)}
+                className="absolute top-6 right-6 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                aria-label="Close gallery"
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
 
+              <button
+                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((i) => (i - 1 + images.length) % images.length); reset() }}
+                className="absolute left-6 z-10 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors hidden md:block"
+                aria-label="Previous image"
+              >
+                <ChevronLeft size={28} strokeWidth={1.5} />
+              </button>
+
+              <button
+                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((i) => (i + 1) % images.length); reset() }}
+                className="absolute right-6 z-10 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors hidden md:block"
+                aria-label="Next image"
+              >
+                <ChevronRight size={28} strokeWidth={1.5} />
+              </button>
+
+              <div
+                style={zoomStyle}
+                onWheel={handleWheel}
+                onMouseDown={handleMouseDown}
+                onTouchStart={handleTouchStart}
+                onTouchMove={(e) => { if (scale > 1) e.preventDefault(); handleTouchMove(e) }}
+                onTouchEnd={handleTouchEnd}
+                onMouseUp={handleTouchEnd}
+                onMouseLeave={handleTouchEnd}
+                className="relative max-h-[90vh] max-w-[90vw]"
+              >
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={currentImageIndex}
+                    src={getOptimizedUrl(images[currentImageIndex], { width: 2560, crop: 'limit' })}
+                    alt={`${product.name} - Image ${currentImageIndex + 1}`}
+                    className="max-h-[90vh] max-w-[90vw] object-contain"
+                    initial={{ opacity: 0, scale: 1.05 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                </AnimatePresence>
+              </div>
+
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                {images.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(index); reset() }}
+                    className={`h-2 w-2 rounded-full transition-all duration-300 ${
+                      index === currentImageIndex ? 'bg-white w-8' : 'bg-white/50 hover:bg-white/75'
+                    }`}
+                    aria-label={`Go to image ${index + 1}`}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Mobile sticky purchase bar */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-[var(--border)]/40 pb-[env(safe-area-inset-bottom)]">
+          <div className="px-4 py-3 flex items-center gap-3">
             <button
-              onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((i) => (i - 1 + images.length) % images.length); reset() }}
-              className="absolute left-6 z-10 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors hidden md:block"
-              aria-label="Previous image"
+              onClick={handleAddToCartClick}
+              disabled={addingToCart}
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--primary)] transition-all duration-300 hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50"
             >
-              <ChevronLeft size={28} strokeWidth={1.5} />
+              {addingToCart ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Adding...
+                </>
+              ) : isInCart ? (
+                <>
+                  <CheckCircle size={16} strokeWidth={2} />
+                  In Cart
+                </>
+              ) : (
+                <>
+                  <ShoppingBag size={16} strokeWidth={1.5} />
+                  Add to Cart
+                </>
+              )}
             </button>
-
             <button
-              onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((i) => (i + 1) % images.length); reset() }}
-              className="absolute right-6 z-10 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors hidden md:block"
-              aria-label="Next image"
+              onClick={handleBuyNowClick}
+              disabled={addingToCart}
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--primary)] px-4 py-3 text-xs font-semibold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[var(--primary)]/90 disabled:opacity-50"
             >
-              <ChevronRight size={28} strokeWidth={1.5} />
+              {addingToCart ? 'Processing...' : 'Buy Now'}
             </button>
+          </div>
+        </div>
 
-            <div
-              style={zoomStyle}
-              onWheel={handleWheel}
-              onMouseDown={handleMouseDown}
-              onTouchStart={handleTouchStart}
-              onTouchMove={(e) => e.preventDefault()}
-              onTouchEnd={handleTouchEnd}
-              onMouseUp={handleTouchEnd}
-              onMouseLeave={handleTouchEnd}
-              className="relative max-h-[90vh] max-w-[90vw]"
-            >
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={currentImageIndex}
-                  src={getOptimizedUrl(images[currentImageIndex], { width: 2560, crop: 'limit' })}
-                  alt={`${product.name} - Image ${currentImageIndex + 1}`}
-                  className="max-h-[90vh] max-w-[90vw] object-contain"
-                  initial={{ opacity: 0, scale: 1.05 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                />
-              </AnimatePresence>
-            </div>
-
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2">
-              {images.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(index); reset() }}
-                  className={`h-2 w-2 rounded-full transition-all duration-300 ${
-                    index === currentImageIndex ? 'bg-white w-8' : 'bg-white/50 hover:bg-white/75'
-                  }`}
-                  aria-label={`Go to image ${index + 1}`}
-                />
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Related Products */}
+        {/* Related Products */}
       {product.relatedProducts && product.relatedProducts.length > 0 && (
         <section className="px-6 md:px-12 lg:px-20 py-16 md:py-24 bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5">
           <div className="container-wide">
