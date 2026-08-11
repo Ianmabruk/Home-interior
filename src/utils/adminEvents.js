@@ -37,4 +37,5 @@ export const ADMIN_EVENT_TYPES = {
   SOCIALS_CHANGED: 'socials-changed',
   SETTINGS_CHANGED: 'settings-changed',
   BLOG_CHANGED: 'blog-changed',
+  ORDERS_CHANGED: 'orders-changed',
 }

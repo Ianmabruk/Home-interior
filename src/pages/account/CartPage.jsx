@@ -1,15 +1,22 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Trash2, Plus, Minus, ArrowLeft, ChevronRight } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Trash2, Plus, Minus, ArrowLeft, ChevronRight, CheckCircle } from 'lucide-react'
 import { useShop } from '@context/ShopContext'
 import { useCurrency } from '@context/CurrencyContext'
+import { useAdminDataChangedListener, ADMIN_EVENT_TYPES } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 
 export const CartPage = () => {
   const { cart, removeFromCart, setCartQuantity, fetchCart } = useShop()
   const { formatPrice } = useCurrency()
   const [updating, setUpdating] = useState(null)
+  const [orderPlaced, setOrderPlaced] = useState(false)
+
+  useAdminDataChangedListener([ADMIN_EVENT_TYPES.ORDERS_CHANGED], () => {
+    setOrderPlaced(true)
+    setTimeout(() => setOrderPlaced(false), 6000)
+  })
 
   useEffect(() => {
     fetchCart()
@@ -59,6 +66,20 @@ export const CartPage = () => {
           </div>
           <p className="text-[var(--primary)]/60">{cart?.length || 0} item{cart?.length !== 1 ? 's' : ''} in your cart</p>
         </motion.div>
+
+        <AnimatePresence>
+          {orderPlaced && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="mb-8 flex items-center gap-3 p-4 rounded-2xl bg-[var(--success)]/10 text-[var(--success)] border border-[var(--success)]/20"
+            >
+              <CheckCircle size={20} strokeWidth={2} />
+              <span className="text-sm font-medium">Order received! Our team will review it and get back to you shortly.</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {cart?.length === 0 ? (
           <motion.div
