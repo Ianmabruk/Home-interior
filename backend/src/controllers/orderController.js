@@ -20,7 +20,7 @@ export const orderController = {
       items: rawItems,
       shippingAddress: rawShipping,
       shippingMethod: req.body.shippingMethod || 'standard',
-      paymentMethod: shipping.paymentMethod || req.body.paymentMethod || '',
+      paymentMethod: shipping.paymentMethod || req.body.paymentMethod || 'guest',
       paymentDetails: rawPayment,
       total: Number(req.body.total) || 0,
     }
