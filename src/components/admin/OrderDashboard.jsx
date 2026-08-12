@@ -270,7 +270,13 @@ export const OrderDashboard = () => {
                         {address.address && <p>{address.address}</p>}
                         {address.city && <p>{address.city}, {address.state} {address.zipCode}</p>}
                         {address.country && <p>{address.country}</p>}
-                        {!address.fullName && viewOrder.shippingAddress && <p>{viewOrder.shippingAddress}</p>}
+                        {!address.fullName && viewOrder.shippingAddress && (
+                          <p>
+                            {typeof viewOrder.shippingAddress === 'string'
+                              ? viewOrder.shippingAddress
+                              : JSON.stringify(viewOrder.shippingAddress)}
+                          </p>
+                        )}
                       </div>
                     )
                   })()}

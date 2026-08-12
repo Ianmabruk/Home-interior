@@ -6,6 +6,9 @@ import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 import { getProjectImage } from '@utils/homepageHelpers'
+import { EDesignPackages } from '@components/home/EDesignPackages'
+import { CircularNavigationGrid } from '@components/home/CircularNavigationGrid'
+import { SectionErrorBoundary } from '@components/home/SectionErrorBoundary'
 
 const SkeletonVirtualDesign = () => (
   <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--secondary)]/20 via-[var(--bg)] to-[var(--accent)]/5 px-6 md:px-12 lg:px-20 py-20 md:py-32">
@@ -30,6 +33,12 @@ const SkeletonVirtualDesign = () => (
       </div>
     </div>
   </section>
+)
+
+const EmptySection = () => (
+  <div className="py-20 text-center text-[var(--primary)]/40">
+    <p>No content available</p>
+  </div>
 )
 
 export const VirtualDesignPage = () => {
@@ -71,6 +80,28 @@ export const VirtualDesignPage = () => {
         title="Virtual Design — HOK Interior Designs"
         description="Experience your dream space with immersive 3D virtual design services."
       />
+
+      {/* HERO SECTION */}
+      <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--accent)]/5 px-6 md:px-12 lg:px-20 py-20 md:py-32">
+        <div className="container-wide">
+          <div className="text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Virtual Designs</p>
+            <h1 className="font-display text-4xl font-semibold leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+              Virtual Interior Designs
+            </h1>
+            <p className="mt-4 max-w-2xl mx-auto text-base text-[var(--primary)]/60 leading-relaxed">
+              Experience your dream space with immersive 3D virtual design services.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* CIRCULAR TABS */}
+      <SectionErrorBoundary sectionName="CircularNavigation" fallback={<EmptySection />}>
+        <CircularNavigationGrid virtualDesigns={designs} />
+      </SectionErrorBoundary>
+
+      {/* VIRTUAL DESIGNS GRID */}
       <section className="px-6 md:px-12 lg:px-20 py-20 md:py-32">
         <div className="container-wide">
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -112,6 +143,11 @@ export const VirtualDesignPage = () => {
           )}
         </div>
       </section>
+
+      {/* E-DESIGN PACKAGES */}
+      <SectionErrorBoundary sectionName="EDesignPackages" fallback={<EmptySection />}>
+        <EDesignPackages />
+      </SectionErrorBoundary>
     </main>
   )
 }

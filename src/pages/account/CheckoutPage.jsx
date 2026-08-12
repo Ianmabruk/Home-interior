@@ -58,7 +58,6 @@ export const CheckoutPage = () => {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    await clearCart()
     try {
       const orderData = {
         items: cart.map(item => ({
@@ -128,7 +127,7 @@ export const CheckoutPage = () => {
               <CheckCircle size={48} strokeWidth={1.5} />
             </div>
             <h1 className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-4">Order Received</h1>
-            <p className="text-[var(--primary)]/60 mb-2 max-w-md mx-auto">Thank you for your order. Our team will review it and get back to you shortly.</p>
+            <p className="text-[var(--primary)]/60 mb-2 max-w-md mx-auto">Thank you for shopping with us! Your order has been received successfully. The admin will get back to you shortly. Please wait.</p>
             {orderId && (
               <p className="text-sm text-[var(--primary)]/50 mb-6">
                 Order Number: <span className="font-semibold text-[var(--primary)]">#{String(orderId).slice(-8).toUpperCase()}</span>
@@ -260,7 +259,7 @@ export const CheckoutPage = () => {
                     {loading ? (
                       <>
                         <Loader2 className="h-5 w-5 animate-spin" />
-                        Submitting...
+                        Placing Order...
                       </>
                     ) : (
                       <>
