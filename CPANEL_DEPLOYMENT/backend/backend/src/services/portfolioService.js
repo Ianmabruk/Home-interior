@@ -1,0 +1,123 @@
+import { prisma } from '../config/database.js'
+import { uploadFile, deleteFile } from '../uploads/uploadService.js'
+import { failure } from '../utils/response.js'
+
+function mapPortfolio(item) {
+  if (!item) return null
+  return {
+    _id: item.id,
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    category: item.category,
+    featured: item.featured,
+    displayOrder: item.displayOrder,
+    published: item.published,
+    imageUrl: item.imageUrl,
+    cloudinaryId: item.cloudinaryId,
+    mediaUrl: item.imageUrl,
+    mediaUrls: item.mediaUrls,
+    galleryImages: item.mediaUrls,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  }
+}
+
+export const portfolioService = {
+  listPortfolio,
+  getPortfolio,
+  createPortfolio,
+  updatePortfolio,
+  deletePortfolio,
+}
+
+async function listPortfolio({ sort = '-createdAt', limit = 100 } = {}) {
+  try {
+    const orderBy = sort?.startsWith('-') ? { [sort.slice(1)]: 'desc' } : { createdAt: 'asc' }
+    const items = await prisma.portfolioProject.findMany({
+      orderBy,
+      take: Number(limit) || 100,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        category: true,
+        featured: true,
+        displayOrder: true,
+        published: true,
+        imageUrl: true,
+        cloudinaryId: true,
+        mediaUrls: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })
+    return items.map(mapPortfolio)
+  } catch {
+    return []
+  }
+}
+
+async function getPortfolio(id) {
+  try {
+    const item = await prisma.portfolioProject.findUnique({ where: { id } })
+    if (!item) throw failure(404, 'Portfolio item not found')
+    return mapPortfolio(item)
+  } catch (err) {
+    if (err?.status === 404) throw err
+    throw failure(500, 'Failed to fetch portfolio item')
+  }
+}
+
+async function createPortfolio(data, file, galleryFiles = []) {
+  const createData = { ...data }
+  const mediaUrls = []
+
+  for (const f of galleryFiles) {
+    const uploaded = await uploadFile(f.buffer, f.mimetype, 'portfolio')
+    mediaUrls.push(uploaded.url)
+  }
+
+  if (mediaUrls.length > 0) createData.mediaUrls = mediaUrls
+  if (file) {
+    const uploaded = await uploadFile(file.buffer, file.mimetype, 'portfolio')
+    createData.imageUrl = uploaded.url
+    createData.cloudinaryId = uploaded.path
+  } else if (!createData.imageUrl && mediaUrls.length > 0) {
+    createData.imageUrl = mediaUrls[0]
+  }
+  const item = await prisma.portfolioProject.create({ data: createData })
+  return mapPortfolio(item)
+}
+
+async function updatePortfolio(id, data, file, galleryFiles = []) {
+  const existing = await prisma.portfolioProject.findUnique({ where: { id } })
+  if (!existing) throw failure(404, 'Portfolio item not found')
+
+  const updateData = { ...data }
+
+  if (file) {
+    if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
+    const uploaded = await uploadFile(file.buffer, file.mimetype, 'portfolio')
+    updateData.imageUrl = uploaded.url
+    updateData.cloudinaryId = uploaded.path
+  }
+
+  const mediaUrls = [...(existing.mediaUrls || [])]
+  if (galleryFiles.length > 0) {
+    for (const f of galleryFiles) {
+      const uploaded = await uploadFile(f.buffer, f.mimetype, 'portfolio')
+      mediaUrls.push(uploaded.url)
+    }
+    updateData.mediaUrls = mediaUrls
+  }
+  const item = await prisma.portfolioProject.update({ where: { id }, data: updateData })
+  return mapPortfolio(item)
+}
+
+async function deletePortfolio(id) {
+  const existing = await prisma.portfolioProject.findUnique({ where: { id } })
+  if (!existing) throw failure(404, 'Portfolio item not found')
+  if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
+  await prisma.portfolioProject.delete({ where: { id } })
+}

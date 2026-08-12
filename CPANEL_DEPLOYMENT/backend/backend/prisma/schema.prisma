@@ -1,0 +1,395 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique @db.Text
+  passwordHash String   @map("password_hash") @db.Text
+  fullName     String   @default("Admin") @map("full_name") @db.Text
+  role         String   @default("ADMIN") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("admins")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique @db.Text
+  passwordHash String   @map("password_hash") @db.Text
+  fullName     String   @db.Text @map("full_name")
+  phone        String?  @db.Text
+  role         String   @default("CUSTOMER") @db.Text
+  status       String   @default("ACTIVE") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  orders Order[]
+
+  @@map("users")
+  @@index([email])
+  @@index([role])
+}
+
+model PortfolioProject {
+  id           String   @id @default(cuid())
+  title        String   @db.Text
+  description  String?  @db.Text
+  category     String?  @db.Text
+  featured     Boolean  @default(false)
+  displayOrder Int      @default(0) @map("display_order")
+  published    Boolean  @default(true)
+  imageUrl     String?  @db.Text @map("image_url")
+  cloudinaryId String?  @db.Text @map("cloudinary_id")
+  mediaUrls    String[] @default([]) @map("media_urls") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+   @@map("portfolios")
+   @@index([published, featured, displayOrder(asc)])
+   @@index([displayOrder(asc)])
+   @@index([featured, createdAt(desc)])
+ }
+
+model VirtualDesign {
+  id           String   @id @default(cuid())
+  title        String   @db.Text
+  description  String?  @db.Text
+  category     String?  @db.Text
+  featured     Boolean  @default(false)
+  displayOrder Int      @default(0) @map("display_order")
+  published    Boolean  @default(true)
+  imageUrl     String?  @db.Text @map("image_url")
+  cloudinaryId String?  @db.Text @map("cloudinary_id")
+  mediaType    String   @default("image") @map("media_type") @db.Text
+  mediaUrls    String[] @default([]) @map("media_urls") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+   @@map("virtual_designs")
+   @@index([published, featured, createdAt(desc)])
+   @@index([featured])
+   @@index([published, displayOrder(asc)])
+ }
+
+model Product {
+  id            String   @id @default(cuid())
+  name          String   @db.Text
+  description   String?  @db.Text
+  price         Float
+  originalPrice Float?   @map("original_price")
+  category      String?  @db.Text
+  mainImage     String?  @db.Text @map("main_image")
+  images        String[] @default([]) @db.Text
+  storagePaths  String[] @default([]) @db.Text @map("storage_paths")
+  vendor        String?  @db.Text
+  stock         Int      @default(0)
+  sku           String?  @db.Text
+  tags          String[] @default([]) @db.Text
+  featured      Boolean  @default(false)
+  inStock       Boolean  @default(true) @map("in_stock")
+  displayOrder  Int      @default(0) @map("display_order")
+  colorVariants String[] @default([]) @db.Text @map("color_variants")
+  styleVariants String[] @default([]) @db.Text @map("style_variants")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  variants ProductVariant[]
+
+   @@map("products")
+   @@index([featured, inStock, createdAt(desc)])
+   @@index([category])
+   @@index([displayOrder(asc)])
+   @@index([inStock, featured, displayOrder(asc)])
+   @@index([createdAt(desc)])
+ }
+
+model ProductVariant {
+  id           String   @id @default(cuid())
+  productId    String   @map("product_id") @db.Text
+  color        String   @db.Text
+  colorHex     String?  @db.Text @map("color_hex")
+  image        String?  @db.Text
+  stock        Int      @default(0)
+  price        Float?
+  storagePath  String?  @db.Text @map("storage_path")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_variants")
+  @@index([productId])
+}
+
+model Service {
+  id           String   @id @default(cuid())
+  title        String   @db.Text
+  description  String?  @db.Text
+  icon         String?  @db.Text
+  imageUrl     String?  @db.Text @map("image_url")
+  cloudinaryId String?  @db.Text @map("cloudinary_id")
+  buttonText   String?  @default("Request This Service") @db.Text @map("button_text")
+  buttonUrl    String?  @db.Text @map("button_url")
+  featured     Boolean  @default(false)
+  displayOrder Int      @default(0) @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+   @@map("services")
+   @@index([isActive, displayOrder(asc)])
+   @@index([displayOrder(asc), isActive])
+ }
+
+model Testimonial {
+  id           String   @id @default(cuid())
+  clientName   String   @map("client_name") @db.Text
+  content      String   @db.Text
+  photoUrl     String?  @db.Text @map("photo_url")
+  publicId     String?  @db.Text @map("public_id")
+  displayOrder Int      @default(0) @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+   @@map("testimonials")
+   @@index([isActive, displayOrder(asc)])
+   @@index([displayOrder(asc), isActive])
+ }
+
+model HeroMedia {
+  id           String   @id @default(cuid())
+  title        String   @db.Text
+  subtitle     String?  @db.Text
+  imageUrl     String?  @db.Text @map("image_url")
+  cloudinaryId String?  @db.Text @map("cloudinary_id")
+  mediaUrls    String[] @default([]) @map("media_urls") @db.Text
+  isActive     Boolean  @default(true) @map("is_active")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+   @@map("hero_media")
+   @@index([isActive, displayOrder(asc)])
+   @@index([displayOrder(asc), isActive])
+ }
+
+model About {
+  id                  String   @id @default(cuid())
+  title               String   @default("About Us") @db.Text @map("title")
+  subtitle            String   @default("") @db.Text @map("subtitle")
+  description         String   @default("") @db.Text @map("description")
+  story               String   @db.Text @default("")
+  companyDesc         String   @default("") @map("company_description") @db.Text
+  mission             String   @db.Text @default("")
+  vision              String   @db.Text @default("")
+  experience          String   @default("") @db.Text @map("experience")
+  values              String   @default("") @db.Text
+  location            String   @db.Text @default("")
+  contactEmail        String   @default("") @map("contact_email") @db.Text
+  buttonText          String   @default("") @db.Text @map("button_text")
+  buttonUrl           String   @default("") @db.Text @map("button_url")
+  projectsCompleted   Int      @default(0) @map("projects_completed")
+  happyClients        Int      @default(0) @map("happy_clients")
+  yearsExperience     Int      @default(0) @map("years_experience")
+  countriesServed     Int      @default(0) @map("countries_served")
+  socials             String   @default("{}") @db.Text
+  imageUrl            String?  @db.Text @map("image_url")
+  cloudinaryId        String?  @db.Text @map("cloudinary_id")
+  socialImage         String?  @db.Text @map("social_image")
+  socialImageId       String?  @db.Text @map("social_image_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  images              AboutImage[]
+
+  @@map("abouts")
+  @@index([createdAt(desc)])
+}
+
+model AboutImage {
+  id           String   @id @default(cuid())
+  aboutId      String   @map("about_id") @db.Text
+  imageUrl     String   @db.Text @map("image_url")
+  cloudinaryId String?  @db.Text @map("cloudinary_id")
+  displayOrder Int      @default(0) @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  about About @relation(fields: [aboutId], references: [id], onDelete: Cascade)
+
+  @@map("about_images")
+  @@index([aboutId, displayOrder(asc)])
+}
+
+model SocialItem {
+  id           String   @id @default(cuid())
+  name         String   @db.Text
+  platform     String   @db.Text
+  imageUrl     String?  @db.Text @map("image_url")
+  cloudinaryId String?  @db.Text @map("cloudinary_id")
+  link         String   @db.Text
+  displayOrder Int      @default(0) @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("social_items")
+  @@index([displayOrder(asc)])
+  @@index([isActive, displayOrder(asc)])
+}
+
+model Consultation {
+  id            String   @id @default(cuid())
+  type          String   @default("consultation") @db.Text
+  name          String   @db.Text
+  email         String   @db.Text
+  phone         String?  @db.Text
+  message       String   @db.Text
+  status        String   @default("pending") @db.Text
+  preferredDate String?  @map("preferred_date") @db.Text
+  preferredTime String?  @map("preferred_time") @db.Text
+  projectType   String?  @db.Text @map("project_type")
+  budget        String?  @db.Text
+  timeline      String?  @db.Text
+  packageName   String?  @db.Text @map("package_name")
+  packagePrice  Float?   @map("package_price")
+  paymentStatus String?  @default("pending") @db.Text @map("payment_status")
+  orderId       String?  @db.Text @map("order_id")
+  purchaseDate  DateTime? @map("purchase_date") @db.Timestamp
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("consultations")
+  @@index([status, createdAt(desc)])
+  @@index([email, createdAt(desc)])
+  @@index([type, createdAt(desc)])
+}
+
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique @db.Text
+  value     String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("site_settings")
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  userId          String?  @map("user_id") @db.Text
+  email           String   @db.Text
+  name            String   @db.Text
+  phone           String?  @db.Text
+  items           String   @db.Text
+  shippingAddress String   @db.Text @map("shipping_address")
+  shippingMethod  String?  @default("standard") @db.Text @map("shipping_method")
+  paymentMethod   String   @db.Text @map("payment_method")
+  paymentDetails  String   @db.Text @map("payment_details")
+  total           Float
+  status          String   @default("pending") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("orders")
+  @@index([email, createdAt(desc)])
+  @@index([status, createdAt(desc)])
+  @@index([userId])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id") @db.Text
+  adminEmail String?  @map("admin_email") @db.Text
+  productId String   @map("product_id") @db.Text
+  variant   String?  @db.Text
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("cart_items")
+  @@index([userId])
+  @@index([adminEmail])
+  @@index([productId])
+}
+
+model WishlistItem {
+  id         String   @id @default(cuid())
+  userId     String?  @map("user_id") @db.Text
+  adminEmail String?  @map("admin_email") @db.Text
+  productId  String   @map("product_id") @db.Text
+  variant    String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("wishlist_items")
+  @@index([userId])
+  @@index([adminEmail])
+  @@index([productId])
+}
+
+model Blog {
+  id           String   @id @default(cuid())
+  title        String   @db.Text
+  subtitle     String?  @db.Text
+  slug         String?  @db.Text
+  description  String?  @db.Text
+  content      String?  @db.Text
+  category     String?  @db.Text
+  tags         String[] @default([]) @db.Text
+  author       String?  @db.Text
+  metaDescription String? @db.Text @map("meta_description")
+   image        String?  @db.Text
+   video        String?  @db.Text
+   mediaUrls    String[] @default([]) @db.Text @map("media_urls")
+   cloudinaryId String?  @db.Text @map("cloudinary_id")
+   published    Boolean  @default(false)
+   featured     Boolean  @default(false)
+   displayOrder Int      @default(0) @map("display_order")
+   views        Int      @default(0) @map("views")
+   publishDate  DateTime? @map("publish_date")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+   @@map("blogs")
+   @@index([published, featured, createdAt(desc)])
+   @@index([displayOrder(asc)])
+   @@index([category])
+   @@index([slug])
+   @@index([publishDate(desc)])
+ }
+
+model Message {
+  id        String   @id @default(cuid())
+  name      String   @db.Text
+  email     String   @db.Text
+  subject   String?  @db.Text
+  content   String   @db.Text
+  reply     String?  @db.Text
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+   @@map("messages")
+   @@index([createdAt(desc)])
+   @@index([isRead, createdAt(desc)])
+ }
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  adminId   String?  @map("admin_id") @db.Text
+  userId    String?  @map("user_id") @db.Text
+  token     String   @unique @db.Text
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("password_resets")
+  @@index([adminId, token])
+  @@index([userId, token])
+}

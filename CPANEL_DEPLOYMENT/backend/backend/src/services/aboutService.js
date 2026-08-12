@@ -1,0 +1,60 @@
+import { prisma } from '../config/database.js'
+import { uploadFile, deleteFile } from '../uploads/uploadService.js'
+import { failure } from '../utils/response.js'
+
+function mapAbout(item) {
+  if (!item) return null
+  return {
+    _id: item.id,
+    ...item,
+    aboutImageUrl: item.imageUrl,
+    companyDescription: item.companyDesc,
+    contactEmail: item.contactEmail,
+    imageUrl: item.imageUrl,
+    cloudinaryId: item.cloudinaryId,
+    socialImage: item.socialImage,
+    socialImageId: item.socialImageId,
+  }
+}
+
+export const aboutService = {
+  getAbout,
+  createOrUpdateAbout,
+}
+
+async function getAbout() {
+  try {
+    const item = await prisma.about.findFirst({ orderBy: { createdAt: 'desc' } })
+    return item ? mapAbout(item) : null
+  } catch {
+    return null
+  }
+}
+
+async function createOrUpdateAbout(data, file, socialFile) {
+  const existing = await prisma.about.findFirst({ orderBy: { createdAt: 'desc' } })
+  const createData = { ...data }
+
+  if (file) {
+    if (existing?.cloudinaryId) await deleteFile(existing.cloudinaryId)
+    const uploaded = await uploadFile(file.buffer, file.mimetype, 'about')
+    createData.imageUrl = uploaded.url
+    createData.cloudinaryId = uploaded.path
+  } else if (!existing?.imageUrl && createData.imageUrl === undefined) {
+    createData.imageUrl = null
+  }
+
+  if (socialFile) {
+    if (existing?.socialImageId) await deleteFile(existing.socialImageId)
+    const uploaded = await uploadFile(socialFile.buffer, socialFile.mimetype, 'about')
+    createData.socialImage = uploaded.url
+    createData.socialImageId = uploaded.path
+  }
+
+  if (existing) {
+    const item = await prisma.about.update({ where: { id: existing.id }, data: createData })
+    return mapAbout(item)
+  }
+  const item = await prisma.about.create({ data: createData })
+  return mapAbout(item)
+}
