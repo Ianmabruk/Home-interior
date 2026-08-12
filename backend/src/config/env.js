@@ -43,8 +43,8 @@ export function validateEnv() {
 
   if (env.databaseUrl && process.env.NODE_ENV === 'production') {
     const dbHost = new URL(env.databaseUrl).hostname
-    if (dbHost.includes('summer-fog')) {
-      console.warn(`[${env.serverId}] [WARNING] Using development database URL in production. Update DATABASE_URL in Render dashboard.`)
+    if (dbHost.includes('summer-fog') || dbHost.includes('neon.tech')) {
+      console.warn(`[${env.serverId}] [WARNING] Using Neon database in production. Ensure your Neon database is configured for production workloads.`)
     }
   }
 }

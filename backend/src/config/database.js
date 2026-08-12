@@ -28,10 +28,6 @@ function createPrismaClient() {
   })
 }
 
-export const prisma = globalForPrisma.prisma || createPrismaClient()
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
-
 const RETRYABLE_CODES = new Set(['P2024', 'P1001', 'P1008', 'P1009'])
 
 export async function withRetry(fn, retries = 3, delayMs = 250) {
@@ -47,6 +43,37 @@ export async function withRetry(fn, retries = 3, delayMs = 250) {
     }
   }
 }
+
+function createRetryingPrisma(rawPrisma) {
+  const retryableQueryMethods = new Set([
+    'findMany', 'findFirst', 'findUnique', 'create', 'createMany',
+    'update', 'updateMany', 'delete', 'deleteMany', 'count',
+    'groupBy', '$queryRaw', '$queryRawUnsafe', '$executeRaw', '$executeRawUnsafe',
+    '$transaction',
+  ])
+
+  function retryable(fn) {
+    if (typeof fn !== 'function') return fn
+    return (...args) => withRetry(() => fn(...args))
+  }
+
+  return new Proxy(rawPrisma, {
+    get(target, prop) {
+      const value = target[prop]
+      if (typeof value === 'function' && retryableQueryMethods.has(prop)) {
+        return retryable(value.bind(target))
+      }
+      if (value && typeof value === 'object' && !(value instanceof Promise) && !(value instanceof Error)) {
+        return createRetryingPrisma(value)
+      }
+      return value
+    },
+  })
+}
+
+export const prisma = createRetryingPrisma(globalForPrisma.prisma || createPrismaClient())
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 let connectPromise = null
 
