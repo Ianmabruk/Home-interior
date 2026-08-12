@@ -35,7 +35,13 @@ npm install
 npm run build
 ```
 
-This creates the `dist/` folder with production-ready static files.
+This creates the `dist/` folder with production-ready static files including:
+- `index.html`
+- `assets/`
+- `.htaccess` (React Router SPA support)
+- `.env.example` (environment template)
+
+**Important**: The `dist/` folder is gitignored. Build it locally and upload directly to cPanel. Do not commit it to the repository.
 
 ---
 
@@ -45,9 +51,9 @@ This creates the `dist/` folder with production-ready static files.
 2. Open **File Manager**
 3. Navigate to `public_html/` (this is your web root)
 4. **Delete** any existing files in `public_html/` (except any you want to keep)
-5. Upload the **contents** of `CPANEL_DEPLOYMENT/frontend-dist/` to `public_html/`
+5. Upload the **contents** of `dist/` to `public_html/`
 
-**DO NOT** upload the `frontend-dist` folder itself — upload its contents.
+**DO NOT** upload the `dist` folder itself — upload its contents.
 
 Final structure in `public_html/`:
 ```
@@ -55,6 +61,7 @@ public_html/
 ├── index.html
 ├── assets/
 ├── .htaccess
+├── .env.example
 ├── favicon.svg
 ├── robots.txt
 ├── sitemap.xml
@@ -78,9 +85,10 @@ Before building, set the API URL:
 export VITE_API_URL=https://api.yourdomain.com/api
 npm run build
 
-# For same domain with proxy
-export VITE_API_URL=/api
-npm run build
+# For same-domain deployment with Apache proxy:
+# (requires additional Apache config in .htaccess)
+# export VITE_API_URL=/api
+# npm run build
 ```
 
 Then upload the new `dist/` contents to `public_html/`.
@@ -119,7 +127,7 @@ Final structure:
     ├── uploads/
     ├── package.json
     ├── package-lock.json
-    └── .env
+    └── .env.example
 ```
 
 ---
@@ -324,8 +332,7 @@ package.json
 package-lock.json
 server.js
 src/
-prisma/
-uploads/
+backend/
 any .js files (except those in assets/)
 ```
 
