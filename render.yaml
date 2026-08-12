@@ -16,6 +16,6 @@ services:
       - key: BASE_URL
         value: https://home-interior-backend.onrender.com
       - key: CLIENT_URL
-        value: https://homy-comfy.netlify.app
+        value: https://hokinteriors.co.ke
       - key: PRISMA_MIGRATE_LOCK_TIMEOUT
         value: "120000"
