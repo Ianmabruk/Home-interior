@@ -26,7 +26,7 @@ export const AccountPage = () => {
 
   const loadOrders = useCallback(async () => {
     try {
-      const res = await api.get('/orders')
+      const res = await api.get('/orders/me')
       setOrders(res.data?.data || res.data || [])
     } catch (err) {
       console.warn('[ACCOUNT] Failed to load orders:', err?.message)

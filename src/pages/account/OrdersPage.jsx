@@ -25,11 +25,11 @@ export const OrdersPage = () => {
   const [error, setError] = useState(null)
 
   const loadOrders = useCallback(async () => {
-    if (!user?.email) return
+    if (!user?.id && !user?.email) return
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get('/orders/me', { params: { email: user.email } })
+      const res = await api.get('/orders/me')
       const data = res.data?.data || res.data || []
       const sorted = Array.isArray(data) ? data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) : []
       setOrders(sorted)

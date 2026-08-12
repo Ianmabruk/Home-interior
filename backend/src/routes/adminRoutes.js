@@ -1,7 +1,8 @@
 import { Router } from 'express'
 import { authenticate, authorize } from '../middleware/auth.js'
-import { uploadSingle, uploadFields, uploadProductImages } from '../middleware/upload.js'
+import { uploadSingle, uploadFields, uploadProductImages, uploadProductImagesStrict } from '../middleware/upload.js'
 import { uploadFile } from '../uploads/uploadService.js'
+import { validateCsrfToken } from '../middleware/csrf.js'
 import { prisma } from '../config/database.js'
 import { portfolioController } from '../controllers/portfolioController.js'
 import { virtualDesignController } from '../controllers/virtualDesignController.js'
@@ -19,7 +20,7 @@ import adminSocialRoutes from './adminSocialRoutes.js'
 
 const router = Router()
 
-router.use(authenticate, authorize('ADMIN'))
+router.use(authenticate, authorize('ADMIN'), validateCsrfToken)
 
 router.get('/overview', adminOverviewController.getStats)
 router.get('/settings', adminOverviewController.getSettings)
@@ -65,8 +66,8 @@ router.post('/services/reorder', serviceController.reorder)
 // Admin Shop (Products)
 router.get('/shop', productController.list)
 router.get('/shop/:id', productController.get)
-router.post('/shop', uploadProductImages(60), productController.create)
-router.patch('/shop/:id', uploadProductImages(60), productController.update)
+router.post('/shop', uploadProductImagesStrict(60), productController.create)
+router.patch('/shop/:id', uploadProductImagesStrict(60), productController.update)
 router.delete('/shop/:id', productController.delete)
 
 // Admin About

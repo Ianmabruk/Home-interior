@@ -6,12 +6,15 @@ const API = '/api'
 
 describe('Services', () => {
   let adminToken
+  let csrfToken
   let adminEmail
 
   beforeEach(async () => {
     adminEmail = generateTestEmail()
     await createTestAdmin(adminEmail)
-    adminToken = await getAuthToken(adminEmail)
+    const auth = await getAuthToken(adminEmail)
+    adminToken = auth.accessToken
+    csrfToken = auth.csrfToken
   })
 
   it('should list services publicly', async () => {
@@ -25,6 +28,7 @@ describe('Services', () => {
     const res = await request(app)
       .post(`${API}/admin/services`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: 'test_Service Alpha', description: 'Test description', featured: false, displayOrder: 0 })
 
     expect(res.status).toBe(201)
@@ -36,6 +40,7 @@ describe('Services', () => {
     const createRes = await request(app)
       .post(`${API}/admin/services`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: 'test_Service Beta', description: 'Beta desc', featured: false, displayOrder: 1 })
 
     const id = createRes.body.data.id
@@ -48,12 +53,14 @@ describe('Services', () => {
     const createRes = await request(app)
       .post(`${API}/admin/services`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: 'test_Service Gamma', description: 'Gamma', featured: false, displayOrder: 2 })
 
     const id = createRes.body.data.id
     const res = await request(app)
       .patch(`${API}/admin/services/${id}`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: 'test_Service Gamma Updated' })
 
     expect(res.status).toBe(200)
@@ -64,12 +71,14 @@ describe('Services', () => {
     const createRes = await request(app)
       .post(`${API}/admin/services`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: 'test_Service Delta', description: 'Delta', featured: false, displayOrder: 3 })
 
     const id = createRes.body.data.id
     const res = await request(app)
       .delete(`${API}/admin/services/${id}`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
 
     expect(res.status).toBe(200)
     expect(res.body.success).toBe(true)

@@ -17,5 +17,8 @@ export async function createTestAdmin(email, role = 'ADMIN') {
 
 export async function getAuthToken(email, password = 'TestPass123!') {
   const res = await request(app).post('/api/auth/login').send({ email, password })
-  return res.body?.data?.accessToken || null
+  return {
+    accessToken: res.body?.data?.accessToken || null,
+    csrfToken: res.body?.data?.csrfToken || null,
+  }
 }

@@ -27,6 +27,10 @@ app.use(
     contentSecurityPolicy: false,
   }),
 )
+app.use(helmet.frameguard({ action: 'deny' }))
+app.use(helmet.noSniff())
+app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }))
+app.use(helmet.permittedCrossDomainPolicies({ permittedPolicies: 'none' }))
 app.use(
   helmet.contentSecurityPolicy({
     directives: {
@@ -35,7 +39,7 @@ app.use(
       connectSrc: ["'self'", 'https:'],
       fontSrc: ["'self'", 'https:', 'data:'],
       formAction: ["'self'"],
-      frameAncestors: ["'self'"],
+      frameAncestors: ["'none'"],
       imgSrc: ["'self'", 'data:', 'https:'],
       objectSrc: ["'none'"],
       scriptSrc: ["'self'"],
@@ -80,11 +84,7 @@ const allowedOrigins = [
 const isAllowedOrigin = (origin) => {
   if (!origin) return true
   if (allowedOrigins.includes(origin)) return true
-  const wildcards = ['*.netlify.app', '*.vercel.app', '*.onrender.com']
-  return wildcards.some((pattern) => {
-    const suffix = pattern.replace('*', '')
-    return origin.endsWith(suffix)
-  })
+  return false
 }
 
 app.use(

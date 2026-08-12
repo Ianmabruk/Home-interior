@@ -62,6 +62,7 @@ const NotFoundPage = lazyWithCache(() => import('@pages/public/NotFoundPage').th
 // Auth pages
 const AuthShell = lazyWithCache(() => import('@pages/auth/AuthShell').then(m => ({ default: m.AuthShell })), 'auth-shell')
 const LoginPage = lazyWithCache(() => import('@pages/auth/LoginPage').then(m => ({ default: m.LoginPage })), 'login')
+const SignupPage = lazyWithCache(() => import('@pages/auth/SignupPage').then(m => ({ default: m.SignupPage })), 'signup')
 
 // Account pages
 const CartPage = lazyWithCache(() => import('@pages/account/CartPage').then(m => ({ default: m.CartPage })), 'cart')
@@ -164,6 +165,7 @@ export const AppRouter = () => {
 
           <Route element={<AuthShell />}>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
           </Route>
 
         </Route>

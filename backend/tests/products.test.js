@@ -6,12 +6,15 @@ const API = '/api'
 
 describe('Products', () => {
   let adminToken
+  let csrfToken
   let adminEmail
 
   beforeEach(async () => {
     adminEmail = generateTestEmail()
     await createTestAdmin(adminEmail)
-    adminToken = await getAuthToken(adminEmail)
+    const auth = await getAuthToken(adminEmail)
+    adminToken = auth.accessToken
+    csrfToken = auth.csrfToken
   })
 
   it('should list products publicly', async () => {
@@ -25,6 +28,7 @@ describe('Products', () => {
     const res = await request(app)
       .post(`${API}/admin/shop`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ name: 'test_Product Alpha', description: 'Test desc', price: 100, category: 'Furniture', stock: 10, sku: 'TEST-001' })
 
     expect(res.status).toBe(201)
@@ -36,6 +40,7 @@ describe('Products', () => {
     const createRes = await request(app)
       .post(`${API}/admin/shop`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ name: 'test_Product Beta', description: 'Beta', price: 200, category: 'Lighting', stock: 5, sku: 'TEST-002' })
 
     const id = createRes.body.data.id
@@ -48,12 +53,14 @@ describe('Products', () => {
     const createRes = await request(app)
       .post(`${API}/admin/shop`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ name: 'test_Product Gamma', description: 'Gamma', price: 300, category: 'Decor', stock: 8, sku: 'TEST-003' })
 
     const id = createRes.body.data.id
     const res = await request(app)
       .patch(`${API}/admin/shop/${id}`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ name: 'test_Product Gamma Updated' })
 
     expect(res.status).toBe(200)
@@ -64,12 +71,14 @@ describe('Products', () => {
     const createRes = await request(app)
       .post(`${API}/admin/shop`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ name: 'test_Product Delta', description: 'Delta', price: 400, category: 'Art', stock: 3, sku: 'TEST-004' })
 
     const id = createRes.body.data.id
     const res = await request(app)
       .delete(`${API}/admin/shop/${id}`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
 
     expect(res.status).toBe(200)
     expect(res.body.success).toBe(true)

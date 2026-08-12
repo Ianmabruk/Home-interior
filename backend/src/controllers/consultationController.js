@@ -57,10 +57,10 @@ export const consultationController = {
     const extraData = { budget, timeline, projectType, name, email, phone }
     if (type === 'e-design') {
       extraData.packageName = req.body.packageName || ''
-      extraData.packagePrice = req.body.packagePrice ? Number(req.body.packagePrice) : null
-      extraData.paymentStatus = req.body.paymentStatus || 'pending'
-      extraData.orderId = req.body.orderId || null
-      extraData.purchaseDate = req.body.purchaseDate ? new Date(req.body.purchaseDate) : null
+      extraData.packagePrice = null
+      extraData.paymentStatus = 'pending'
+      extraData.orderId = null
+      extraData.purchaseDate = null
     }
 
     const enrichedMessage = buildMessageWithImages(
@@ -81,10 +81,10 @@ export const consultationController = {
       preferredDate,
       preferredTime,
       packageName: type === 'e-design' ? (req.body.packageName || null) : null,
-      packagePrice: type === 'e-design' ? (req.body.packagePrice ? Number(req.body.packagePrice) : null) : null,
-      paymentStatus: type === 'e-design' ? (req.body.paymentStatus || 'pending') : null,
-      orderId: type === 'e-design' ? (req.body.orderId || null) : null,
-      purchaseDate: type === 'e-design' ? (req.body.purchaseDate ? new Date(req.body.purchaseDate) : null) : null,
+      packagePrice: type === 'e-design' ? null : null,
+      paymentStatus: type === 'e-design' ? 'pending' : null,
+      orderId: type === 'e-design' ? null : null,
+      purchaseDate: type === 'e-design' ? null : null,
     }
     const consultation = await consultationService.createConsultation(data)
     res.status(201).json({ success: true, data: consultation })

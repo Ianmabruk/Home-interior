@@ -46,6 +46,15 @@ export function AuthProvider({ children }) {
     return res.data
   }, [])
 
+  const register = useCallback(async (fullName, email, password, phone) => {
+    const res = await api.post('/auth/register', { fullName, email, password, phone })
+    const user = res.data
+    if (user?.id) {
+      return { success: true, user, needsLogin: true }
+    }
+    return { success: false, message: 'Registration failed' }
+  }, [])
+
   const logout = useCallback(async () => {
     try {
       await api.post('/auth/logout')
@@ -68,11 +77,13 @@ export function AuthProvider({ children }) {
       loading,
       isAuthenticated: !!user,
       isAdmin: user?.role === 'ADMIN',
+      isCustomer: user?.role === 'CUSTOMER',
       login,
+      register,
       logout,
       refreshUser,
     }),
-    [user, loading, login, logout, refreshUser],
+    [user, loading, login, register, logout, refreshUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

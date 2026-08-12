@@ -6,12 +6,15 @@ const API = '/api'
 
 describe('Portfolio', () => {
   let adminToken
+  let csrfToken
   let adminEmail
 
   beforeEach(async () => {
     adminEmail = generateTestEmail()
     await createTestAdmin(adminEmail)
-    adminToken = await getAuthToken(adminEmail)
+    const auth = await getAuthToken(adminEmail)
+    adminToken = auth.accessToken
+    csrfToken = auth.csrfToken
   })
 
   it('should list portfolio publicly', async () => {
@@ -25,6 +28,7 @@ describe('Portfolio', () => {
     const res = await request(app)
       .post(`${API}/admin/portfolio`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: 'test_Project Alpha', description: 'Test desc', category: 'Residential', featured: false, displayOrder: 0 })
 
     expect(res.status).toBe(201)
@@ -36,6 +40,7 @@ describe('Portfolio', () => {
     const createRes = await request(app)
       .post(`${API}/admin/portfolio`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: 'test_Project Beta', description: 'Beta', category: 'Commercial', featured: true, displayOrder: 1 })
 
     const id = createRes.body.data.id
@@ -48,12 +53,14 @@ describe('Portfolio', () => {
     const createRes = await request(app)
       .post(`${API}/admin/portfolio`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: 'test_Project Gamma', description: 'Gamma', category: 'Interior', featured: false, displayOrder: 2 })
 
     const id = createRes.body.data.id
     const res = await request(app)
       .patch(`${API}/admin/portfolio/${id}`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: 'test_Project Gamma Updated' })
 
     expect(res.status).toBe(200)
@@ -64,12 +71,14 @@ describe('Portfolio', () => {
     const createRes = await request(app)
       .post(`${API}/admin/portfolio`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: 'test_Project Delta', description: 'Delta', category: 'Office', featured: false, displayOrder: 3 })
 
     const id = createRes.body.data.id
     const res = await request(app)
       .delete(`${API}/admin/portfolio/${id}`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
 
     expect(res.status).toBe(200)
     expect(res.body.success).toBe(true)
@@ -80,6 +89,7 @@ describe('Portfolio', () => {
     const createRes = await request(app)
       .post(`${API}/admin/portfolio`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: uniqueTitle, description: 'Persistence test', category: 'Test', featured: false, displayOrder: 0 })
 
     expect(createRes.status).toBe(201)

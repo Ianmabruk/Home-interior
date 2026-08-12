@@ -317,4 +317,23 @@ export const userSchemas = {
   }),
 }
 
+export const customerAuthSchemas = {
+  register: z.object({
+    fullName: z.string().min(1, 'Full name is required').max(100, 'Name must be under 100 characters'),
+    email: z.string().email('Invalid email address').max(150, 'Email must be under 150 characters'),
+    password: z.string().min(8, 'Password must be at least 8 characters').max(72, 'Password must be under 72 characters'),
+    phone: z.string().optional(),
+  }),
+  login: z.object({
+    email: z.string().email('Invalid email address'),
+    password: z.string().min(1, 'Password is required'),
+  }),
+  refresh: z.object({
+    refreshToken: z.string().min(1, 'Refresh token is required'),
+  }),
+  logout: z.object({
+    refreshToken: z.string().optional(),
+  }),
+}
+
 export { idParam }

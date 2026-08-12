@@ -15,23 +15,7 @@ services:
         value: production
       - key: BASE_URL
         value: https://home-interior-backend.onrender.com
-      - key: JWT_ACCESS_SECRET
-        value: f58b727f799892fa21cc7c922bb4ffa2b820d79e46acbe22d6f6f6347786bb52
-      - key: JWT_REFRESH_SECRET
-        value: 008703ee3e309b782e90bd62aedd2566e22a19237852d60da085eae773ec6391
       - key: CLIENT_URL
         value: https://homy-comfy.netlify.app
-      - key: SEED_ADMIN_EMAIL
-        value: admin@chatgpt.com
-      - key: SEED_ADMIN_PASSWORD
-        value: enSU4K4Zh89RD_r0TDUqiw
-      - key: DATABASE_URL
-        value: postgresql://neondb_owner:npg_8g1kJfADurxe@ep-red-cake-aya2hje0-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
       - key: PRISMA_MIGRATE_LOCK_TIMEOUT
         value: "120000"
-      - key: CLOUDINARY_CLOUD_NAME
-        value: du02q965h
-      - key: CLOUDINARY_API_KEY
-        value: 242841727892945
-      - key: CLOUDINARY_API_SECRET
-        value: UYvJYQILpLivuXY5S_EvHMB-y_s

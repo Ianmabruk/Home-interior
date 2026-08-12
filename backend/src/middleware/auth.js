@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken'
-import { prisma } from '../config/database.js'
+import { prisma, withRetry } from '../config/database.js'
 import { ApiError } from '../utils/ApiError.js'
 import { env } from '../config/env.js'
 
@@ -8,6 +8,7 @@ const SERVER_ID = process.env.SERVER_ID || 'hok-api-01'
 export async function authenticate(req, res, next) {
   try {
     if (req.admin) return next()
+    if (req.user) return next()
 
     const authHeader = req.headers.authorization
     if (!authHeader?.startsWith('Bearer ')) {
@@ -17,16 +18,31 @@ export async function authenticate(req, res, next) {
     const token = authHeader.split(' ')[1]
     const decoded = jwt.verify(token, env.jwtAccessSecret)
 
-    const admin = await prisma.admin.findUnique({
-      where: { id: decoded.adminId },
-      select: { id: true, email: true, fullName: true, role: true },
-    })
-
-    if (!admin) {
-      throw new ApiError(401, 'Admin not found')
+    if (decoded.adminId) {
+      const admin = await withRetry(() => prisma.admin.findUnique({
+        where: { id: decoded.adminId },
+        select: { id: true, email: true, fullName: true, role: true },
+      }))
+      if (!admin) {
+        throw new ApiError(401, 'Admin not found')
+      }
+      req.admin = admin
+    } else if (decoded.userId) {
+      const user = await withRetry(() => prisma.user.findUnique({
+        where: { id: decoded.userId },
+        select: { id: true, email: true, fullName: true, phone: true, role: true, status: true },
+      }))
+      if (!user) {
+        throw new ApiError(401, 'User not found')
+      }
+      if (user.status !== 'ACTIVE') {
+        throw new ApiError(401, 'Account is not active')
+      }
+      req.user = user
+    } else {
+      throw new ApiError(401, 'Invalid token')
     }
 
-    req.admin = admin
     next()
   } catch (err) {
     res.setHeader('X-Server-ID', SERVER_ID)
@@ -49,12 +65,19 @@ export async function authenticate(req, res, next) {
 
 export const authorize = (...allowedRoles) => {
   return (req, res, next) => {
-    if (!req.admin) {
+    const isAdmin = !!req.admin
+    const isUser = !!req.user
+
+    if (!isAdmin && !isUser) {
       return res.status(401).json({ success: false, message: 'Not authenticated' })
     }
-    if (allowedRoles.length === 0 || allowedRoles.includes(req.admin.role)) {
+
+    const role = req.admin?.role || req.user?.role
+
+    if (allowedRoles.length === 0 || allowedRoles.includes(role)) {
       return next()
     }
+
     return res.status(403).json({ success: false, message: 'Insufficient permissions' })
   }
 }
@@ -67,12 +90,21 @@ export const optionalAuth = async (req, res, next) => {
     const token = authHeader.split(' ')[1]
     const decoded = jwt.verify(token, env.jwtAccessSecret)
 
-    const admin = await prisma.admin.findUnique({
-      where: { id: decoded.adminId },
-      select: { id: true, email: true, fullName: true, role: true },
-    })
-
-    if (admin) req.admin = admin
+    if (decoded.adminId) {
+      const admin = await withRetry(() => prisma.admin.findUnique({
+        where: { id: decoded.adminId },
+        select: { id: true, email: true, fullName: true, role: true },
+      }))
+      if (admin) req.admin = admin
+    } else if (decoded.userId) {
+      const user = await withRetry(() => prisma.user.findUnique({
+        where: { id: decoded.userId },
+        select: { id: true, email: true, fullName: true, phone: true, role: true, status: true },
+      }))
+      if (user && user.status === 'ACTIVE') {
+        req.user = user
+      }
+    }
     next()
   } catch {
     next()

@@ -75,3 +75,21 @@ export const uploadProductImages = (maxCount = 60) => {
     },
   }).any()
 }
+
+export const uploadProductImagesStrict = (maxCount = 60) => {
+  const allExts = [...ALLOWED_IMAGE_EXTENSIONS, ...ALLOWED_VIDEO_EXTENSIONS]
+  return multer({
+    storage,
+    limits: { fileSize: MAX_FILE_SIZE, files: maxCount },
+    fileFilter: (req, file, cb) => {
+      if (!isAllowedFile(file, [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES], allExts)) {
+        return cb(new ApiError(400, `Invalid file type: ${file.mimetype}`))
+      }
+      const allowed = /^(images|variantImages(_|\[)\d+)$/
+      if (!allowed.test(file.fieldname)) {
+        return cb(new ApiError(400, `Invalid field name: ${file.fieldname}`))
+      }
+      cb(null, true)
+    },
+  }).any()
+}

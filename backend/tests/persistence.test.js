@@ -6,12 +6,15 @@ const API = '/api'
 
 describe('Data Persistence', () => {
   let adminToken
+  let csrfToken
   let adminEmail
 
   beforeEach(async () => {
     adminEmail = generateTestEmail()
     await createTestAdmin(adminEmail)
-    adminToken = await getAuthToken(adminEmail)
+    const auth = await getAuthToken(adminEmail)
+    adminToken = auth.accessToken
+    csrfToken = auth.csrfToken
   })
 
   it('should persist service across create-read-delete lifecycle', async () => {
@@ -19,6 +22,7 @@ describe('Data Persistence', () => {
     const createRes = await request(app)
       .post(`${API}/admin/services`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: uniqueTitle, description: 'Persistence test', featured: false, displayOrder: 0 })
 
     expect(createRes.status).toBe(201)
@@ -31,6 +35,7 @@ describe('Data Persistence', () => {
     const updateRes = await request(app)
       .patch(`${API}/admin/services/${id}`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: `${uniqueTitle}-updated` })
 
     expect(updateRes.status).toBe(200)
@@ -42,6 +47,7 @@ describe('Data Persistence', () => {
     const deleteRes = await request(app)
       .delete(`${API}/admin/services/${id}`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
 
     expect(deleteRes.status).toBe(200)
 
@@ -54,6 +60,7 @@ describe('Data Persistence', () => {
     const createRes = await request(app)
       .post(`${API}/admin/portfolio`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: uniqueTitle, description: 'Persistence test', category: 'Test', featured: false, displayOrder: 0 })
 
     expect(createRes.status).toBe(201)
@@ -83,6 +90,7 @@ describe('Data Persistence', () => {
     const createRes = await request(app)
       .post(`${API}/admin/portfolio`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: `test_STABLE-ID-${Date.now()}`, description: 'ID stability', category: 'Test', featured: false, displayOrder: 0 })
 
     const id = createRes.body.data.id

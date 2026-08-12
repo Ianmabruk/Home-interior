@@ -46,9 +46,10 @@ export const productService = {
 async function listProducts({ sort = '-createdAt', limit = 100, featured } = {}) {
   try {
     const orderBy = sort?.startsWith('-') ? { [sort.slice(1)]: 'desc' } : { createdAt: 'asc' }
-    const where = {}
-    if (featured !== undefined) where.featured = featured === 'true' || featured === true
-    if (featured === true || featured === 'true') where.inStock = true
+    const where = { inStock: true }
+    if (featured !== undefined) {
+      where.featured = featured === 'true' || featured === true
+    }
 
     const items = await prisma.product.findMany({
       where,

@@ -20,6 +20,24 @@ model Admin {
   @@map("admins")
 }
 
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique @db.Text
+  passwordHash String   @map("password_hash") @db.Text
+  fullName     String   @db.Text @map("full_name")
+  phone        String?  @db.Text
+  role         String   @default("CUSTOMER") @db.Text
+  status       String   @default("ACTIVE") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  orders Order[]
+
+  @@map("users")
+  @@index([email])
+  @@index([role])
+}
+
 model PortfolioProject {
   id           String   @id @default(cuid())
   title        String   @db.Text
@@ -266,6 +284,7 @@ model SiteSetting {
 
 model Order {
   id              String   @id @default(cuid())
+  userId          String?  @map("user_id") @db.Text
   email           String   @db.Text
   name            String   @db.Text
   phone           String?  @db.Text
@@ -278,9 +297,12 @@ model Order {
   status          String   @default("pending") @db.Text
   createdAt       DateTime @default(now()) @map("created_at")
 
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
   @@map("orders")
   @@index([email, createdAt(desc)])
   @@index([status, createdAt(desc)])
+  @@index([userId])
 }
 
 model CartItem {

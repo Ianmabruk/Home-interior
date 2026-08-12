@@ -1,4 +1,4 @@
-import { prisma } from '../config/database.js'
+import { prisma, withRetry } from '../config/database.js'
 import { failure } from '../utils/response.js'
 
 export const orderService = {
@@ -13,6 +13,7 @@ function parseOrder(order) {
   return {
     _id: order.id,
     id: order.id,
+    userId: order.userId,
     email: order.email,
     name: order.name,
     phone: order.phone,
@@ -35,20 +36,24 @@ async function createOrder(data) {
     }
 
     const productIds = enrichedItems.map((i) => i.productId).filter(Boolean)
-    const products = productIds.length > 0 ? await prisma.product.findMany({
+    const products = productIds.length > 0 ? await withRetry(() => prisma.product.findMany({
       where: { id: { in: productIds } },
       include: { variants: true },
-    }) : []
+    })) : []
     const productMap = new Map(products.map((p) => [p.id, p]))
 
     const finalItems = enrichedItems.map((item) => {
       const product = productMap.get(item.productId)
       const variant = product?.variants?.find((v) => v.id === item.variantId)
+      const dbPrice = variant?.price || product?.price || 0
+      if (item.price !== undefined && Math.abs(Number(item.price) - dbPrice) > 0.01) {
+        throw failure(400, `Price mismatch for product ${item.productId}`)
+      }
       return {
         productId: item.productId,
         variantId: item.variantId,
         quantity: item.quantity,
-        price: item.price,
+        price: dbPrice,
         name: product?.name || 'Unknown Product',
         image: variant?.image || product?.mainImage || (Array.isArray(product?.images) ? product.images[0] : '') || '',
         selectedVariant: variant ? {
@@ -67,14 +72,17 @@ async function createOrder(data) {
       console.warn(`[orders] Missing products for IDs: ${missingProducts.map((i) => i.productId).join(', ')}`)
     }
 
+    const serverTotal = finalItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
+
     let created
     try {
-      created = await prisma.order.create({
+      created = await withRetry(() => prisma.order.create({
         data: {
           ...data,
           items: JSON.stringify(finalItems),
+          total: serverTotal,
         },
-      })
+      }))
     } catch (err) {
       console.error('[orders] order create failed:', err)
       throw failure(500, err?.message || 'Failed to create order')
@@ -86,62 +94,63 @@ async function createOrder(data) {
       if (!product) continue
 
       const qty = Number(item.quantity) || 1
-      try {
-        if (product.variants && item.variantId) {
-          const variant = product.variants.find((v) => v.id === item.variantId)
-          if (variant && variant.stock >= qty) {
-            await prisma.productVariant.update({
-              where: { id: variant.id },
-              data: { stock: { decrement: qty } },
-            })
-          }
-        } else if (product.stock >= qty) {
-          await prisma.product.update({
-            where: { id: product.id },
-            data: { stock: { decrement: qty } },
-          })
+      if (product.variants && item.variantId) {
+        const variant = product.variants.find((v) => v.id === item.variantId)
+        if (!variant || variant.stock < qty) {
+          throw failure(400, `Insufficient stock for ${product.name}`)
         }
-      } catch (stockErr) {
-        console.error(`[orders] stock update failed for product ${item.productId}:`, stockErr)
+        await withRetry(() => prisma.productVariant.update({
+          where: { id: variant.id },
+          data: { stock: { decrement: qty } },
+        }))
+      } else if (product.stock < qty) {
+        throw failure(400, `Insufficient stock for ${product.name}`)
+      } else {
+        await withRetry(() => prisma.product.update({
+          where: { id: product.id },
+          data: { stock: { decrement: qty } },
+        }))
       }
     }
 
     return parseOrder(created)
   } catch (err) {
     console.error('[orders] createOrder failed:', err)
+    if (err?.status) throw err
     throw failure(500, err?.message || 'Failed to create order')
   }
 }
 
 async function getOrder(id) {
-  const order = await prisma.order.findUnique({
+  const order = await withRetry(() => prisma.order.findUnique({
     where: { id },
-  })
+  }))
   if (!order) throw failure(404, 'Order not found')
   return parseOrder(order)
 }
 
-async function getUserOrders(email) {
-  const orders = await prisma.order.findMany({
-    where: { email },
+async function getUserOrders(emailOrId) {
+  const where = emailOrId ? { OR: [{ email: emailOrId }, { userId: emailOrId }] } : {}
+  const orders = await withRetry(() => prisma.order.findMany({
+    where,
     orderBy: { createdAt: 'desc' },
-  })
+  }))
   return orders.map(parseOrder)
 }
 
 async function getAllOrders({ sort = '-createdAt', limit = 100 } = {}) {
   const orderBy = sort?.startsWith('-') ? { [sort.slice(1)]: 'desc' } : { createdAt: 'asc' }
-  const orders = await prisma.order.findMany({
+  const orders = await withRetry(() => prisma.order.findMany({
     orderBy,
     take: Number(limit) || 100,
-  })
+  }))
   return orders.map(parseOrder)
 }
 
 async function updateOrderStatus(id, status) {
-  const order = await prisma.order.update({
+  const order = await withRetry(() => prisma.order.update({
     where: { id },
     data: { status },
-  })
+  }))
   return parseOrder(order)
 }

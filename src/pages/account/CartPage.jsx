@@ -178,12 +178,12 @@ export const CartPage = () => {
                             <Minus size={16} strokeWidth={1.5} />
                           </button>
                           <span className="min-w-10 text-center font-medium text-[var(--primary)]">{item.quantity}</span>
-                          <button
-                            onClick={() => handleUpdateQuantity(item, item.quantity + 1)}
-                            disabled={updating === item._id}
-                            className="p-2 text-[var(--primary)]/50 hover:text-[var(--primary)]"
-                            aria-label="Increase quantity"
-                          >
+                           <button
+                             onClick={() => handleUpdateQuantity(item, item.quantity + 1)}
+                             disabled={updating === item._id || item.quantity >= (item.selectedVariant?.stock ?? item.stock ?? 99)}
+                             className="p-2 text-[var(--primary)]/50 hover:text-[var(--primary)] disabled:opacity-30"
+                             aria-label="Increase quantity"
+                           >
                             <Plus size={16} strokeWidth={1.5} />
                           </button>
                         </div>

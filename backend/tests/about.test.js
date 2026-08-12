@@ -6,12 +6,15 @@ const API = '/api'
 
 describe('About', () => {
   let adminToken
+  let csrfToken
   let adminEmail
 
   beforeEach(async () => {
     adminEmail = generateTestEmail()
     await createTestAdmin(adminEmail)
-    adminToken = await getAuthToken(adminEmail)
+    const auth = await getAuthToken(adminEmail)
+    adminToken = auth.accessToken
+    csrfToken = auth.csrfToken
   })
 
   it('should get about page publicly', async () => {
@@ -31,6 +34,7 @@ describe('About', () => {
     const res = await request(app)
       .put(`${API}/admin/about`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: 'test_About Us', description: 'Test about description', story: 'Our story' })
 
     expect(res.status).toBe(200)
@@ -46,6 +50,7 @@ describe('About', () => {
     const res = await request(app)
       .post(`${API}/admin/about/images`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .attach('image', minimalPng, { filename: 'test.png', contentType: 'image/png' })
       .field('displayOrder', '0')
       .field('isActive', 'true')

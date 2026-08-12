@@ -9,6 +9,13 @@ function createPrismaClient() {
     url.searchParams.set('connection_limit', String(limit))
   }
   url.searchParams.set('connect_timeout', '10')
+  url.searchParams.set('pool_timeout', '20')
+  url.searchParams.set('idle_in_transaction_session_timeout', '30000')
+  url.searchParams.set('tcp_user_timeout', '30000')
+  url.searchParams.set('keepalives', '1')
+  url.searchParams.set('keepalives_idle', '30')
+  url.searchParams.set('keepalives_interval', '10')
+  url.searchParams.set('keepalives_count', '5')
   const finalUrl = url.toString()
 
   return new PrismaClient({

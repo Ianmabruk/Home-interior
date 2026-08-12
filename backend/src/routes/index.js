@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import authRoutes from './authRoutes.js'
+import customerAuthRoutes from './customerAuthRoutes.js'
 import adminRoutes from './adminRoutes.js'
 import productRoutes from './productRoutes.js'
 import orderRoutes from './orderRoutes.js'
@@ -27,6 +28,7 @@ import { prisma } from '../config/database.js'
 const router = Router()
 
 router.use('/auth', authRoutes)
+router.use('/auth/customer', customerAuthRoutes)
 router.use('/admin', adminRoutes)
 
 router.use('/content', contentRoutes)

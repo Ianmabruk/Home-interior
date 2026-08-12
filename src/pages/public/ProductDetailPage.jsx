@@ -24,6 +24,14 @@ export const ProductDetailPage = () => {
   const { formatPrice } = useCurrency()
   const navigate = useNavigate()
 
+  const maxQuantity = useMemo(() => {
+    if (!product) return 99
+    if (selectedVariant) {
+      return Math.max(1, selectedVariant.stock ?? product.stock ?? 99)
+    }
+    return Math.max(1, product.stock ?? 99)
+  }, [product, selectedVariant])
+
   const { style: zoomStyle, handleWheel, handleMouseDown, handleTouchStart, handleTouchEnd, reset } = useZoom()
 
   const loadProduct = useCallback(async () => {
@@ -40,6 +48,10 @@ export const ProductDetailPage = () => {
       setLoading(false)
     }
   }, [id])
+
+  useEffect(() => {
+    setQuantity((q) => Math.min(q, maxQuantity))
+  }, [maxQuantity])
 
   useEffect(() => {
     loadProduct()
@@ -304,8 +316,9 @@ export const ProductDetailPage = () => {
                     </button>
                     <span className="min-w-[60px] text-center text-lg font-medium text-[var(--primary)]">{quantity}</span>
                     <button
-                      onClick={() => setQuantity((q) => q + 1)}
-                      className="flex h-12 w-12 items-center justify-center text-[var(--primary)]/50 transition hover:text-[var(--primary)]"
+                      onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
+                      disabled={quantity >= maxQuantity}
+                      className="flex h-12 w-12 items-center justify-center text-[var(--primary)]/50 transition hover:text-[var(--primary)] disabled:opacity-30 disabled:cursor-not-allowed"
                       aria-label="Increase quantity"
                     >
                       <Plus size={18} strokeWidth={1.5} />

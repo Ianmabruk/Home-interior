@@ -6,12 +6,15 @@ const API = '/api'
 
 describe('Blog', () => {
   let adminToken
+  let csrfToken
   let adminEmail
 
   beforeEach(async () => {
     adminEmail = generateTestEmail()
     await createTestAdmin(adminEmail)
-    adminToken = await getAuthToken(adminEmail)
+    const auth = await getAuthToken(adminEmail)
+    adminToken = auth.accessToken
+    csrfToken = auth.csrfToken
   })
 
   it('should list published blogs publicly', async () => {
@@ -25,6 +28,7 @@ describe('Blog', () => {
     const res = await request(app)
       .post(`${API}/admin/blog`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: 'test_Blog Alpha', description: 'Test desc', content: 'Content', category: 'Design', published: true })
 
     expect(res.status).toBe(201)
@@ -36,6 +40,7 @@ describe('Blog', () => {
     const createRes = await request(app)
       .post(`${API}/admin/blog`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: 'test_Blog Beta', description: 'Beta', content: 'Beta content', category: 'Interior', published: true })
 
     const id = createRes.body.data.id
@@ -48,12 +53,14 @@ describe('Blog', () => {
     const createRes = await request(app)
       .post(`${API}/admin/blog`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: 'test_Blog Gamma', description: 'Gamma', content: 'Gamma content', category: 'Architecture', published: true })
 
     const id = createRes.body.data.id
     const res = await request(app)
       .patch(`${API}/admin/blog/${id}`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: 'test_Blog Gamma Updated' })
 
     expect(res.status).toBe(200)
@@ -64,12 +71,14 @@ describe('Blog', () => {
     const createRes = await request(app)
       .post(`${API}/admin/blog`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
       .send({ title: 'test_Blog Delta', description: 'Delta', content: 'Delta content', category: 'Trends', published: true })
 
     const id = createRes.body.data.id
     const res = await request(app)
       .delete(`${API}/admin/blog/${id}`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
 
     expect(res.status).toBe(200)
     expect(res.body.success).toBe(true)

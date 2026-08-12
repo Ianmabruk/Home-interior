@@ -28,6 +28,7 @@ export const orderController = {
     const rawPayment = typeof req.body.paymentDetails === 'string' ? req.body.paymentDetails : JSON.stringify(req.body.paymentDetails || {})
 
     const data = {
+      userId: req.user?.id || null,
       email,
       name,
       phone,
@@ -36,7 +37,7 @@ export const orderController = {
       shippingMethod: req.body.shippingMethod || 'standard',
       paymentMethod: shipping.paymentMethod || req.body.paymentMethod || 'guest',
       paymentDetails: rawPayment,
-      total: Number(req.body.total) || 0,
+      total: 0,
     }
     const order = await orderService.createOrder(data)
     res.status(201).json({ success: true, data: order })
@@ -45,10 +46,11 @@ export const orderController = {
   listMine: asyncHandler(async (req, res) => {
     const user = req.user || req.admin
     const email = user?.email || req.query.email
-    if (!email) {
-      return res.status(400).json({ success: false, message: 'Email required' })
+    const userId = req.user?.id
+    if (!email && !userId) {
+      return res.status(400).json({ success: false, message: 'Email or user ID required' })
     }
-    const orders = await orderService.getUserOrders(email)
+    const orders = await orderService.getUserOrders(userId || email)
     res.json({ success: true, data: orders })
   }),
 
@@ -62,6 +64,18 @@ export const orderController = {
     const order = await orderService.getOrder(req.params.id)
     if (req.admin) {
       if (req.admin.role !== 'ADMIN' && order.email !== req.admin.email) {
+        return res.status(403).json({ success: false, message: 'Access denied' })
+      }
+    } else if (req.user) {
+      if (order.userId && order.userId !== req.user.id) {
+        return res.status(403).json({ success: false, message: 'Access denied' })
+      }
+      if (!order.userId && order.email !== req.user.email) {
+        return res.status(403).json({ success: false, message: 'Access denied' })
+      }
+    } else {
+      const requesterEmail = req.query.email
+      if (!requesterEmail || order.email !== requesterEmail) {
         return res.status(403).json({ success: false, message: 'Access denied' })
       }
     }

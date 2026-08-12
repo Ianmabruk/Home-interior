@@ -1,12 +1,16 @@
 import { Router } from 'express'
 import { consultationController } from '../controllers/consultationController.js'
 import { authenticate } from '../middleware/auth.js'
+import { validateCsrfToken } from '../middleware/csrf.js'
 
 const router = Router()
 
-router.get('/', authenticate, consultationController.list)
-router.patch('/:id/status', authenticate, consultationController.updateStatus)
-router.delete('/:id', authenticate, consultationController.delete)
-router.get('/export', authenticate, consultationController.exportCsv)
+router.use(authenticate)
+router.use(validateCsrfToken)
+
+router.get('/', consultationController.list)
+router.patch('/:id/status', consultationController.updateStatus)
+router.delete('/:id', consultationController.delete)
+router.get('/export', consultationController.exportCsv)
 
 export default router
