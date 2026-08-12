@@ -61,6 +61,14 @@ async function login(email, password) {
   const accessToken = jwt.sign(payload, env.jwtAccessSecret, { expiresIn: env.accessTokenTtl || '15m' })
   const refreshToken = jwt.sign(payload, env.jwtRefreshSecret, { expiresIn: env.refreshTokenTtl || '30d' })
 
+  await withRetry(() => prisma.passwordReset.create({
+    data: {
+      userId: user.id,
+      token: refreshToken,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
+  })).catch(() => {})
+
   return {
     user: { id: user.id, email: user.email, fullName: user.fullName, phone: user.phone, role: user.role },
     accessToken,
@@ -82,6 +90,14 @@ async function refresh(refreshToken) {
     throw failure(401, 'Invalid refresh token')
   }
 
+  const reset = await withRetry(() => prisma.passwordReset.findFirst({
+    where: { userId: decoded.userId, token: refreshToken },
+  }))
+
+  if (!reset || new Date(reset.expiresAt) < new Date()) {
+    throw failure(401, 'Invalid refresh token')
+  }
+
   const user = await withRetry(() => prisma.user.findUnique({
     where: { id: decoded.userId },
     select: { id: true, email: true, fullName: true, phone: true, role: true, status: true },
@@ -95,6 +111,11 @@ async function refresh(refreshToken) {
   const accessToken = jwt.sign(payload, env.jwtAccessSecret, { expiresIn: env.accessTokenTtl || '15m' })
   const newRefresh = jwt.sign(payload, env.jwtRefreshSecret, { expiresIn: env.refreshTokenTtl || '30d' })
 
+  await withRetry(() => prisma.passwordReset.update({
+    where: { id: reset.id },
+    data: { token: newRefresh, expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
+  }))
+
   return { accessToken, refreshToken: newRefresh }
 }
 
@@ -103,7 +124,7 @@ async function logout(refreshToken) {
   try {
     const decoded = jwt.verify(refreshToken, env.jwtRefreshSecret)
     if (decoded.userId) {
-      await withRetry(() => prisma.passwordReset.deleteMany({ where: { adminId: decoded.userId } })).catch(() => {})
+      await withRetry(() => prisma.passwordReset.deleteMany({ where: { userId: decoded.userId } })).catch(() => {})
     }
   } catch {
     // ignore

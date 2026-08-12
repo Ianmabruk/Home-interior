@@ -383,11 +383,13 @@ model Message {
 
 model PasswordReset {
   id        String   @id @default(cuid())
-  adminId   String   @map("admin_id") @db.Text
+  adminId   String?  @map("admin_id") @db.Text
+  userId    String?  @map("user_id") @db.Text
   token     String   @unique @db.Text
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("password_resets")
   @@index([adminId, token])
+  @@index([userId, token])
 }
