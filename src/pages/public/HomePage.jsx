@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { HeroSection } from '@components/home/HeroSection'
 import { CircularNavigationGrid } from '@components/home/CircularNavigationGrid'
 import { MobileCircularNavigation } from '@components/home/MobileCircularNavigation'
-import { ContactSection } from '@components/home/ContactSection'
 import { SectionErrorBoundary } from '@components/home/SectionErrorBoundary'
 import { api, clearApiCache } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
@@ -36,7 +35,6 @@ export const HomePage = memo(() => {
   const [aboutImages, setAboutImages] = useState([])
   const [socialItems, setSocialItems] = useState([])
   const [blog, setBlog] = useState([])
-  const [contactInfo, setContactInfo] = useState(null)
 
   const loadData = useCallback(async () => {
     try {
@@ -51,7 +49,6 @@ export const HomePage = memo(() => {
       setAboutImages(data.aboutImages || [])
       setSocialItems(data.socialItems || [])
       setBlog(data.blog || [])
-      setContactInfo(data.contact || null)
     } catch (err) {
       console.warn('[HOME] Failed to load data:', err?.message)
     } finally {
@@ -74,7 +71,6 @@ export const HomePage = memo(() => {
         payload?.type === 'products-changed' ||
         payload?.type === 'about-changed' ||
         payload?.type === 'blog-changed' ||
-        payload?.type === 'contact-changed' ||
         payload?.type === 'socials-changed'
       ) {
         clearApiCache('/homepage')
@@ -139,12 +135,6 @@ export const HomePage = memo(() => {
         />
       </SectionErrorBoundary>
 
-
-      {/* CONTACT SECTION */}
-      <SectionErrorBoundary sectionName="Contact" fallback={<EmptySection />}>
-        <ContactSection contactInfo={contactInfo} />
-      </SectionErrorBoundary>
-
       {/* INTERNAL LINKS */}
       <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-12">
         <div className="container-wide">
@@ -155,7 +145,6 @@ export const HomePage = memo(() => {
             <Link to="/blog" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Blog</Link>
             <Link to="/virtual-design" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Virtual Design</Link>
             <Link to="/about" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">About</Link>
-            <Link to="/contact" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Contact</Link>
           </div>
         </div>
       </section>
