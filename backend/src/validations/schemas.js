@@ -190,6 +190,7 @@ export const testimonialSchemas = {
     clientName: z.string().min(1, 'Client name is required'),
     testimonial: z.string().optional(),
     content: z.string().optional(),
+    project: z.string().optional(),
     displayOrder: z.coerce.number().int().nonnegative().optional(),
     isActive: z.union([z.boolean(), z.string()]).optional(),
   }),
@@ -197,8 +198,23 @@ export const testimonialSchemas = {
     clientName: z.string().optional(),
     testimonial: z.string().optional(),
     content: z.string().optional(),
+    project: z.string().optional(),
     displayOrder: z.coerce.number().int().nonnegative().optional(),
     isActive: z.union([z.boolean(), z.string()]).optional(),
+  }),
+}
+
+export const workWithUsSchemas = {
+  publicCreate: z.object({
+    fullName: z.string().min(1, 'Full name is required'),
+    email: z.string().email('Invalid email address'),
+    phone: z.string().min(1, 'Phone number is required'),
+    budget: z.string().min(1, 'Budget is required'),
+    startDate: z.string().optional(),
+    timeline: z.string().min(1, 'Timeline is required'),
+  }),
+  updateStatus: z.object({
+    status: z.string().min(1, 'Status is required'),
   }),
 }
 

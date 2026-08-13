@@ -35,6 +35,7 @@ export const HomePage = memo(() => {
   const [aboutImages, setAboutImages] = useState([])
   const [socialItems, setSocialItems] = useState([])
   const [blog, setBlog] = useState([])
+  const [workWithUs, setWorkWithUs] = useState([])
 
   const loadData = useCallback(async () => {
     try {
@@ -49,6 +50,7 @@ export const HomePage = memo(() => {
       setAboutImages(data.aboutImages || [])
       setSocialItems(data.socialItems || [])
       setBlog(data.blog || [])
+      setWorkWithUs(data.workWithUs || [])
     } catch (err) {
       console.warn('[HOME] Failed to load data:', err?.message)
     } finally {
@@ -71,7 +73,8 @@ export const HomePage = memo(() => {
         payload?.type === 'products-changed' ||
         payload?.type === 'about-changed' ||
         payload?.type === 'blog-changed' ||
-        payload?.type === 'socials-changed'
+        payload?.type === 'socials-changed' ||
+        payload?.type === 'workWithUs-changed'
       ) {
         clearApiCache('/homepage')
         loadData()
@@ -118,6 +121,7 @@ export const HomePage = memo(() => {
           aboutImages={aboutImages}
           socialItems={socialItems}
           blog={blog}
+          workWithUs={workWithUs}
         />
       </SectionErrorBoundary>
 
@@ -132,6 +136,7 @@ export const HomePage = memo(() => {
           aboutImages={aboutImages}
           socialItems={socialItems}
           blog={blog}
+          workWithUs={workWithUs}
         />
       </SectionErrorBoundary>
 
@@ -145,6 +150,8 @@ export const HomePage = memo(() => {
             <Link to="/blog" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Blog</Link>
             <Link to="/virtual-design" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Virtual Design</Link>
             <Link to="/about" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">About</Link>
+            <Link to="/signup" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Sign Up</Link>
+            <Link to="/login" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Login</Link>
           </div>
         </div>
       </section>

@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react'
-import { api } from '../services/api'
 
 const ShopContext = createContext(null)
 const LOCAL_CART_KEY = 'hok_local_cart'
@@ -34,7 +33,7 @@ const setLocalWishlist = (items) => {
 export function ShopProvider({ children }) {
   const [cart, setCart] = useState([])
   const [wishlist, setWishlist] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading] = useState(false)
 
   const fetchCart = useCallback(async () => {
     setCart(getLocalCart())

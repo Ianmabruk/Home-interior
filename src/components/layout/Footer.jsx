@@ -1,17 +1,10 @@
-import { useState, useEffect, memo, useMemo, useCallback } from 'react'
+import { useState, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '@services/api'
-import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
-import { SocialIcons } from '@components/common/SocialIcons'
-import { SOCIAL_LINKS } from '@constants/socialLinks'
 
 export const Footer = memo(() => {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState('')
-
-  const footerSocials = useMemo(() => {
-    return SOCIAL_LINKS.filter((link) => link.link && link.link.trim() !== '')
-  }, [])
 
   const handleSubscribe = async (e) => {
     e.preventDefault()
@@ -38,30 +31,9 @@ export const Footer = memo(() => {
             </Link>
           </div>
 
-          {/* Section 2: Follow Us */}
+          {/* Section 3: Newsletter */}
           <div className="text-center animate-fade-up" style={{ animationDelay: '0.1s' }}>
-            <h3 className="font-display text-xl md:text-2xl font-normal text-white mb-6">Follow Us</h3>
-            <SocialIcons items={footerSocials} className="justify-center" />
-          </div>
-
-          {/* Section 3: Contact Us */}
-          <div className="text-center animate-fade-up" style={{ animationDelay: '0.2s' }}>
-            <h3 className="font-display text-xl md:text-2xl font-normal text-white mb-6">Contact Us</h3>
-            <div className="space-y-3 text-base md:text-lg text-white/70">
-              <p className="flex items-center justify-center gap-2">
-                <span className="text-[var(--accent)]" aria-hidden="true">📞</span>
-                <a href="tel:+254700000000" className="hover:text-[var(--accent)] transition-colors">+254 700 000 000</a>
-              </p>
-              <p className="flex items-center justify-center gap-2">
-                <span className="text-[var(--accent)]" aria-hidden="true">✉</span>
-                <a href="mailto:info@hokinteriors.com" className="hover:text-[var(--accent)] transition-colors">info@hokinteriors.com</a>
-              </p>
-            </div>
-          </div>
-
-          {/* Section 4: Newsletter */}
-          <div className="text-center animate-fade-up" style={{ animationDelay: '0.3s' }}>
-            <h3 className="font-display text-xl md:text-2xl font-normal text-white mb-3">Newsletter</h3>
+            <h3 className="font-display text-xl md:text-2xl font-normal text-white mb-3">Join Mailing List</h3>
             <p className="text-sm text-white/50 mb-6 max-w-md mx-auto">Subscribe to receive the latest updates and offers.</p>
             <form onSubmit={handleSubscribe} className="max-w-md mx-auto space-y-3">
               <input
@@ -87,8 +59,23 @@ export const Footer = memo(() => {
             )}
           </div>
 
+          {/* Section 4: Get in Touch */}
+          <div className="text-center animate-fade-up" style={{ animationDelay: '0.2s' }}>
+            <h3 className="font-display text-xl md:text-2xl font-normal text-white mb-6">Get in Touch</h3>
+            <div className="space-y-3 text-base md:text-lg text-white/70">
+              <p className="flex items-center justify-center gap-2">
+                <span className="text-[var(--accent)]" aria-hidden="true">📞</span>
+                <a href="tel:+254115407200" className="hover:text-[var(--accent)] transition-colors">011-5-407-200</a>
+              </p>
+              <p className="flex items-center justify-center gap-2">
+                <span className="text-[var(--accent)]" aria-hidden="true">✉</span>
+                <a href="mailto:info@hokinteriors.com" className="hover:text-[var(--accent)] transition-colors">info@hokinteriors.com</a>
+              </p>
+            </div>
+          </div>
+
           {/* Copyright */}
-          <div className="animate-fade-up mt-12 md:mt-16 pt-8 md:pt-12 border-t border-white/10 text-center" style={{ animationDelay: '0.4s' }}>
+          <div className="animate-fade-up mt-12 md:mt-16 pt-8 md:pt-12 border-t border-white/10 text-center" style={{ animationDelay: '0.3s' }}>
             <p className="text-[11px] uppercase tracking-widest text-white/30">
               &copy; {new Date().getFullYear()} HOK INTERIOR DESIGNS. All rights reserved.
             </p>

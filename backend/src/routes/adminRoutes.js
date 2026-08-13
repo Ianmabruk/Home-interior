@@ -16,6 +16,7 @@ import { consultationController } from '../controllers/consultationController.js
 import { orderController } from '../controllers/orderController.js'
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import { adminOverviewController } from '../controllers/adminOverviewController.js'
+import { workWithUsController } from '../controllers/workWithUsController.js'
 import adminSocialRoutes from './adminSocialRoutes.js'
 
 const router = Router()
@@ -107,5 +108,11 @@ router.get('/consultations/export', consultationController.exportCsv)
 // Admin Orders
 router.get('/orders', orderController.listAll)
 router.patch('/orders/:id/status', orderController.updateStatus)
+
+// Admin Work With Us
+router.get('/work-with-us', workWithUsController.list)
+router.get('/work-with-us/:id', workWithUsController.get)
+router.patch('/work-with-us/:id/status', workWithUsController.updateStatus)
+router.delete('/work-with-us/:id', workWithUsController.delete)
 
 export default router

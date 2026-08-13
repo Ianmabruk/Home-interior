@@ -18,6 +18,7 @@ export const testimonialController = {
     const data = {
       clientName: req.body.clientName || '',
       content: req.body.testimonial || req.body.content || '',
+      project: req.body.project || '',
       displayOrder: Number(req.body.displayOrder) || 0,
       isActive: req.body.isActive !== 'false' && req.body.isActive !== false,
     }
@@ -31,6 +32,7 @@ export const testimonialController = {
     if (req.body.clientName !== undefined) data.clientName = req.body.clientName
     if (req.body.testimonial !== undefined) data.content = req.body.testimonial
     if (req.body.content !== undefined) data.content = req.body.content
+    if (req.body.project !== undefined) data.project = req.body.project
     if (req.body.displayOrder !== undefined) data.displayOrder = Number(req.body.displayOrder) || 0
     if (req.body.isActive !== undefined) data.isActive = req.body.isActive === 'true' || req.body.isActive === true
     const item = await testimonialService.updateTestimonial(req.params.id, data, file)

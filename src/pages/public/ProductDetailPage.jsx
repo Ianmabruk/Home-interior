@@ -32,7 +32,7 @@ export const ProductDetailPage = () => {
     return Math.max(1, product.stock ?? 99)
   }, [product, selectedVariant])
 
-  const { style: zoomStyle, handleWheel, handleMouseDown, handleTouchStart, handleTouchEnd, reset } = useZoom()
+  const { style: zoomStyle, scale, handleWheel, handleMouseDown, handleTouchStart, handleTouchMove, handleTouchEnd, reset } = useZoom()
 
   const loadProduct = useCallback(async () => {
     if (!id) return

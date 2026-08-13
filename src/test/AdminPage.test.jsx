@@ -29,6 +29,7 @@ vi.mock('lucide-react', () => ({
   Eye: () => <span data-testid="eye">Eye</span>,
   ChevronLeft: () => <span data-testid="chevron-left">←</span>,
   ChevronRight: () => <span data-testid="chevron-right">→</span>,
+  Heart: () => <span data-testid="heart">Heart</span>,
   UploadCloud: () => <span data-testid="upload">Upload</span>,
   X: () => <span data-testid="x">X</span>,
   Plus: () => <span data-testid="plus">Plus</span>,

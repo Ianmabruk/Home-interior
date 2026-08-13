@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { SiFacebook, SiInstagram, SiPinterest, SiTiktok, SiWhatsapp, SiX, SiYoutube, SiGlobus } from 'react-icons/si'
-import { SOCIAL_LINKS, getDefaultSocialItems } from '@constants/socialLinks'
+import { getDefaultSocialItems } from '@constants/socialLinks'
 
 const platformIconMap = {
   instagram: SiInstagram,

@@ -21,10 +21,14 @@ export const CartPage = () => {
         localStorage.removeItem('hok_order_placed')
         setTimeout(() => setOrderPlaced(false), 6000)
       }
-    } catch {}
+    } catch {
+      // ignore localStorage errors
+    }
 
     return () => {
-      try { localStorage.removeItem('hok_order_placed') } catch {}
+      try { localStorage.removeItem('hok_order_placed') } catch {
+        // ignore localStorage errors
+      }
     }
   }, [])
 

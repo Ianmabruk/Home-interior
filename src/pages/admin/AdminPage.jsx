@@ -15,6 +15,8 @@ import {
   Book,
   Users,
   Globe,
+  FileText,
+  Heart,
 } from 'lucide-react'
 import { useAuth } from '@context/AuthContext'
 import { Sidebar } from '@components/admin/Sidebar'
@@ -31,6 +33,8 @@ const ADMIN_NAV = [
   { id: 'blog', label: 'Blog', icon: Book, to: '/admin/blog' },
   { id: 'orders', label: 'Orders', icon: Package, to: '/admin/orders' },
   { id: 'consultations', label: 'Consultations', icon: MessageSquare, to: '/admin/consultations' },
+  { id: 'work-with-us', label: 'Work With Us', icon: FileText, to: '/admin/work-with-us' },
+  { id: 'testimonials', label: 'Testimonials', icon: Heart, to: '/admin/testimonials' },
   { id: 'settings', label: 'Settings', icon: Settings, to: '/admin/settings' },
 ]
 

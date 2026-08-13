@@ -271,15 +271,26 @@ export const Navbar = memo(() => {
                 </button>
               </>
             ) : (
-              <Link
-                to="/login"
-                onClick={() => setUserMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
-                role="menuitem"
-              >
-                <LayoutDashboard size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                Admin Login
-              </Link>
+              <>
+                <Link
+                  to="/signup"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
+                  role="menuitem"
+                >
+                  <User size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
+                  Sign Up
+                </Link>
+                <Link
+                  to="/login"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
+                  role="menuitem"
+                >
+                  <LayoutDashboard size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
+                  Login
+                </Link>
+              </>
             )}
           </motion.div>
         </>
@@ -540,15 +551,23 @@ export const Navbar = memo(() => {
                            <span className="font-display text-lg md:text-xl font-normal tracking-wide">Logout</span>
                          </motion.button>
                         </>
-                      ) : (
+                       ) : (
                         <motion.div variants={itemVariants} className="space-y-3">
+                          <Link
+                            to="/signup"
+                            onClick={() => setMobileOpen(false)}
+                            className="flex items-center justify-center gap-2 rounded-full border border-[#2A241F]/20 bg-white px-6 py-3.5 text-sm font-medium text-[#2A241F] transition-all duration-300 hover:border-[#E89A43] hover:text-[#E89A43]"
+                          >
+                            <User size={16} strokeWidth={1.5} aria-hidden="true" />
+                            Sign Up
+                          </Link>
                           <Link
                             to="/login"
                             onClick={() => setMobileOpen(false)}
                             className="flex items-center justify-center gap-2 rounded-full border border-[#2A241F]/20 bg-white px-6 py-3.5 text-sm font-medium text-[#2A241F] transition-all duration-300 hover:border-[#E89A43] hover:text-[#E89A43]"
                           >
                             <LayoutDashboard size={16} strokeWidth={1.5} aria-hidden="true" />
-                            Admin Login
+                            Login
                           </Link>
                         </motion.div>
                       )}

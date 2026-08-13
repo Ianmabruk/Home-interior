@@ -156,18 +156,19 @@ async function updateProduct(id, data, files, variantFiles = []) {
   const updateData = { ...data }
 
   if (Array.isArray(files) && files.length > 0) {
-    const images = [...(existing.images || [])]
-    const storagePaths = [...(existing.storagePaths || []).filter(Boolean)]
+    const newImages = []
+    const newStoragePaths = []
     for (const f of files) {
       const uploaded = await uploadFile(f.buffer, f.mimetype, 'products')
-      images.push(uploaded.url)
-      if (uploaded.path) storagePaths.push(uploaded.path)
+      newImages.push(uploaded.url)
+      if (uploaded.path) newStoragePaths.push(uploaded.path)
     }
+    const images = [...newImages, ...(existing.images || [])]
+    const storagePaths = [...newStoragePaths, ...(existing.storagePaths || []).filter(Boolean)]
     updateData.images = images
     updateData.storagePaths = storagePaths
-  }
-
-  if (!updateData.mainImage && (existing.images || []).length > 0) {
+    updateData.mainImage = newImages[0]
+  } else if (!updateData.mainImage && (existing.images || []).length > 0) {
     const first = existing.images[0]
     updateData.mainImage = typeof first === 'string' ? first : first?.url || null
   }

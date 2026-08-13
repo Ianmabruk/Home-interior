@@ -53,6 +53,8 @@ const VirtualDesignPage = lazyWithCache(() => import('@pages/public/VirtualDesig
 const VirtualDesignDetailPage = lazyWithCache(() => import('@pages/public/VirtualDesignDetailPage').then(m => ({ default: m.VirtualDesignDetailPage })), 'virtual-design-detail')
 const AboutPage = lazyWithCache(() => import('@pages/public/AboutPage'), 'about')
 const ContactPage = lazyWithCache(() => import('@pages/public/ContactPage'), 'contact')
+const WorkWithUsPage = lazyWithCache(() => import('@pages/public/WorkWithUsPage'), 'work-with-us')
+const TestimonialsPage = lazyWithCache(() => import('@pages/public/TestimonialsPage'), 'testimonials')
 const SocialsPage = lazyWithCache(() => import('@pages/public/SocialsPage'), 'socials')
 const BlogPage = lazyWithCache(() => import('@pages/public/BlogPage').then(m => ({ default: m.BlogPage })), 'blog')
 const BlogDetailPage = lazyWithCache(() => import('@pages/public/BlogDetailPage').then(m => ({ default: m.BlogDetailPage })), 'blog-detail')
@@ -83,6 +85,8 @@ const SettingsDashboard = lazyWithCache(() => import('@components/admin/Settings
 const BlogDashboard = lazyWithCache(() => import('@components/admin/BlogDashboard').then(m => ({ default: m.default })), 'blog-dashboard')
 const AboutDashboard = lazyWithCache(() => import('@components/admin/AboutDashboard').then(m => ({ default: m.AboutDashboard })), 'about-dashboard')
 const SocialDashboard = lazyWithCache(() => import('@components/admin/SocialDashboard').then(m => ({ default: m.SocialDashboard })), 'social-dashboard')
+const WorkWithUsDashboard = lazyWithCache(() => import('@components/admin/WorkWithUsDashboard').then(m => ({ default: m.default })), 'work-with-us-dashboard')
+const TestimonialsDashboard = lazyWithCache(() => import('@components/admin/TestimonialDashboard').then(m => ({ default: m.default })), 'testimonials-dashboard')
 
 const ErrorBoundaryRoute = memo(({ element }) => (
   <ErrorBoundary fallback={<ErrorFallback />}>
@@ -100,6 +104,8 @@ const PrefetchOnIdle = () => {
       () => import('@pages/public/ServicesPage'),
       () => import('@pages/public/VirtualDesignPage'),
       () => import('@pages/public/AboutPage'),
+      () => import('@pages/public/WorkWithUsPage'),
+      () => import('@pages/public/TestimonialsPage'),
     ]
 
     const idleCallback = window.requestIdleCallback || ((cb) => setTimeout(cb, 1000))
@@ -139,8 +145,10 @@ export const AppRouter = () => {
           <Route path="/socials" element={<ErrorBoundaryRoute element={<SocialsPage />} />} />
           <Route path="/blog" element={<ErrorBoundaryRoute element={<BlogPage />} />} />
           <Route path="/blog/:id" element={<ErrorBoundaryRoute element={<BlogDetailPage />} />} />
-          <Route path="/contact" element={<ErrorBoundaryRoute element={<ContactPage />} />} />
-          <Route path="/chat" element={<ErrorBoundaryRoute element={<ChatPage />} />} />
+           <Route path="/contact" element={<ErrorBoundaryRoute element={<ContactPage />} />} />
+           <Route path="/work-with-us" element={<ErrorBoundaryRoute element={<WorkWithUsPage />} />} />
+           <Route path="/testimonials" element={<ErrorBoundaryRoute element={<TestimonialsPage />} />} />
+           <Route path="/chat" element={<ErrorBoundaryRoute element={<ChatPage />} />} />
           <Route path="/cart" element={<ErrorBoundaryRoute element={<CartPage />} />} />
           <Route path="/checkout" element={<ErrorBoundaryRoute element={<CheckoutPage />} />} />
           <Route path="/account/orders/:id" element={<ErrorBoundaryRoute element={<OrderConfirmationPage />} />} />
@@ -157,9 +165,11 @@ export const AppRouter = () => {
               <Route path="about" element={<ErrorBoundaryRoute element={<AboutDashboard />} />} />
               <Route path="shop" element={<ErrorBoundaryRoute element={<ShopDashboard />} />} />
               <Route path="blog" element={<ErrorBoundaryRoute element={<BlogDashboard />} />} />
-              <Route path="orders" element={<ErrorBoundaryRoute element={<OrderDashboard />} />} />
-              <Route path="consultations" element={<ErrorBoundaryRoute element={<ConsultationDashboard />} />} />
-              <Route path="settings" element={<ErrorBoundaryRoute element={<SettingsDashboard />} />} />
+               <Route path="orders" element={<ErrorBoundaryRoute element={<OrderDashboard />} />} />
+               <Route path="consultations" element={<ErrorBoundaryRoute element={<ConsultationDashboard />} />} />
+               <Route path="work-with-us" element={<ErrorBoundaryRoute element={<WorkWithUsDashboard />} />} />
+               <Route path="testimonials" element={<ErrorBoundaryRoute element={<TestimonialsDashboard />} />} />
+               <Route path="settings" element={<ErrorBoundaryRoute element={<SettingsDashboard />} />} />
             </Route>
           </Route>
 

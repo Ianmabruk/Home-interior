@@ -54,7 +54,12 @@ async function getHomepage() {
           where: { isActive: true },
           orderBy: { displayOrder: 'asc' },
           take: 10,
-          select: { id: true, clientName: true, content: true, photoUrl: true },
+          select: { id: true, clientName: true, content: true, project: true, photoUrl: true },
+        }),
+        prisma.workWithUs.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 6,
+          select: { id: true, fullName: true, email: true, budget: true, startDate: true, timeline: true, status: true, createdAt: true },
         }),
         prisma.heroMedia.findMany({
           where: { isActive: true },
@@ -93,6 +98,7 @@ async function getHomepage() {
       blog,
       socialItems,
       contact,
+      workWithUs,
     ] = data
 
     const featuredPortfolio = portfolio.filter((p) => p.featured).slice(0, 3)
@@ -124,6 +130,7 @@ async function getHomepage() {
       blog: mappedBlog,
       socialItems: (socialItems || []).filter((item) => item.isActive),
       contact,
+      workWithUs,
     }
   } catch (err) {
     console.error('[homepageService] Failed to load homepage data:', err)
@@ -144,6 +151,7 @@ async function getHomepage() {
       blog: [],
       socialItems: [],
       contact: null,
+      workWithUs: [],
     }
   }
 }

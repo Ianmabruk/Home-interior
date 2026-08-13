@@ -17,6 +17,7 @@ const CONTENT_PATHS = [
   '/consultations',
   '/media',
   '/test-upload',
+  '/work-with-us',
 ]
 
 const requestCache = new Map()

@@ -80,6 +80,12 @@ const NAV_ITEMS_MOBILE = [
     path: '/socials',
     getImage: (data) => data.socialItems?.[0]?.imageUrl || data.about?.socialImage || data.about?.imageUrl || null,
   },
+  {
+    key: 'workWithUs',
+    label: 'Work With Us',
+    path: '/work-with-us',
+    getImage: (_data) => null,
+  },
 ]
 
 const PlaceholderIcons = {
@@ -131,6 +137,12 @@ const PlaceholderIcons = {
       <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2h10" />
       <line x1="8" y1="7" x2="16" y2="7" />
       <line x1="8" y1="11" x2="13" y2="11" />
+    </svg>
+  ),
+  workWithUs: (
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
     </svg>
   ),
 }
@@ -222,7 +234,7 @@ const CircleItemMobile = memo(({ item, data, reduceMotion }) => {
 
 CircleItemMobile.displayName = 'CircleItemMobile'
 
-export const MobileCircularNavigation = memo(({ portfolio = [], virtualDesigns = [], services = [], products = [], about = null, aboutImages = [], socialItems = [], blog = [] }) => {
+export const MobileCircularNavigation = memo(({ portfolio = [], virtualDesigns = [], services = [], products = [], about = null, aboutImages = [], socialItems = [], blog = [], workWithUs = [] }) => {
   const data = useMemo(() => ({
     portfolio,
     virtualDesigns,
@@ -232,7 +244,8 @@ export const MobileCircularNavigation = memo(({ portfolio = [], virtualDesigns =
     aboutImages,
     socialItems,
     blog,
-  }), [portfolio, virtualDesigns, services, products, about, aboutImages, socialItems, blog])
+    workWithUs,
+  }), [portfolio, virtualDesigns, services, products, about, aboutImages, socialItems, blog, workWithUs])
   const reduceMotion = useIsMobile()
 
   return (

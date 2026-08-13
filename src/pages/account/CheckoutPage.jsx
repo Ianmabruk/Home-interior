@@ -82,7 +82,9 @@ export const CheckoutPage = () => {
       setOrderId(newOrderId)
       setSuccess(true)
       dispatchAdminDataChanged('orders-changed')
-      try { localStorage.setItem('hok_order_placed', '1') } catch {}
+      try { localStorage.setItem('hok_order_placed', '1') } catch {
+        // ignore localStorage errors
+      }
       if (newOrderId) {
         setTimeout(() => navigate(`/order-confirmation/${newOrderId}`), 2500)
       } else {

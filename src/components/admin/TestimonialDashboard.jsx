@@ -29,6 +29,7 @@ export const TestimonialDashboard = () => {
     position: '',
     company: '',
     testimonial: '',
+    project: '',
     rating: 5,
     displayOrder: 0,
     isActive: true,
@@ -74,6 +75,7 @@ export const TestimonialDashboard = () => {
       position: '',
       company: '',
       testimonial: '',
+      project: '',
       rating: 5,
       displayOrder: 0,
       isActive: true,
@@ -126,6 +128,7 @@ export const TestimonialDashboard = () => {
       position: item.position || '',
       company: item.company || '',
       testimonial: item.testimonial || '',
+      project: item.project || '',
       rating: item.rating || 5,
       displayOrder: item.displayOrder || 0,
       isActive: item.isActive !== false,
@@ -150,7 +153,8 @@ export const TestimonialDashboard = () => {
 
   const filtered = testimonials.filter((t) =>
     t.clientName?.toLowerCase().includes(search.toLowerCase()) ||
-    t.testimonial?.toLowerCase().includes(search.toLowerCase())
+    t.testimonial?.toLowerCase().includes(search.toLowerCase()) ||
+    t.project?.toLowerCase().includes(search.toLowerCase())
   )
 
   const renderStars = (rating, size = 14) => (
@@ -403,6 +407,16 @@ export const TestimonialDashboard = () => {
                     placeholder="Client testimonial text..."
                     rows={4}
                     required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Project</label>
+                  <input
+                    value={form.project}
+                    onChange={(e) => setForm((f) => ({ ...f, project: e.target.value }))}
+                    className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                    placeholder="Project name (optional)"
                   />
                 </div>
 
