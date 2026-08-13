@@ -37,7 +37,7 @@ export const WorkWithUsDashboard = () => {
 
   const load = async () => {
     try {
-      const res = await api.get('/content/work-with-us')
+      const res = await api.get('/admin/work-with-us')
       setSubmissions(res.data || [])
     } catch {
       setSubmissions([])
@@ -48,7 +48,7 @@ export const WorkWithUsDashboard = () => {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const res = await api.get('/content/work-with-us')
+        const res = await api.get('/admin/work-with-us')
         setSubmissions(res.data || [])
       } catch {
         setSubmissions([])
@@ -61,7 +61,7 @@ export const WorkWithUsDashboard = () => {
 
   useEffect(() => {
     const handler = () => {
-      api.get('/content/work-with-us')
+      api.get('/admin/work-with-us')
         .then((res) => setSubmissions(res.data || []))
         .catch(() => {})
     }
@@ -79,11 +79,9 @@ export const WorkWithUsDashboard = () => {
     setLoading(true)
     try {
       if (editing) {
-        await api.patch(`/content/work-with-us/${editing}`, { status: form.status })
-        toast.success('Status updated successfully')
+        await api.patch(`/admin/work-with-us/${editing}`, { status: form.status })
       } else {
-        await api.post('/content/work-with-us', form)
-        toast.success('Submission created successfully')
+        await api.post('/work-with-us', form)
       }
       setShowForm(false)
       resetForm()
@@ -112,7 +110,7 @@ export const WorkWithUsDashboard = () => {
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
-      await api.patch(`/content/work-with-us/${id}`, { status: newStatus })
+      await api.patch(`/admin/work-with-us/${id}`, { status: newStatus })
       setSubmissions((prev) => prev.map((s) => ((s._id === id || s.id === id) ? { ...s, status: newStatus } : s)))
       if (viewItem && (viewItem._id === id || viewItem.id === id)) {
         setViewItem((prev) => ({ ...prev, status: newStatus }))
@@ -127,7 +125,7 @@ export const WorkWithUsDashboard = () => {
   const handleDelete = async () => {
     if (!deleteId) return
     try {
-      await api.delete(`/content/work-with-us/${deleteId}`)
+      await api.delete(`/admin/work-with-us/${deleteId}`)
       setDeleteId(null)
       load()
       dispatchAdminDataChanged('work-with-us-changed')

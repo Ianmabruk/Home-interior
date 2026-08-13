@@ -36,6 +36,7 @@ export const HomePage = memo(() => {
   const [socialItems, setSocialItems] = useState([])
   const [blog, setBlog] = useState([])
   const [workWithUs, setWorkWithUs] = useState([])
+  const [testimonials, setTestimonials] = useState([])
 
   const loadData = useCallback(async () => {
     try {
@@ -51,6 +52,7 @@ export const HomePage = memo(() => {
       setSocialItems(data.socialItems || [])
       setBlog(data.blog || [])
       setWorkWithUs(data.workWithUs || [])
+      setTestimonials(data.testimonials || [])
     } catch (err) {
       console.warn('[HOME] Failed to load data:', err?.message)
     } finally {
@@ -74,7 +76,8 @@ export const HomePage = memo(() => {
         payload?.type === 'about-changed' ||
         payload?.type === 'blog-changed' ||
         payload?.type === 'socials-changed' ||
-        payload?.type === 'workWithUs-changed'
+        payload?.type === 'workWithUs-changed' ||
+        payload?.type === 'testimonials-changed'
       ) {
         clearApiCache('/homepage')
         loadData()
@@ -121,6 +124,7 @@ export const HomePage = memo(() => {
           aboutImages={aboutImages}
           socialItems={socialItems}
           blog={blog}
+          testimonials={testimonials}
           workWithUs={workWithUs}
         />
       </SectionErrorBoundary>
@@ -136,6 +140,7 @@ export const HomePage = memo(() => {
           aboutImages={aboutImages}
           socialItems={socialItems}
           blog={blog}
+          testimonials={testimonials}
           workWithUs={workWithUs}
         />
       </SectionErrorBoundary>
