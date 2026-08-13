@@ -110,7 +110,7 @@ export default defineConfig({
         display: 'standalone',
         start_url: '/',
         icons: [
-          { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: '/favicon.webp', sizes: 'any', type: 'image/webp', purpose: 'any' },
         ],
       },
     }),

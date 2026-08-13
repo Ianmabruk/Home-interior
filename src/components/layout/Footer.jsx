@@ -69,7 +69,7 @@ export const Footer = memo(() => {
               </p>
               <p className="flex items-center justify-center gap-2">
                 <span className="text-[var(--accent)]" aria-hidden="true">✉</span>
-                <a href="mailto:info@hokinteriors.com" className="hover:text-[var(--accent)] transition-colors">info@hokinteriors.com</a>
+                 <a href="mailto:info@hokinteriors.co.ke" className="hover:text-[var(--accent)] transition-colors">info@hokinteriors.co.ke</a>
               </p>
             </div>
           </div>

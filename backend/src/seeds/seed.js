@@ -43,7 +43,7 @@ async function seed() {
   try {
     const settingsToSeed = [
       { key: 'siteName', value: 'HOK Interiors' },
-      { key: 'supportEmail', value: 'info@hokinteriors.com' },
+      { key: 'supportEmail', value: 'info@hokinteriors.co.ke' },
       { key: 'currency', value: 'USD' },
       { key: 'maintenanceMode', value: 'false' },
       { key: 'shippingPolicy', value: '' },

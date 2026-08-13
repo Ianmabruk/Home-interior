@@ -67,7 +67,7 @@ export const ContactPage = () => {
       description: 'Timeless luxury interior design, curated furniture, and premium virtual design services in Nairobi, Kenya.',
       url: SITE_URL,
       telephone: '+254700000000',
-      email: 'info@hokinteriors.com',
+      email: 'info@hokinteriors.co.ke',
       address: {
         '@type': 'PostalAddress',
         addressLocality: 'Nairobi',
@@ -195,10 +195,10 @@ export const ContactPage = () => {
               </div>
               <h3 className="font-display text-xl font-medium text-[var(--primary)] mb-2">Email Us</h3>
               <p className="text-[var(--primary)]/60">
-                <a href="mailto:info@hokinteriors.com" className="hover:text-[var(--accent)] transition-colors">info@hokinteriors.com</a>
+                <a href="mailto:info@hokinteriors.co.ke" className="hover:text-[var(--accent)] transition-colors">info@hokinteriors.co.ke</a>
               </p>
               <p className="text-[var(--primary)]/60">
-                <a href="mailto:projects@hokinteriors.com" className="hover:text-[var(--accent)] transition-colors">projects@hokinteriors.com</a>
+                <a href="mailto:info@hokinteriors.co.ke" className="hover:text-[var(--accent)] transition-colors">info@hokinteriors.co.ke</a>
               </p>
             </motion.div>
           </div>
@@ -310,7 +310,7 @@ export const ContactPage = () => {
                   <AlertCircle size={20} strokeWidth={2} />
                   <div>
                     <p className="font-medium">Something went wrong</p>
-                    <p className="text-sm">Please try again or contact us directly at info@hokinteriors.com</p>
+                    <p className="text-sm">Please try again or contact us directly at info@hokinteriors.co.ke</p>
                   </div>
                 </motion.div>
               )}

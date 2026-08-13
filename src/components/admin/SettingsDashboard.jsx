@@ -263,7 +263,7 @@ export const SettingsDashboard = () => {
                     onChange={(e) => handleChange('supportEmail', e.target.value)}
                     type="email"
                     className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                    placeholder="info@hokinteriors.com"
+                     placeholder="info@hokinteriors.co.ke"
                   />
                 </div>
                 <div className="space-y-1">

@@ -10,6 +10,8 @@ const SITE_URL = 'https://hokinteriors.com'
 export const WorkWithUsPage = () => {
   const [submitting, setSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState(null)
+  const [content, setContent] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -18,6 +20,24 @@ export const WorkWithUsPage = () => {
     startDate: '',
     timeline: '',
   })
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const res = await api.get('/work-with-us/content')
+        const items = res.data || []
+        const activeContent = items.find((c) => c.isActive !== false)
+        if (activeContent) {
+          setContent(activeContent)
+        }
+      } catch {
+        // No content available
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchContent()
+  }, [])
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -47,7 +67,7 @@ export const WorkWithUsPage = () => {
       description: 'Timeless luxury interior design, curated furniture, and premium virtual design services in Nairobi, Kenya.',
       url: SITE_URL,
       telephone: '+254115407200',
-      email: 'info@hokinteriors.com',
+      email: 'info@hokinteriors.co.ke',
       address: {
         '@type': 'PostalAddress',
         addressLocality: 'Nairobi',
@@ -106,6 +126,32 @@ export const WorkWithUsPage = () => {
 
       <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-16 md:py-24">
         <div className="container-wide">
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
+            </div>
+          ) : content ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-3xl mx-auto mb-12 text-center"
+            >
+              {content.imageUrl && (
+                <div className="mb-6 relative inline-block">
+                  <img
+                    src={content.imageUrl}
+                    alt={content.title}
+                    className="max-h-64 w-auto rounded-2xl object-cover mx-auto shadow-lg"
+                  />
+                </div>
+              )}
+              <h3 className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-4">{content.title}</h3>
+              {content.description && (
+                <p className="text-[var(--primary)]/70 text-lg leading-relaxed whitespace-pre-line">{content.description}</p>
+              )}
+            </motion.div>
+          ) : null}
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -231,7 +277,7 @@ export const WorkWithUsPage = () => {
                   <AlertCircle size={20} strokeWidth={2} />
                   <div>
                     <p className="font-medium">Something went wrong</p>
-                    <p className="text-sm">Please try again or contact us directly at info@hokinteriors.com</p>
+                    <p className="text-sm">Please try again or contact us directly at info@hokinteriors.co.ke</p>
                   </div>
                 </motion.div>
               )}

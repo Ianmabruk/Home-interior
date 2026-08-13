@@ -3,7 +3,7 @@ import { ScrollReveal } from '../../hooks/useScrollReveal'
 
 const ContactSection = memo(({ contactInfo }) => {
   const phoneNumbers = contactInfo?.phoneNumbers || ['+254 700 000 000', '+254 711 111 111']
-  const emails = contactInfo?.emails || ['info@hokinteriors.com', 'projects@hokinteriors.com']
+  const emails = contactInfo?.emails || ['info@hokinteriors.co.ke', 'info@hokinteriors.co.ke']
   const addresses = contactInfo?.addresses || ['Westlands, Nairobi, Kenya']
   const businessHours = contactInfo?.businessHours || 'Mon - Fri: 8:00 AM - 6:00 PM\nSat: 9:00 AM - 4:00 PM\nSun: Closed'
 
