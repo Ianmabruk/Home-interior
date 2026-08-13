@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
-import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '../../utils/adminEvents'
+import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload, dispatchAdminDataChanged } from '../../utils/adminEvents'
 import BlogStatsBar from '../blog/BlogStatsBar'
 import BlogTable from '../blog/BlogTable'
 import BlogForm from '../blog/BlogForm'
@@ -103,12 +103,14 @@ const BlogDashboard = () => {
   const handleDelete = (id) => {
     setBlogs((prev) => prev.filter((b) => (b.id || b._id) !== id))
     loadStats()
+    dispatchAdminDataChanged('blog-changed')
   }
 
   const handleTogglePublish = (id, newStatus) => {
     setBlogs((prev) =>
       prev.map((b) => ((b.id || b._id) === id ? { ...b, published: newStatus } : b))
     )
+    dispatchAdminDataChanged('blog-changed')
   }
 
   const handleSaved = () => {
@@ -116,6 +118,7 @@ const BlogDashboard = () => {
     setEditingBlog(null)
     loadBlogs()
     loadStats()
+    dispatchAdminDataChanged('blog-changed')
   }
 
   const handleCloseForm = () => {

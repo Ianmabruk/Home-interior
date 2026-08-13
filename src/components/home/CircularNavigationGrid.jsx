@@ -95,7 +95,12 @@ const NAV_ITEMS = [
     key: 'workWithUs',
     label: 'Work With Us',
     path: '/work-with-us',
-    getImage: (_data) => null,
+    getImage: (data) => {
+      const list = data.workWithUs || []
+      const item = list[0]
+      if (!item) return null
+      return item.imageUrl || item.mediaUrls?.[0] || null
+    },
   },
 ]
 

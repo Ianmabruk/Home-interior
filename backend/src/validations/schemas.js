@@ -216,6 +216,18 @@ export const workWithUsSchemas = {
   updateStatus: z.object({
     status: z.string().min(1, 'Status is required'),
   }),
+  contentCreate: z.object({
+    title: z.string().min(1, 'Title is required'),
+    description: z.string().optional(),
+    displayOrder: z.coerce.number().int().nonnegative().optional(),
+    isActive: z.union([z.boolean(), z.string()]).optional(),
+  }),
+  contentUpdate: z.object({
+    title: z.string().min(1).optional(),
+    description: z.string().optional(),
+    displayOrder: z.coerce.number().int().nonnegative().optional(),
+    isActive: z.union([z.boolean(), z.string()]).optional(),
+  }),
 }
 
 export const heroMediaSchemas = {

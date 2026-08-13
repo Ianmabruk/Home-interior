@@ -76,7 +76,7 @@ export const HomePage = memo(() => {
         payload?.type === 'about-changed' ||
         payload?.type === 'blog-changed' ||
         payload?.type === 'socials-changed' ||
-        payload?.type === 'workWithUs-changed' ||
+        payload?.type === 'work-with-us-changed' ||
         payload?.type === 'testimonials-changed'
       ) {
         clearApiCache('/homepage')

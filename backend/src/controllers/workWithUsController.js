@@ -42,4 +42,37 @@ export const workWithUsController = {
     await workWithUsService.deleteWorkWithUs(req.params.id)
     res.json({ success: true, data: { message: 'Deleted' } })
   }),
+
+  listContent: asyncHandler(async (req, res) => {
+    const items = await workWithUsService.getWorkWithUsContent()
+    res.json({ success: true, data: items })
+  }),
+
+  createContent: asyncHandler(async (req, res) => {
+    const file = req.file
+    const data = {
+      title: req.body.title || '',
+      description: req.body.description || '',
+      displayOrder: Number(req.body.displayOrder) || 0,
+      isActive: req.body.isActive !== 'false' && req.body.isActive !== false,
+    }
+    const item = await workWithUsService.createWorkWithUsContent(data, file)
+    res.status(201).json({ success: true, data: item })
+  }),
+
+  updateContent: asyncHandler(async (req, res) => {
+    const file = req.file
+    const data = {}
+    if (req.body.title !== undefined) data.title = req.body.title
+    if (req.body.description !== undefined) data.description = req.body.description
+    if (req.body.displayOrder !== undefined) data.displayOrder = Number(req.body.displayOrder) || 0
+    if (req.body.isActive !== undefined) data.isActive = req.body.isActive === 'true' || req.body.isActive === true
+    const item = await workWithUsService.updateWorkWithUsContent(req.params.id, data, file)
+    res.json({ success: true, data: item })
+  }),
+
+  deleteContent: asyncHandler(async (req, res) => {
+    const result = await workWithUsService.deleteWorkWithUsContent(req.params.id)
+    res.json({ success: true, data: result })
+  }),
 }
