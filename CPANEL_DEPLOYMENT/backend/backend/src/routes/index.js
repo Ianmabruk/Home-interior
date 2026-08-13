@@ -16,6 +16,7 @@ import blogRoutes from './blogRoutes.js'
 import contentRoutes, { portfolioRoutes as contentPortfolioRoutes, virtualDesignRoutes as contentVDRoutes } from './contentRoutes.js'
 import messageRoutes from './messageRoutes.js'
 import socialsRoutes from './socialsRoutes.js'
+import workWithUsRoutes from './workWithUsRoutes.js'
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import { uploadSingle } from '../middleware/upload.js'
 import { uploadFile } from '../uploads/uploadService.js'
@@ -54,6 +55,8 @@ router.use('/messages', messageRoutes)
 router.use('/chat', chatRoutes)
 router.use('/blog', publicBlogRoutes)
 router.use('/admin/blog', blogRoutes)
+router.use('/content/work-with-us', workWithUsRoutes)
+router.use('/work-with-us', workWithUsRoutes)
 
 router.post('/test-upload', authenticate, uploadSingle('media'), asyncHandler(async (req, res) => {
   if (!req.file) {

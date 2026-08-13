@@ -152,6 +152,7 @@ model Testimonial {
   id           String   @id @default(cuid())
   clientName   String   @map("client_name") @db.Text
   content      String   @db.Text
+  project      String?  @db.Text
   photoUrl     String?  @db.Text @map("photo_url")
   publicId     String?  @db.Text @map("public_id")
   displayOrder Int      @default(0) @map("display_order")
@@ -162,7 +163,24 @@ model Testimonial {
    @@map("testimonials")
    @@index([isActive, displayOrder(asc)])
    @@index([displayOrder(asc), isActive])
- }
+  }
+
+model WorkWithUs {
+  id         String   @id @default(cuid())
+  fullName   String   @db.Text @map("full_name")
+  phone      String   @db.Text
+  email      String   @db.Text
+  budget     String   @db.Text
+  startDate  String?  @db.Text @map("start_date")
+  timeline   String   @db.Text
+  status     String   @default("NEW") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+   @@map("work_with_us")
+   @@index([status, createdAt(desc)])
+   @@index([email])
+  }
 
 model HeroMedia {
   id           String   @id @default(cuid())

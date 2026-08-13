@@ -9,6 +9,8 @@ function mapTestimonial(item) {
     _id: item.id,
     id: item.id,
     clientName: item.clientName,
+    content: item.content,
+    project: item.project,
     photoUrl: item.photoUrl,
     publicId: item.publicId,
     displayOrder: item.displayOrder,
