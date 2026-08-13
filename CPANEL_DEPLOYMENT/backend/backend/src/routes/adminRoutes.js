@@ -114,5 +114,9 @@ router.get('/work-with-us', workWithUsController.list)
 router.get('/work-with-us/:id', workWithUsController.get)
 router.patch('/work-with-us/:id/status', workWithUsController.updateStatus)
 router.delete('/work-with-us/:id', workWithUsController.delete)
+router.get('/work-with-us/content', workWithUsController.listContent)
+router.post('/work-with-us/content', workWithUsController.createContent)
+router.patch('/work-with-us/content/:id', workWithUsController.updateContent)
+router.delete('/work-with-us/content/:id', workWithUsController.deleteContent)
 
 export default router
