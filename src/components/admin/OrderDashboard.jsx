@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Package, Eye, X, Search, ChevronDown } from 'lucide-react'
+import { Package, Eye, X, Search, ChevronDown, Save } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
@@ -59,12 +59,12 @@ export const OrderDashboard = () => {
     return () => window.removeEventListener('admin-data-changed', handler)
   }, [])
 
-  const updateStatus = async (orderId, newStatus) => {
+  const updateStatus = async (orderId, newStatus, extra = {}) => {
     try {
-      await api.patch(`/orders/${orderId}/status`, { status: newStatus })
-      setOrders((prev) => prev.map((o) => (o._id === orderId || o.id === orderId ? { ...o, status: newStatus } : o)))
+      await api.patch(`/orders/${orderId}/status`, { status: newStatus, ...extra })
+      setOrders((prev) => prev.map((o) => (o._id === orderId || o.id === orderId ? { ...o, status: newStatus, ...extra } : o)))
       if (viewOrder && (viewOrder._id === orderId || viewOrder.id === orderId)) {
-        setViewOrder((prev) => ({ ...prev, status: newStatus }))
+        setViewOrder((prev) => ({ ...prev, status: newStatus, ...extra }))
       }
       dispatchAdminDataChanged('orders-changed')
       toast.success('Order status updated.')
@@ -173,6 +173,9 @@ export const OrderDashboard = () => {
                       {order.status || 'pending'}
                     </span>
                   </div>
+                  {order.trackingNumber && (
+                    <p className="text-2xs text-[var(--accent)] mb-1">Tracking: {order.trackingNumber}</p>
+                  )}
                   <p className="text-sm text-[var(--primary)]/60">{order.email}</p>
                   {order.phone && <p className="text-sm text-[var(--primary)]/60">{order.phone}</p>}
                   <p className="text-2xs text-[var(--primary)]/40 mt-1">{formatDate(order.createdAt)}</p>
@@ -222,19 +225,66 @@ export const OrderDashboard = () => {
               </motion.button>
             </div>
             <div className="p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Customer</p>
-                  <p className="mt-1 text-sm font-medium text-[var(--primary)]">{viewOrder.name || 'Guest'}</p>
-                  <p className="text-sm text-[var(--primary)]/60">{viewOrder.email}</p>
-                  {viewOrder.phone && <p className="text-sm text-[var(--primary)]/60">{viewOrder.phone}</p>}
-                </div>
-                <div>
-                  <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Order ID</p>
-                  <p className="mt-1 text-sm font-mono text-[var(--primary)]">{viewOrder._id || viewOrder.id}</p>
-                  <p className="text-sm text-[var(--primary)]/60">{formatDate(viewOrder.createdAt)}</p>
-                </div>
-              </div>
+               <div className="grid grid-cols-2 gap-4">
+                 <div>
+                   <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Customer</p>
+                   <p className="mt-1 text-sm font-medium text-[var(--primary)]">{viewOrder.name || 'Guest'}</p>
+                   <p className="text-sm text-[var(--primary)]/60">{viewOrder.email}</p>
+                   {viewOrder.phone && <p className="text-sm text-[var(--primary)]/60">{viewOrder.phone}</p>}
+                 </div>
+                 <div>
+                   <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Order ID</p>
+                   <p className="mt-1 text-sm font-mono text-[var(--primary)]">{viewOrder._id || viewOrder.id}</p>
+                   <p className="text-sm text-[var(--primary)]/60">{formatDate(viewOrder.createdAt)}</p>
+                 </div>
+               </div>
+
+               {viewOrder.trackingNumber && (
+                 <div>
+                   <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Tracking Number</p>
+                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20">
+                     <span className="text-sm font-semibold text-[var(--accent)]">{viewOrder.trackingNumber}</span>
+                   </div>
+                 </div>
+               )}
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div>
+                   <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Customer Note</p>
+                   <textarea
+                     value={viewOrder.customerNote || ''}
+                     onChange={(e) => setViewOrder((prev) => ({ ...prev, customerNote: e.target.value }))}
+                     placeholder="Add a customer-safe update..."
+                     className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
+                     rows={3}
+                   />
+                 </div>
+                 <div>
+                   <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Estimated Delivery</p>
+                   <input
+                     type="text"
+                     value={viewOrder.estimatedDelivery || ''}
+                     onChange={(e) => setViewOrder((prev) => ({ ...prev, estimatedDelivery: e.target.value }))}
+                     placeholder="e.g. 16 August 2026 or Tomorrow 2-5 PM"
+                     className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                   />
+                 </div>
+               </div>
+
+               <div className="flex justify-end">
+                 <motion.button
+                   whileHover={{ scale: 1.02 }}
+                   whileTap={{ scale: 0.98 }}
+                   onClick={() => updateStatus(viewOrder._id || viewOrder.id, viewOrder.status, {
+                     customerNote: viewOrder.customerNote,
+                     estimatedDelivery: viewOrder.estimatedDelivery,
+                   })}
+                   className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-[var(--accent)]/90"
+                 >
+                   <Save size={14} strokeWidth={1.5} />
+                   Save Updates
+                 </motion.button>
+               </div>
 
               <div>
                 <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-3">Items</p>

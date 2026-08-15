@@ -43,6 +43,15 @@ export const orderController = {
     res.status(201).json({ success: true, data: order })
   }),
 
+  trackOrder: asyncHandler(async (req, res) => {
+    const { trackingNumber, contact } = req.body
+    if (!trackingNumber || !contact) {
+      return res.status(400).json({ success: false, message: 'Tracking number and contact are required' })
+    }
+    const order = await orderService.trackOrder(trackingNumber, contact)
+    res.json({ success: true, data: order })
+  }),
+
   listMine: asyncHandler(async (req, res) => {
     const user = req.user || req.admin
     const email = user?.email || req.query.email
@@ -83,11 +92,14 @@ export const orderController = {
   }),
 
   updateStatus: asyncHandler(async (req, res) => {
-    const { status } = req.body
+    const { status, customerNote, estimatedDelivery } = req.body
     if (!status) {
       return res.status(400).json({ success: false, message: 'Status is required' })
     }
-    const order = await orderService.updateOrderStatus(req.params.id, status)
+    const updateData = { status }
+    if (customerNote !== undefined) updateData.customerNote = customerNote
+    if (estimatedDelivery !== undefined) updateData.estimatedDelivery = estimatedDelivery
+    const order = await orderService.updateOrderStatus(req.params.id, updateData)
     res.json({ success: true, data: order })
   }),
 }

@@ -94,12 +94,12 @@ async function getHomepage() {
       about,
       aboutImages,
       testimonials,
+      workWithUs,
       heroMedia,
       featuredProducts,
       blog,
       socialItems,
       contact,
-      workWithUs,
     ] = data
 
     const featuredPortfolio = portfolio.filter((p) => p.featured).slice(0, 3)

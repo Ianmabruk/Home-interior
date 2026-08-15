@@ -1,4 +1,4 @@
-import { prisma } from '../config/database.js'
+import { prisma, withRetry } from '../config/database.js'
 import { uploadFile, deleteFile } from '../uploads/uploadService.js'
 import { failure } from '../utils/response.js'
 
@@ -30,7 +30,6 @@ export const workWithUsService = {
   listWorkWithUs,
   getWorkWithUs,
   createWorkWithUs,
-  updateWorkWithUs,
   updateWorkWithUsStatus,
   deleteWorkWithUs,
   getWorkWithUsContent,
@@ -41,9 +40,9 @@ export const workWithUsService = {
 
 async function listWorkWithUs() {
   try {
-    const items = await prisma.workWithUs.findMany({
+    const items = await withRetry(() => prisma.workWithUs.findMany({
       orderBy: { createdAt: 'desc' },
-    })
+    }))
     return items.map(mapWorkWithUs)
   } catch {
     return []
@@ -52,7 +51,7 @@ async function listWorkWithUs() {
 
 async function getWorkWithUs(id) {
   try {
-    const item = await prisma.workWithUs.findUnique({ where: { id } })
+    const item = await withRetry(() => prisma.workWithUs.findUnique({ where: { id } }))
     if (!item) throw failure(404, 'Submission not found')
     return mapWorkWithUs(item)
   } catch (err) {
@@ -62,30 +61,30 @@ async function getWorkWithUs(id) {
 }
 
 async function createWorkWithUs(data) {
-  const item = await prisma.workWithUs.create({ data })
+  const item = await withRetry(() => prisma.workWithUs.create({ data }))
   return mapWorkWithUs(item)
 }
 
 async function updateWorkWithUsStatus(id, status) {
-  const item = await prisma.workWithUs.update({
+  const item = await withRetry(() => prisma.workWithUs.update({
     where: { id },
     data: { status },
-  })
+  }))
   return mapWorkWithUs(item)
 }
 
 async function deleteWorkWithUs(id) {
-  const existing = await prisma.workWithUs.findUnique({ where: { id } })
+  const existing = await withRetry(() => prisma.workWithUs.findUnique({ where: { id } }))
   if (!existing) throw failure(404, 'Submission not found')
-  await prisma.workWithUs.delete({ where: { id } })
+  await withRetry(() => prisma.workWithUs.delete({ where: { id } }))
 }
 
 async function getWorkWithUsContent() {
   try {
-    const items = await prisma.workWithUs.findMany({
+    const items = await withRetry(() => prisma.workWithUs.findMany({
       where: { type: 'content', isActive: true },
       orderBy: { displayOrder: 'asc' },
-    })
+    }))
     return items.map(mapWorkWithUs)
   } catch {
     return []
@@ -99,7 +98,7 @@ async function createWorkWithUsContent(data, file) {
     uploadData.imageUrl = uploaded.url
     uploadData.cloudinaryId = uploaded.path
   }
-  const item = await prisma.workWithUs.create({
+  const item = await withRetry(() => prisma.workWithUs.create({
     data: {
       type: 'content',
       title: data.title || '',
@@ -108,12 +107,12 @@ async function createWorkWithUsContent(data, file) {
       isActive: data.isActive !== false,
       ...uploadData,
     },
-  })
+  }))
   return mapWorkWithUs(item)
 }
 
 async function updateWorkWithUsContent(id, data, file) {
-  const existing = await prisma.workWithUs.findUnique({ where: { id } })
+  const existing = await withRetry(() => prisma.workWithUs.findUnique({ where: { id } }))
   if (!existing) throw failure(404, 'Content not found')
 
   const updateData = { ...data }
@@ -125,19 +124,19 @@ async function updateWorkWithUsContent(id, data, file) {
     updateData.cloudinaryId = uploaded.path
   }
 
-  const item = await prisma.workWithUs.update({
+  const item = await withRetry(() => prisma.workWithUs.update({
     where: { id },
     data: updateData,
-  })
+  }))
   return mapWorkWithUs(item)
 }
 
 async function deleteWorkWithUsContent(id) {
-  const existing = await prisma.workWithUs.findUnique({ where: { id } })
+  const existing = await withRetry(() => prisma.workWithUs.findUnique({ where: { id } }))
   if (!existing) throw failure(404, 'Content not found')
   if (existing.cloudinaryId) {
     await deleteFile(existing.cloudinaryId)
   }
-  await prisma.workWithUs.delete({ where: { id } })
+  await withRetry(() => prisma.workWithUs.delete({ where: { id } }))
   return { success: true }
 }

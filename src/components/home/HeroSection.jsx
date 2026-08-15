@@ -16,7 +16,7 @@ const titleVariants = {
     opacity: 1,
     x: 0,
     transition: {
-      duration: 1.2,
+      duration: 1.8,
       ease: [0.22, 1, 0.36, 1],
     },
   },
@@ -28,8 +28,8 @@ const taglineVariants = {
     opacity: 1,
     x: 0,
     transition: {
-      delay: 0.25,
-      duration: 1.2,
+      delay: 0.4,
+      duration: 1.8,
       ease: [0.22, 1, 0.36, 1],
     },
   },
@@ -91,7 +91,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
 
   useEffect(() => {
     if (images.length <= 1 || prefersReducedMotion) return
-    const interval = 3500
+    const interval = 4000
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % images.length)
     }, interval)
@@ -107,7 +107,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
     if (transitionTimeoutRef.current) {
       clearTimeout(transitionTimeoutRef.current)
     }
-    const duration = prefersReducedMotion ? 300 : 900
+    const duration = prefersReducedMotion ? 300 : 1800
     transitionTimeoutRef.current = setTimeout(() => {
       setDisplayIndex(currentIndex)
       setOpacityA(1)
@@ -162,7 +162,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
           sizes={buildSrcSet(activeImage) ? '100vw' : undefined}
           fetchPriority="high"
           alt={activeAlt}
-            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[900ms] ease-out"
+            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[1800ms] ease-out"
           style={{ opacity: opacityA, background: 'var(--primary)' }}
           loading="eager"
           decoding="async"
@@ -176,7 +176,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
             srcSet={buildSrcSet(nextImage.url) || undefined}
             sizes={buildSrcSet(nextImage.url) ? '100vw' : undefined}
             alt={nextImage.alt}
-            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[900ms] ease-out"
+            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[1800ms] ease-out"
             style={{ opacity: opacityB, background: 'var(--primary)' }}
             loading="lazy"
             decoding="async"

@@ -59,6 +59,7 @@ const SocialsPage = lazyWithCache(() => import('@pages/public/SocialsPage'), 'so
 const BlogPage = lazyWithCache(() => import('@pages/public/BlogPage').then(m => ({ default: m.BlogPage })), 'blog')
 const BlogDetailPage = lazyWithCache(() => import('@pages/public/BlogDetailPage').then(m => ({ default: m.BlogDetailPage })), 'blog-detail')
 const ChatPage = lazyWithCache(() => import('@pages/public/ChatPage').then(m => ({ default: m.ChatPage })), 'chat')
+const TrackOrderPage = lazyWithCache(() => import('@pages/public/TrackOrderPage'), 'track-order')
 const NotFoundPage = lazyWithCache(() => import('@pages/public/NotFoundPage').then(m => ({ default: m.NotFoundPage })), 'not-found')
 
 // Auth pages
@@ -149,10 +150,11 @@ export const AppRouter = () => {
            <Route path="/work-with-us" element={<ErrorBoundaryRoute element={<WorkWithUsPage />} />} />
            <Route path="/testimonials" element={<ErrorBoundaryRoute element={<TestimonialsPage />} />} />
            <Route path="/chat" element={<ErrorBoundaryRoute element={<ChatPage />} />} />
-          <Route path="/cart" element={<ErrorBoundaryRoute element={<CartPage />} />} />
-          <Route path="/checkout" element={<ErrorBoundaryRoute element={<CheckoutPage />} />} />
-          <Route path="/account/orders/:id" element={<ErrorBoundaryRoute element={<OrderConfirmationPage />} />} />
-          <Route path="/order-confirmation" element={<ErrorBoundaryRoute element={<OrderConfirmationPage />} />} />
+           <Route path="/cart" element={<ErrorBoundaryRoute element={<CartPage />} />} />
+           <Route path="/checkout" element={<ErrorBoundaryRoute element={<CheckoutPage />} />} />
+           <Route path="/track-order" element={<ErrorBoundaryRoute element={<TrackOrderPage />} />} />
+           <Route path="/account/orders/:id" element={<ErrorBoundaryRoute element={<OrderConfirmationPage />} />} />
+           <Route path="/order-confirmation" element={<ErrorBoundaryRoute element={<OrderConfirmationPage />} />} />
 
           <Route element={<ProtectedRoute adminOnly />}>
             <Route path="/admin" element={<ErrorBoundaryRoute element={<AdminPage />} />}>

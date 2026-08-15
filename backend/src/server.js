@@ -1,4 +1,5 @@
-import 'dotenv/config'
+import dotenv from 'dotenv'
+dotenv.config({ override: false })
 import { app } from './app.js'
 import { validateEnv } from './config/env.js'
 import { prisma, connectDatabase } from './config/database.js'

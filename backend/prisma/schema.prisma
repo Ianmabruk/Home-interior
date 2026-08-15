@@ -322,7 +322,11 @@ model Order {
   paymentDetails  String   @db.Text @map("payment_details")
   total           Float
   status          String   @default("pending") @db.Text
+  trackingNumber  String?  @unique @map("tracking_number") @db.Text
+  customerNote    String?  @db.Text @map("customer_note")
+  estimatedDelivery String? @db.Text @map("estimated_delivery")
   createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
@@ -330,6 +334,7 @@ model Order {
   @@index([email, createdAt(desc)])
   @@index([status, createdAt(desc)])
   @@index([userId])
+  @@index([trackingNumber])
 }
 
 model CartItem {

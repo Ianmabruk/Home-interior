@@ -71,6 +71,7 @@ const allowedOrigins = [
   'https://hokinteriors.com',
   'https://www.hokinteriors.com',
   'https://hokinteriors.co.ke',
+  'https://www.hokinteriors.co.ke',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',

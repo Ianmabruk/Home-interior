@@ -47,6 +47,7 @@ export const AboutDashboard = () => {
   const [imageForm, setImageForm] = useState({ displayOrder: 0, isActive: true })
   const [imagePreview, setImagePreview] = useState(null)
   const [imageFile, setImageFile] = useState(null)
+  const [originalImageOrder, setOriginalImageOrder] = useState(null)
   const fileRef = useRef(null)
   const editFileRef = useRef(null)
 
@@ -139,8 +140,11 @@ export const AboutDashboard = () => {
       payload.append('isActive', String(imageForm.isActive))
       await api.post('/admin/about/images', payload)
       setImageFile(null)
+      if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
       setImagePreview(null)
       setImageForm({ displayOrder: 0, isActive: true })
+      setOriginalImageOrder(null)
+      if (fileRef.current) fileRef.current.value = ''
       if (editFileRef.current) editFileRef.current.value = ''
       await loadAbout()
       dispatchAdminDataChanged('about-changed')
@@ -164,8 +168,10 @@ export const AboutDashboard = () => {
       await api.patch(`/admin/about/images/${editingImageId}`, payload)
       setEditingImageId(null)
       setImageFile(null)
+      if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
       setImagePreview(null)
       setImageForm({ displayOrder: 0, isActive: true })
+      setOriginalImageOrder(null)
       if (editFileRef.current) editFileRef.current.value = ''
       await loadAbout()
       dispatchAdminDataChanged('about-changed')
@@ -233,19 +239,23 @@ export const AboutDashboard = () => {
     })
     setImagePreview(img.imageUrl || null)
     setImageFile(null)
+    setOriginalImageOrder(img.displayOrder || 0)
   }
 
   const cancelEditImage = () => {
     setEditingImageId(null)
-    setImageForm({ displayOrder: 0, isActive: true })
+    setImageForm({ displayOrder: originalImageOrder ?? 0, isActive: true })
     setImagePreview(null)
     setImageFile(null)
+    setOriginalImageOrder(null)
     if (editFileRef.current) editFileRef.current.value = ''
+    if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
   }
 
   const handleEditFileChange = (e) => {
     const f = e.target.files?.[0] || null
     setImageFile(f)
+    if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
     if (f?.type?.startsWith('image/')) {
       setImagePreview(URL.createObjectURL(f))
     } else {
@@ -572,10 +582,12 @@ export const AboutDashboard = () => {
 
         <input ref={fileRef} type="file" accept="image/*" onChange={(e) => {
           const f = e.target.files?.[0] || null
+          if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
           setImageFile(f)
           setImagePreview(f ? URL.createObjectURL(f) : null)
           setEditingImageId(null)
           setImageForm({ displayOrder: aboutImages.length, isActive: true })
+          setOriginalImageOrder(null)
         }} className="hidden" />
 
         {(imagePreview || imageFile) && !editingImageId && (
@@ -618,7 +630,9 @@ export const AboutDashboard = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="button"
-                onClick={() => { setImageFile(null); setImagePreview(null); if (fileRef.current) fileRef.current.value = '' }}
+                onClick={() => { 
+                  if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
+                  setImageFile(null); setImagePreview(null); if (fileRef.current) fileRef.current.value = '' }}
                 className="flex-1 rounded-full border border-[var(--border)] bg-white px-6 py-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
               >
                 Cancel

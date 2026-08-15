@@ -7,7 +7,6 @@ import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adm
 import { PageMeta } from '@hooks/usePageMeta'
 import { getProjectImage } from '@utils/homepageHelpers'
 import { EDesignPackages } from '@components/home/EDesignPackages'
-import { CircularNavigationGrid } from '@components/home/CircularNavigationGrid'
 import { SectionErrorBoundary } from '@components/home/SectionErrorBoundary'
 
 const SkeletonVirtualDesign = () => (
@@ -96,13 +95,8 @@ export const VirtualDesignPage = () => {
         </div>
       </section>
 
-      {/* CIRCULAR TABS */}
-      <SectionErrorBoundary sectionName="CircularNavigation" fallback={<EmptySection />}>
-        <CircularNavigationGrid virtualDesigns={designs} />
-      </SectionErrorBoundary>
-
       {/* VIRTUAL DESIGNS GRID */}
-      <section className="px-6 md:px-12 lg:px-20 py-20 md:py-32">
+      <section className="px-6 md:px-12 lg:px-20 py-20 md:py-32 bg-[var(--bg)]">
         <div className="container-wide">
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {designs.map((item, index) => (

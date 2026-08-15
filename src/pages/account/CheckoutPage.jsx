@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Loader2, AlertCircle, CheckCircle, ChevronRight, MapPin, ShoppingBag, Truck } from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle, ChevronRight, MapPin, ShoppingBag, Truck, Search, Mail } from 'lucide-react'
 import { api } from '../../services/api'
 import { useShop } from '../../context/ShopContext'
 import { useCurrency } from '../../context/CurrencyContext'
@@ -16,6 +16,7 @@ export const CheckoutPage = () => {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
   const [orderId, setOrderId] = useState(null)
+  const [trackingNumber, setTrackingNumber] = useState(null)
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -79,16 +80,18 @@ export const CheckoutPage = () => {
       const res = await api.post('/orders', orderData)
       await clearCart()
       const newOrderId = res.data?.data?._id || res.data?.data?.id || res.data?._id || res.data?.id
+      const newTrackingNumber = res.data?.data?.trackingNumber || res.data?.trackingNumber || null
       setOrderId(newOrderId)
+      setTrackingNumber(newTrackingNumber)
       setSuccess(true)
       dispatchAdminDataChanged('orders-changed')
       try { localStorage.setItem('hok_order_placed', '1') } catch {
         // ignore localStorage errors
       }
       if (newOrderId) {
-        setTimeout(() => navigate(`/order-confirmation/${newOrderId}`), 2500)
+        setTimeout(() => navigate(`/order-confirmation/${newOrderId}`), 3500)
       } else {
-        setTimeout(() => navigate('/shop'), 2500)
+        setTimeout(() => navigate('/shop'), 3500)
       }
     } catch (err) {
       setError(err?.message || 'Failed to place order')
@@ -131,21 +134,37 @@ export const CheckoutPage = () => {
             <h1 className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-4">Order Received</h1>
             <p className="text-[var(--primary)]/60 mb-2 max-w-md mx-auto">Thank you for shopping with us! Your order has been received successfully. The admin will get back to you shortly. Please wait.</p>
             {orderId && (
-              <p className="text-sm text-[var(--primary)]/50 mb-6">
+              <p className="text-sm text-[var(--primary)]/50 mb-2">
                 Order Number: <span className="font-semibold text-[var(--primary)]">#{String(orderId).slice(-8).toUpperCase()}</span>
               </p>
             )}
+            {trackingNumber && (
+              <p className="text-sm text-[var(--primary)]/50 mb-6">
+                Tracking Number: <span className="font-semibold text-[var(--accent)]">{trackingNumber}</span>
+              </p>
+            )}
+
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/shop" className="btn-luxury-primary inline-flex items-center gap-2">
                 Continue Shopping
                 <ChevronRight size={14} strokeWidth={1.5} />
               </Link>
-              {orderId && (
+              {trackingNumber ? (
+                <Link to={`/track-order?tracking=${trackingNumber}`} className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--border)] bg-white text-xs font-semibold uppercase tracking-widest text-[var(--primary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all">
+                  <Search size={14} strokeWidth={1.5} />
+                  Track Your Order
+                </Link>
+              ) : (
                 <Link to={`/order-confirmation/${orderId}`} className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--border)] bg-white text-xs font-semibold uppercase tracking-widest text-[var(--primary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all">
                   View Order
                   <ChevronRight size={14} strokeWidth={1.5} />
                 </Link>
               )}
+            </div>
+
+            <div className="mt-8 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-sm">
+              <Mail size={14} strokeWidth={1.5} />
+              <span>Please check your email for your order confirmation and tracking details.</span>
             </div>
           </motion.div>
         ) : (

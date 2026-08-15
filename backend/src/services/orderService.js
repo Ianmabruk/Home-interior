@@ -1,5 +1,31 @@
 import { prisma, withRetry } from '../config/database.js'
 import { failure } from '../utils/response.js'
+import { sendOrderConfirmationEmail } from './emailService.js'
+
+const TRACKING_PREFIX = 'HOK'
+const TRACKING_LENGTH = 6
+
+function generateTrackingNumber() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let code = ''
+  for (let i = 0; i < TRACKING_LENGTH; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  const year = new Date().getFullYear()
+  return `${TRACKING_PREFIX}-${year}-${code}`
+}
+
+async function generateUniqueTrackingNumber() {
+  for (let i = 0; i < 10; i++) {
+    const candidate = generateTrackingNumber()
+    const exists = await withRetry(() => prisma.order.findUnique({
+      where: { trackingNumber: candidate },
+      select: { id: true },
+    }))
+    if (!exists) return candidate
+  }
+  return generateTrackingNumber() + Math.floor(Math.random() * 1000)
+}
 
 export const orderService = {
   createOrder,
@@ -7,6 +33,7 @@ export const orderService = {
   getUserOrders,
   getAllOrders,
   updateOrderStatus,
+  trackOrder,
 }
 
 function parseOrder(order) {
@@ -24,7 +51,11 @@ function parseOrder(order) {
     paymentDetails: typeof order.paymentDetails === 'string' ? (() => { try { return JSON.parse(order.paymentDetails) } catch { return {} } })() : (order.paymentDetails || {}),
     total: order.total,
     status: order.status,
+    trackingNumber: order.trackingNumber,
+    customerNote: order.customerNote,
+    estimatedDelivery: order.estimatedDelivery,
     createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
   }
 }
 
@@ -76,11 +107,13 @@ async function createOrder(data) {
 
     let created
     try {
+      const trackingNumber = await generateUniqueTrackingNumber()
       created = await withRetry(() => prisma.order.create({
         data: {
           ...data,
           items: JSON.stringify(finalItems),
           total: serverTotal,
+          trackingNumber,
         },
       }))
     } catch (err) {
@@ -111,6 +144,15 @@ async function createOrder(data) {
           data: { stock: { decrement: qty } },
         }))
       }
+    }
+
+    try {
+      await sendOrderConfirmationEmail({
+        order: created,
+        toEmail: data.email,
+      })
+    } catch (emailErr) {
+      console.error('[orders] order confirmation email failed:', emailErr)
     }
 
     return parseOrder(created)
@@ -147,10 +189,30 @@ async function getAllOrders({ sort = '-createdAt', limit = 100 } = {}) {
   return orders.map(parseOrder)
 }
 
-async function updateOrderStatus(id, status) {
+async function updateOrderStatus(id, updateData) {
   const order = await withRetry(() => prisma.order.update({
     where: { id },
-    data: { status },
+    data: updateData,
   }))
+  return parseOrder(order)
+}
+
+async function trackOrder(trackingNumber, contact) {
+  if (!trackingNumber || !contact) {
+    throw failure(400, 'Tracking number and contact are required')
+  }
+  const contactLower = String(contact).trim().toLowerCase()
+  const order = await withRetry(() => prisma.order.findFirst({
+    where: {
+      trackingNumber,
+      OR: [
+        { email: { equals: contactLower, mode: 'insensitive' } },
+        { phone: { equals: contact, mode: 'insensitive' } },
+      ],
+    },
+  }))
+  if (!order) {
+    throw failure(404, 'We couldn\'t verify this order. Please check your tracking number and contact details.')
+  }
   return parseOrder(order)
 }

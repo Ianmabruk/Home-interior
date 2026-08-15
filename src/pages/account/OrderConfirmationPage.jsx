@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle, Package, ChevronRight, Copy } from 'lucide-react'
+import { CheckCircle, Package, ChevronRight, Copy, Search, Mail } from 'lucide-react'
 import { api } from '../../services/api'
 import { PageMeta } from '../../hooks/usePageMeta'
 import { useCurrency } from '../../context/CurrencyContext'
@@ -62,10 +62,16 @@ export const OrderConfirmationPage = () => {
   const tax = subtotal * 0.16
   const total = Number(order.total || subtotal + shipping + tax)
 
+  const handleCopyTracking = async () => {
+    if (order.trackingNumber) {
+      await navigator.clipboard.writeText(order.trackingNumber)
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[var(--bg)] py-12 md:py-16">
       <PageMeta
-        title={`Order Confirmation #${String(order._id || order.id || '').slice(-8).toUpperCase()} — HOK Interior Designs`}
+        title={`Order Confirmed ${order.trackingNumber ? `— ${order.trackingNumber}` : ''} — HOK Interior Designs`}
         description="Thank you for your order."
       />
       <div className="container-wide px-6 md:px-12 lg:px-20">
@@ -80,7 +86,24 @@ export const OrderConfirmationPage = () => {
             </div>
             <h1 className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-2">Order Confirmed!</h1>
             <p className="text-[var(--primary)]/60">Thank you for your purchase. Your order has been received.</p>
-            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-[var(--border)]/40">
+            {order.trackingNumber && (
+              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-[var(--border)]/40">
+                <span className="text-xs font-medium text-[var(--primary)]/60">Tracking Number:</span>
+                <span className="text-sm font-semibold text-[var(--primary)]">{order.trackingNumber}</span>
+                <button
+                  onClick={handleCopyTracking}
+                  className="p-1 rounded hover:bg-[var(--secondary)]/20 transition-colors"
+                  aria-label="Copy tracking number"
+                >
+                  <Copy size={12} strokeWidth={1.5} />
+                </button>
+              </div>
+            )}
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-sm">
+              <Mail size={14} strokeWidth={1.5} />
+              <span>Please check your email for order confirmation and tracking details.</span>
+            </div>
+            <div className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-[var(--border)]/40">
               <span className="text-xs font-medium text-[var(--primary)]/60">Order ID:</span>
               <span className="text-sm font-semibold text-[var(--primary)]">
                 #{String(order._id || order.id || '').slice(-8).toUpperCase()}
@@ -181,6 +204,15 @@ export const OrderConfirmationPage = () => {
               <Package size={14} strokeWidth={1.5} />
               View All Orders
             </Link>
+            {order.trackingNumber && (
+              <Link
+                to={`/track-order?tracking=${order.trackingNumber}`}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--border)] bg-white text-xs font-semibold uppercase tracking-widest text-[var(--primary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all"
+              >
+                <Search size={14} strokeWidth={1.5} />
+                Track Your Order
+              </Link>
+            )}
             <Link
               to="/shop"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--border)] bg-white text-xs font-semibold uppercase tracking-widest text-[var(--primary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all"

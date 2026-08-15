@@ -5,11 +5,12 @@ import { Link } from 'react-router-dom'
 import { api } from '@services/api'
 import { PageMeta } from '@hooks/usePageMeta'
 
-const SITE_URL = 'https://hokinteriors.com'
+const SITE_URL = 'https://hokinteriors.co.ke'
 
 export const WorkWithUsPage = () => {
   const [submitting, setSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState(null)
+  const [submitError, setSubmitError] = useState('')
   const [content, setContent] = useState(null)
   const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
@@ -47,12 +48,14 @@ export const WorkWithUsPage = () => {
     e.preventDefault()
     setSubmitting(true)
     setSubmitStatus(null)
+    setSubmitError('')
     try {
       await api.post('/work-with-us', formData)
       setSubmitStatus('success')
       setFormData({ fullName: '', phone: '', email: '', budget: '', startDate: '', timeline: '' })
     } catch (err) {
       setSubmitStatus('error')
+      setSubmitError(err?.message || 'Something went wrong. Please try again or contact us directly at info@hokinteriors.co.ke')
       console.error('[WORK_WITH_US] Submit failed:', err)
     } finally {
       setSubmitting(false)
@@ -276,8 +279,8 @@ export const WorkWithUsPage = () => {
                 >
                   <AlertCircle size={20} strokeWidth={2} />
                   <div>
-                    <p className="font-medium">Something went wrong</p>
-                    <p className="text-sm">Please try again or contact us directly at info@hokinteriors.co.ke</p>
+                    <p className="font-medium">Unable to submit application</p>
+                    <p className="text-sm">{submitError}</p>
                   </div>
                 </motion.div>
               )}

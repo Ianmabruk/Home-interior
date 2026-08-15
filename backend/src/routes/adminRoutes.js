@@ -21,7 +21,14 @@ import adminSocialRoutes from './adminSocialRoutes.js'
 
 const router = Router()
 
-router.use(authenticate, authorize('ADMIN'), validateCsrfToken)
+router.use(authenticate, authorize('ADMIN'))
+
+router.use((req, res, next) => {
+  if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method)) {
+    return validateCsrfToken(req, res, next)
+  }
+  next()
+})
 
 router.get('/overview', adminOverviewController.getStats)
 router.get('/settings', adminOverviewController.getSettings)

@@ -46,7 +46,6 @@ export const authController = {
 
     const user = await customerAuthService.register({ email, password, fullName, phone })
     const csrfToken = generateCsrfToken()
-    res.cookie('refreshToken', null, { httpOnly: true, path: '/', maxAge: 0 })
     res.status(201).json({ success: true, data: user })
   }),
 

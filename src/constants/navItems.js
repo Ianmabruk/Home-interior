@@ -4,6 +4,7 @@ export const NAV_ITEMS = [
   { to: '/services', label: 'Services' },
   { to: '/about', label: 'About Us' },
   { to: '/socials', label: 'Socials' },
+  { to: '/track-order', label: 'Track Order' },
 ]
 
 export const FULLSCREEN_MENU_ITEMS = [
@@ -12,6 +13,7 @@ export const FULLSCREEN_MENU_ITEMS = [
   { to: '/services', label: 'Services', icon: 'Sparkles' },
   { to: '/about', label: 'About Us', icon: 'User' },
   { to: '/socials', label: 'Socials', icon: 'Mail' },
+  { to: '/track-order', label: 'Track Order', icon: 'Search' },
 ]
 
 export const FOOTER_NAV_GROUPS = [
@@ -38,6 +40,7 @@ export const FOOTER_NAV_GROUPS = [
       { to: '/account', label: 'My Account' },
       { to: '/cart', label: 'Cart' },
       { to: '/wishlist', label: 'Wishlist' },
+      { to: '/track-order', label: 'Track Order' },
     ],
   },
 ]
