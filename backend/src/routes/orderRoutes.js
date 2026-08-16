@@ -15,7 +15,7 @@ const trackSchema = z.object({
 router.post('/', optionalAuth, orderController.create)
 router.post('/track', validateZod(trackSchema), orderController.trackOrder)
 router.get('/me', authenticate, orderController.listMine)
-router.get('/:id', orderController.get)
+router.get('/:id', optionalAuth, orderController.get)
 router.get('/', authenticate, authorize('ADMIN'), orderController.listAll)
 router.patch('/:id/status', authenticate, authorize('ADMIN'), validateCsrfToken, orderController.updateStatus)
 
