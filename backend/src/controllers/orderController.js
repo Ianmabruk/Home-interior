@@ -34,10 +34,10 @@ export const orderController = {
       phone,
       items: rawItems,
       shippingAddress: rawShipping,
-      shippingMethod: req.body.shippingMethod || 'standard',
+      shippingMethod: req.body.shippingMethod || req.body.shippingAddress?.shippingMethod || 'standard',
       paymentMethod: shipping.paymentMethod || req.body.paymentMethod || 'guest',
       paymentDetails: rawPayment,
-      total: 0,
+      total: Number(req.body.total) || 0,
     }
     const order = await orderService.createOrder(data)
     res.status(201).json({ success: true, data: order })

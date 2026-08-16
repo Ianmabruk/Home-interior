@@ -75,6 +75,8 @@ export const CheckoutPage = () => {
           city: formData.city,
           country: formData.country,
         },
+        shippingMethod: 'standard',
+        paymentMethod: 'cash_on_delivery',
         total,
       }
       const res = await api.post('/orders', orderData)
