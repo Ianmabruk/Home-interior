@@ -27,6 +27,8 @@ export const orderController = {
     const rawShipping = typeof shipping === 'string' ? shipping : JSON.stringify(shipping)
     const rawPayment = typeof req.body.paymentDetails === 'string' ? req.body.paymentDetails : JSON.stringify(req.body.paymentDetails || {})
 
+    const trackingNumber = `HOK-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
+
     const data = {
       userId: req.user?.id || null,
       email,
@@ -38,6 +40,7 @@ export const orderController = {
       paymentMethod: shipping.paymentMethod || req.body.paymentMethod || 'guest',
       paymentDetails: rawPayment,
       total: 0,
+      trackingNumber,
     }
     const order = await orderService.createOrder(data)
     res.status(201).json({ success: true, data: order })
@@ -88,6 +91,15 @@ export const orderController = {
       return res.status(400).json({ success: false, message: 'Status is required' })
     }
     const order = await orderService.updateOrderStatus(req.params.id, status)
+    res.json({ success: true, data: order })
+  }),
+
+  track: asyncHandler(async (req, res) => {
+    const { trackingNumber, contact } = req.body
+    if (!trackingNumber || !contact) {
+      return res.status(400).json({ success: false, message: 'Tracking number and contact are required' })
+    }
+    const order = await orderService.getOrderByTracking(trackingNumber, contact)
     res.json({ success: true, data: order })
   }),
 }

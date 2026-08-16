@@ -7,6 +7,7 @@ export const orderService = {
   getUserOrders,
   getAllOrders,
   updateOrderStatus,
+  trackOrder,
 }
 
 function parseOrder(order) {
@@ -154,3 +155,19 @@ async function updateOrderStatus(id, status) {
   }))
   return parseOrder(order)
 }
+
+async function trackOrder(trackingNumber, contact) {
+  const order = await withRetry(() => prisma.order.findFirst({
+    where: {
+      OR: [
+        { trackingNumber: trackingNumber },
+        { id: trackingNumber },
+      ],
+      email: contact,
+    },
+  }))
+  if (!order) throw failure(404, 'Order not found')
+  return parseOrder(order)
+}
+
+export { trackOrder }

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { api } from '../services/api'
 
 const AuthContext = createContext(null)
@@ -76,8 +76,6 @@ export function AuthProvider({ children }) {
       user,
       loading,
       isAuthenticated: !!user,
-      isAdmin: user?.role === 'ADMIN',
-      isCustomer: user?.role === 'CUSTOMER',
       login,
       register,
       logout,

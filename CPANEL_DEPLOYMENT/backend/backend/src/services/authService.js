@@ -12,35 +12,38 @@ export const authService = {
 }
 
 async function login(email, password) {
-  const admin = await withRetry(() => prisma.admin.findUnique({
+  const user = await withRetry(() => prisma.user.findUnique({
     where: { email },
-    select: { id: true, email: true, passwordHash: true, fullName: true, role: true },
+    select: { id: true, email: true, passwordHash: true, fullName: true, phone: true, role: true, status: true },
   }))
 
-  if (!admin) {
+  if (!user) {
     throw failure(401, 'Invalid email or password')
   }
 
-  const valid = await bcrypt.compare(password, admin.passwordHash)
+  if (user.status !== 'ACTIVE') {
+    throw failure(401, 'Account is not active')
+  }
+
+  const valid = await bcrypt.compare(password, user.passwordHash)
   if (!valid) {
     throw failure(401, 'Invalid email or password')
   }
 
-  const payload = { adminId: admin.id, email: admin.email, role: admin.role }
+  const payload = { userId: user.id, email: user.email, role: user.role }
   const accessToken = jwt.sign(payload, env.jwtAccessSecret, { expiresIn: env.accessTokenTtl || '15m' })
   const refreshToken = jwt.sign(payload, env.jwtRefreshSecret, { expiresIn: env.refreshTokenTtl || '30d' })
 
-  await withRetry(() => prisma.passwordReset.deleteMany({ where: { adminId: admin.id } })).catch(() => {})
   await withRetry(() => prisma.passwordReset.create({
     data: {
-      adminId: admin.id,
+      userId: user.id,
       token: refreshToken,
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
-  }))
+  })).catch(() => {})
 
   return {
-    user: { id: admin.id, email: admin.email, fullName: admin.fullName, role: admin.role },
+    user: { id: user.id, email: user.email, fullName: user.fullName, phone: user.phone, role: user.role },
     accessToken,
     refreshToken,
   }
@@ -56,22 +59,28 @@ async function refresh(refreshToken) {
     throw failure(401, 'Invalid refresh token')
   }
 
+  if (!decoded.userId) {
+    throw failure(401, 'Invalid refresh token')
+  }
+
   const reset = await withRetry(() => prisma.passwordReset.findFirst({
-    where: { adminId: decoded.adminId, token: refreshToken },
+    where: { userId: decoded.userId, token: refreshToken },
   }))
 
   if (!reset || new Date(reset.expiresAt) < new Date()) {
     throw failure(401, 'Invalid refresh token')
   }
 
-  const admin = await withRetry(() => prisma.admin.findUnique({
-    where: { id: decoded.adminId },
-    select: { id: true, email: true, fullName: true, role: true },
+  const user = await withRetry(() => prisma.user.findUnique({
+    where: { id: decoded.userId },
+    select: { id: true, email: true, fullName: true, phone: true, role: true, status: true },
   }))
 
-  if (!admin) throw failure(401, 'Admin not found')
+  if (!user || user.status !== 'ACTIVE') {
+    throw failure(401, 'User not found or inactive')
+  }
 
-  const payload = { adminId: admin.id, email: admin.email, role: admin.role }
+  const payload = { userId: user.id, email: user.email, role: user.role }
   const accessToken = jwt.sign(payload, env.jwtAccessSecret, { expiresIn: env.accessTokenTtl || '15m' })
   const newRefresh = jwt.sign(payload, env.jwtRefreshSecret, { expiresIn: env.refreshTokenTtl || '30d' })
 
@@ -85,14 +94,21 @@ async function refresh(refreshToken) {
 
 async function logout(refreshToken) {
   if (!refreshToken) return
-  await withRetry(() => prisma.passwordReset.deleteMany({ where: { token: refreshToken } })).catch(() => {})
+  try {
+    const decoded = jwt.verify(refreshToken, env.jwtRefreshSecret)
+    if (decoded.userId) {
+      await withRetry(() => prisma.passwordReset.deleteMany({ where: { userId: decoded.userId } })).catch(() => {})
+    }
+  } catch {
+    // ignore
+  }
 }
 
-async function me(adminId) {
-  const admin = await withRetry(() => prisma.admin.findUnique({
-    where: { id: adminId },
-    select: { id: true, email: true, fullName: true, role: true, createdAt: true },
+async function me(userId) {
+  const user = await withRetry(() => prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, fullName: true, phone: true, role: true, status: true, createdAt: true },
   }))
-  if (!admin) throw failure(404, 'Admin not found')
-  return admin
+  if (!user) throw failure(404, 'User not found')
+  return user
 }

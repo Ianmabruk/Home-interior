@@ -30,7 +30,7 @@ export const workWithUsService = {
   listWorkWithUs,
   getWorkWithUs,
   createWorkWithUs,
-  updateWorkWithUs,
+  // updateWorkWithUs - not implemented (pre-existing gap)
   updateWorkWithUsStatus,
   deleteWorkWithUs,
   getWorkWithUsContent,

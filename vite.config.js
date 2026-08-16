@@ -128,41 +128,24 @@ export default defineConfig({
     },
     historyApiFallback: true,
   },
-  build: {
+    build: {
     // es2020 lets Vite/Rolldown emit modern syntax without legacy helpers
     // (optional chaining, nullish coalescing), shrinking the JS and cutting
     // main-thread parse/exec time (TBT) on mobile.
     target: 'es2020',
-    cssCodeSplit: true,
-    reportCompressedSize: true,
-    chunkSizeWarningLimit: 500,
+    cssCodeSplit: false,
+    reportCompressedSize: false,
+    minCollapseIdenticalImports: true,
+    allowCompressionPolyfill: false,
+    assetsInlineLimit: 4096,
+    chunkSizeWarningLimit: 600,
     minify: 'esbuild',
     modulePreload: {
       polyfill: false,
     },
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          if (
-            id.includes('node_modules/react') ||
-            id.includes('node_modules/react-dom') ||
-            id.includes('node_modules/react-router-dom')
-          ) {
-            return 'vendor-react'
-          }
-          if (id.includes('node_modules/framer-motion')) {
-            return 'vendor-motion'
-          }
-          if (id.includes('node_modules/axios')) {
-            return 'vendor-axios'
-          }
-          if (id.includes('node_modules/lucide-react')) {
-            return 'vendor-icons'
-          }
-          if (id.includes('node_modules/react-hot-toast')) {
-            return 'vendor-toast'
-          }
-        },
+        manualChunks: undefined,
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',

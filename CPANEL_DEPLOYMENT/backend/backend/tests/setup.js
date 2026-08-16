@@ -14,19 +14,24 @@ afterAll(async () => {
 
 async function cleanupTestData() {
   const testPrefix = 'test_'
-  const testAdmins = await prisma.admin.findMany({
-    where: { email: { startsWith: testPrefix } },
-    select: { id: true },
-  })
-  const adminIds = testAdmins.map(a => a.id)
-  if (adminIds.length > 0) {
-    await prisma.passwordReset.deleteMany({
-      where: { adminId: { in: adminIds } },
+  // Safely cleanup admin data - handle case where admin table/columns may not exist
+  try {
+    const testAdmins = await prisma.admin.findMany({
+      where: { email: { startsWith: testPrefix } },
+      select: { id: true },
     })
+    const adminIds = testAdmins.map(a => a.id)
+    if (adminIds.length > 0) {
+      await prisma.passwordReset.deleteMany({
+        where: { adminId: { in: adminIds } },
+      })
+    }
+    await prisma.admin.deleteMany({
+      where: { email: { startsWith: testPrefix } },
+    })
+  } catch {
+    // Admin table may not have data or columns - skip admin cleanup
   }
-  await prisma.admin.deleteMany({
-    where: { email: { startsWith: testPrefix } },
-  })
   await prisma.portfolioProject.deleteMany({
     where: { title: { startsWith: testPrefix } },
   })

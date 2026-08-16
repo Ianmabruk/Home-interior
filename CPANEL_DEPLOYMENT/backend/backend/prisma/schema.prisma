@@ -323,6 +323,7 @@ model Order {
   total           Float
   status          String   @default("pending") @db.Text
   createdAt       DateTime @default(now()) @map("created_at")
+  trackingNumber  String?  @db.Text @map("tracking_number")
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
