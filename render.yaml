@@ -19,3 +19,4 @@ services:
         value: https://hokinteriors.co.ke
       - key: PRISMA_MIGRATE_LOCK_TIMEOUT
         value: "120000"
+# Deploy trigger Sun Aug 16 07:28:06 PM EAT 2026
