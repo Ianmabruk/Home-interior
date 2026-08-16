@@ -49,25 +49,29 @@ export const workWithUsController = {
   }),
 
   createContent: asyncHandler(async (req, res) => {
-    const file = req.file
+    const files = req.files || []
+    const file = files.find((f) => f.fieldname === 'image')
+    const circularFile = files.find((f) => f.fieldname === 'homepageCircularImage')
     const data = {
       title: req.body.title || '',
       description: req.body.description || '',
       displayOrder: Number(req.body.displayOrder) || 0,
       isActive: req.body.isActive !== 'false' && req.body.isActive !== false,
     }
-    const item = await workWithUsService.createWorkWithUsContent(data, file)
+    const item = await workWithUsService.createWorkWithUsContent(data, file, circularFile)
     res.status(201).json({ success: true, data: item })
   }),
 
   updateContent: asyncHandler(async (req, res) => {
-    const file = req.file
+    const files = req.files || []
+    const file = files.find((f) => f.fieldname === 'image')
+    const circularFile = files.find((f) => f.fieldname === 'homepageCircularImage')
     const data = {}
     if (req.body.title !== undefined) data.title = req.body.title
     if (req.body.description !== undefined) data.description = req.body.description
     if (req.body.displayOrder !== undefined) data.displayOrder = Number(req.body.displayOrder) || 0
     if (req.body.isActive !== undefined) data.isActive = req.body.isActive === 'true' || req.body.isActive === true
-    const item = await workWithUsService.updateWorkWithUsContent(req.params.id, data, file)
+    const item = await workWithUsService.updateWorkWithUsContent(req.params.id, data, file, circularFile)
     res.json({ success: true, data: item })
   }),
 

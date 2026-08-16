@@ -22,8 +22,8 @@ export const SignupPage = () => {
     try {
       const result = await register(formData.fullName, formData.email, formData.password, formData.phone)
       if (result?.needsLogin) {
-        const loginResult = await login(formData.email, formData.password)
-        navigate('/', { replace: true })
+        await login(formData.email, formData.password)
+        navigate('/orders', { replace: true })
         setSuccess('Account created successfully!')
       } else {
         setSuccess('Account created. You can now sign in.')

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useLocation, Outlet } from 'react-router-dom'
+import { useLocation, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard,
   Image,
@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@context/AuthContext'
 import { Sidebar } from '@components/admin/Sidebar'
+import { AdminLoginPage } from './AdminLoginPage'
 
 const ADMIN_NAV = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
@@ -39,7 +40,7 @@ const ADMIN_NAV = [
 ]
 
 export const AdminPage = () => {
-  const { user, isAdmin, logout } = useAuth()
+  const { user, isAdmin, loading, logout } = useAuth()
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
@@ -64,18 +65,16 @@ export const AdminPage = () => {
     }
   }, [])
 
-  if (!isAdmin) {
+  if (loading) {
     return (
-      <main className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <h1 className="font-display text-3xl font-semibold text-[var(--primary)] mb-3">Access Denied</h1>
-          <p className="text-[var(--primary)]/60 mb-6">You do not have permission to access the admin dashboard.</p>
-          <Link to="/" className="btn-luxury-primary inline-flex items-center gap-2">
-            Go Home
-          </Link>
-        </div>
-      </main>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
+      </div>
     )
+  }
+
+  if (!isAdmin) {
+    return <AdminLoginPage />
   }
 
   const currentRoute = ADMIN_NAV.find((nav) => location.pathname.startsWith(nav.to)) || ADMIN_NAV[0]

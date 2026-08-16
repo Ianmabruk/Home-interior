@@ -129,36 +129,41 @@ model ProductVariant {
 }
 
 model Service {
-  id           String   @id @default(cuid())
-  title        String   @db.Text
-  description  String?  @db.Text
-  icon         String?  @db.Text
-  imageUrl     String?  @db.Text @map("image_url")
-  cloudinaryId String?  @db.Text @map("cloudinary_id")
-  buttonText   String?  @default("Request This Service") @db.Text @map("button_text")
-  buttonUrl    String?  @db.Text @map("button_url")
-  featured     Boolean  @default(false)
-  displayOrder Int      @default(0) @map("display_order")
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id                     String   @id @default(cuid())
+  title                  String   @db.Text
+  description            String?  @db.Text
+  icon                   String?  @db.Text
+  imageUrl               String?  @db.Text @map("image_url")
+  cloudinaryId           String?  @db.Text @map("cloudinary_id")
+  homepageCircularImage  String?  @db.Text @map("homepage_circular_image")
+  homepageCircularImageId String? @db.Text @map("homepage_circular_image_id")
+  buttonText             String?  @default("Request This Service") @db.Text @map("button_text")
+  buttonUrl              String?  @db.Text @map("button_url")
+  featured               Boolean  @default(false)
+  displayOrder           Int      @default(0) @map("display_order")
+  isActive               Boolean  @default(true) @map("is_active")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
 
    @@map("services")
    @@index([isActive, displayOrder(asc)])
    @@index([displayOrder(asc), isActive])
- }
+  }
 
 model Testimonial {
-  id           String   @id @default(cuid())
-  clientName   String   @map("client_name") @db.Text
-  content      String   @db.Text
-  project      String?  @db.Text
-  photoUrl     String?  @db.Text @map("photo_url")
-  publicId     String?  @db.Text @map("public_id")
-  displayOrder Int      @default(0) @map("display_order")
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id                     String   @id @default(cuid())
+  clientName             String   @map("client_name") @db.Text
+  content                String   @db.Text
+  project                String?  @db.Text
+  photoUrl               String?  @db.Text @map("photo_url")
+  publicId               String?  @db.Text @map("public_id")
+  initial                String?  @db.Text
+  homepageCircularImage  String?  @db.Text @map("homepage_circular_image")
+  homepageCircularImageId String? @db.Text @map("homepage_circular_image_id")
+  displayOrder           Int      @default(0) @map("display_order")
+  isActive               Boolean  @default(true) @map("is_active")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
 
    @@map("testimonials")
    @@index([isActive, displayOrder(asc)])
@@ -166,24 +171,26 @@ model Testimonial {
   }
 
 model WorkWithUs {
-  id           String   @id @default(cuid())
-  type         String   @default("submission") @db.Text
-  title        String?  @db.Text
-  description  String?  @db.Text
-  imageUrl     String?  @db.Text @map("image_url")
-  mediaUrls    String[] @default([]) @db.Text @map("media_urls")
-  cloudinaryId String?  @db.Text @map("cloudinary_id")
-  fullName     String?  @db.Text @map("full_name")
-  phone        String?  @db.Text
-  email        String?  @db.Text
-  budget       String?  @db.Text
-  startDate    String?  @db.Text @map("start_date")
-  timeline     String?  @db.Text
-  status       String   @default("NEW") @db.Text
-  displayOrder Int      @default(0) @map("display_order")
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id                     String   @id @default(cuid())
+  type                   String   @default("submission") @db.Text
+  title                  String?  @db.Text
+  description            String?  @db.Text
+  imageUrl               String?  @db.Text @map("image_url")
+  mediaUrls              String[] @default([]) @db.Text @map("media_urls")
+  cloudinaryId           String?  @db.Text @map("cloudinary_id")
+  homepageCircularImage  String?  @db.Text @map("homepage_circular_image")
+  homepageCircularImageId String? @db.Text @map("homepage_circular_image_id")
+  fullName               String?  @db.Text @map("full_name")
+  phone                  String?  @db.Text
+  email                  String?  @db.Text
+  budget                 String?  @db.Text
+  startDate              String?  @db.Text @map("start_date")
+  timeline               String?  @db.Text
+  status                 String   @default("NEW") @db.Text
+  displayOrder           Int      @default(0) @map("display_order")
+  isActive               Boolean  @default(true) @map("is_active")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
 
    @@map("work_with_us")
    @@index([type, displayOrder(asc)])
@@ -209,36 +216,38 @@ model HeroMedia {
  }
 
 model About {
-  id                  String   @id @default(cuid())
-  title               String   @default("About Us") @db.Text @map("title")
-  subtitle            String   @default("") @db.Text @map("subtitle")
-  description         String   @default("") @db.Text @map("description")
-  story               String   @db.Text @default("")
-  companyDesc         String   @default("") @map("company_description") @db.Text
-  mission             String   @db.Text @default("")
-  vision              String   @db.Text @default("")
-  experience          String   @default("") @db.Text @map("experience")
-  values              String   @default("") @db.Text
-  location            String   @db.Text @default("")
-  contactEmail        String   @default("") @map("contact_email") @db.Text
-  buttonText          String   @default("") @db.Text @map("button_text")
-  buttonUrl           String   @default("") @db.Text @map("button_url")
-  projectsCompleted   Int      @default(0) @map("projects_completed")
-  happyClients        Int      @default(0) @map("happy_clients")
-  yearsExperience     Int      @default(0) @map("years_experience")
-  countriesServed     Int      @default(0) @map("countries_served")
-  socials             String   @default("{}") @db.Text
-  imageUrl            String?  @db.Text @map("image_url")
-  cloudinaryId        String?  @db.Text @map("cloudinary_id")
-  socialImage         String?  @db.Text @map("social_image")
-  socialImageId       String?  @db.Text @map("social_image_id")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
-  images              AboutImage[]
+  id                      String   @id @default(cuid())
+  title                   String   @default("About Us") @db.Text @map("title")
+  subtitle                String   @default("") @db.Text @map("subtitle")
+  description             String   @default("") @db.Text @map("description")
+  story                   String   @default("") @db.Text
+  companyDesc             String   @default("") @db.Text @map("company_description")
+  mission                 String   @default("") @db.Text
+  vision                  String   @default("") @db.Text
+  experience              String   @default("") @db.Text @map("experience")
+  values                  String   @default("") @db.Text
+  location                String   @default("") @db.Text
+  contactEmail            String   @default("") @db.Text @map("contact_email")
+  buttonText              String   @default("") @db.Text @map("button_text")
+  buttonUrl               String   @default("") @db.Text @map("button_url")
+  projectsCompleted       Int      @default(0) @map("projects_completed")
+  happyClients            Int      @default(0) @map("happy_clients")
+  yearsExperience         Int      @default(0) @map("years_experience")
+  countriesServed         Int      @default(0) @map("countries_served")
+  socials                 String   @default("{}") @db.Text
+  imageUrl                String?  @db.Text @map("image_url")
+  cloudinaryId            String?  @db.Text @map("cloudinary_id")
+  socialImage             String?  @db.Text @map("social_image")
+  socialImageId           String?  @db.Text @map("social_image_id")
+  homepageCircularImage   String?  @db.Text @map("homepage_circular_image")
+  homepageCircularImageId String?  @db.Text @map("homepage_circular_image_id")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+  images                  AboutImage[]
 
   @@map("abouts")
   @@index([createdAt(desc)])
-}
+  }
 
 model AboutImage {
   id           String   @id @default(cuid())
@@ -368,27 +377,29 @@ model WishlistItem {
 }
 
 model Blog {
-  id           String   @id @default(cuid())
-  title        String   @db.Text
-  subtitle     String?  @db.Text
-  slug         String?  @db.Text
-  description  String?  @db.Text
-  content      String?  @db.Text
-  category     String?  @db.Text
-  tags         String[] @default([]) @db.Text
-  author       String?  @db.Text
-  metaDescription String? @db.Text @map("meta_description")
-   image        String?  @db.Text
-   video        String?  @db.Text
-   mediaUrls    String[] @default([]) @db.Text @map("media_urls")
-   cloudinaryId String?  @db.Text @map("cloudinary_id")
-   published    Boolean  @default(false)
-   featured     Boolean  @default(false)
-   displayOrder Int      @default(0) @map("display_order")
-   views        Int      @default(0) @map("views")
-   publishDate  DateTime? @map("publish_date")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id                      String   @id @default(cuid())
+  title                   String   @db.Text
+  subtitle                String?  @db.Text
+  slug                    String?  @db.Text
+  description             String?  @db.Text
+  content                 String?  @db.Text
+  category                String?  @db.Text
+  tags                    String[] @default([]) @db.Text
+  author                  String?  @db.Text
+  metaDescription         String?  @db.Text @map("meta_description")
+   image                   String?  @db.Text
+   video                   String?  @db.Text
+   mediaUrls               String[] @default([]) @db.Text @map("media_urls")
+   cloudinaryId            String?  @db.Text @map("cloudinary_id")
+  homepageCircularImage   String?  @db.Text @map("homepage_circular_image")
+  homepageCircularImageId String? @db.Text @map("homepage_circular_image_id")
+  published               Boolean  @default(false)
+  featured                Boolean  @default(false)
+  displayOrder            Int      @default(0) @map("display_order")
+  views                   Int      @default(0) @map("views")
+  publishDate             DateTime? @map("publish_date")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
 
    @@map("blogs")
    @@index([published, featured, createdAt(desc)])
@@ -396,7 +407,7 @@ model Blog {
    @@index([category])
    @@index([slug])
    @@index([publishDate(desc)])
- }
+  }
 
 model Message {
   id        String   @id @default(cuid())

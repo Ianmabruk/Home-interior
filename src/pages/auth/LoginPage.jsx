@@ -23,7 +23,11 @@ export const LoginPage = () => {
     try {
       const result = await login(formData.email, formData.password)
       const from = location.state?.from
-      const target = from || '/'
+      const role = result?.user?.role
+      let target = from
+      if (!target) {
+        target = role === 'ADMIN' ? '/admin' : '/orders'
+      }
       setSuccess('Welcome back!')
       setTimeout(() => navigate(target, { replace: true }), 1000)
     } catch (err) {

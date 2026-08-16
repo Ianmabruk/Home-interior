@@ -295,10 +295,9 @@ async function incrementViews(id) {
   }
 }
 
-async function createBlog(data, imageFile, videoFile, contentFiles = []) {
+async function createBlog(data, imageFile, videoFile, contentFiles = [], homepageCircularImageFile = null) {
   const createData = { ...data }
 
-  // Upload featured image
   if (imageFile) {
     try {
       const uploaded = await uploadFile(imageFile.buffer, imageFile.mimetype, 'blogs')
@@ -310,7 +309,6 @@ async function createBlog(data, imageFile, videoFile, contentFiles = []) {
     }
   }
 
-  // Upload video
   if (videoFile) {
     try {
       const uploaded = await uploadFile(videoFile.buffer, videoFile.mimetype, 'blogs')
@@ -322,7 +320,17 @@ async function createBlog(data, imageFile, videoFile, contentFiles = []) {
     }
   }
 
-  // Upload content images
+  if (homepageCircularImageFile) {
+    try {
+      const uploaded = await uploadFile(homepageCircularImageFile.buffer, homepageCircularImageFile.mimetype, 'blogs')
+      createData.homepageCircularImage = uploaded.url
+      createData.homepageCircularImageId = uploaded.path
+    } catch (err) {
+      console.error('[blogService.createBlog] Homepage circular image upload failed:', err?.message)
+      throw failure(500, `Homepage image upload failed: ${err?.message || 'Unknown error'}`)
+    }
+  }
+
   const mediaUrls = []
   for (const f of contentFiles) {
     try {
@@ -330,12 +338,10 @@ async function createBlog(data, imageFile, videoFile, contentFiles = []) {
       mediaUrls.push(uploaded.url)
     } catch (err) {
       console.error('[blogService.createBlog] Content image upload failed:', err?.message)
-      // Non-fatal — continue with other files
     }
   }
   if (mediaUrls.length > 0) createData.mediaUrls = mediaUrls
 
-  // Auto-generate slug if not provided
   if (!createData.slug && createData.title) {
     createData.slug = createData.title
       .toLowerCase()
@@ -349,7 +355,7 @@ async function createBlog(data, imageFile, videoFile, contentFiles = []) {
   return mapBlog(item)
 }
 
-async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], removeMediaUrls = []) {
+async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], removeMediaUrls = [], homepageCircularImageFile = null) {
   const existing = await prisma.blog.findUnique({ where: { id } })
   if (!existing) throw failure(404, 'Blog not found')
 
@@ -383,6 +389,19 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
     } catch (err) {
       console.error('[blogService.updateBlog] Video upload failed:', err?.message)
       throw failure(500, `Video upload failed: ${err?.message || 'Unknown error'}`)
+    }
+  }
+
+  if (homepageCircularImageFile) {
+    if (existing.homepageCircularImageId) pathsToDelete.push(existing.homepageCircularImageId)
+
+    try {
+      const uploaded = await uploadFile(homepageCircularImageFile.buffer, homepageCircularImageFile.mimetype, 'blogs')
+      updateData.homepageCircularImage = uploaded.url
+      updateData.homepageCircularImageId = uploaded.path
+    } catch (err) {
+      console.error('[blogService.updateBlog] Homepage circular image upload failed:', err?.message)
+      throw failure(500, `Homepage image upload failed: ${err?.message || 'Unknown error'}`)
     }
   }
 

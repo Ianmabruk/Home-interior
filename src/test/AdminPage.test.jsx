@@ -116,11 +116,11 @@ describe('AdminPage', () => {
     }, { timeout: 3000 })
   })
 
-  it('shows access denied for non-admin users', async () => {
+  it('shows admin login for non-admin users', async () => {
     renderWithProviders(<AdminPage />, { route: '/admin' })
 
     await waitFor(() => {
-      expect(screen.getByText('Access Denied')).toBeDefined()
+      expect(screen.getByText('Admin Access')).toBeDefined()
     }, { timeout: 3000 })
   })
 })

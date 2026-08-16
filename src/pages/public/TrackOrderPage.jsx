@@ -17,12 +17,13 @@ const STATUS_FLOW = [
 function getStatusIndex(status) {
   const s = String(status || '').toLowerCase()
   if (s === 'delivered') return 5
-  if (s === 'cancelled') return -1
+  if (s === 'cancelled' || s === 'canceled') return -1
   if (s === 'refunded') return -1
-  if (s === 'shipped' || s === 'being delivered') return 4
-  if (s === 'processing' || s === 'preparing') return 3
-  if (s === 'payment confirmed') return 2
-  if (s === 'pending' || s === 'payment pending') return 1
+  if (s === 'out for delivery' || s === 'being delivered') return 4
+  if (s === 'ready for delivery' || s === 'completed') return 3
+  if (s === 'processing' || s === 'preparing') return 2
+  if (s === 'payment confirmed') return 1
+  if (s === 'pending' || s === 'order placed' || s === 'payment pending') return 0
   return 0
 }
 

@@ -21,7 +21,7 @@ async function getHomepage() {
           where: { isActive: true },
           orderBy: { displayOrder: 'asc' },
           take: 6,
-          select: { id: true, title: true, imageUrl: true },
+          select: { id: true, title: true, imageUrl: true, homepageCircularImage: true, homepageCircularImageId: true },
         }),
         prisma.about.findFirst({
           orderBy: { createdAt: 'desc' },
@@ -54,13 +54,13 @@ async function getHomepage() {
           where: { isActive: true },
           orderBy: { displayOrder: 'asc' },
           take: 10,
-          select: { id: true, clientName: true, content: true, project: true, photoUrl: true },
+          select: { id: true, clientName: true, content: true, project: true, photoUrl: true, initial: true, homepageCircularImage: true, homepageCircularImageId: true },
         }),
         prisma.workWithUs.findMany({
           where: { type: 'content', isActive: true },
           orderBy: { displayOrder: 'asc' },
           take: 6,
-          select: { id: true, title: true, description: true, imageUrl: true, mediaUrls: true, displayOrder: true, isActive: true },
+          select: { id: true, title: true, description: true, imageUrl: true, mediaUrls: true, homepageCircularImage: true, homepageCircularImageId: true, displayOrder: true, isActive: true },
         }),
         prisma.heroMedia.findMany({
           where: { isActive: true },
@@ -77,7 +77,7 @@ async function getHomepage() {
           where: { published: true },
           orderBy: { createdAt: 'desc' },
           take: 6,
-          select: { id: true, title: true, image: true, video: true, description: true, category: true },
+          select: { id: true, title: true, image: true, video: true, description: true, category: true, homepageCircularImage: true, homepageCircularImageId: true },
         }),
         prisma.socialItem.findMany({
           orderBy: { displayOrder: 'asc' },

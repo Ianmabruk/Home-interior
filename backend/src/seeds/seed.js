@@ -23,17 +23,28 @@ async function seed() {
 
   try {
     const existingAdmin = await prisma.admin.findFirst()
+    const passwordHash = await bcrypt.hash(env.seedAdminPassword || 'admin123', 12)
     if (!existingAdmin) {
-      const passwordHash = await bcrypt.hash(env.seedAdminPassword, 12)
       await prisma.admin.create({
         data: {
-          email: env.seedAdminEmail,
+          email: env.seedAdminEmail || 'info@hokinteriors.co.ke',
           passwordHash,
           fullName: 'Admin',
           role: 'ADMIN',
         },
       })
       console.log('Default admin created')
+    } else {
+      await prisma.admin.update({
+        where: { id: existingAdmin.id },
+        data: {
+          email: env.seedAdminEmail || 'info@hokinteriors.co.ke',
+          passwordHash,
+          role: 'ADMIN',
+          fullName: 'Admin',
+        },
+      })
+      console.log('Default admin updated')
     }
   } catch (err) {
     console.error('Seeding: admin seed failed:', err?.message || err)

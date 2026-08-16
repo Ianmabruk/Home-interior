@@ -78,6 +78,7 @@ export const blogController = {
     const imageFile = req.files?.image?.[0] || null
     const videoFile = req.files?.video?.[0] || null
     const contentFiles = Array.isArray(req.files?.contentImages) ? req.files.contentImages : []
+    const homepageCircularImageFile = req.files?.homepageCircularImage?.[0] || null
 
     const data = {
       title: req.body.title,
@@ -95,14 +96,15 @@ export const blogController = {
       publishDate: req.body.publishDate ? new Date(req.body.publishDate) : null,
     }
 
-    const item = await blogService.createBlog(data, imageFile, videoFile, contentFiles)
+    const item = await blogService.createBlog(data, imageFile, videoFile, contentFiles, homepageCircularImageFile)
     res.status(201).json({ success: true, data: item })
   }),
 
-  update: asyncHandler(async (req, res) => {
+   update: asyncHandler(async (req, res) => {
     const imageFile = req.files?.image?.[0] || null
     const videoFile = req.files?.video?.[0] || null
     const contentFiles = Array.isArray(req.files?.contentImages) ? req.files.contentImages : []
+    const homepageCircularImageFile = req.files?.homepageCircularImage?.[0] || null
 
     const data = {}
     if (req.body.title !== undefined) data.title = req.body.title
@@ -128,7 +130,7 @@ export const blogController = {
       }
     }
 
-    const item = await blogService.updateBlog(req.params.id, data, imageFile, videoFile, contentFiles, removeMediaUrls)
+    const item = await blogService.updateBlog(req.params.id, data, imageFile, videoFile, contentFiles, removeMediaUrls, homepageCircularImageFile)
     res.json({ success: true, data: item })
   }),
 

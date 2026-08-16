@@ -91,13 +91,57 @@ async function getWorkWithUsContent() {
   }
 }
 
-async function createWorkWithUsContent(data, file) {
+async function createWorkWithUsContent(data, file, circularFile) {
   const uploadData = {}
   if (file) {
     const uploaded = await uploadFile(file.buffer, file.mimetype, 'work-with-us')
     uploadData.imageUrl = uploaded.url
     uploadData.cloudinaryId = uploaded.path
   }
+  if (circularFile) {
+    const uploaded = await uploadFile(circularFile.buffer, circularFile.mimetype, 'work-with-us')
+    uploadData.homepageCircularImage = uploaded.url
+    uploadData.homepageCircularImageId = uploaded.path
+  }
+  const item = await withRetry(() => prisma.workWithUs.create({
+    data: {
+      type: 'content',
+      title: data.title || '',
+      description: data.description || '',
+      displayOrder: data.displayOrder || 0,
+      isActive: data.isActive !== false,
+      ...uploadData,
+    },
+  }))
+  return mapWorkWithUs(item)
+}
+
+async function updateWorkWithUsContent(id, data, file, circularFile) {
+  const existing = await prisma.workWithUs.findUnique({ where: { id } })
+  if (!existing) throw failure(404, 'Content not found')
+
+  const updateData = { ...data }
+
+  if (file) {
+    if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
+    const uploaded = await uploadFile(file.buffer, file.mimetype, 'work-with-us')
+    updateData.imageUrl = uploaded.url
+    updateData.cloudinaryId = uploaded.path
+  }
+
+  if (circularFile) {
+    if (existing.homepageCircularImageId) await deleteFile(existing.homepageCircularImageId)
+    const uploaded = await uploadFile(circularFile.buffer, circularFile.mimetype, 'work-with-us')
+    updateData.homepageCircularImage = uploaded.url
+    updateData.homepageCircularImageId = uploaded.path
+  }
+
+  const item = await prisma.workWithUs.update({
+    where: { id },
+    data: updateData,
+  })
+  return mapWorkWithUs(item)
+}
   const item = await withRetry(() => prisma.workWithUs.create({
     data: {
       type: 'content',

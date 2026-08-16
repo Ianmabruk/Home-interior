@@ -32,12 +32,15 @@ export const ServicesDashboard = () => {
   const [editingId, setEditingId] = useState(null)
   const [mediaFiles, setMediaFiles] = useState([])
   const [mediaPreviews, setMediaPreviews] = useState([])
+  const [homepageCircularFile, setHomepageCircularFile] = useState(null)
+  const [homepageCircularPreview, setHomepageCircularPreview] = useState(null)
   const [loading, setLoading] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const reduceMotion = useIsMobile()
   const fileRef = useRef(null)
+  const circularFileRef = useRef(null)
 
   useEffect(() => {
     const load = async () => {
@@ -103,6 +106,8 @@ export const ServicesDashboard = () => {
     })
     setMediaFiles(item.imageUrl ? [{ url: item.imageUrl }] : [])
     setMediaPreviews(item.imageUrl ? [item.imageUrl] : [])
+    setHomepageCircularPreview(item.homepageCircularImage || null)
+    setHomepageCircularFile(null)
     setShowForm(true)
   }
 
@@ -111,6 +116,8 @@ export const ServicesDashboard = () => {
     setForm(INITIAL_FORM)
     setMediaFiles([])
     setMediaPreviews([])
+    setHomepageCircularFile(null)
+    setHomepageCircularPreview(null)
     setShowForm(false)
   }
 
@@ -130,6 +137,10 @@ export const ServicesDashboard = () => {
 
       if (mediaFiles[0] && mediaFiles[0] instanceof File) {
         payload.append('media', mediaFiles[0])
+      }
+
+      if (homepageCircularFile) {
+        payload.append('homepageCircularImage', homepageCircularFile)
       }
 
       if (editingId) {
@@ -403,6 +414,40 @@ export const ServicesDashboard = () => {
                 </div>
               )}
             </motion.div>
+
+            <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--bg)]/40 space-y-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Homepage Circular Tab Image</p>
+              <input
+                ref={(el) => { circularFileRef.current = el }}
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] || null
+                  if (homepageCircularPreview && homepageCircularPreview.startsWith('blob:')) URL.revokeObjectURL(homepageCircularPreview)
+                  setHomepageCircularFile(f)
+                  setHomepageCircularPreview(f ? URL.createObjectURL(f) : null)
+                }}
+                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
+              />
+              {homepageCircularPreview && (
+                <div className="relative inline-block">
+                  <img src={homepageCircularPreview} alt="Circular preview" className="h-24 w-24 rounded-full object-cover border border-[var(--border)]" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHomepageCircularFile(null)
+                      if (homepageCircularPreview && homepageCircularPreview.startsWith('blob:')) URL.revokeObjectURL(homepageCircularPreview)
+                      setHomepageCircularPreview(null)
+                      if (circularFileRef.current) circularFileRef.current.value = ''
+                    }}
+                    className="absolute -top-2 -right-2 p-1 rounded-full bg-[var(--error)] text-white"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
+              <p className="text-[10px] text-[var(--primary)]/40">Used for the Services homepage circular tab.</p>
+            </div>
 
             <div className="flex gap-3 pt-2">
               <motion.button

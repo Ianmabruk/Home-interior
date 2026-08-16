@@ -25,7 +25,7 @@ const NAV_ITEMS_MOBILE = [
     getImage: (data) => {
       const item = data.services?.[0]
       if (!item) return null
-      return item.imageUrl || item.mediaUrl || item.galleryImages?.[0] || null
+      return item.homepageCircularImage || item.imageUrl || item.mediaUrl || item.galleryImages?.[0] || null
     },
   },
   {
@@ -65,7 +65,7 @@ const NAV_ITEMS_MOBILE = [
       const list = data.blog || []
       const item = list[0]
       if (!item) return null
-      return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
+      return item.homepageCircularImage || item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
     },
   },
   {
@@ -88,7 +88,7 @@ const NAV_ITEMS_MOBILE = [
       const list = data.testimonials || []
       const item = list[0]
       if (!item) return null
-      return item.photoUrl || item.imageUrl || null
+      return item.homepageCircularImage || item.photoUrl || item.imageUrl || null
     },
   },
   {
@@ -99,7 +99,7 @@ const NAV_ITEMS_MOBILE = [
       const list = data.workWithUs || []
       const item = list[0]
       if (!item) return null
-      return item.imageUrl || item.mediaUrls?.[0] || null
+      return item.homepageCircularImage || item.imageUrl || item.mediaUrls?.[0] || null
     },
   },
 ]

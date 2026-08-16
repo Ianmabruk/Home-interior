@@ -198,7 +198,7 @@ export const OrderConfirmationPage = () => {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              to="/account/orders"
+              to="/orders"
               className="btn-luxury-primary inline-flex items-center gap-2"
             >
               <Package size={14} strokeWidth={1.5} />

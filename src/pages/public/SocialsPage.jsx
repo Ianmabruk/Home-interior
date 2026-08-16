@@ -5,6 +5,7 @@ import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 import { SiInstagram, SiFacebook, SiTiktok, SiPinterest, SiYoutube, SiWhatsapp, SiX, SiGlobus } from 'react-icons/si'
+import { SOCIAL_LINKS } from '@constants/socialLinks'
 
 const platformIconMap = {
   instagram: SiInstagram,
@@ -78,6 +79,15 @@ export const SocialsPage = memo(() => {
 
   const activeItems = socialItems.filter((item) => item.isActive !== false && item.link && item.link.trim() !== '')
 
+  const displayItems = activeItems.length > 0 ? activeItems : SOCIAL_LINKS.map((link, index) => ({
+    id: `default-${index}`,
+    name: link.name,
+    platform: link.platform,
+    link: link.link,
+    imageUrl: null,
+    isActive: true,
+  }))
+
   if (loading) {
     return <main><SkeletonSocials /></main>
   }
@@ -122,13 +132,13 @@ export const SocialsPage = memo(() => {
             </p>
           </div>
 
-          {activeItems.length === 0 ? (
+          {displayItems.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-[var(--primary)]/30 text-lg">No social links configured yet.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 lg:gap-12">
-              {activeItems.map((platform, index) => (
+              {displayItems.map((platform, index) => (
                 <motion.div
                   key={platform.id}
                   initial={{ opacity: 0, y: 20 }}

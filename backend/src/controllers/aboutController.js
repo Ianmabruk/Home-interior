@@ -11,6 +11,7 @@ export const aboutController = {
   update: asyncHandler(async (req, res) => {
     const aboutFile = req.files?.media?.[0] || req.file
     const socialFile = req.files?.socialMedia?.[0] || null
+    const homepageCircularImageFile = req.files?.homepageCircularImage?.[0] || null
     const data = {}
     if (req.body.title !== undefined) data.title = req.body.title
     if (req.body.subtitle !== undefined) data.subtitle = req.body.subtitle
@@ -39,7 +40,7 @@ export const aboutController = {
     if (Object.keys(data).length === 0) {
       return res.status(400).json({ success: false, message: 'No data provided for update' })
     }
-    const item = await aboutService.createOrUpdateAbout(data, aboutFile, socialFile)
+    const item = await aboutService.createOrUpdateAbout(data, aboutFile, socialFile, homepageCircularImageFile)
     res.json({ success: true, data: item })
   }),
 }

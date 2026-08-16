@@ -1,7 +1,6 @@
 import { lazy, Suspense, memo, useEffect } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { Layout } from '@components/layout/Layout'
-import { ProtectedRoute } from './ProtectedRoute'
 import { ErrorBoundary } from '@components/common/ErrorBoundary'
 import { usePrefetchOnIdle } from '@hooks/useRoutePrefetch'
 
@@ -71,6 +70,8 @@ const SignupPage = lazyWithCache(() => import('@pages/auth/SignupPage').then(m =
 const CartPage = lazyWithCache(() => import('@pages/account/CartPage').then(m => ({ default: m.CartPage })), 'cart')
 const CheckoutPage = lazyWithCache(() => import('@pages/account/CheckoutPage').then(m => ({ default: m.CheckoutPage })), 'checkout')
 const OrderConfirmationPage = lazyWithCache(() => import('@pages/account/OrderConfirmationPage').then(m => ({ default: m.OrderConfirmationPage })), 'order-confirmation')
+const OrdersPage = lazyWithCache(() => import('@pages/account/OrdersPage').then(m => ({ default: m.OrdersPage })), 'orders')
+const AccountPage = lazyWithCache(() => import('@pages/account/AccountPage').then(m => ({ default: m.AccountPage })), 'account')
 
 // Admin pages
 const AdminPage = lazyWithCache(() => import('@pages/admin/AdminPage').then(m => ({ default: m.AdminPage })), 'admin')
@@ -150,14 +151,20 @@ export const AppRouter = () => {
            <Route path="/work-with-us" element={<ErrorBoundaryRoute element={<WorkWithUsPage />} />} />
            <Route path="/testimonials" element={<ErrorBoundaryRoute element={<TestimonialsPage />} />} />
            <Route path="/chat" element={<ErrorBoundaryRoute element={<ChatPage />} />} />
-           <Route path="/cart" element={<ErrorBoundaryRoute element={<CartPage />} />} />
-           <Route path="/checkout" element={<ErrorBoundaryRoute element={<CheckoutPage />} />} />
-           <Route path="/track-order" element={<ErrorBoundaryRoute element={<TrackOrderPage />} />} />
-           <Route path="/account/orders/:id" element={<ErrorBoundaryRoute element={<OrderConfirmationPage />} />} />
-           <Route path="/order-confirmation" element={<ErrorBoundaryRoute element={<OrderConfirmationPage />} />} />
+            <Route path="/cart" element={<ErrorBoundaryRoute element={<CartPage />} />} />
+            <Route path="/checkout" element={<ErrorBoundaryRoute element={<CheckoutPage />} />} />
+            <Route path="/track-order" element={<ErrorBoundaryRoute element={<TrackOrderPage />} />} />
+            <Route path="/orders" element={<ErrorBoundaryRoute element={<OrdersPage />} />} />
+            <Route path="/account" element={<ErrorBoundaryRoute element={<AccountPage />} />}>
+              <Route index element={<ErrorBoundaryRoute element={<AccountPage />} />} />
+              <Route path="orders" element={<ErrorBoundaryRoute element={<AccountPage />} />} />
+              <Route path="wishlist" element={<ErrorBoundaryRoute element={<AccountPage />} />} />
+              <Route path="settings" element={<ErrorBoundaryRoute element={<AccountPage />} />} />
+            </Route>
+            <Route path="/account/orders/:id" element={<ErrorBoundaryRoute element={<OrderConfirmationPage />} />} />
+            <Route path="/order-confirmation/:id" element={<ErrorBoundaryRoute element={<OrderConfirmationPage />} />} />
 
-          <Route element={<ProtectedRoute adminOnly />}>
-            <Route path="/admin" element={<ErrorBoundaryRoute element={<AdminPage />} />}>
+          <Route path="/admin" element={<ErrorBoundaryRoute element={<AdminPage />} />}>
               <Route index element={<ErrorBoundaryRoute element={<DashboardOverview />} />} />
               <Route path="hero-images" element={<ErrorBoundaryRoute element={<HeroImagesDashboard />} />} />
               <Route path="portfolio" element={<ErrorBoundaryRoute element={<PortfolioDashboard />} />} />
@@ -172,10 +179,9 @@ export const AppRouter = () => {
                <Route path="work-with-us" element={<ErrorBoundaryRoute element={<WorkWithUsDashboard />} />} />
                <Route path="testimonials" element={<ErrorBoundaryRoute element={<TestimonialsDashboard />} />} />
                <Route path="settings" element={<ErrorBoundaryRoute element={<SettingsDashboard />} />} />
-            </Route>
-          </Route>
+             </Route>
 
-          <Route element={<AuthShell />}>
+           <Route element={<AuthShell />}>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
           </Route>

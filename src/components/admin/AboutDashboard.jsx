@@ -15,6 +15,7 @@ import {
   Award,
   MapPin,
   ExternalLink,
+  X,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
@@ -48,6 +49,8 @@ export const AboutDashboard = () => {
   const [imagePreview, setImagePreview] = useState(null)
   const [imageFile, setImageFile] = useState(null)
   const [originalImageOrder, setOriginalImageOrder] = useState(null)
+  const [homepageCircularImage, setHomepageCircularImage] = useState(null)
+  const [homepageCircularImagePreview, setHomepageCircularImagePreview] = useState(null)
   const fileRef = useRef(null)
   const editFileRef = useRef(null)
 
@@ -75,6 +78,7 @@ export const AboutDashboard = () => {
           yearsExperience: String(d?.yearsExperience ?? 0),
           countriesServed: String(d?.countriesServed ?? 0),
         })
+        setHomepageCircularImagePreview(d?.homepageCircularImage || null)
       }
       if (imagesRes.data) {
         setAboutImages(Array.isArray(imagesRes.data) ? imagesRes.data : [])
@@ -82,6 +86,7 @@ export const AboutDashboard = () => {
     } catch {
       setForm(INITIAL_FORM)
       setAboutImages([])
+      setHomepageCircularImagePreview(null)
     }
   }, [])
 
@@ -115,9 +120,16 @@ export const AboutDashboard = () => {
       payload.append('happyClients', form.happyClients || '0')
       payload.append('yearsExperience', form.yearsExperience || '0')
       payload.append('countriesServed', form.countriesServed || '0')
+      if (homepageCircularImage) {
+        payload.append('homepageCircularImage', homepageCircularImage)
+      }
       await api.put('/admin/about', payload)
       dispatchAdminDataChanged('about-changed')
       toast.success('About content saved successfully.')
+      setHomepageCircularImage(null)
+      if (homepageCircularImagePreview && homepageCircularImagePreview.startsWith('blob:')) URL.revokeObjectURL(homepageCircularImagePreview)
+      setHomepageCircularImagePreview(null)
+      await loadAbout()
     } catch (err) {
       setError(err?.message || 'Failed to save about content. Please try again.')
       toast.error(err?.message || 'Failed to save about content.')
@@ -449,6 +461,38 @@ export const AboutDashboard = () => {
               />
             </div>
           </div>
+        </div>
+
+        <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--bg)]/40 space-y-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Homepage Circular Tab Image</p>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const f = e.target.files?.[0] || null
+              if (homepageCircularImagePreview && homepageCircularImagePreview.startsWith('blob:')) URL.revokeObjectURL(homepageCircularImagePreview)
+              setHomepageCircularImage(f)
+              setHomepageCircularImagePreview(f ? URL.createObjectURL(f) : null)
+            }}
+            className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
+          />
+          {homepageCircularImagePreview && (
+            <div className="relative inline-block">
+              <img src={homepageCircularImagePreview} alt="Circular preview" className="h-24 w-24 rounded-full object-cover border border-[var(--border)]" />
+              <button
+                type="button"
+                onClick={() => {
+                  setHomepageCircularImage(null)
+                  if (homepageCircularImagePreview && homepageCircularImagePreview.startsWith('blob:')) URL.revokeObjectURL(homepageCircularImagePreview)
+                  setHomepageCircularImagePreview(null)
+                }}
+                className="absolute -top-2 -right-2 p-1 rounded-full bg-[var(--error)] text-white"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
+          <p className="text-[10px] text-[var(--primary)]/40">Used for the About Us homepage circular tab. Keep it circular-friendly.</p>
         </div>
 
         {error && (

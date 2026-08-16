@@ -13,6 +13,9 @@ function mapTestimonial(item) {
     project: item.project,
     photoUrl: item.photoUrl,
     publicId: item.publicId,
+    initial: item.initial,
+    homepageCircularImage: item.homepageCircularImage,
+    homepageCircularImageId: item.homepageCircularImageId,
     displayOrder: item.displayOrder,
     isActive: item.isActive,
   }
@@ -48,18 +51,23 @@ async function getTestimonial(id) {
   }
 }
 
-async function createTestimonial(data, file) {
+async function createTestimonial(data, file, circularFile) {
   const createData = { ...data }
   if (file) {
     const uploaded = await uploadFile(file.buffer, file.mimetype, 'testimonials')
     createData.photoUrl = uploaded.url
     createData.publicId = uploaded.path
   }
+  if (circularFile) {
+    const uploaded = await uploadFile(circularFile.buffer, circularFile.mimetype, 'testimonials')
+    createData.homepageCircularImage = uploaded.url
+    createData.homepageCircularImageId = uploaded.path
+  }
   const item = await prisma.testimonial.create({ data: createData })
   return mapTestimonial(item)
 }
 
-async function updateTestimonial(id, data, file) {
+async function updateTestimonial(id, data, file, circularFile) {
   const existing = await prisma.testimonial.findUnique({ where: { id } })
   if (!existing) throw failure(404, 'Testimonial not found')
 
@@ -69,6 +77,12 @@ async function updateTestimonial(id, data, file) {
     const uploaded = await uploadFile(file.buffer, file.mimetype, 'testimonials')
     updateData.photoUrl = uploaded.url
     updateData.publicId = uploaded.path
+  }
+  if (circularFile) {
+    if (existing.homepageCircularImageId) await deleteFile(existing.homepageCircularImageId)
+    const uploaded = await uploadFile(circularFile.buffer, circularFile.mimetype, 'testimonials')
+    updateData.homepageCircularImage = uploaded.url
+    updateData.homepageCircularImageId = uploaded.path
   }
   const item = await prisma.testimonial.update({ where: { id }, data: updateData })
   return mapTestimonial(item)

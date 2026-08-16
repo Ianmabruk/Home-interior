@@ -494,6 +494,13 @@ export const PortfolioDashboard = () => {
                     className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
                     loading="lazy"
                   />
+                ) : item.galleryImages && item.galleryImages.length > 0 ? (
+                  <img
+                    src={item.galleryImages[0]}
+                    alt={item.title}
+                    className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                    loading="lazy"
+                  />
                 ) : (
                   <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
                     <Images size={40} />

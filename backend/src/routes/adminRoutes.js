@@ -66,8 +66,8 @@ router.delete('/virtual-designs/:id', virtualDesignController.delete)
 // Admin Services
 router.get('/services', serviceController.list)
 router.get('/services/:id', serviceController.get)
-router.post('/services', uploadSingle('media'), serviceController.create)
-router.patch('/services/:id', uploadSingle('media'), serviceController.update)
+router.post('/services', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), serviceController.create)
+router.patch('/services/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), serviceController.update)
 router.delete('/services/:id', serviceController.delete)
 router.post('/services/reorder', serviceController.reorder)
 
@@ -80,7 +80,7 @@ router.delete('/shop/:id', productController.delete)
 
 // Admin About
 router.get('/about', aboutController.get)
-router.put('/about', uploadSingle('media'), aboutController.update)
+router.put('/about', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'socialMedia', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), aboutController.update)
 
 // Admin About Images
 router.get('/about/images', aboutImageController.list)
@@ -102,8 +102,8 @@ router.delete('/hero-images/:id', heroMediaController.delete)
 // Admin Testimonials
 router.get('/testimonials', testimonialController.list)
 router.get('/testimonials/:id', testimonialController.get)
-router.post('/testimonials', uploadSingle('photo'), testimonialController.create)
-router.patch('/testimonials/:id', uploadSingle('photo'), testimonialController.update)
+router.post('/testimonials', uploadFields([{ name: 'photo', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), testimonialController.create)
+router.patch('/testimonials/:id', uploadFields([{ name: 'photo', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), testimonialController.update)
 router.delete('/testimonials/:id', testimonialController.delete)
 
 // Admin Consultations
@@ -122,8 +122,8 @@ router.get('/work-with-us/:id', workWithUsController.get)
 router.patch('/work-with-us/:id/status', workWithUsController.updateStatus)
 router.delete('/work-with-us/:id', workWithUsController.delete)
 router.get('/work-with-us/content', workWithUsController.listContent)
-router.post('/work-with-us/content', workWithUsController.createContent)
-router.patch('/work-with-us/content/:id', workWithUsController.updateContent)
+router.post('/work-with-us/content', uploadFields([{ name: 'image', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), workWithUsController.createContent)
+router.patch('/work-with-us/content/:id', uploadFields([{ name: 'image', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), workWithUsController.updateContent)
 router.delete('/work-with-us/content/:id', workWithUsController.deleteContent)
 
 export default router

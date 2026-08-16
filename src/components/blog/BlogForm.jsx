@@ -67,6 +67,8 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const [contentPreviews, setContentPreviews] = useState([])
   const [existingContentImages, setExistingContentImages] = useState(blog?.mediaUrls ? [...blog.mediaUrls] : [])
   const [removeMediaUrls, setRemoveMediaUrls] = useState([])
+  const [homepageCircularFile, setHomepageCircularFile] = useState(null)
+  const [homepageCircularPreview, setHomepageCircularPreview] = useState(blog?.homepageCircularImage || null)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
@@ -82,8 +84,9 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       contentPreviews.forEach((url) => {
         if (url.startsWith('blob:')) URL.revokeObjectURL(url)
       })
+      if (homepageCircularPreview && homepageCircularPreview.startsWith('blob:')) URL.revokeObjectURL(homepageCircularPreview)
     }
-  }, [imagePreview, videoPreview, contentPreviews])
+  }, [imagePreview, videoPreview, contentPreviews, homepageCircularPreview])
 
   const handleFileChange = (e, field) => {
     const file = e.target.files?.[0] || null
@@ -134,6 +137,10 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       setVideoFile(null)
       if (videoPreview && videoPreview.startsWith('blob:')) URL.revokeObjectURL(videoPreview)
       setVideoPreview(null)
+    } else if (field === 'homepageCircularImage') {
+      setHomepageCircularFile(null)
+      if (homepageCircularPreview && homepageCircularPreview.startsWith('blob:')) URL.revokeObjectURL(homepageCircularPreview)
+      setHomepageCircularPreview(null)
     }
   }
 
@@ -192,6 +199,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
 
     if (imageFile) payload.append('image', imageFile)
     if (videoFile) payload.append('video', videoFile)
+    if (homepageCircularFile) payload.append('homepageCircularImage', homepageCircularFile)
     contentFiles.forEach((file) => payload.append('contentImages', file))
     if (removeMediaUrls.length > 0) payload.append('removeMediaUrls', JSON.stringify(removeMediaUrls))
 
@@ -481,6 +489,40 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
             className="hidden"
           />
         </label>
+      </div>
+
+      <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--bg)]/40 space-y-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Homepage Circular Tab Image</p>
+        {homepageCircularPreview ? (
+          <div className="relative inline-block">
+            <img src={homepageCircularPreview} alt="Circular preview" className="h-24 w-24 rounded-full object-cover border border-[var(--border)]" />
+            <button
+              type="button"
+              onClick={() => handleRemovePreview('homepageCircularImage')}
+              className="absolute -top-2 -right-2 rounded-full bg-[var(--error)] p-1 text-white"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        ) : (
+          <label className="upload-zone flex cursor-pointer flex-col items-center justify-center py-6">
+            <UploadCloud size={20} className="text-[var(--primary)]/30" />
+            <span className="mt-2 text-sm font-medium text-[var(--primary)]/60">Click to upload circular tab image</span>
+            <span className="text-[10px] text-[var(--primary)]/40">Used for the Blog homepage circular tab</span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const f = e.target.files?.[0] || null
+                if (f) {
+                  setHomepageCircularFile(f)
+                  setHomepageCircularPreview(URL.createObjectURL(f))
+                }
+              }}
+              className="hidden"
+            />
+          </label>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

@@ -48,18 +48,23 @@ async function getService(id) {
   }
 }
 
-async function createService(data, file) {
+async function createService(data, file, circularFile) {
   const createData = { ...data }
   if (file) {
     const uploaded = await uploadFile(file.buffer, file.mimetype, 'services')
     createData.imageUrl = uploaded.url
     createData.cloudinaryId = uploaded.path
   }
+  if (circularFile) {
+    const uploaded = await uploadFile(circularFile.buffer, circularFile.mimetype, 'services')
+    createData.homepageCircularImage = uploaded.url
+    createData.homepageCircularImageId = uploaded.path
+  }
   const item = await prisma.service.create({ data: createData })
   return mapService(item)
 }
 
-async function updateService(id, data, file) {
+async function updateService(id, data, file, circularFile) {
   const existing = await prisma.service.findUnique({ where: { id } })
   if (!existing) throw failure(404, 'Service not found')
 
@@ -69,6 +74,12 @@ async function updateService(id, data, file) {
     const uploaded = await uploadFile(file.buffer, file.mimetype, 'services')
     updateData.imageUrl = uploaded.url
     updateData.cloudinaryId = uploaded.path
+  }
+  if (circularFile) {
+    if (existing.homepageCircularImageId) await deleteFile(existing.homepageCircularImageId)
+    const uploaded = await uploadFile(circularFile.buffer, circularFile.mimetype, 'services')
+    updateData.homepageCircularImage = uploaded.url
+    updateData.homepageCircularImageId = uploaded.path
   }
   const item = await prisma.service.update({ where: { id }, data: updateData })
   return mapService(item)

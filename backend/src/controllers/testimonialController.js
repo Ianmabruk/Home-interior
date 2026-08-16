@@ -14,20 +14,25 @@ export const testimonialController = {
   }),
 
   create: asyncHandler(async (req, res) => {
-    const file = req.file
+    const files = req.files || []
+    const photoFile = files.find((f) => f.fieldname === 'photo')
+    const circularFile = files.find((f) => f.fieldname === 'homepageCircularImage')
     const data = {
       clientName: req.body.clientName || '',
       content: req.body.testimonial || req.body.content || '',
       project: req.body.project || '',
       displayOrder: Number(req.body.displayOrder) || 0,
       isActive: req.body.isActive !== 'false' && req.body.isActive !== false,
+      initial: req.body.initial || '',
     }
-    const item = await testimonialService.createTestimonial(data, file)
+    const item = await testimonialService.createTestimonial(data, photoFile, circularFile)
     res.status(201).json({ success: true, data: item })
   }),
 
   update: asyncHandler(async (req, res) => {
-    const file = req.file
+    const files = req.files || []
+    const photoFile = files.find((f) => f.fieldname === 'photo')
+    const circularFile = files.find((f) => f.fieldname === 'homepageCircularImage')
     const data = {}
     if (req.body.clientName !== undefined) data.clientName = req.body.clientName
     if (req.body.testimonial !== undefined) data.content = req.body.testimonial
@@ -35,7 +40,8 @@ export const testimonialController = {
     if (req.body.project !== undefined) data.project = req.body.project
     if (req.body.displayOrder !== undefined) data.displayOrder = Number(req.body.displayOrder) || 0
     if (req.body.isActive !== undefined) data.isActive = req.body.isActive === 'true' || req.body.isActive === true
-    const item = await testimonialService.updateTestimonial(req.params.id, data, file)
+    if (req.body.initial !== undefined) data.initial = req.body.initial
+    const item = await testimonialService.updateTestimonial(req.params.id, data, photoFile, circularFile)
     res.json({ success: true, data: item })
   }),
 

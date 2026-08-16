@@ -35,6 +35,9 @@ export const TestimonialDashboard = () => {
     isActive: true,
     photo: null,
     photoPreview: null,
+    initial: '',
+    homepageCircularImage: null,
+    homepageCircularImagePreview: null,
   })
 
   const load = async () => {
@@ -81,6 +84,9 @@ export const TestimonialDashboard = () => {
       isActive: true,
       photo: null,
       photoPreview: null,
+      initial: '',
+      homepageCircularImage: null,
+      homepageCircularImagePreview: null,
     })
   }
 
@@ -91,9 +97,9 @@ export const TestimonialDashboard = () => {
     try {
       const formData = new FormData()
       Object.entries(form).forEach(([key, value]) => {
-        if (value !== null && value !== undefined && key !== 'photoPreview') {
-          if (key === 'photo' && value instanceof File) {
-            formData.append('photo', value)
+        if (value !== null && value !== undefined && key !== 'photoPreview' && key !== 'homepageCircularImagePreview') {
+          if ((key === 'photo' || key === 'homepageCircularImage') && value instanceof File) {
+            formData.append(key, value)
           } else {
             formData.append(key, String(value))
           }
@@ -134,6 +140,9 @@ export const TestimonialDashboard = () => {
       isActive: item.isActive !== false,
       photo: null,
       photoPreview: item.photoUrl || null,
+      initial: item.initial || '',
+      homepageCircularImage: null,
+      homepageCircularImagePreview: item.homepageCircularImage || null,
     })
     setShowForm(true)
   }
@@ -263,7 +272,7 @@ export const TestimonialDashboard = () => {
                           <img src={t.photoUrl} alt={t.clientName} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-[var(--accent)] text-xs font-semibold">
-                            {(t.clientName || 'U').charAt(0).toUpperCase()}
+                            {(t.initial || t.clientName || 'U').charAt(0).toUpperCase()}
                           </div>
                         )}
                       </div>
@@ -421,6 +430,18 @@ export const TestimonialDashboard = () => {
                 </div>
 
                 <div className="space-y-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Initial</label>
+                  <input
+                    value={form.initial}
+                    onChange={(e) => setForm((f) => ({ ...f, initial: e.target.value.slice(0, 2).toUpperCase() }))}
+                    className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                    placeholder="e.g. I or JM"
+                    maxLength={2}
+                  />
+                  <p className="text-[10px] text-[var(--primary)]/40">Used as the avatar when no photo is uploaded.</p>
+                </div>
+
+                <div className="space-y-1">
                   <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Client Photo</label>
                   <div className="relative">
                     <input
@@ -453,6 +474,45 @@ export const TestimonialDashboard = () => {
                           </div>
                           <p className="text-sm text-[var(--primary)]/60">Click to upload client photo</p>
                           <p className="text-[10px] text-[var(--primary)]/40 mt-1">JPG, PNG up to 10MB</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--bg)]/40 space-y-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Homepage Circular Tab Image</p>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0]
+                        if (file) {
+                          setForm((f) => ({ ...f, homepageCircularImage: file, homepageCircularImagePreview: URL.createObjectURL(file) }))
+                        }
+                      }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div className={`upload-zone ${form.homepageCircularImage ? 'drag-active' : ''}`}>
+                      {form.homepageCircularImagePreview ? (
+                        <div className="relative">
+                          <img src={form.homepageCircularImagePreview} alt="Circular preview" className="w-24 h-24 rounded-full object-cover mx-auto mb-2" />
+                          <button
+                            type="button"
+                            onClick={() => setForm((f) => ({ ...f, homepageCircularImage: null, homepageCircularImagePreview: null }))}
+                            className="absolute top-2 right-2 p-1 rounded-full bg-[var(--primary)]/80 text-white hover:bg-[var(--primary)] transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-[var(--accent)]/10 to-[var(--secondary)]/40 flex items-center justify-center mb-3 text-[var(--accent)]">
+                            <Image size={28} />
+                          </div>
+                          <p className="text-sm text-[var(--primary)]/60">Click to upload circular tab image</p>
+                          <p className="text-[10px] text-[var(--primary)]/40 mt-1">Used for the Testimonials homepage tab</p>
                         </>
                       )}
                     </div>

@@ -2,6 +2,18 @@ import { asyncHandler } from '../middleware/asyncHandler.js'
 import { orderService } from '../services/orderService.js'
 import { failure } from '../utils/response.js'
 
+const ALLOWED_STATUSES = [
+  'order placed',
+  'pending',
+  'payment confirmed',
+  'processing',
+  'completed',
+  'ready for delivery',
+  'out for delivery',
+  'delivered',
+  'cancelled',
+]
+
 export const orderController = {
   create: asyncHandler(async (req, res) => {
     const shipping = req.body.shipping || req.body.shippingAddress || {}
@@ -96,7 +108,11 @@ export const orderController = {
     if (!status) {
       return res.status(400).json({ success: false, message: 'Status is required' })
     }
-    const updateData = { status }
+    const normalizedStatus = String(status).toLowerCase()
+    if (!ALLOWED_STATUSES.includes(normalizedStatus)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' })
+    }
+    const updateData = { status: normalizedStatus }
     if (customerNote !== undefined) updateData.customerNote = customerNote
     if (estimatedDelivery !== undefined) updateData.estimatedDelivery = estimatedDelivery
     const order = await orderService.updateOrderStatus(req.params.id, updateData)

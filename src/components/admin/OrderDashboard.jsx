@@ -1,17 +1,62 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Package, Eye, X, Search, ChevronDown, Save } from 'lucide-react'
+import { Package, Eye, X, Search, ChevronDown, Save, ExternalLink } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 
-const STATUSES = ['pending', 'processing', 'completed', 'cancelled']
+const ALLOWED_STATUSES = [
+  'order placed',
+  'pending',
+  'payment confirmed',
+  'processing',
+  'completed',
+  'ready for delivery',
+  'out for delivery',
+  'delivered',
+  'cancelled',
+]
 
-const STATUS_COLORS = {
-  pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  processing: 'bg-blue-100 text-blue-700 border-blue-200',
-  completed: 'bg-green-100 text-green-700 border-green-200',
-  cancelled: 'bg-red-100 text-red-700 border-red-200',
+const STATUS_CONFIG = {
+  'order placed': { label: 'Order Placed', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+  pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  'payment confirmed': { label: 'Payment Confirmed', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  processing: { label: 'Processing', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+  completed: { label: 'Completed', color: 'bg-green-100 text-green-700 border-green-200' },
+  'ready for delivery': { label: 'Ready for Delivery', color: 'bg-teal-100 text-teal-700 border-teal-200' },
+  'out for delivery': { label: 'Out for Delivery', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+  delivered: { label: 'Delivered', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  cancelled: { label: 'Canceled', color: 'bg-red-100 text-red-700 border-red-200' },
+}
+
+const STATUS_COLORS = Object.fromEntries(
+  Object.entries(STATUS_CONFIG).map(([k, v]) => [k, v.color])
+)
+
+function formatLabel(status) {
+  return STATUS_CONFIG[String(status || '').toLowerCase()]?.label || status || 'Pending'
+}
+
+function formatShortDate(date) {
+  if (!date) return ''
+  const d = new Date(date)
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function formatFullDate(date) {
+  if (!date) return ''
+  const d = new Date(date)
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+function parseItems(items) {
+  if (!items) return []
+  if (Array.isArray(items)) return items
+  try {
+    return JSON.parse(items)
+  } catch {
+    return []
+  }
 }
 
 export const OrderDashboard = () => {
@@ -81,26 +126,16 @@ export const OrderDashboard = () => {
         o.name?.toLowerCase().includes(q) ||
         o.email?.toLowerCase().includes(q) ||
         o._id?.toLowerCase().includes(q) ||
-        o.id?.toLowerCase().includes(q)
+        o.id?.toLowerCase().includes(q) ||
+        o.trackingNumber?.toLowerCase().includes(q)
       )
     }
     return true
   })
 
-  const formatDate = (date) => {
-    if (!date) return ''
-    const d = new Date(date)
-    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-  }
-
-  const parseItems = (items) => {
-    if (!items) return []
-    if (Array.isArray(items)) return items
-    try {
-      return JSON.parse(items)
-    } catch {
-      return []
-    }
+  const openTracking = (trackingNumber) => {
+    if (!trackingNumber) return
+    window.open(`/track-order?tracking=${encodeURIComponent(trackingNumber)}`, '_blank')
   }
 
   return (
@@ -121,7 +156,7 @@ export const OrderDashboard = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition pl-9"
-              placeholder="Search orders..."
+              placeholder="Search orders, tracking..."
             />
           </div>
           <div className="relative">
@@ -131,9 +166,9 @@ export const OrderDashboard = () => {
               className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition cursor-pointer appearance-none pr-8"
             >
               <option value="">All Statuses</option>
-              {STATUSES.map((s) => (
+              {ALLOWED_STATUSES.map((s) => (
                 <option key={s} value={s}>
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                  {formatLabel(s)}
                 </option>
               ))}
             </select>
@@ -143,9 +178,9 @@ export const OrderDashboard = () => {
       </motion.div>
 
       {loading ? (
-        <div className="space-y-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-24 rounded-2xl bg-white/60 border border-[var(--border)]/60 animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-40 rounded-2xl bg-white/60 border border-[var(--border)]/60 animate-pulse" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -154,49 +189,75 @@ export const OrderDashboard = () => {
           <p className="text-sm">No orders found</p>
         </motion.div>
       ) : (
-        <div className="space-y-4">
-          {filtered.map((order, i) => (
-            <motion.div
-              key={order._id || order.id}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03 }}
-              className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)]"
-            >
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-display text-lg font-medium text-[var(--primary)] truncate">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filtered.map((order, i) => {
+            const statusKey = String(order.status || 'pending').toLowerCase()
+            const statusColor = STATUS_COLORS[statusKey] || 'bg-gray-100 text-gray-700 border-gray-200'
+            const items = parseItems(order.items)
+            const itemCount = items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)
+
+            return (
+              <motion.div
+                key={order._id || order.id}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
+                className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-4 shadow-[0_10px_40px_rgba(42,36,31,0.06)] flex flex-col h-full"
+              >
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="min-w-0">
+                    <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/40 truncate">
+                      #{String(order._id || order.id || '').slice(-8).toUpperCase()}
+                    </p>
+                    <p className="text-sm font-medium text-[var(--primary)] truncate mt-0.5">
                       {order.name || 'Guest'}
-                    </h3>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-2xs font-medium border ${STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
-                      {order.status || 'pending'}
-                    </span>
+                    </p>
                   </div>
-                  {order.trackingNumber && (
-                    <p className="text-2xs text-[var(--accent)] mb-1">Tracking: {order.trackingNumber}</p>
-                  )}
-                  <p className="text-sm text-[var(--primary)]/60">{order.email}</p>
-                  {order.phone && <p className="text-sm text-[var(--primary)]/60">{order.phone}</p>}
-                  <p className="text-2xs text-[var(--primary)]/40 mt-1">{formatDate(order.createdAt)}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-display text-xl font-medium text-[var(--primary)]">
-                    ${Number(order.total || 0).toFixed(2)}
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-semibold border flex-shrink-0 ${statusColor}`}>
+                    {formatLabel(order.status)}
                   </span>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setViewOrder(order)}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                  >
-                    <Eye size={12} />
-                    View
-                  </motion.button>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+
+                <div className="space-y-1.5 mb-4 flex-1">
+                  {order.trackingNumber && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xs text-[var(--primary)]/40">Tracking</span>
+                      <button
+                        onClick={() => openTracking(order.trackingNumber)}
+                        className="text-2xs font-semibold text-[var(--accent)] hover:underline inline-flex items-center gap-1"
+                        title="Open tracking page"
+                      >
+                        {order.trackingNumber}
+                        <ExternalLink size={10} strokeWidth={2} />
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xs text-[var(--primary)]/40">Items</span>
+                    <span className="text-2xs text-[var(--primary)]/70">{itemCount}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xs text-[var(--primary)]/40">Date</span>
+                    <span className="text-2xs text-[var(--primary)]/70">{formatShortDate(order.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xs text-[var(--primary)]/40">Total</span>
+                    <span className="text-sm font-semibold text-[var(--primary)]">${Number(order.total || 0).toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setViewOrder(order)}
+                  className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                >
+                  <Eye size={12} />
+                  View
+                </motion.button>
+              </motion.div>
+            )
+          })}
         </div>
       )}
 
@@ -225,66 +286,80 @@ export const OrderDashboard = () => {
               </motion.button>
             </div>
             <div className="p-6 space-y-6">
-               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                   <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Customer</p>
-                   <p className="mt-1 text-sm font-medium text-[var(--primary)]">{viewOrder.name || 'Guest'}</p>
-                   <p className="text-sm text-[var(--primary)]/60">{viewOrder.email}</p>
-                   {viewOrder.phone && <p className="text-sm text-[var(--primary)]/60">{viewOrder.phone}</p>}
-                 </div>
-                 <div>
-                   <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Order ID</p>
-                   <p className="mt-1 text-sm font-mono text-[var(--primary)]">{viewOrder._id || viewOrder.id}</p>
-                   <p className="text-sm text-[var(--primary)]/60">{formatDate(viewOrder.createdAt)}</p>
-                 </div>
-               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Customer</p>
+                  <p className="mt-1 text-sm font-medium text-[var(--primary)]">{viewOrder.name || 'Guest'}</p>
+                  <p className="text-sm text-[var(--primary)]/60">{viewOrder.email}</p>
+                  {viewOrder.phone && <p className="text-sm text-[var(--primary)]/60">{viewOrder.phone}</p>}
+                </div>
+                <div>
+                  <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Order ID</p>
+                  <p className="mt-1 text-sm font-mono text-[var(--primary)]">{viewOrder._id || viewOrder.id}</p>
+                  <p className="text-sm text-[var(--primary)]/60">{formatFullDate(viewOrder.createdAt)}</p>
+                </div>
+              </div>
 
-               {viewOrder.trackingNumber && (
-                 <div>
-                   <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Tracking Number</p>
-                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20">
-                     <span className="text-sm font-semibold text-[var(--accent)]">{viewOrder.trackingNumber}</span>
-                   </div>
-                 </div>
-               )}
+                {viewOrder.trackingNumber && (
+                  <div>
+                    <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Tracking Number</p>
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20">
+                      <span className="text-sm font-semibold text-[var(--accent)]">{viewOrder.trackingNumber}</span>
+                    </div>
+                  </div>
+                )}
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div>
-                   <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Customer Note</p>
-                   <textarea
-                     value={viewOrder.customerNote || ''}
-                     onChange={(e) => setViewOrder((prev) => ({ ...prev, customerNote: e.target.value }))}
-                     placeholder="Add a customer-safe update..."
-                     className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
-                     rows={3}
-                   />
-                 </div>
-                 <div>
-                   <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Estimated Delivery</p>
-                   <input
-                     type="text"
-                     value={viewOrder.estimatedDelivery || ''}
-                     onChange={(e) => setViewOrder((prev) => ({ ...prev, estimatedDelivery: e.target.value }))}
-                     placeholder="e.g. 16 August 2026 or Tomorrow 2-5 PM"
-                     className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                   />
-                 </div>
-               </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Customer Note</p>
+                    <textarea
+                      value={viewOrder.customerNote || ''}
+                      onChange={(e) => setViewOrder((prev) => ({ ...prev, customerNote: e.target.value }))}
+                      placeholder="Add a customer-safe update..."
+                      className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Estimated Delivery</p>
+                    <input
+                      type="text"
+                      value={viewOrder.estimatedDelivery || ''}
+                      onChange={(e) => setViewOrder((prev) => ({ ...prev, estimatedDelivery: e.target.value }))}
+                      placeholder="e.g. 16 August 2026 or Tomorrow 2-5 PM"
+                      className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                    />
+                  </div>
+                </div>
 
-               <div className="flex justify-end">
-                 <motion.button
-                   whileHover={{ scale: 1.02 }}
-                   whileTap={{ scale: 0.98 }}
-                   onClick={() => updateStatus(viewOrder._id || viewOrder.id, viewOrder.status, {
-                     customerNote: viewOrder.customerNote,
-                     estimatedDelivery: viewOrder.estimatedDelivery,
-                   })}
-                   className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-[var(--accent)]/90"
-                 >
-                   <Save size={14} strokeWidth={1.5} />
-                   Save Updates
-                 </motion.button>
-               </div>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Update Status</p>
+                    <select
+                      value={viewOrder.status || 'pending'}
+                      onChange={(e) => setViewOrder((prev) => ({ ...prev, status: e.target.value }))}
+                      className="w-full sm:w-auto rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition cursor-pointer"
+                    >
+                      {ALLOWED_STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {formatLabel(s)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => updateStatus(viewOrder._id || viewOrder.id, viewOrder.status, {
+                      customerNote: viewOrder.customerNote,
+                      estimatedDelivery: viewOrder.estimatedDelivery,
+                    })}
+                    className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-[var(--accent)]/90"
+                  >
+                    <Save size={14} strokeWidth={1.5} />
+                    Save Updates
+                  </motion.button>
+                </div>
 
               <div>
                 <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-3">Items</p>
@@ -347,34 +422,12 @@ export const OrderDashboard = () => {
                 <span className="text-sm font-medium text-[var(--primary)]">Total</span>
                 <span className="font-display text-2xl font-medium text-[var(--primary)]">${Number(viewOrder.total || 0).toFixed(2)}</span>
               </div>
-
-              <div>
-                <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-3">Update Status</p>
-                <div className="flex flex-wrap gap-2">
-                  {STATUSES.map((s) => (
-                    <motion.button
-                      key={s}
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => updateStatus(viewOrder._id || viewOrder.id, s)}
-                      className={`rounded-full border px-3 py-1.5 text-2xs font-semibold uppercase tracking-wider transition ${
-                        viewOrder.status === s
-                          ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
-                          : 'bg-white text-[var(--primary)]/70 border-[var(--border)] hover:border-[var(--accent)]'
-                      }`}
-                    >
-                      {s}
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
             </div>
           </motion.div>
         </motion.div>
        )}
-     </div>
-   )
+    </div>
+  )
 }
 
 export default OrderDashboard
-

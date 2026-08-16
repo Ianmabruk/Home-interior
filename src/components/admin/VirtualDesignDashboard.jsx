@@ -556,6 +556,23 @@ export const VirtualDesignDashboard = () => {
                     alt={item.title}
                     className="h-44 w-full object-cover"
                   />
+                ) : item.galleryMedia && item.galleryMedia.length > 0 ? (
+                  item.galleryMedia[0].type?.startsWith('video/') ? (
+                    <video
+                      src={getOptimizedVideoUrl(item.galleryMedia[0].url, { width: 480 })}
+                      poster={getVideoPosterUrl(item.galleryMedia[0].url, { width: 480 })}
+                      className="h-44 w-full object-cover"
+                      autoPlay
+                      muted
+                      loop
+                    />
+                  ) : (
+                    <img
+                      src={getOptimizedUrl(item.galleryMedia[0].url, { width: 480 })}
+                      alt={item.title}
+                      className="h-44 w-full object-cover"
+                    />
+                  )
                 ) : (
                   <div className="h-44 w-full bg-[var(--secondary)]/60 flex items-center justify-center text-[var(--primary)]/30">
                     <Video size={40} />

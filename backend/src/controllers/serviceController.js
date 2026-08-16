@@ -14,7 +14,9 @@ export const serviceController = {
   }),
 
   create: asyncHandler(async (req, res) => {
-    const file = req.file
+    const files = req.files || []
+    const file = files.find((f) => f.fieldname === 'media')
+    const circularFile = files.find((f) => f.fieldname === 'homepageCircularImage')
     const data = {
       title: req.body.title || 'Untitled',
       description: req.body.description || '',
@@ -25,12 +27,14 @@ export const serviceController = {
       buttonText: req.body.buttonText || 'Request This Service',
       buttonUrl: req.body.buttonUrl || '',
     }
-    const item = await serviceService.createService(data, file)
+    const item = await serviceService.createService(data, file, circularFile)
     res.status(201).json({ success: true, data: item })
   }),
 
   update: asyncHandler(async (req, res) => {
-    const file = req.file
+    const files = req.files || []
+    const file = files.find((f) => f.fieldname === 'media')
+    const circularFile = files.find((f) => f.fieldname === 'homepageCircularImage')
     const data = {}
     if (req.body.title !== undefined) data.title = req.body.title
     if (req.body.description !== undefined) data.description = req.body.description
@@ -40,7 +44,7 @@ export const serviceController = {
     if (req.body.isActive !== undefined) data.isActive = req.body.isActive === 'true' || req.body.isActive === true
     if (req.body.buttonText !== undefined) data.buttonText = req.body.buttonText
     if (req.body.buttonUrl !== undefined) data.buttonUrl = req.body.buttonUrl
-    const item = await serviceService.updateService(req.params.id, data, file)
+    const item = await serviceService.updateService(req.params.id, data, file, circularFile)
     res.json({ success: true, data: item })
   }),
 

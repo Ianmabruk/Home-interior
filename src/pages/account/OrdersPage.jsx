@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Package, Eye, Loader2, AlertTriangle, ClipboardList } from 'lucide-react'
+import { Package, Eye, Loader2, AlertTriangle, ClipboardList, Home, ShoppingBag } from 'lucide-react'
 import { api } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
@@ -86,6 +86,17 @@ export const OrdersPage = () => {
           <h1 className="font-display text-4xl md:text-5xl font-semibold text-[var(--primary)]">My Orders</h1>
           <p className="mt-2 text-[var(--primary)]/60">Track, return, or buy things again.</p>
         </motion.div>
+
+        <div className="flex flex-wrap gap-3 mb-8">
+          <Link to="/" className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
+            <Home size={14} strokeWidth={1.5} />
+            Back to Home
+          </Link>
+          <Link to="/shop" className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
+            <ShoppingBag size={14} strokeWidth={1.5} />
+            Shop
+          </Link>
+        </div>
 
         {loading ? (
           <div className="space-y-4">

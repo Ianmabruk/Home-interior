@@ -1,6 +1,7 @@
 import { useState, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '@services/api'
+import { SocialIcons } from '@components/common/SocialIcons'
 
 export const Footer = memo(() => {
   const [email, setEmail] = useState('')
@@ -72,6 +73,12 @@ export const Footer = memo(() => {
                  <a href="mailto:info@hokinteriors.co.ke" className="hover:text-[var(--accent)] transition-colors">info@hokinteriors.co.ke</a>
               </p>
             </div>
+          </div>
+
+          {/* Section 5: Social */}
+          <div className="text-center animate-fade-up" style={{ animationDelay: '0.25s' }}>
+            <h3 className="font-display text-xl md:text-2xl font-normal text-white mb-6">Follow Us</h3>
+            <SocialIcons dark />
           </div>
 
           {/* Copyright */}
