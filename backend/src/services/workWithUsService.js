@@ -14,6 +14,8 @@ function mapWorkWithUs(item) {
     imageUrl: item.imageUrl,
     mediaUrls: item.mediaUrls,
     cloudinaryId: item.cloudinaryId,
+    homepageCircularImage: item.homepageCircularImage,
+    homepageCircularImageId: item.homepageCircularImageId,
     fullName: item.fullName,
     phone: item.phone,
     email: item.email,
@@ -140,38 +142,6 @@ async function updateWorkWithUsContent(id, data, file, circularFile) {
     where: { id },
     data: updateData,
   })
-  return mapWorkWithUs(item)
-}
-  const item = await withRetry(() => prisma.workWithUs.create({
-    data: {
-      type: 'content',
-      title: data.title || '',
-      description: data.description || '',
-      displayOrder: data.displayOrder || 0,
-      isActive: data.isActive !== false,
-      ...uploadData,
-    },
-  }))
-  return mapWorkWithUs(item)
-}
-
-async function updateWorkWithUsContent(id, data, file) {
-  const existing = await withRetry(() => prisma.workWithUs.findUnique({ where: { id } }))
-  if (!existing) throw failure(404, 'Content not found')
-
-  const updateData = { ...data }
-
-  if (file) {
-    if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
-    const uploaded = await uploadFile(file.buffer, file.mimetype, 'work-with-us')
-    updateData.imageUrl = uploaded.url
-    updateData.cloudinaryId = uploaded.path
-  }
-
-  const item = await withRetry(() => prisma.workWithUs.update({
-    where: { id },
-    data: updateData,
-  }))
   return mapWorkWithUs(item)
 }
 

@@ -78,7 +78,7 @@ export const Footer = memo(() => {
           {/* Section 5: Social */}
           <div className="text-center animate-fade-up" style={{ animationDelay: '0.25s' }}>
             <h3 className="font-display text-xl md:text-2xl font-normal text-white mb-6">Follow Us</h3>
-            <SocialIcons dark />
+            <SocialIcons dark className="justify-center" />
           </div>
 
           {/* Copyright */}

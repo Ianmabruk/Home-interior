@@ -43,6 +43,8 @@ async function getHomepage() {
             countriesServed: true,
             imageUrl: true,
             socialImage: true,
+            homepageCircularImage: true,
+            homepageCircularImageId: true,
           },
         }),
         prisma.aboutImage.findMany({

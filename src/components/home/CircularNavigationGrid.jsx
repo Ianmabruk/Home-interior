@@ -72,7 +72,7 @@ const NAV_ITEMS = [
     key: 'about',
     label: 'About Us',
     path: '/about',
-    getImage: (data) => data.aboutImages?.[0]?.imageUrl || data.about?.imageUrl || null,
+    getImage: (data) => data.about?.homepageCircularImage || data.aboutImages?.[0]?.imageUrl || data.about?.imageUrl || null,
   },
   {
     key: 'socials',

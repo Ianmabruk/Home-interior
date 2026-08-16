@@ -14,16 +14,14 @@ const platformIconMap = {
 }
 
 export const SocialIcons = ({ className = '', items: externalItems, dark = false }) => {
-  const defaultItems = useMemo(() => {
-    return getDefaultSocialItems()
-  }, [])
+  const defaultItems = useMemo(() => getDefaultSocialItems(), [])
 
   const items = useMemo(() => {
     if (externalItems !== undefined) {
       return externalItems.filter((item) => item && item.link && item.link.trim() !== '')
     }
     return defaultItems
-  }, [externalItems])
+  }, [externalItems, defaultItems])
 
   const getIconForPlatform = (platform) => {
     if (!platform) return SiGlobus
