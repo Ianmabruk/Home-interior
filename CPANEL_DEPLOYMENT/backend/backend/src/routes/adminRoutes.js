@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { authenticate, authorize } from '../middleware/auth.js'
 import { uploadSingle, uploadFields, uploadProductImages, uploadProductImagesStrict } from '../middleware/upload.js'
-import { uploadFile } from '../uploads/uploadService.js'
+import { uploadFile, deleteFile } from '../uploads/uploadService.js'
 import { validateCsrfToken } from '../middleware/csrf.js'
 import { prisma } from '../config/database.js'
 import { portfolioController } from '../controllers/portfolioController.js'
@@ -21,7 +21,14 @@ import adminSocialRoutes from './adminSocialRoutes.js'
 
 const router = Router()
 
-router.use(authenticate, authorize('ADMIN'), validateCsrfToken)
+router.use(authenticate, authorize('ADMIN'))
+
+router.use((req, res, next) => {
+  if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method)) {
+    return validateCsrfToken(req, res, next)
+  }
+  next()
+})
 
 router.get('/overview', adminOverviewController.getStats)
 router.get('/settings', adminOverviewController.getSettings)
@@ -39,14 +46,36 @@ router.post('/settings/shop-banner', uploadSingle('image'), asyncHandler(async (
   res.status(201).json({ success: true, data: { url: uploaded.url, path: uploaded.path } })
 }))
 
+router.post('/settings/shop-with-us-image', uploadSingle('image'), asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'No image uploaded' })
+  }
+  const uploaded = await uploadFile(req.file.buffer, req.file.mimetype, 'shop-with-us')
+  await prisma.siteSetting.upsert({
+    where: { key: 'shopWithUsHomepageImage' },
+    update: { value: uploaded.url },
+    create: { key: 'shopWithUsHomepageImage', value: uploaded.url },
+  })
+  res.status(201).json({ success: true, data: { url: uploaded.url, path: uploaded.path } })
+}))
+
+router.delete('/settings/shop-with-us-image', asyncHandler(async (req, res) => {
+  const existing = await prisma.siteSetting.findUnique({ where: { key: 'shopWithUsHomepageImage' } })
+  if (existing?.value) {
+    await deleteFile(existing.value)
+  }
+  await prisma.siteSetting.deleteMany({ where: { key: 'shopWithUsHomepageImage' } })
+  res.json({ success: true, data: { message: 'Deleted' } })
+}))
+
 // Admin Socials
 router.use('/socials', adminSocialRoutes)
 
 // Admin Portfolio
 router.get('/portfolio', portfolioController.list)
 router.get('/portfolio/:id', portfolioController.get)
-router.post('/portfolio', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), portfolioController.create)
-router.patch('/portfolio/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), portfolioController.update)
+router.post('/portfolio', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 21 }, { name: 'before', maxCount: 21 }, { name: 'after', maxCount: 21 }]), portfolioController.create)
+router.patch('/portfolio/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 21 }, { name: 'before', maxCount: 21 }, { name: 'after', maxCount: 21 }]), portfolioController.update)
 router.delete('/portfolio/:id', portfolioController.delete)
 
 // Admin Virtual Designs
@@ -59,8 +88,8 @@ router.delete('/virtual-designs/:id', virtualDesignController.delete)
 // Admin Services
 router.get('/services', serviceController.list)
 router.get('/services/:id', serviceController.get)
-router.post('/services', uploadSingle('media'), serviceController.create)
-router.patch('/services/:id', uploadSingle('media'), serviceController.update)
+router.post('/services', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), serviceController.create)
+router.patch('/services/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), serviceController.update)
 router.delete('/services/:id', serviceController.delete)
 router.post('/services/reorder', serviceController.reorder)
 
@@ -73,7 +102,7 @@ router.delete('/shop/:id', productController.delete)
 
 // Admin About
 router.get('/about', aboutController.get)
-router.put('/about', uploadSingle('media'), aboutController.update)
+router.put('/about', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'socialMedia', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), aboutController.update)
 
 // Admin About Images
 router.get('/about/images', aboutImageController.list)
@@ -95,8 +124,8 @@ router.delete('/hero-images/:id', heroMediaController.delete)
 // Admin Testimonials
 router.get('/testimonials', testimonialController.list)
 router.get('/testimonials/:id', testimonialController.get)
-router.post('/testimonials', uploadSingle('photo'), testimonialController.create)
-router.patch('/testimonials/:id', uploadSingle('photo'), testimonialController.update)
+router.post('/testimonials', uploadFields([{ name: 'photo', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), testimonialController.create)
+router.patch('/testimonials/:id', uploadFields([{ name: 'photo', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), testimonialController.update)
 router.delete('/testimonials/:id', testimonialController.delete)
 
 // Admin Consultations
@@ -115,8 +144,8 @@ router.get('/work-with-us/:id', workWithUsController.get)
 router.patch('/work-with-us/:id/status', workWithUsController.updateStatus)
 router.delete('/work-with-us/:id', workWithUsController.delete)
 router.get('/work-with-us/content', workWithUsController.listContent)
-router.post('/work-with-us/content', workWithUsController.createContent)
-router.patch('/work-with-us/content/:id', workWithUsController.updateContent)
+router.post('/work-with-us/content', uploadFields([{ name: 'image', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), workWithUsController.createContent)
+router.patch('/work-with-us/content/:id', uploadFields([{ name: 'image', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), workWithUsController.updateContent)
 router.delete('/work-with-us/content/:id', workWithUsController.deleteContent)
 
 export default router

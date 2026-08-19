@@ -106,6 +106,10 @@ export const TestimonialDashboard = () => {
         }
       })
 
+      if (!form.homepageCircularImage && editing && !form.homepageCircularImagePreview) {
+        formData.append('removeHomepageCircularImage', 'true')
+      }
+
       if (editing) {
         await api.patch(`/admin/testimonials/${editing}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },

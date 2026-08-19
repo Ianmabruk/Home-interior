@@ -9,7 +9,7 @@
     "build": "prisma generate",
     "lint": "node --check src/server.js",
     "seed": "node src/seeds/seed.js",
-    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.js",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.js --runInBand",
     "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.js --watch",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",

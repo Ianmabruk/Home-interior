@@ -33,7 +33,7 @@ async function getAbout() {
   }
 }
 
-async function createOrUpdateAbout(data, file, socialFile, homepageCircularImageFile) {
+async function createOrUpdateAbout(data, file, socialFile, homepageCircularImageFile, removeHomepageCircularImage = false) {
   const existing = await prisma.about.findFirst({ orderBy: { createdAt: 'desc' } })
   const createData = { ...data }
 
@@ -58,6 +58,10 @@ async function createOrUpdateAbout(data, file, socialFile, homepageCircularImage
     const uploaded = await uploadFile(homepageCircularImageFile.buffer, homepageCircularImageFile.mimetype, 'about')
     createData.homepageCircularImage = uploaded.url
     createData.homepageCircularImageId = uploaded.path
+  } else if (removeHomepageCircularImage) {
+    if (existing?.homepageCircularImageId) await deleteFile(existing.homepageCircularImageId)
+    createData.homepageCircularImage = null
+    createData.homepageCircularImageId = null
   }
 
   if (existing) {

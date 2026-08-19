@@ -12,6 +12,7 @@ export const aboutController = {
     const aboutFile = req.files?.media?.[0] || req.file
     const socialFile = req.files?.socialMedia?.[0] || null
     const homepageCircularImageFile = req.files?.homepageCircularImage?.[0] || null
+    const removeHomepageCircularImage = req.body.removeHomepageCircularImage === 'true'
     const data = {}
     if (req.body.title !== undefined) data.title = req.body.title
     if (req.body.subtitle !== undefined) data.subtitle = req.body.subtitle
@@ -37,10 +38,10 @@ export const aboutController = {
         data.socials = '{}'
       }
     }
-    if (Object.keys(data).length === 0) {
+    if (Object.keys(data).length === 0 && !aboutFile && !socialFile && !homepageCircularImageFile && !removeHomepageCircularImage) {
       return res.status(400).json({ success: false, message: 'No data provided for update' })
     }
-    const item = await aboutService.createOrUpdateAbout(data, aboutFile, socialFile, homepageCircularImageFile)
+    const item = await aboutService.createOrUpdateAbout(data, aboutFile, socialFile, homepageCircularImageFile, removeHomepageCircularImage)
     res.json({ success: true, data: item })
   }),
 }

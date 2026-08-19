@@ -66,7 +66,7 @@ export const Footer = memo(() => {
             <div className="space-y-3 text-base md:text-lg text-white/70">
               <p className="flex items-center justify-center gap-2">
                 <span className="text-[var(--accent)]" aria-hidden="true">📞</span>
-                <a href="tel:+254115407200" className="hover:text-[var(--accent)] transition-colors">011-5-407-200</a>
+                <a href="tel:+254723057487" className="hover:text-[var(--accent)] transition-colors">07-23-05-74-87</a>
               </p>
               <p className="flex items-center justify-center gap-2">
                 <span className="text-[var(--accent)]" aria-hidden="true">✉</span>

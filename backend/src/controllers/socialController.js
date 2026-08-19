@@ -28,6 +28,7 @@ export const socialController = {
   create: asyncHandler(async (req, res) => {
     propagateRequestId(req, res)
     const file = req.file || null
+    const circularFile = req.files?.homepageCircularImage?.[0] || null
     const link = req.body.link
     if (!isValidUrl(link)) {
       return res.status(400).json({ success: false, message: 'Invalid URL format' })
@@ -39,7 +40,7 @@ export const socialController = {
       displayOrder: req.body.displayOrder ? Number(req.body.displayOrder) : 0,
       isActive: req.body.isActive !== 'false' && req.body.isActive !== false,
     }
-    const item = await socialService.createSocialItem(data, file)
+    const item = await socialService.createSocialItem(data, file, circularFile)
     res.status(201).json({ success: true, data: item })
   }),
 
@@ -47,6 +48,8 @@ export const socialController = {
     propagateRequestId(req, res)
     const { id } = req.params
     const file = req.file || null
+    const circularFile = req.files?.homepageCircularImage?.[0] || null
+    const removeHomepageCircularImage = req.body.removeHomepageCircularImage === 'true'
     const data = {}
     if (req.body.name !== undefined) data.name = req.body.name
     if (req.body.platform !== undefined) data.platform = req.body.platform
@@ -58,7 +61,7 @@ export const socialController = {
     }
     if (req.body.displayOrder !== undefined) data.displayOrder = Number(req.body.displayOrder)
     if (req.body.isActive !== undefined) data.isActive = req.body.isActive === 'true' || req.body.isActive === true
-    const item = await socialService.updateSocialItem(id, data, file)
+    const item = await socialService.updateSocialItem(id, data, file, circularFile, removeHomepageCircularImage)
     res.json({ success: true, data: item })
   }),
 

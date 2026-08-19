@@ -1,6 +1,12 @@
 import request from 'supertest'
-import { app } from '../src/app.js'
+import { getApp } from './lazyApp.js'
 import { createTestAdmin, getAuthToken, generateTestEmail } from './helpers.js'
+
+let app = null
+
+beforeAll(async () => {
+  app = await getApp()
+})
 
 const API = '/api'
 

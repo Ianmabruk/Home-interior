@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { authenticate, authorize } from '../middleware/auth.js'
 import { uploadSingle, uploadFields, uploadProductImages, uploadProductImagesStrict } from '../middleware/upload.js'
-import { uploadFile } from '../uploads/uploadService.js'
+import { uploadFile, deleteFile } from '../uploads/uploadService.js'
 import { validateCsrfToken } from '../middleware/csrf.js'
 import { prisma } from '../config/database.js'
 import { portfolioController } from '../controllers/portfolioController.js'
@@ -46,14 +46,36 @@ router.post('/settings/shop-banner', uploadSingle('image'), asyncHandler(async (
   res.status(201).json({ success: true, data: { url: uploaded.url, path: uploaded.path } })
 }))
 
+router.post('/settings/shop-with-us-image', uploadSingle('image'), asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'No image uploaded' })
+  }
+  const uploaded = await uploadFile(req.file.buffer, req.file.mimetype, 'shop-with-us')
+  await prisma.siteSetting.upsert({
+    where: { key: 'shopWithUsHomepageImage' },
+    update: { value: uploaded.url },
+    create: { key: 'shopWithUsHomepageImage', value: uploaded.url },
+  })
+  res.status(201).json({ success: true, data: { url: uploaded.url, path: uploaded.path } })
+}))
+
+router.delete('/settings/shop-with-us-image', asyncHandler(async (req, res) => {
+  const existing = await prisma.siteSetting.findUnique({ where: { key: 'shopWithUsHomepageImage' } })
+  if (existing?.value) {
+    await deleteFile(existing.value)
+  }
+  await prisma.siteSetting.deleteMany({ where: { key: 'shopWithUsHomepageImage' } })
+  res.json({ success: true, data: { message: 'Deleted' } })
+}))
+
 // Admin Socials
 router.use('/socials', adminSocialRoutes)
 
 // Admin Portfolio
 router.get('/portfolio', portfolioController.list)
 router.get('/portfolio/:id', portfolioController.get)
-router.post('/portfolio', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), portfolioController.create)
-router.patch('/portfolio/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), portfolioController.update)
+router.post('/portfolio', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 21 }, { name: 'before', maxCount: 21 }, { name: 'after', maxCount: 21 }]), portfolioController.create)
+router.patch('/portfolio/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 21 }, { name: 'before', maxCount: 21 }, { name: 'after', maxCount: 21 }]), portfolioController.update)
 router.delete('/portfolio/:id', portfolioController.delete)
 
 // Admin Virtual Designs

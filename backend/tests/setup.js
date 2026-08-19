@@ -1,16 +1,10 @@
-import { prisma } from '../src/config/database.js'
+beforeEach(async () => {})
 
-beforeEach(async () => {
-  await prisma.$connect()
-})
+afterEach(async () => {})
 
-afterEach(async () => {
-  await cleanupTestData()
-})
+afterAll(async () => {})
 
-afterAll(async () => {
-  await prisma.$disconnect()
-})
+export { cleanupTestData }
 
 async function cleanupTestData() {
   const testPrefix = 'test_'
@@ -80,5 +74,3 @@ async function cleanupTestData() {
     where: { name: { startsWith: testPrefix } },
   })
 }
-
-export { cleanupTestData }

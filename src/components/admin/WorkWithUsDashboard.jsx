@@ -187,6 +187,8 @@ export const WorkWithUsDashboard = () => {
       }
       if (contentForm.homepageCircularImage) {
         formData.append('homepageCircularImage', contentForm.homepageCircularImage)
+      } else if (editingContent && !contentForm.homepageCircularImagePreview) {
+        formData.append('removeHomepageCircularImage', 'true')
       }
       if (editingContent) {
         await api.patch(`/admin/work-with-us/content/${editingContent}`, formData, {

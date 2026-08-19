@@ -75,36 +75,37 @@ export const blogController = {
   }),
 
    create: asyncHandler(async (req, res) => {
-    const imageFile = req.files?.image?.[0] || null
-    const videoFile = req.files?.video?.[0] || null
-    const contentFiles = Array.isArray(req.files?.contentImages) ? req.files.contentImages : []
-    const homepageCircularImageFile = req.files?.homepageCircularImage?.[0] || null
+     const imageFile = req.files?.image?.[0] || null
+     const videoFile = req.files?.video?.[0] || null
+     const contentFiles = Array.isArray(req.files?.contentImages) ? req.files.contentImages : []
+     const homepageCircularImageFile = req.files?.homepageCircularImage?.[0] || null
 
-    const data = {
-      title: req.body.title,
-      subtitle: req.body.subtitle || '',
-      slug: req.body.slug || '',
-      description: req.body.description || '',
-      content: req.body.content || '',
-      category: req.body.category || '',
-      tags: req.body.tags || [],
-      author: req.body.author || '',
-      metaDescription: req.body.metaDescription || '',
-      published: req.body.published,
-      featured: req.body.featured,
-      displayOrder: req.body.displayOrder || 0,
-      publishDate: req.body.publishDate ? new Date(req.body.publishDate) : null,
-    }
+     const data = {
+       title: req.body.title,
+       subtitle: req.body.subtitle || '',
+       slug: req.body.slug || '',
+       description: req.body.description || '',
+       content: req.body.content || '',
+       category: req.body.category || '',
+       tags: req.body.tags || [],
+       author: req.body.author || '',
+       metaDescription: req.body.metaDescription || '',
+       published: req.body.published === 'true' || req.body.published === true,
+       featured: req.body.featured === 'true' || req.body.featured === true,
+       displayOrder: Number(req.body.displayOrder) || 0,
+       publishDate: req.body.publishDate ? new Date(req.body.publishDate) : null,
+     }
 
-    const item = await blogService.createBlog(data, imageFile, videoFile, contentFiles, homepageCircularImageFile)
-    res.status(201).json({ success: true, data: item })
-  }),
+     const item = await blogService.createBlog(data, imageFile, videoFile, contentFiles, homepageCircularImageFile)
+     res.status(201).json({ success: true, data: item })
+   }),
 
    update: asyncHandler(async (req, res) => {
     const imageFile = req.files?.image?.[0] || null
     const videoFile = req.files?.video?.[0] || null
     const contentFiles = Array.isArray(req.files?.contentImages) ? req.files.contentImages : []
     const homepageCircularImageFile = req.files?.homepageCircularImage?.[0] || null
+    const removeHomepageCircularImage = req.body.removeHomepageCircularImage === 'true'
 
     const data = {}
     if (req.body.title !== undefined) data.title = req.body.title
@@ -130,7 +131,7 @@ export const blogController = {
       }
     }
 
-    const item = await blogService.updateBlog(req.params.id, data, imageFile, videoFile, contentFiles, removeMediaUrls, homepageCircularImageFile)
+    const item = await blogService.updateBlog(req.params.id, data, imageFile, videoFile, contentFiles, removeMediaUrls, homepageCircularImageFile, removeHomepageCircularImage)
     res.json({ success: true, data: item })
   }),
 

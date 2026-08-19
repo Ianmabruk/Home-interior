@@ -195,7 +195,7 @@ export const CheckoutPage = () => {
                     </div>
                     <div>
                       <label htmlFor="phone" className="block text-sm font-medium text-[var(--primary)] mb-1">Phone</label>
-                      <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} required className="input-luxury" placeholder="+254 700 000 000" />
+                      <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} required className="input-luxury"                       placeholder="+254 723 057 487" />
                     </div>
                     <div>
                       <label htmlFor="address" className="block text-sm font-medium text-[var(--primary)] mb-1">Delivery Address</label>

@@ -118,4 +118,15 @@ export const productController = {
     await productService.deleteProduct(req.params.id)
     res.json({ success: true, data: { message: 'Deleted' } })
   }),
+
+  deleteImage: asyncHandler(async (req, res) => {
+    const { imageId } = req.params
+    const item = await productService.deleteProductImage(req.params.id, imageId)
+    res.json({ success: true, data: item })
+  }),
+
+  getImage: asyncHandler(async (req, res) => {
+    const item = await productService.getProduct(req.params.id)
+    res.json({ success: true, data: item })
+  }),
 }

@@ -16,8 +16,8 @@ router.post('/newsletter', validateZod(contentSchemas.newsletter), contentContro
 export const portfolioRoutes = Router()
 portfolioRoutes.get('/', cacheHeaders(5, 30), portfolioController.list)
 portfolioRoutes.get('/:id', cacheHeaders(10, 60), portfolioController.get)
-portfolioRoutes.post('/', authenticate, authorize('ADMIN'), uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), validateZod(portfolioSchemas.create), portfolioController.create)
-portfolioRoutes.patch('/:id', authenticate, authorize('ADMIN'), uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), validateZod(portfolioSchemas.update), portfolioController.update)
+portfolioRoutes.post('/', authenticate, authorize('ADMIN'), uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 21 }, { name: 'before', maxCount: 21 }, { name: 'after', maxCount: 21 }]), validateZod(portfolioSchemas.create), portfolioController.create)
+portfolioRoutes.patch('/:id', authenticate, authorize('ADMIN'), uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 21 }, { name: 'before', maxCount: 21 }, { name: 'after', maxCount: 21 }]), validateZod(portfolioSchemas.update), portfolioController.update)
 portfolioRoutes.delete('/:id', authenticate, authorize('ADMIN'), portfolioController.delete)
 
 export const virtualDesignRoutes = Router()

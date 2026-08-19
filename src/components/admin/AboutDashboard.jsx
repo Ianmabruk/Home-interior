@@ -122,6 +122,8 @@ export const AboutDashboard = () => {
       payload.append('countriesServed', form.countriesServed || '0')
       if (homepageCircularImage) {
         payload.append('homepageCircularImage', homepageCircularImage)
+      } else if (homepageCircularImagePreview === null) {
+        payload.append('removeHomepageCircularImage', 'true')
       }
       await api.put('/admin/about', payload)
       dispatchAdminDataChanged('about-changed')

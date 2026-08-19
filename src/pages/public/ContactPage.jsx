@@ -66,7 +66,7 @@ export const ContactPage = () => {
       name: 'HOK Interiors',
       description: 'Timeless luxury interior design, curated furniture, and premium virtual design services in Nairobi, Kenya.',
       url: SITE_URL,
-      telephone: '+254700000000',
+      telephone: '+254723057487',
       email: 'info@hokinteriors.co.ke',
       address: {
         '@type': 'PostalAddress',
@@ -175,12 +175,9 @@ export const ContactPage = () => {
                 <Phone size={24} strokeWidth={1.5} />
               </div>
               <h3 className="font-display text-xl font-medium text-[var(--primary)] mb-2">Call Us</h3>
-              <p className="text-[var(--primary)]/60">
-                <a href="tel:+254700000000" className="hover:text-[var(--accent)] transition-colors">+254 700 000 000</a>
-              </p>
-              <p className="text-[var(--primary)]/60">
-                <a href="tel:+254711111111" className="hover:text-[var(--accent)] transition-colors">+254 711 111 111</a>
-              </p>
+               <p className="text-[var(--primary)]/60">
+                 <a href="tel:+254723057487" className="hover:text-[var(--accent)] transition-colors">+254 723 057 487</a>
+               </p>
             </motion.div>
 
             <motion.div

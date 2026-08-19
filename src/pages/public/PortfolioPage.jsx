@@ -148,7 +148,7 @@ export const PortfolioPage = memo(() => {
                         srcSet={buildSrcSet(getProjectImage(item)) || undefined}
                         sizes={buildSrcSet(getProjectImage(item)) ? '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw' : undefined}
                         alt={item.title}
-                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        className="h-full w-full object-contain bg-[var(--secondary)]/10 transition-transform duration-700 group-hover:scale-105"
                         loading="lazy"
                         decoding="async"
                         width={600}

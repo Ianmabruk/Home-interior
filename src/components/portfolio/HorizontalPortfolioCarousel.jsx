@@ -169,7 +169,7 @@ export const HorizontalPortfolioCarousel = memo(({ portfolio = [] }) => {
                         <img
                           src={getOptimizedUrl(item.imageUrl, { width: 600, crop: 'limit' })}
                           alt={item.title}
-                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          className="h-full w-full object-contain bg-[var(--secondary)]/10 transition-transform duration-700 group-hover:scale-105"
                           loading="lazy"
                           decoding="async"
                           fetchPriority={index === 0 ? 'high' : undefined}

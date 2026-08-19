@@ -11,6 +11,7 @@ router.get('/:id', cacheHeaders(10, 60), productController.get)
 router.post('/', authenticate, uploadProductImagesStrict(60), productController.create)
 router.patch('/:id', authenticate, uploadProductImagesStrict(60), productController.update)
 router.delete('/:id', authenticate, productController.delete)
+router.delete('/:id/images/:imageId', authenticate, productController.deleteImage)
 router.get('/admin/all', authenticate, productController.getAll)
 
 export default router

@@ -41,7 +41,7 @@
   </FilesMatch>
 
   # Cache control for assets
-  <FilesMatch "\.(css|js|webp|avif|png|jpg|jpeg|svg|woff2?|wasm)$">
+  <FilesMatch "\.(css|js|webp|avif|png|jpg|jpeg|svg|ico|woff2?|wasm)$">
     Header set Cache-Control "public, immutable"
   </FilesMatch>
 </IfModule>

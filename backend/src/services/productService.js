@@ -41,6 +41,7 @@ export const productService = {
   createProduct,
   updateProduct,
   deleteProduct,
+  deleteProductImage,
 }
 
 async function listProducts({ sort = '-createdAt', limit = 100, featured } = {}) {
@@ -167,7 +168,11 @@ async function updateProduct(id, data, files, variantFiles = []) {
     const storagePaths = [...newStoragePaths, ...(existing.storagePaths || []).filter(Boolean)]
     updateData.images = images
     updateData.storagePaths = storagePaths
-    updateData.mainImage = newImages[0]
+    updateData.mainImage = newImages[0] || existing.mainImage
+  } else if (updateData.images && Array.isArray(updateData.images)) {
+    // Images sent as string URLs from frontend — replace array entirely
+    updateData.mainImage = updateData.images[0]
+    updateData.storagePaths = (existing.storagePaths || []).filter(Boolean)
   } else if (!updateData.mainImage && (existing.images || []).length > 0) {
     const first = existing.images[0]
     updateData.mainImage = typeof first === 'string' ? first : first?.url || null
@@ -251,4 +256,50 @@ async function deleteProduct(id) {
   }
 
   await prisma.product.delete({ where: { id } })
+}
+
+async function deleteProductImage(id, imageId) {
+  const existing = await prisma.product.findUnique({ where: { id } })
+  if (!existing) throw failure(404, 'Product not found')
+
+  const images = Array.isArray(existing.images) ? existing.images : []
+  const storagePaths = Array.isArray(existing.storagePaths) ? [...existing.storagePaths] : []
+
+  let idx = -1
+  if (!isNaN(Number(imageId))) {
+    idx = Number(imageId)
+  } else {
+    idx = images.findIndex((img) => {
+      const url = typeof img === 'string' ? img : img?.url
+      return url === imageId
+    })
+  }
+
+  if (idx === -1 || idx < 0 || idx >= images.length) throw failure(404, 'Image not found')
+
+  if (storagePaths[idx]) {
+    await deleteFile(storagePaths[idx])
+  }
+
+  const filteredImages = images.filter((_, i) => i !== idx)
+  const filteredPaths = storagePaths.filter((_, i) => i !== idx)
+
+  const updateData = {
+    images: filteredImages,
+    storagePaths: filteredPaths,
+  }
+
+  if (filteredImages.length > 0) {
+    const first = filteredImages[0]
+    updateData.mainImage = typeof first === 'string' ? first : first?.url || null
+  } else {
+    updateData.mainImage = null
+  }
+
+  const updated = await prisma.product.update({
+    where: { id },
+    data: updateData,
+    include: { variants: true },
+  })
+  return mapProduct(updated)
 }

@@ -101,7 +101,7 @@ export const CircularPortfolioShowcase = memo(({ portfolio = [], getProjectImage
                         key={currentItem.id}
                         src={getOptimizedUrl(currentItem.imageUrl, { width: 1200, crop: 'limit' })}
                         alt={currentItem.title}
-                        className="h-full w-full object-cover animate-fade-in"
+                        className="h-full w-full object-contain bg-[var(--secondary)]/10 animate-fade-in"
                         loading={currentIndex === 0 ? 'eager' : 'lazy'}
                         decoding="async"
                         fetchPriority={currentIndex === 0 ? 'high' : undefined}

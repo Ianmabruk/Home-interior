@@ -7,8 +7,10 @@ import { uploadToCloudinary } from './config/cloudinary.js'
 import cloudinary from './config/cloudinary.js'
 import { isSupabaseConfigured } from './config/supabase.js'
 import { getRedisClient, disconnectRedis } from './config/redis.js'
+import { env } from './config/env.js'
 import fs from 'fs'
 import path from 'path'
+import bcrypt from 'bcryptjs'
 
 const SERVER_ID = process.env.SERVER_ID || 'hok-api-01'
 const log = {
@@ -63,15 +65,39 @@ async function start() {
     }
   }
 
-  server = app.listen(PORT, () => {
-    log.info(`Backend server running on port ${PORT} (${process.env.NODE_ENV || 'development'})`)
-    log.info(`Server ID: ${SERVER_ID}`)
-  })
+  try {
+    const adminCount = await prisma.admin.count()
+    if (adminCount === 0) {
+      const passwordHash = await bcrypt.hash(env.seedAdminPassword || 'admin123', 12)
+      await prisma.admin.create({
+        data: {
+          email: env.seedAdminEmail || 'info@hokinteriors.co.ke',
+          passwordHash,
+          fullName: 'Admin',
+          role: 'ADMIN',
+        },
+      })
+      log.info('Default admin account created (email: ' + (env.seedAdminEmail || 'info@hokinteriors.co.ke') + ')')
+    } else {
+      log.info('Admin accounts already exist — skipping auto-seed')
+    }
+  } catch (err) {
+    log.warn('Auto-seed admin failed: ' + (err?.message || err))
+  }
+
+  try {
+    server = app.listen(PORT, () => {
+      log.info(`Backend server running on port ${PORT} (${process.env.NODE_ENV || 'development'})`)
+      log.info(`Server ID: ${SERVER_ID}`)
+    })
+  } catch (err) {
+    log.error('Failed to start HTTP server: ' + (err?.message || err))
+  }
 
   server.on('error', (err) => {
     log.error('Server error: ' + (err?.message || err))
   })
-}
+ }
 
 async function gracefulShutdown(signal) {
   if (isShuttingDown) return

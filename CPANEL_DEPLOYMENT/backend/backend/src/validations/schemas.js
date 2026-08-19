@@ -148,7 +148,9 @@ export const portfolioSchemas = {
     featured: z.union([z.boolean(), z.string()]).optional(),
     displayOrder: z.coerce.number().int().nonnegative().optional(),
     published: z.union([z.boolean(), z.string()]).optional(),
-    mediaUrls: z.array(z.string()).optional(),
+    mediaUrls: z.array(z.string()).max(21, 'Maximum 21 gallery images allowed').optional(),
+    beforeImages: z.array(z.string()).max(21, 'Maximum 21 before images allowed').optional(),
+    afterImages: z.array(z.string()).max(21, 'Maximum 21 after images allowed').optional(),
     imageUrl: z.string().optional(),
   }),
   update: z.object({
@@ -158,7 +160,9 @@ export const portfolioSchemas = {
     featured: z.union([z.boolean(), z.string()]).optional(),
     displayOrder: z.coerce.number().int().nonnegative().optional(),
     published: z.union([z.boolean(), z.string()]).optional(),
-    mediaUrls: z.array(z.string()).optional(),
+    mediaUrls: z.array(z.string()).max(21, 'Maximum 21 gallery images allowed').optional(),
+    beforeImages: z.array(z.string()).max(21, 'Maximum 21 before images allowed').optional(),
+    afterImages: z.array(z.string()).max(21, 'Maximum 21 after images allowed').optional(),
   }),
 }
 

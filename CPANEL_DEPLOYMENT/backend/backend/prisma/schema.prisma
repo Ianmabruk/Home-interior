@@ -49,14 +49,16 @@ model PortfolioProject {
   imageUrl     String?  @db.Text @map("image_url")
   cloudinaryId String?  @db.Text @map("cloudinary_id")
   mediaUrls    String[] @default([]) @map("media_urls") @db.Text
+  beforeImages String[] @default([]) @map("before_images") @db.Text
+  afterImages  String[] @default([]) @map("after_images") @db.Text
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-   @@map("portfolios")
-   @@index([published, featured, displayOrder(asc)])
-   @@index([displayOrder(asc)])
-   @@index([featured, createdAt(desc)])
- }
+  @@map("portfolios")
+  @@index([published, featured, displayOrder(asc)])
+  @@index([displayOrder(asc)])
+  @@index([featured, createdAt(desc)])
+}
 
 model VirtualDesign {
   id           String   @id @default(cuid())

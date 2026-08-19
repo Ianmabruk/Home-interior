@@ -24,13 +24,20 @@ export const uploadToCloudinary = async (buffer, mimetype, folder) => {
 
   try {
     const result = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          resource_type: 'auto',
-          folder,
-          public_id: publicId,
-          overwrite: false,
-        },
+       cloudinary.uploader.upload_stream(
+         {
+           resource_type: 'auto',
+           folder,
+           public_id: publicId,
+           overwrite: false,
+           quality: 'auto:good',
+           fetch_format: 'auto',
+           transformation: [
+             { width: 2048, crop: 'limit' },
+             { quality: 'auto:good' },
+             { fetch_format: 'auto' },
+           ],
+         },
         (error, result) => {
           if (error) {
             console.error('[Cloudinary] Upload stream error:', {

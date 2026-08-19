@@ -118,7 +118,7 @@ async function createWorkWithUsContent(data, file, circularFile) {
   return mapWorkWithUs(item)
 }
 
-async function updateWorkWithUsContent(id, data, file, circularFile) {
+async function updateWorkWithUsContent(id, data, file, circularFile, removeHomepageCircularImage = false) {
   const existing = await prisma.workWithUs.findUnique({ where: { id } })
   if (!existing) throw failure(404, 'Content not found')
 
@@ -136,6 +136,10 @@ async function updateWorkWithUsContent(id, data, file, circularFile) {
     const uploaded = await uploadFile(circularFile.buffer, circularFile.mimetype, 'work-with-us')
     updateData.homepageCircularImage = uploaded.url
     updateData.homepageCircularImageId = uploaded.path
+  } else if (removeHomepageCircularImage) {
+    if (existing.homepageCircularImageId) await deleteFile(existing.homepageCircularImageId)
+    updateData.homepageCircularImage = null
+    updateData.homepageCircularImageId = null
   }
 
   const item = await prisma.workWithUs.update({

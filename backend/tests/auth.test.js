@@ -1,9 +1,15 @@
 import request from 'supertest'
-import { app } from '../src/app.js'
+import { getApp } from './lazyApp.js'
 import { prisma } from '../src/config/database.js'
 import bcrypt from 'bcryptjs'
 
 const API = '/api'
+
+let app = null
+
+beforeAll(async () => {
+  app = await getApp()
+})
 
 function generateTestEmail() {
   return `test_${Date.now()}_${Math.random().toString(36).slice(2, 8)}@test.com`

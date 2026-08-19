@@ -39,11 +39,12 @@ const NAV_ITEMS = [
       return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
     },
   },
-  {
+   {
     key: 'shop',
     label: 'Shop With Us',
     path: '/shop',
     getImage: (data) => {
+      if (data.shopWithUsHomepageImage) return data.shopWithUsHomepageImage
       const list = Array.isArray(data.products) ? data.products : []
       const product = list[0] || null
       if (!product) return null
@@ -78,7 +79,7 @@ const NAV_ITEMS = [
     key: 'socials',
     label: 'Socials',
     path: '/socials',
-    getImage: (data) => data.socialItems?.[0]?.imageUrl || data.about?.socialImage || data.about?.imageUrl || null,
+    getImage: (data) => data.socialItems?.[0]?.homepageCircularImage || data.socialItems?.[0]?.imageUrl || data.about?.socialImage || data.about?.imageUrl || null,
   },
   {
     key: 'testimonials',

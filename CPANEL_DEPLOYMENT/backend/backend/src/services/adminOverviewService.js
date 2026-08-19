@@ -78,6 +78,7 @@ export async function getSettings() {
     returnPolicy: result.returnPolicy || '',
     socialLinks: result.socialLinks || '',
     shopBannerImage: result.shopBannerImage || '',
+    shopWithUsHomepageImage: result.shopWithUsHomepageImage || '',
   }
 }
 

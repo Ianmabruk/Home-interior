@@ -105,12 +105,14 @@ export default defineConfig({
         name: 'HOK Interior Designs',
         short_name: 'HOK',
         description: 'Luxury interior design, curated furniture, and premium virtual design services.',
-        theme_color: '#f5f1ea',
-        background_color: '#f5f1ea',
+        theme_color: '#FAF8F4',
+        background_color: '#FAF8F4',
         display: 'standalone',
         start_url: '/',
         icons: [
-          { src: '/favicon.webp', sizes: 'any', type: 'image/webp', purpose: 'any' },
+          { src: '/favicon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/favicon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png', purpose: 'apple-touch-icon' },
         ],
       },
     }),
@@ -145,7 +147,30 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        manualChunks: undefined,
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor'
+            }
+            if (id.includes('framer-motion')) {
+              return 'framer-motion'
+            }
+            if (id.includes('lucide-react')) {
+              return 'lucide-icons'
+            }
+            if (id.includes('react-router-dom')) {
+              return 'react-router'
+            }
+            if (id.includes('axios')) {
+              return 'axios'
+            }
+            if (id.includes('@sendinblue')) {
+              return 'sendinblue'
+            }
+            return 'vendor'
+          }
+          return undefined
+        },
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',

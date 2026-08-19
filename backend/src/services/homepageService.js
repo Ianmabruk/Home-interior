@@ -5,11 +5,11 @@ async function getHomepage() {
   try {
     const data = await withRetry(() =>
       Promise.all([
-        prisma.portfolioProject.findMany({
+          prisma.portfolioProject.findMany({
           where: { published: true },
           orderBy: { displayOrder: 'asc' },
-          take: 6,
-          select: { id: true, title: true, imageUrl: true, mediaUrls: true, featured: true },
+          take: 12,
+          select: { id: true, title: true, imageUrl: true, mediaUrls: true, featured: true, beforeImages: true, afterImages: true },
         }),
         prisma.virtualDesign.findMany({
           where: { published: true },
@@ -70,11 +70,12 @@ async function getHomepage() {
           take: 5,
           select: { id: true, title: true, subtitle: true, imageUrl: true, mediaUrls: true },
         }),
-        prisma.product.findMany({
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-          select: { id: true, name: true, price: true, originalPrice: true, mainImage: true, images: true },
-        }),
+         prisma.product.findMany({
+           orderBy: { createdAt: 'desc' },
+           take: 1,
+           select: { id: true, name: true, price: true, originalPrice: true, mainImage: true, images: true },
+         }),
+         prisma.siteSetting.findUnique({ where: { key: 'shopWithUsHomepageImage' } }),
         prisma.blog.findMany({
           where: { published: true },
           orderBy: { createdAt: 'desc' },
@@ -83,26 +84,27 @@ async function getHomepage() {
         }),
         prisma.socialItem.findMany({
           orderBy: { displayOrder: 'asc' },
-          select: { id: true, name: true, platform: true, imageUrl: true, link: true, isActive: true },
+          select: { id: true, name: true, platform: true, imageUrl: true, link: true, isActive: true, homepageCircularImage: true },
         }),
         contactService.getContact(),
       ])
     )
 
-    const [
-      portfolio,
-      virtualDesigns,
-      services,
-      about,
-      aboutImages,
-      testimonials,
-      workWithUs,
-      heroMedia,
-      featuredProducts,
-      blog,
-      socialItems,
-      contact,
-    ] = data
+     const [
+       portfolio,
+       virtualDesigns,
+       services,
+       about,
+       aboutImages,
+       testimonials,
+       workWithUs,
+       heroMedia,
+       featuredProducts,
+       blog,
+       socialItems,
+       contact,
+       shopWithUsImage,
+     ] = data
 
     const featuredPortfolio = portfolio.filter((p) => p.featured).slice(0, 3)
 
@@ -122,24 +124,25 @@ async function getHomepage() {
       mediaUrls: item.mediaUrls || [],
     }))
 
-    return {
-      portfolio,
-      virtualDesigns,
-      virtualInteriorDesign: virtualDesigns,
-      services,
-      about: about ? { ...about, aboutImages: activeAboutImages } : null,
-      aboutImages: activeAboutImages,
-      testimonials,
-      featuredPortfolio,
-      featuredVirtualDesigns: virtualDesigns.filter((v) => v.featured).slice(0, 3),
-      heroImages: heroMedia,
-      heroMedia,
-      featuredProject: featuredPortfolio[0] || portfolio[0] || null,
-      products: featuredProducts,
-      blog: mappedBlog,
-      socialItems: (socialItems || []).filter((item) => item.isActive),
-      contact,
-      workWithUs: mappedWorkWithUs,
+     return {
+       portfolio,
+       virtualDesigns,
+       virtualInteriorDesign: virtualDesigns,
+       services,
+       about: about ? { ...about, aboutImages: activeAboutImages } : null,
+       aboutImages: activeAboutImages,
+       testimonials,
+       featuredPortfolio,
+       featuredVirtualDesigns: virtualDesigns.filter((v) => v.featured).slice(0, 3),
+       heroImages: heroMedia,
+       heroMedia,
+       featuredProject: featuredPortfolio[0] || portfolio[0] || null,
+       products: featuredProducts,
+       blog: mappedBlog,
+       socialItems: (socialItems || []).filter((item) => item.isActive),
+       contact,
+       workWithUs: mappedWorkWithUs,
+       shopWithUsHomepageImage: shopWithUsImage?.value || null,
     }
   } catch (err) {
     console.error('[homepageService] Failed to load homepage data:', err)
@@ -160,9 +163,10 @@ async function getHomepage() {
       blog: [],
       socialItems: [],
       contact: null,
-      workWithUs: [],
-    }
-  }
+       workWithUs: [],
+       shopWithUsHomepageImage: null,
+     }
+   }
 }
 
 export const homepageService = {

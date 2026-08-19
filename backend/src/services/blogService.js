@@ -355,7 +355,7 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
   return mapBlog(item)
 }
 
-async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], removeMediaUrls = [], homepageCircularImageFile = null) {
+async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], removeMediaUrls = [], homepageCircularImageFile = null, removeHomepageCircularImage = false) {
   const existing = await prisma.blog.findUnique({ where: { id } })
   if (!existing) throw failure(404, 'Blog not found')
 
@@ -403,6 +403,10 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
       console.error('[blogService.updateBlog] Homepage circular image upload failed:', err?.message)
       throw failure(500, `Homepage image upload failed: ${err?.message || 'Unknown error'}`)
     }
+  } else if (removeHomepageCircularImage) {
+    if (existing.homepageCircularImageId) pathsToDelete.push(existing.homepageCircularImageId)
+    updateData.homepageCircularImage = null
+    updateData.homepageCircularImageId = null
   }
 
   if (contentFiles && contentFiles.length > 0) {

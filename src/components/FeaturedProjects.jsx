@@ -161,7 +161,7 @@ export const FeaturedProjects = () => {
                   <img
                     src={getOptimizedUrl(item.imageUrl, { width: 800, crop: 'limit' })}
                     alt={item.title}
-                    className="h-full w-full object-cover transition duration-[1.2s] ease-out group-hover:scale-105"
+                    className="h-full w-full object-contain bg-[var(--secondary)]/10 transition duration-[1.2s] ease-out group-hover:scale-105"
                     loading="lazy"
                     decoding="async"
                   />

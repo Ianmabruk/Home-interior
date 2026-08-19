@@ -66,12 +66,13 @@ export const workWithUsController = {
     const files = req.files || []
     const file = files.find((f) => f.fieldname === 'image')
     const circularFile = files.find((f) => f.fieldname === 'homepageCircularImage')
+    const removeHomepageCircularImage = req.body.removeHomepageCircularImage === 'true'
     const data = {}
     if (req.body.title !== undefined) data.title = req.body.title
     if (req.body.description !== undefined) data.description = req.body.description
     if (req.body.displayOrder !== undefined) data.displayOrder = Number(req.body.displayOrder) || 0
     if (req.body.isActive !== undefined) data.isActive = req.body.isActive === 'true' || req.body.isActive === true
-    const item = await workWithUsService.updateWorkWithUsContent(req.params.id, data, file, circularFile)
+    const item = await workWithUsService.updateWorkWithUsContent(req.params.id, data, file, circularFile, removeHomepageCircularImage)
     res.json({ success: true, data: item })
   }),
 

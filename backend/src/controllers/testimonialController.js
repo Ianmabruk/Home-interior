@@ -33,6 +33,7 @@ export const testimonialController = {
     const files = req.files || []
     const photoFile = files.find((f) => f.fieldname === 'photo')
     const circularFile = files.find((f) => f.fieldname === 'homepageCircularImage')
+    const removeHomepageCircularImage = req.body.removeHomepageCircularImage === 'true'
     const data = {}
     if (req.body.clientName !== undefined) data.clientName = req.body.clientName
     if (req.body.testimonial !== undefined) data.content = req.body.testimonial
@@ -41,7 +42,7 @@ export const testimonialController = {
     if (req.body.displayOrder !== undefined) data.displayOrder = Number(req.body.displayOrder) || 0
     if (req.body.isActive !== undefined) data.isActive = req.body.isActive === 'true' || req.body.isActive === true
     if (req.body.initial !== undefined) data.initial = req.body.initial
-    const item = await testimonialService.updateTestimonial(req.params.id, data, photoFile, circularFile)
+    const item = await testimonialService.updateTestimonial(req.params.id, data, photoFile, circularFile, removeHomepageCircularImage)
     res.json({ success: true, data: item })
   }),
 

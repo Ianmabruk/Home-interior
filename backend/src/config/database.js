@@ -5,7 +5,7 @@ const globalForPrisma = globalThis
 function createPrismaClient() {
   const url = new URL(process.env.DATABASE_URL || '')
   if (!url.searchParams.has('connection_limit')) {
-    const limit = process.env.NODE_ENV === 'production' ? 5 : 2
+    const limit = process.env.NODE_ENV === 'production' ? 5 : 10
     url.searchParams.set('connection_limit', String(limit))
   }
   url.searchParams.set('connect_timeout', '10')

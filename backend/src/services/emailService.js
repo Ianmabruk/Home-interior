@@ -40,6 +40,86 @@ export async function sendOrderConfirmationEmail({ order, toEmail, siteName, sup
   }
 }
 
+export async function sendNewsletterNotificationEmail({ subscriberEmail, siteName, supportEmail }) {
+  if (!subscriberEmail) {
+    console.warn('[emailService] No subscriber email provided for newsletter notification')
+    return { skipped: true, reason: 'no_subscriber_email' }
+  }
+
+  if (!apiKey.apiKey) {
+    console.warn('[emailService] Brevo API key not configured. Skipping newsletter notification email.')
+    return { skipped: true, reason: 'not_configured' }
+  }
+
+  const recipientEmail = supportEmail || process.env.SUPPORT_EMAIL || 'info@hokinteriors.co.ke'
+
+  const html = buildNewsletterNotificationHtml({ subscriberEmail, siteName, supportEmail: recipientEmail })
+
+  try {
+    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail({
+      to: [{ email: recipientEmail, name: siteName || 'HOK Interiors' }],
+      sender: { email: process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'info@hokinteriors.co.ke', name: siteName || 'HOK Interiors' },
+      replyTo: { email: subscriberEmail },
+      subject: `New mailing list subscription from ${subscriberEmail} — ${siteName || 'HOK Interiors'}`,
+      htmlContent: html,
+    })
+
+    const result = await apiInstance.sendTransacEmail(sendSmtpEmail)
+    return { skipped: false, messageId: result?.messageId || null }
+  } catch (err) {
+    console.error('[emailService] Failed to send newsletter notification:', err)
+    return { skipped: true, reason: 'send_failed', error: err?.message }
+  }
+}
+
+function buildNewsletterNotificationHtml({ subscriberEmail, siteName, supportEmail }) {
+  const formattedDate = new Date().toLocaleString('en-KE', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Africa/Nairobi',
+  })
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>New Mailing List Subscription</title>
+</head>
+<body style="margin:0;padding:0;background-color:#faf8f4;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#2a241f;">
+  <div style="max-width:640px;margin:0 auto;padding:24px;">
+    <div style="background:#ffffff;border-radius:24px;padding:28px;border:1px solid rgba(42,36,31,0.08);box-shadow:0 10px 40px rgba(42,36,31,0.06);">
+      <div style="text-align:center;margin-bottom:18px;">
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;color:#2a241f;letter-spacing:0.02em;">HOK <span style="color:#e89a43;">Interiors</span></div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;margin-top:8px;">New Subscription Notification</div>
+      </div>
+
+      <p style="margin:0 0 18px;font-size:15px;color:#2a241f;">A new subscriber has joined the HOK Interiors mailing list.</p>
+
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#faf8f4;border-radius:16px;padding:14px 16px;margin-bottom:18px;">
+        <tr>
+          <td style="padding:8px 12px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Subscriber Email</div>
+            <div style="font-size:14px;color:#2a241f;margin-top:6px;word-break:break-all;">${subscriberEmail}</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:8px 12px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Subscribed At</div>
+            <div style="font-size:14px;color:#2a241f;margin-top:6px;">${formattedDate}</div>
+          </td>
+        </tr>
+      </table>
+
+      <div style="text-align:center;margin-top:24px;font-size:12px;color:#a89f91;">
+        ${siteName || 'HOK Interiors'} · Need help? Contact us at ${supportEmail || 'info@hokinteriors.co.ke'}
+      </div>
+    </div>
+  </div>
+</body>
+</html>`
+}
+
 function buildHtmlEmail({ order, trackingUrl, siteName, supportEmail }) {
   const itemsHtml = buildItemRows(order.items)
   const orderDate = order.createdAt ? new Date(order.createdAt) : new Date()
@@ -178,4 +258,5 @@ function buildItemRows(items) {
 
 export default {
   sendOrderConfirmationEmail,
+  sendNewsletterNotificationEmail,
 }

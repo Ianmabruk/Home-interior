@@ -69,7 +69,7 @@ export const WorkWithUsPage = () => {
       name: 'HOK Interiors',
       description: 'Timeless luxury interior design, curated furniture, and premium virtual design services in Nairobi, Kenya.',
       url: SITE_URL,
-      telephone: '+254115407200',
+      telephone: '+254723057487',
       email: 'info@hokinteriors.co.ke',
       address: {
         '@type': 'PostalAddress',

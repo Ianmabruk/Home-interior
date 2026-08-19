@@ -16,6 +16,8 @@ import {
   Tag,
   Box,
   Loader2,
+  Upload,
+  Save,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api, clearApiCache } from '../../services/api'
@@ -69,6 +71,10 @@ export const ShopDashboard = () => {
   const [variantFiles, setVariantFiles] = useState([])
   const [variantPreviews, setVariantPreviews] = useState([])
   const [error, setError] = useState('')
+  const [shopWithUsImage, setShopWithUsImage] = useState(null)
+  const [shopWithUsPreview, setShopWithUsPreview] = useState(null)
+  const [shopWithUsUploading, setShopWithUsUploading] = useState(false)
+  const shopWithUsRef = useRef(null)
   const reduceMotion = useIsMobile()
   const fileRef = useRef(null)
 
@@ -83,6 +89,20 @@ export const ShopDashboard = () => {
         sessionStorage.setItem('hok_shop_products_ts', String(Date.now()))
       } catch {
         // ignore sessionStorage errors
+      }
+
+      try {
+        const settingsRes = await api.get('/admin/settings')
+        const settings = settingsRes.data || {}
+        if (settings.shopWithUsHomepageImage) {
+          setShopWithUsImage(settings.shopWithUsHomepageImage)
+          setShopWithUsPreview(settings.shopWithUsHomepageImage)
+        } else {
+          setShopWithUsImage(null)
+          setShopWithUsPreview(null)
+        }
+      } catch {
+        // ignore
       }
     } catch {
       setAllProducts([])
@@ -99,9 +119,13 @@ export const ShopDashboard = () => {
   useEffect(() => {
     const handler = (event) => {
       const payload = getAdminDataChangedPayload(event)
-      if (!payload || payload.type !== ADMIN_EVENT_TYPES.PRODUCTS_CHANGED) return
-      clearApiCache('/products')
-      refetch()
+      if (!payload) return
+      if (payload.type === ADMIN_EVENT_TYPES.PRODUCTS_CHANGED) {
+        clearApiCache('/products')
+        refetch()
+      } else if (payload.type === 'settings-changed') {
+        refetch()
+      }
     }
     window.addEventListener('admin-data-changed', handler)
     return () => window.removeEventListener('admin-data-changed', handler)
@@ -156,51 +180,18 @@ export const ShopDashboard = () => {
       })
 
       if (editingId) {
-        await api.patch(`/products/${editingId}`, payload)
+        const saved = await api.patch(`/products/${editingId}`, payload)
         setEditingId(null)
+        const updatedItem = saved.data
         setAllProducts((prev) =>
           prev.map((p) =>
-            (p._id || p.id) === editingId
-              ? {
-                  ...p,
-                  name: form.name,
-                  description: form.description,
-                  price: String(form.price),
-                  discountPrice: form.discountPrice,
-                  category: form.category,
-                  vendor: form.vendor || '',
-                  stock: Number(form.stock),
-                  sku: form.sku,
-                  tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
-                  isFeatured: form.isFeatured,
-                  isPublished: form.isPublished,
-                  displayOrder: Number(form.displayOrder || 0),
-                  variants: form.variants,
-                  images: imagePreviews,
-                }
-              : p
+            (p._id || p.id) === editingId ? { ...p, ...updatedItem, _id: p._id, id: p.id, images: updatedItem.images || updatedItem.imageUrl ? [updatedItem.images?.[0] || updatedItem.imageUrl || updatedItem.mainImage] : (p.images || []) } : p
           )
         )
       } else {
-        await api.post('/products', payload)
-        const newItem = {
-          _id: `temp_${Date.now()}`,
-          name: form.name,
-          description: form.description,
-          price: String(form.price),
-          discountPrice: form.discountPrice,
-          category: form.category,
-          vendor: form.vendor || '',
-          stock: Number(form.stock),
-          sku: form.sku,
-          tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
-          isFeatured: form.isFeatured,
-          isPublished: form.isPublished,
-          displayOrder: Number(form.displayOrder || 0),
-          variants: form.variants,
-          images: imagePreviews,
-        }
-        setAllProducts((prev) => [newItem, ...prev])
+        const saved = await api.post('/products', payload)
+        const newItem = saved.data
+        setAllProducts((prev) => [{ ...newItem, _id: newItem._id || `temp_${Date.now()}` }, ...prev])
       }
 
       setForm(INITIAL_FORM)
@@ -291,6 +282,21 @@ export const ShopDashboard = () => {
     }
   }
 
+  const deleteProductImage = async (productId, imageIndex) => {
+    try {
+      const res = await api.delete(`/products/${productId}/images/${imageIndex}`)
+      const updated = res.data
+      setAllProducts((prev) =>
+        prev.map((p) => (p._id === productId ? { ...updated, _id: p._id } : p))
+      )
+      clearApiCache('/products')
+      dispatchAdminDataChanged('products-changed')
+      toast.success('Image deleted successfully.')
+    } catch (err) {
+      toast.error(err?.message || 'Failed to delete image.')
+    }
+  }
+
   const addVariant = () => {
     setForm((f) => ({
       ...f,
@@ -346,6 +352,56 @@ export const ShopDashboard = () => {
     a.download = 'products.csv'
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  const uploadShopWithUsImage = async (file) => {
+    const payload = new FormData()
+    payload.append('image', file)
+    await api.post('/admin/settings/shop-with-us-image', payload, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  }
+
+  const saveShopWithUsImage = async () => {
+    if (!shopWithUsImage || !(shopWithUsImage instanceof File)) {
+      toast.success('Shop With Us image saved.')
+      dispatchAdminDataChanged('settings-changed')
+      return
+    }
+    setShopWithUsUploading(true)
+    try {
+      await uploadShopWithUsImage(shopWithUsImage)
+      setShopWithUsImage(shopWithUsPreview)
+      dispatchAdminDataChanged('settings-changed')
+      toast.success('Shop With Us homepage image saved.')
+    } catch (err) {
+      toast.error(err?.message || 'Failed to upload Shop With Us image.')
+    } finally {
+      setShopWithUsUploading(false)
+    }
+  }
+
+  const deleteShopWithUsImage = async () => {
+    try {
+      await api.delete('/admin/settings/shop-with-us-image')
+      setShopWithUsImage(null)
+      setShopWithUsPreview(null)
+      dispatchAdminDataChanged('settings-changed')
+      toast.success('Shop With Us image deleted.')
+    } catch (err) {
+      toast.error(err?.message || 'Failed to delete image.')
+    }
+  }
+
+  const uploadShopWithUsFromInput = async (e) => {
+    const file = e.target.files?.[0] || null
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file.')
+      return
+    }
+    setShopWithUsImage(file)
+    setShopWithUsPreview(URL.createObjectURL(file))
   }
 
   return (
@@ -736,6 +792,74 @@ export const ShopDashboard = () => {
           </motion.button>
         </motion.form>
 
+        {/* Shop With Us Homepage Image */}
+        <div className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)] space-y-4 mt-6">
+          <h3 className="font-display text-xl text-[var(--primary)]">Shop With Us Homepage Image</h3>
+          <p className="text-[10px] text-[var(--primary)]/50">
+            This circular image appears on the homepage "Shop With Us" tab. Separate from product images.
+          </p>
+          {shopWithUsPreview ? (
+            <div className="relative rounded-xl overflow-hidden">
+              <img
+                src={shopWithUsPreview}
+                alt="Shop With Us preview"
+                className="h-48 w-full object-contain bg-[var(--secondary)]/10"
+              />
+              <div className="absolute top-2 right-2 flex gap-1">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  type="button"
+                  onClick={() => shopWithUsRef.current?.click()}
+                  className="p-1.5 bg-white/90 backdrop-blur-sm rounded-full text-[var(--primary)] shadow-lg"
+                  aria-label="Replace image"
+                >
+                  <Upload size={14} />
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  type="button"
+                  onClick={deleteShopWithUsImage}
+                  className="p-1.5 bg-[var(--error)]/90 backdrop-blur-sm rounded-full text-white shadow-lg"
+                  aria-label="Delete image"
+                >
+                  <Trash2 size={14} />
+                </motion.button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="border-2 border-dashed border-[var(--border)] rounded-2xl p-8 text-center cursor-pointer hover:border-[var(--accent)] transition-colors"
+              onClick={() => shopWithUsRef.current?.click()}
+            >
+              <UploadCloud size={32} className="mx-auto mb-3 text-[var(--accent)]" />
+              <p className="text-sm text-[var(--primary)]">Click to upload Shop With Us image</p>
+              <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG up to 10MB</p>
+            </div>
+          )}
+          <input
+            ref={shopWithUsRef}
+            type="file"
+            accept="image/*"
+            onChange={uploadShopWithUsFromInput}
+            className="hidden"
+          />
+          {shopWithUsImage && shopWithUsImage instanceof File && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={saveShopWithUsImage}
+              disabled={shopWithUsUploading}
+              className="w-full rounded-full bg-[var(--accent)] text-white py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--accent)]/90 hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {shopWithUsUploading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              {shopWithUsUploading ? 'Uploading...' : 'Save Shop With Us Image'}
+            </motion.button>
+          )}
+        </div>
+
         {productsLoading && allProducts.length === 0 ? (
           <div className="col-span-full flex flex-col items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)] mb-3" />
@@ -800,10 +924,20 @@ export const ShopDashboard = () => {
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => setDeleteId(item._id || item.id)}
-                    className="p-2 bg-[var(--error)]/90 backdrop-blur-sm rounded-xl text-white hover:bg-[var(--error)] shadow-lg"
+                    onClick={(e) => { e.stopPropagation(); deleteProductImage(item._id || item.id, 0) }}
+                    className="p-2 bg-orange-500/90 backdrop-blur-sm rounded-xl text-white hover:bg-orange-500 shadow-lg"
+                    aria-label="Delete first image"
                   >
                     <Trash2 size={14} />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setDeleteId(item._id || item.id)}
+                    className="p-2 bg-[var(--error)]/90 backdrop-blur-sm rounded-xl text-white hover:bg-[var(--error)] shadow-lg"
+                    aria-label="Delete product"
+                  >
+                    <Box size={14} />
                   </motion.button>
                 </div>
               </div>
@@ -964,6 +1098,28 @@ export const ShopDashboard = () => {
                   alt={viewItem.name}
                   className="w-full h-52 object-cover rounded-2xl mb-5 shadow-lg"
                 />
+              )}
+              {viewItem.images && viewItem.images.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto mb-4">
+                  {viewItem.images.slice(1).map((img, i) => {
+                    const src = typeof img === 'string' ? img : img?.url
+                    return (
+                      <div key={i + 1} className="relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-[var(--border)]/40">
+                        <img src={src} alt={`${viewItem.name} #${i + 2}`} className="h-full w-full object-cover" />
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); deleteProductImage(viewItem._id, i + 1) }}
+                          className="absolute top-0 right-0 bg-[var(--error)]/90 text-white p-0.5 rounded-full shadow-lg"
+                          aria-label="Delete image"
+                        >
+                          <X size={10} />
+                        </motion.button>
+                      </div>
+                    )
+                  })}
+                </div>
               )}
               <div className="grid grid-cols-2 gap-3">
                 {[

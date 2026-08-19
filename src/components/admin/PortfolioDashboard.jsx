@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Star, Image, Loader2 } from 'lucide-react'
+import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Loader2, Upload, Star } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
@@ -11,8 +11,11 @@ const INITIAL_FORM = {
   description: '',
   category: 'General',
   featured: false,
-  displayOrder: 0
+  displayOrder: 0,
+  published: true,
 }
+
+const MAX_IMAGES = 21
 
 export const PortfolioDashboard = () => {
   const [portfolio, setPortfolio] = useState([])
@@ -22,14 +25,22 @@ export const PortfolioDashboard = () => {
   const [mainImagePreview, setMainImagePreview] = useState(null)
   const [galleryFiles, setGalleryFiles] = useState([])
   const [galleryPreviews, setGalleryPreviews] = useState([])
+  const [beforeFiles, setBeforeFiles] = useState([])
+  const [beforePreviews, setBeforePreviews] = useState([])
+  const [afterFiles, setAfterFiles] = useState([])
+  const [afterPreviews, setAfterPreviews] = useState([])
   const [loading, setLoading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(null)
   const [deleteId, setDeleteId] = useState(null)
   const [isDragOverMain, setIsDragOverMain] = useState(false)
   const [isDragOverGallery, setIsDragOverGallery] = useState(false)
+  const [isDragOverBefore, setIsDragOverBefore] = useState(false)
+  const [isDragOverAfter, setIsDragOverAfter] = useState(false)
   const [showForm, setShowForm] = useState(false)
-  const [optimisticUpdates, setOptimisticUpdates] = useState(new Set())
   const mainFileRef = useRef(null)
   const galleryFileRef = useRef(null)
+  const beforeFileRef = useRef(null)
+  const afterFileRef = useRef(null)
 
   const load = useCallback(async () => {
     try {
@@ -39,10 +50,11 @@ export const PortfolioDashboard = () => {
     } catch {
       setPortfolio([])
     }
-   }, [])
+  }, [])
 
-  // Initial data load on mount
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load()
+  }, [load])
 
   useEffect(() => {
     const handler = () => { load() }
@@ -50,19 +62,55 @@ export const PortfolioDashboard = () => {
     return () => window.removeEventListener('admin-data-changed', handler)
   }, [load])
 
+  const resetPreviews = (previews) => {
+    previews.forEach((p) => {
+      if (p && typeof p === 'string' && p.startsWith('blob:')) {
+        URL.revokeObjectURL(p)
+      }
+    })
+  }
+
   const handleMainFiles = (files) => {
-    const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
+    const validFiles = Array.from(files).filter((f) => f.type.startsWith('image/'))
     if (validFiles.length > 0) {
+      if (mainImagePreview && mainImagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(mainImagePreview)
+      }
       setMainImageFile(validFiles[0])
       setMainImagePreview(URL.createObjectURL(validFiles[0]))
     }
   }
 
+  const handleImageFiles = (files, setFiles, setPreviews, existingCount) => {
+    const validFiles = Array.from(files).filter((f) => f.type.startsWith('image/'))
+    const totalAfter = existingCount + validFiles.length
+    if (totalAfter > MAX_IMAGES) {
+      const allowed = Math.max(0, MAX_IMAGES - existingCount)
+      toast.error(`Maximum ${MAX_IMAGES} images allowed per section. You can add ${allowed} more.`)
+      validFiles.splice(allowed)
+    }
+    if (validFiles.length === 0) return
+    setFiles((prev) => {
+      const newFiles = [...prev, ...validFiles]
+      setPreviews((prevPreviews) => {
+        const newPreviews = [...prevPreviews]
+        validFiles.forEach((f) => newPreviews.push(URL.createObjectURL(f)))
+        return newPreviews
+      })
+      return newFiles
+    })
+  }
+
   const handleGalleryFiles = (files) => {
-    const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
-    const newFiles = [...galleryFiles, ...validFiles].slice(0, 10)
-    setGalleryFiles(newFiles)
-    validFiles.forEach(f => setGalleryPreviews(prev => [...prev, URL.createObjectURL(f)]))
+    handleImageFiles(files, setGalleryFiles, setGalleryPreviews, galleryFiles.length)
+  }
+
+  const handleBeforeFiles = (files) => {
+    handleImageFiles(files, setBeforeFiles, setBeforePreviews, beforeFiles.length)
+  }
+
+  const handleAfterFiles = (files) => {
+    handleImageFiles(files, setAfterFiles, setAfterPreviews, afterFiles.length)
   }
 
   const handleMainDrop = (e) => {
@@ -77,31 +125,58 @@ export const PortfolioDashboard = () => {
     handleGalleryFiles(e.dataTransfer.files)
   }
 
-  const handleMainDragOver = (e) => {
+  const handleBeforeDrop = (e) => {
     e.preventDefault()
-    setIsDragOverMain(true)
+    setIsDragOverBefore(false)
+    handleBeforeFiles(e.dataTransfer.files)
   }
 
-  const handleGalleryDragOver = (e) => {
+  const handleAfterDrop = (e) => {
     e.preventDefault()
-    setIsDragOverGallery(true)
+    setIsDragOverAfter(false)
+    handleAfterFiles(e.dataTransfer.files)
   }
+
+  const handleMainDragOver = (e) => { e.preventDefault(); setIsDragOverMain(true) }
+  const handleGalleryDragOver = (e) => { e.preventDefault(); setIsDragOverGallery(true) }
+  const handleBeforeDragOver = (e) => { e.preventDefault(); setIsDragOverBefore(true) }
+  const handleAfterDragOver = (e) => { e.preventDefault(); setIsDragOverAfter(true) }
 
   const handleMainDragLeave = () => setIsDragOverMain(false)
   const handleGalleryDragLeave = () => setIsDragOverGallery(false)
+  const handleBeforeDragLeave = () => setIsDragOverBefore(false)
+  const handleAfterDragLeave = () => setIsDragOverAfter(false)
 
   const removeMainImage = () => {
+    if (mainImagePreview && mainImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(mainImagePreview)
+    }
     setMainImageFile(null)
     setMainImagePreview(null)
     if (mainFileRef.current) mainFileRef.current.value = ''
   }
 
-  const removeGalleryImage = (index) => {
-    setGalleryFiles(prev => prev.filter((_, i) => i !== index))
-    setGalleryPreviews(prev => {
-      URL.revokeObjectURL(prev[index])
-      return prev.filter((_, i) => i !== index)
+  const removeFileImage = (index, setFiles, setPreviews) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index))
+    setPreviews((prev) => {
+      const newPreviews = [...prev]
+      if (newPreviews[index] && newPreviews[index].startsWith('blob:')) {
+        URL.revokeObjectURL(newPreviews[index])
+      }
+      return newPreviews.filter((_, i) => i !== index)
     })
+  }
+
+  const removeGalleryImage = (index) => {
+    removeFileImage(index, setGalleryFiles, setGalleryPreviews)
+  }
+
+  const removeBeforeImage = (index) => {
+    removeFileImage(index, setBeforeFiles, setBeforePreviews)
+  }
+
+  const removeAfterImage = (index) => {
+    removeFileImage(index, setAfterFiles, setAfterPreviews)
   }
 
   const startEdit = (item) => {
@@ -112,61 +187,125 @@ export const PortfolioDashboard = () => {
       category: item.category || 'General',
       featured: item.featured || false,
       displayOrder: item.displayOrder || 0,
+      published: item.published !== undefined ? item.published : true,
     })
     setMainImageFile(item.imageUrl ? { url: item.imageUrl } : null)
-    setMainImagePreview(item.imageUrl ? item.imageUrl : null)
-    setGalleryFiles(item.galleryImages ? item.galleryImages.map(url => ({ url })) : [])
-    setGalleryPreviews(item.galleryImages ? item.galleryImages : [])
+    setMainImagePreview(item.imageUrl || null)
+    setGalleryFiles(item.galleryImages ? item.galleryImages.map((url) => ({ url })) : [])
+    setGalleryPreviews(item.galleryImages ? [...item.galleryImages] : [])
+    setBeforeFiles(item.beforeImages ? item.beforeImages.map((url) => ({ url })) : [])
+    setBeforePreviews(item.beforeImages ? [...item.beforeImages] : [])
+    setAfterFiles(item.afterImages ? item.afterImages.map((url) => ({ url })) : [])
+    setAfterPreviews(item.afterImages ? [...item.afterImages] : [])
     setShowForm(true)
   }
 
   const resetForm = () => {
+    resetPreviews(galleryPreviews)
+    resetPreviews(beforePreviews)
+    resetPreviews(afterPreviews)
+    if (mainImagePreview && mainImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(mainImagePreview)
+    }
     setEditingId(null)
     setForm(INITIAL_FORM)
     setMainImageFile(null)
     setMainImagePreview(null)
     setGalleryFiles([])
     setGalleryPreviews([])
+    setBeforeFiles([])
+    setBeforePreviews([])
+    setAfterFiles([])
+    setAfterPreviews([])
     setShowForm(false)
   }
 
   const submit = async (e) => {
     e.preventDefault()
     setLoading(true)
+    setUploadProgress(null)
+
     try {
+      const totalFiles = galleryFiles.filter((f) => f instanceof File).length +
+        beforeFiles.filter((f) => f instanceof File).length +
+        afterFiles.filter((f) => f instanceof File).length
+      let uploaded = 0
+      let lastProgress = 0
+
+      const trackProgress = () => {
+        uploaded++
+        const percent = Math.round((uploaded / totalFiles) * 100)
+        if (percent > lastProgress) {
+          lastProgress = percent
+          setUploadProgress({
+            current: uploaded,
+            total: totalFiles,
+            percent,
+          })
+        }
+      }
+
       const payload = new FormData()
       payload.append('title', form.title)
       if (form.description) payload.append('description', form.description)
       if (form.category) payload.append('category', form.category)
       payload.append('featured', String(form.featured))
       payload.append('displayOrder', String(form.displayOrder || 0))
+      payload.append('published', String(form.published))
 
       if (mainImageFile && mainImageFile instanceof File) {
         payload.append('media', mainImageFile)
       }
 
-      if (galleryFiles.length > 0) {
-        galleryFiles.forEach((file) => {
-          if (file instanceof File) {
-            payload.append('gallery', file)
-          }
-        })
-      }
+      galleryFiles.forEach((file) => {
+        if (file instanceof File) {
+          payload.append('gallery', file)
+          trackProgress()
+        } else if (file?.url) {
+          payload.append('mediaUrls', file.url)
+        }
+      })
+
+      beforeFiles.forEach((file) => {
+        if (file instanceof File) {
+          payload.append('before', file)
+          trackProgress()
+        } else if (file?.url) {
+          payload.append('beforeImages', file.url)
+        }
+      })
+
+      afterFiles.forEach((file) => {
+        if (file instanceof File) {
+          payload.append('after', file)
+          trackProgress()
+        } else if (file?.url) {
+          payload.append('afterImages', file.url)
+        }
+      })
 
       if (editingId) {
         await api.patch(`/admin/portfolio/${editingId}`, payload)
       } else {
         await api.post('/admin/portfolio', payload)
       }
+
       resetForm()
       load()
       dispatchAdminDataChanged('portfolio-changed')
-      toast.success(editingId ? 'Portfolio project updated successfully.' : 'Portfolio project uploaded successfully.')
+      if (totalFiles > 0) {
+        toast.success(
+          `${totalFiles}/${totalFiles} images uploaded successfully`,
+        )
+      } else {
+        toast.success(editingId ? 'Portfolio project updated successfully.' : 'Portfolio project uploaded successfully.')
+      }
     } catch (err) {
       console.error('Submit error:', err)
       toast.error(err?.message || 'Failed to save portfolio project. Please try again.')
     } finally {
       setLoading(false)
+      setUploadProgress(null)
     }
   }
 
@@ -175,30 +314,117 @@ export const PortfolioDashboard = () => {
     const id = deleteId
     setDeleteId(null)
 
-    setPortfolio(prev => prev.filter(item => (item._id || item.id) !== id))
-    setOptimisticUpdates(prev => new Set(prev).add(id))
+    setPortfolio((prev) => prev.filter((item) => (item._id || item.id) !== id))
 
     try {
       await api.delete(`/admin/portfolio/${id}`)
-      setDeleteId(null)
       load()
       dispatchAdminDataChanged('portfolio-changed')
       toast.success('Portfolio project deleted successfully.')
     } catch (err) {
       console.error('Delete error:', err)
-      setOptimisticUpdates(prev => {
-        const next = new Set(prev)
-        next.delete(id)
-        return next
-      })
       load()
       toast.error(err?.message || 'Failed to delete portfolio project.')
     }
   }
 
+  const renderImageSection = (
+    title,
+    files,
+    previews,
+    setFiles,
+    setPreviews,
+    handleFiles,
+    removeFn,
+    fileRef,
+    isDragOver,
+    setIsDragOver,
+    dragOverHandler,
+    dragLeaveHandler,
+    dropHandler,
+  ) => (
+    <div className="space-y-2">
+      <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 flex items-center gap-2">
+        <Images size={14} strokeWidth={1.5} />
+        {title} (<span className="text-[var(--accent)]">{previews.length}</span>/{MAX_IMAGES})
+      </label>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={(e) => handleFiles(e.target.files)}
+        className="hidden"
+      />
+      <motion.div
+        whileHover={{ scale: 1.01 }}
+        onDrop={dropHandler}
+        onDragOver={dragOverHandler}
+        onDragLeave={dragLeaveHandler}
+        onClick={() => fileRef.current?.click()}
+        className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 ${
+          isDragOver ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--border)] bg-[var(--bg)]/30'
+        }`}
+      >
+        {previews.length > 0 ? (
+          <div className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-[var(--primary)]">{previews.length} image{previews.length !== 1 ? 's' : ''} selected</p>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="text-xs text-[var(--accent)] hover:text-[var(--primary)] font-medium"
+              >
+                Add More
+              </motion.button>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+              {previews.map((src, i) => {
+                return (
+                  <div key={i} className="relative rounded-xl overflow-hidden group">
+                    <img
+                      src={src}
+                      alt={`Preview ${i + 1}`}
+                      className="h-20 w-full object-contain bg-[var(--secondary)]/10"
+                      loading="lazy"
+                    />
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); removeFn(i) }}
+                      className="absolute top-1 right-1 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-1.5 rounded-full hover:bg-[var(--primary)] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={12} />
+                    </motion.button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3 py-8">
+            <motion.div
+              animate={{ y: [0, -5, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--accent)]/10 to-[var(--secondary)]/10 flex items-center justify-center text-[var(--accent)]"
+            >
+              <UploadCloud size={28} />
+            </motion.div>
+            <div>
+              <p className="text-sm font-medium text-[var(--primary)]">Drop images here or click to browse</p>
+              <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG, WebP up to 10MB each (max {MAX_IMAGES})</p>
+            </div>
+          </div>
+        )}
+      </motion.div>
+    </div>
+  )
+
   return (
     <div className="space-y-6">
-      {/* Header with Add Button */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -211,7 +437,10 @@ export const PortfolioDashboard = () => {
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => { setEditingId(null); setForm(INITIAL_FORM); setMainImageFile(null); setMainImagePreview(null); setGalleryFiles([]); setGalleryPreviews([]); setShowForm(true) }}
+          onClick={() => {
+            resetForm()
+            setShowForm(true)
+          }}
           className="btn-luxury-primary flex items-center gap-2 whitespace-nowrap"
         >
           <Plus size={18} strokeWidth={2} />
@@ -219,7 +448,6 @@ export const PortfolioDashboard = () => {
         </motion.button>
       </motion.div>
 
-      {/* Upload Form - Slides down when adding/editing */}
       <AnimatePresence>
         {showForm && (
           <motion.form
@@ -272,17 +500,16 @@ export const PortfolioDashboard = () => {
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Category</label>
-              <input
-                value={form.category}
-                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                placeholder="e.g. Residential, Commercial"
-              />
-            </div>
-
             <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Category</label>
+                <input
+                  value={form.category}
+                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                  placeholder="e.g. Residential, Commercial"
+                />
+              </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Display Order</label>
                 <input
@@ -293,24 +520,33 @@ export const PortfolioDashboard = () => {
                   placeholder="0"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Featured in Hero</label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.featured}
-                    onChange={(e) => setForm((f) => ({ ...f, featured: e.target.checked }))}
-                    className="w-5 h-5 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-2"
-                  />
-                  <span className="text-sm text-[var(--primary)]">Show this project in the homepage hero carousel</span>
-                </label>
-              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.featured}
+                  onChange={(e) => setForm((f) => ({ ...f, featured: e.target.checked }))}
+                  className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-2"
+                />
+                <span className="text-sm text-[var(--primary)]">Featured in homepage hero</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.published}
+                  onChange={(e) => setForm((f) => ({ ...f, published: e.target.checked }))}
+                  className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-2"
+                />
+                <span className="text-sm text-[var(--primary)]">Published (visible on site)</span>
+              </label>
             </div>
 
             {/* Main Image Upload */}
             <div className="space-y-2">
               <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 flex items-center gap-2">
-                <Image size={14} strokeWidth={1.5} />
+                <Images size={14} strokeWidth={1.5} />
                 Main Project Image
               </label>
               <input ref={mainFileRef} type="file" accept="image/*" onChange={(e) => handleMainFiles(e.target.files)} className="hidden" />
@@ -327,7 +563,7 @@ export const PortfolioDashboard = () => {
                 {mainImagePreview ? (
                   <div className="p-4 space-y-4">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-[var(--primary)]">Main Image (1 max)</p>
+                      <p className="text-sm font-medium text-[var(--primary)]">Main Image</p>
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
@@ -342,7 +578,7 @@ export const PortfolioDashboard = () => {
                       <img
                         src={mainImagePreview}
                         alt="Preview"
-                        className="h-40 w-full object-cover"
+                        className="h-40 w-full object-contain bg-[var(--secondary)]/10"
                       />
                       <motion.button
                         whileHover={{ scale: 1.1 }}
@@ -366,7 +602,7 @@ export const PortfolioDashboard = () => {
                     </motion.div>
                     <div>
                       <p className="text-sm font-medium text-[var(--primary)]">Drop image here or click to browse</p>
-                      <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG up to 10MB</p>
+                      <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG, WebP up to 10MB</p>
                     </div>
                   </div>
                 )}
@@ -374,74 +610,75 @@ export const PortfolioDashboard = () => {
             </div>
 
             {/* Gallery Images Upload */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 flex items-center gap-2">
-                <Images size={14} strokeWidth={1.5} />
-                Gallery Images (up to 10)
-              </label>
-              <input ref={galleryFileRef} type="file" accept="image/*" multiple onChange={(e) => handleGalleryFiles(e.target.files)} className="hidden" />
-              <motion.div
-                whileHover={{ scale: 1.01 }}
-                onDrop={handleGalleryDrop}
-                onDragOver={handleGalleryDragOver}
-                onDragLeave={handleGalleryDragLeave}
-                onClick={() => galleryFileRef.current?.click()}
-                className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 ${
-                  isDragOverGallery ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--border)] bg-[var(--bg)]/30'
-                }`}
-              >
-                {galleryPreviews.length > 0 ? (
-                  <div className="p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-[var(--primary)]">Gallery Images ({galleryPreviews.length}/10)</p>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        type="button"
-                        onClick={() => galleryFileRef.current?.click()}
-                        className="text-xs text-[var(--accent)] hover:text-[var(--primary)] font-medium"
-                      >
-                        Add More
-                      </motion.button>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {galleryPreviews.map((src, i) => (
-                        <div key={i} className="relative rounded-xl overflow-hidden group">
-                          <img
-                            src={src}
-                            alt="Gallery preview"
-                            className="h-28 w-full object-cover"
-                          />
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); removeGalleryImage(i) }}
-                            className="absolute top-1 right-1 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-1.5 rounded-full hover:bg-[var(--primary)] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X size={12} />
-                          </motion.button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-3 py-8">
-                    <motion.div
-                      animate={{ y: [0, -5, 0] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--accent)]/10 to-[var(--secondary)]/10 flex items-center justify-center text-[var(--accent)]"
-                    >
-                      <UploadCloud size={28} />
-                    </motion.div>
-                    <div>
-                      <p className="text-sm font-medium text-[var(--primary)]">Drop images here or click to browse</p>
-                      <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG up to 10MB each (max 10)</p>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            </div>
+            {renderImageSection(
+              'Gallery Images',
+              galleryFiles,
+              galleryPreviews,
+              setGalleryFiles,
+              setGalleryPreviews,
+              handleGalleryFiles,
+              removeGalleryImage,
+              galleryFileRef,
+              isDragOverGallery,
+              setIsDragOverGallery,
+              (e) => { handleGalleryDragOver(e); },
+              handleGalleryDragLeave,
+              handleGalleryDrop,
+            )}
+
+            {/* Before Images Upload */}
+            {renderImageSection(
+              'Before Images',
+              beforeFiles,
+              beforePreviews,
+              setBeforeFiles,
+              setBeforePreviews,
+              handleBeforeFiles,
+              removeBeforeImage,
+              beforeFileRef,
+              isDragOverBefore,
+              setIsDragOverBefore,
+              (e) => { handleBeforeDragOver(e); },
+              handleBeforeDragLeave,
+              handleBeforeDrop,
+            )}
+
+            {/* After Images Upload */}
+            {renderImageSection(
+              'After Images',
+              afterFiles,
+              afterPreviews,
+              setAfterFiles,
+              setAfterPreviews,
+              handleAfterFiles,
+              removeAfterImage,
+              afterFileRef,
+              isDragOverAfter,
+              setIsDragOverAfter,
+              (e) => { handleAfterDragOver(e); },
+              handleAfterDragLeave,
+              handleAfterDrop,
+            )}
+
+            {uploadProgress && uploadProgress.total > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[var(--primary)]/70 flex items-center gap-2">
+                    <Upload size={14} className="animate-bounce" />
+                    Uploading {uploadProgress.current}/{uploadProgress.total} images
+                  </span>
+                  <span className="text-xs text-[var(--primary)]/50">{uploadProgress.percent}%</span>
+                </div>
+                <div className="w-full bg-[var(--border)]/30 rounded-full h-2 overflow-hidden">
+                  <motion.div
+                    className="bg-[var(--accent)] h-2 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${uploadProgress.percent}%` }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-3 pt-2">
               <motion.button
@@ -476,13 +713,12 @@ export const PortfolioDashboard = () => {
         className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
         {portfolio.map((item, i) => {
-          const isOptimistic = optimisticUpdates.has(item._id || item.id)
           return (
             <motion.article
               layout
               key={item._id || item.id}
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: isOptimistic ? 0.5 : 1, y: 0 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               className="group bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500"
             >
@@ -491,14 +727,14 @@ export const PortfolioDashboard = () => {
                   <img
                     src={item.imageUrl}
                     alt={item.title}
-                    className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                    className="h-full w-full object-contain transition duration-700 group-hover:scale-105 bg-[var(--secondary)]/10"
                     loading="lazy"
                   />
                 ) : item.galleryImages && item.galleryImages.length > 0 ? (
                   <img
                     src={item.galleryImages[0]}
                     alt={item.title}
-                    className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                    className="h-full w-full object-contain transition duration-700 group-hover:scale-105 bg-[var(--secondary)]/10"
                     loading="lazy"
                   />
                 ) : (
@@ -508,7 +744,6 @@ export const PortfolioDashboard = () => {
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/85 via-[var(--primary)]/40 to-transparent opacity-100" />
 
-                {/* Featured Badge - Top Left */}
                 {item.featured && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.8 }}
@@ -522,7 +757,6 @@ export const PortfolioDashboard = () => {
                   </motion.div>
                 )}
 
-                {/* Gallery Count Badge - Top Right */}
                 {item.galleryImages && item.galleryImages.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.8 }}
@@ -536,7 +770,6 @@ export const PortfolioDashboard = () => {
                   </motion.div>
                 )}
 
-                {/* View Project Button - Bottom Center */}
                 <Link
                   to={`/portfolio/${item._id || item.id}`}
                   className="absolute bottom-6 left-1/2 -translate-x-1/2 btn-luxury-primary group flex items-center gap-2 text-[10px] px-5 py-2.5 rounded-full opacity-0 translate-y-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0"
@@ -545,7 +778,6 @@ export const PortfolioDashboard = () => {
                   <Eye size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
                 </Link>
 
-                {/* Quick Actions - Top Right */}
                 <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <motion.button
                     whileHover={{ scale: 1.1 }}
@@ -568,7 +800,6 @@ export const PortfolioDashboard = () => {
                 </div>
               </div>
 
-              {/* Info Card at Bottom */}
               <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
                 <motion.h3
                   initial={{ opacity: 0, y: 10 }}
