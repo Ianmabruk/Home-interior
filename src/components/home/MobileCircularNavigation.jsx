@@ -256,7 +256,7 @@ const CircleItemMobile = memo(({ item, data, reduceMotion }) => {
 
 CircleItemMobile.displayName = 'CircleItemMobile'
 
-export const MobileCircularNavigation = memo(({ portfolio = [], virtualDesigns = [], services = [], products = [], about = null, aboutImages = [], socialItems = [], blog = [], testimonials = [], workWithUs = [] }) => {
+export const MobileCircularNavigation = memo(({ portfolio = [], virtualDesigns = [], services = [], products = [], about = null, aboutImages = [], socialItems = [], blog = [], testimonials = [], workWithUs = [], shopWithUsHomepageImage = null }) => {
   const data = useMemo(() => ({
     portfolio,
     virtualDesigns,
@@ -268,7 +268,8 @@ export const MobileCircularNavigation = memo(({ portfolio = [], virtualDesigns =
     blog,
     testimonials,
     workWithUs,
-  }), [portfolio, virtualDesigns, services, products, about, aboutImages, socialItems, blog, testimonials, workWithUs])
+    shopWithUsHomepageImage,
+  }), [portfolio, virtualDesigns, services, products, about, aboutImages, socialItems, blog, testimonials, workWithUs, shopWithUsHomepageImage])
   const reduceMotion = useIsMobile()
 
   return (

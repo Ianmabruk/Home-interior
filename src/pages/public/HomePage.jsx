@@ -37,6 +37,7 @@ export const HomePage = memo(() => {
   const [blog, setBlog] = useState([])
   const [workWithUs, setWorkWithUs] = useState([])
   const [testimonials, setTestimonials] = useState([])
+  const [shopWithUsHomepageImage, setShopWithUsHomepageImage] = useState(null)
 
   const loadData = useCallback(async () => {
     try {
@@ -52,6 +53,7 @@ export const HomePage = memo(() => {
       setBlog(data.blog || [])
       setWorkWithUs(data.workWithUs || [])
       setTestimonials(data.testimonials || [])
+      setShopWithUsHomepageImage(data.shopWithUsHomepageImage || null)
 
       const homeHeroImages = data.heroImages || data.heroMedia || []
       if (Array.isArray(homeHeroImages) && homeHeroImages.length > 0) {
@@ -61,6 +63,17 @@ export const HomePage = memo(() => {
         const heroData = heroRes.data
         const heroList = Array.isArray(heroData) ? heroData : []
         setHeroImages(heroList)
+      }
+
+      if (!Array.isArray(data.workWithUs) || data.workWithUs.length === 0) {
+        try {
+          const wwuRes = await api.get('/work-with-us')
+          const wwuData = wwuRes.data
+          const wwuList = Array.isArray(wwuData) ? wwuData : []
+          setWorkWithUs(wwuList)
+        } catch (wwuErr) {
+          console.warn('[HOME] Failed to load work-with-us:', wwuErr?.message)
+        }
       }
     } catch (err) {
       console.warn('[HOME] Failed to load data, fetching individual endpoints:', err?.message)
@@ -168,6 +181,7 @@ export const HomePage = memo(() => {
           blog={blog}
           testimonials={testimonials}
           workWithUs={workWithUs}
+          shopWithUsHomepageImage={shopWithUsHomepageImage}
         />
       </SectionErrorBoundary>
 
@@ -176,7 +190,7 @@ export const HomePage = memo(() => {
         <MobileCircularNavigation
           portfolio={portfolio}
           virtualDesigns={virtualDesigns}
-          services={services}
+           services={services}
           products={products}
           about={about}
           aboutImages={aboutImages}
@@ -184,6 +198,7 @@ export const HomePage = memo(() => {
           blog={blog}
           testimonials={testimonials}
           workWithUs={workWithUs}
+          shopWithUsHomepageImage={shopWithUsHomepageImage}
         />
       </SectionErrorBoundary>
 
