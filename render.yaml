@@ -17,6 +17,4 @@ services:
         value: https://home-interior-backend.onrender.com
       - key: CLIENT_URL
         value: https://hokinteriors.co.ke
-      - key: PRISMA_MIGRATE_LOCK_TIMEOUT
-        value: "120000"
-# Deploy trigger Sun Aug 16 07:28:06 PM EAT 2026
+# Deploy trigger Mon Aug 19 07:28:06 PM EAT 2026
