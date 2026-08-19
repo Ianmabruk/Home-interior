@@ -1,4 +1,4 @@
-import { useMemo, memo } from 'react'
+import { useState, useMemo, memo } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
@@ -170,7 +170,8 @@ const PlaceholderIcons = {
 }
 
 const CircleItem = memo(({ item, data, reduceMotion }) => {
-  const imageUrl = useMemo(() => item.getImage(data), [item, data])
+  const initialImageUrl = useMemo(() => item.getImage(data), [item, data])
+  const [imageUrl, setImageUrl] = useState(initialImageUrl)
   const placeholder = PlaceholderIcons[item.key]
   const circleSize = CIRCLE_SIZE
 
@@ -217,6 +218,7 @@ const CircleItem = memo(({ item, data, reduceMotion }) => {
             decoding="async"
             width={circleSize}
             height={circleSize}
+            onError={() => setImageUrl(null)}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-[var(--primary)]/20">
