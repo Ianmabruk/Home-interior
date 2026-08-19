@@ -881,21 +881,21 @@ export const ShopDashboard = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: reduceMotion ? 0 : i * 0.05 }}
-              className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)] overflow-hidden group"
+              className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)] overflow-hidden group flex flex-col"
             >
-              <div className="relative overflow-hidden">
+              <div className="relative aspect-square overflow-hidden rounded-xl mb-3 bg-[var(--secondary)]/10">
                 {typeof item.images?.[0] === 'string' || item.images?.[0]?.url ? (
                   <img
                     src={typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url}
                     alt={item.name}
-                    className="h-44 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
                     decoding="async"
                     width={400}
-                    height={300}
+                    height={400}
                   />
                 ) : (
-                  <div className="h-44 w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
+                  <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
                     <ImageIcon size={40} />
                   </div>
                 )}
