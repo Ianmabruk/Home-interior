@@ -25,7 +25,7 @@ const EmptySection = memo(() => (
 EmptySection.displayName = 'EmptySection'
 
 export const HomePage = memo(() => {
-  const [portfolio, setPortfolio] = useState([])
+   const [portfolio, setPortfolio] = useState([])
   const [services, setServices] = useState([])
   const [virtualDesigns, setVirtualDesigns] = useState([])
   const [products, setProducts] = useState([])
@@ -45,7 +45,6 @@ export const HomePage = memo(() => {
       setPortfolio(data.portfolio || [])
       setServices(data.services || [])
       setVirtualDesigns(data.virtualInteriorDesign || data.virtualDesigns || [])
-      setHeroImages(data.heroImages || data.heroMedia || [])
       setProducts(data.products || [])
       setAbout(data.about || null)
       setAboutImages(data.aboutImages || [])
@@ -53,8 +52,50 @@ export const HomePage = memo(() => {
       setBlog(data.blog || [])
       setWorkWithUs(data.workWithUs || [])
       setTestimonials(data.testimonials || [])
+
+      const homeHeroImages = data.heroImages || data.heroMedia || []
+      if (Array.isArray(homeHeroImages) && homeHeroImages.length > 0) {
+        setHeroImages(homeHeroImages)
+      } else {
+        const heroRes = await api.get('/hero-media')
+        const heroData = heroRes.data
+        const heroList = Array.isArray(heroData) ? heroData : []
+        setHeroImages(heroList)
+      }
     } catch (err) {
-      console.warn('[HOME] Failed to load data:', err?.message)
+      console.warn('[HOME] Failed to load data, fetching individual endpoints:', err?.message)
+      try {
+        const [heroRes, portfolioRes, servicesRes, productsRes, virtualRes] = await Promise.allSettled([
+          api.get('/hero-media'),
+          api.get('/portfolio'),
+          api.get('/services'),
+          api.get('/products', { params: { sort: '-createdAt', limit: 1 } }),
+          api.get('/virtual-design'),
+        ])
+        if (heroRes.status === 'fulfilled') {
+          const heroData = heroRes.value.data
+          const heroList = Array.isArray(heroData) ? heroData : (heroData || [])
+          setHeroImages(heroList)
+        }
+        if (portfolioRes.status === 'fulfilled') {
+          const portfolioData = portfolioRes.value.data
+          setPortfolio(Array.isArray(portfolioData) ? portfolioData : [])
+        }
+        if (servicesRes.status === 'fulfilled') {
+          const servicesData = servicesRes.value.data
+          setServices(Array.isArray(servicesData) ? servicesData : [])
+        }
+        if (productsRes.status === 'fulfilled') {
+          const productsData = productsRes.value.data
+          setProducts(Array.isArray(productsData) ? productsData : [])
+        }
+        if (virtualRes.status === 'fulfilled') {
+          const virtualData = virtualRes.value.data
+          setVirtualDesigns(Array.isArray(virtualData) ? virtualData : [])
+        }
+      } catch (fallbackErr) {
+        console.warn('[HOME] Fallback fetch failed:', fallbackErr?.message)
+      }
     } finally {
       setLoading(false)
     }
