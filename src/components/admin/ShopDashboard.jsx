@@ -24,6 +24,7 @@ import { api, clearApiCache } from '../../services/api'
 import { dispatchAdminDataChanged, ADMIN_EVENT_TYPES, getAdminDataChangedPayload } from '../../utils/adminEvents'
 import { useIsMobile } from '@hooks/useIsMobile'
 import { SHOP_CATEGORIES } from '../../utils/constants'
+import { compressImages } from '../../utils/imageCompression'
 
 const INITIAL_FORM = {
   name: '',
@@ -226,18 +227,20 @@ export const ShopDashboard = () => {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  const handleImages = (e) => {
-    const files = Array.from(e.target.files || [])
-    setImageFiles(files)
-    setImagePreviews(files.map((f) => URL.createObjectURL(f)))
+  const handleImages = async (e) => {
+    const rawFiles = Array.from(e.target.files || [])
+    const compressed = await compressImages(rawFiles, { maxWidth: 1920, maxHeight: 1920, quality: 0.82 })
+    setImageFiles(compressed)
+    setImagePreviews(compressed.map((f) => URL.createObjectURL(f)))
   }
 
-  const handleImageDrop = (e) => {
+  const handleImageDrop = async (e) => {
     e.preventDefault()
     setIsDragOver(false)
-    const files = Array.from(e.dataTransfer.files || [])
-    setImageFiles(files)
-    setImagePreviews(files.map((f) => URL.createObjectURL(f)))
+    const rawFiles = Array.from(e.dataTransfer.files || [])
+    const compressed = await compressImages(rawFiles, { maxWidth: 1920, maxHeight: 1920, quality: 0.82 })
+    setImageFiles(compressed)
+    setImagePreviews(compressed.map((f) => URL.createObjectURL(f)))
   }
 
 
@@ -322,9 +325,11 @@ export const ShopDashboard = () => {
     setVariantFiles((files) => files.filter((f) => f.index !== index))
   }
 
-  const handleVariantImage = (index, e) => {
-    const file = e.target.files?.[0] || null
-    if (!file) return
+  const handleVariantImage = async (index, e) => {
+    const rawFile = e.target.files?.[0] || null
+    if (!rawFile) return
+    const compressed = await compressImages([rawFile], { maxWidth: 1600, maxHeight: 1600, quality: 0.82 })
+    const file = compressed[0] || rawFile
     const preview = URL.createObjectURL(file)
     setVariantPreviews((p) => {
       const next = [...p]
@@ -394,12 +399,14 @@ export const ShopDashboard = () => {
   }
 
   const uploadShopWithUsFromInput = async (e) => {
-    const file = e.target.files?.[0] || null
-    if (!file) return
-    if (!file.type.startsWith('image/')) {
+    const rawFile = e.target.files?.[0] || null
+    if (!rawFile) return
+    if (!rawFile.type.startsWith('image/')) {
       toast.error('Please select a valid image file.')
       return
     }
+    const compressed = await compressImages([rawFile], { maxWidth: 1600, maxHeight: 1600, quality: 0.82 })
+    const file = compressed[0] || rawFile
     setShopWithUsImage(file)
     setShopWithUsPreview(URL.createObjectURL(file))
   }

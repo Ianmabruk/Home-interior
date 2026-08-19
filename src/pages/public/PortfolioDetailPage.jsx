@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, ArrowUpRight, ArrowRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowRight, Images } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '@services/api'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
@@ -14,7 +14,7 @@ export const PortfolioDetailPage = () => {
   const [loading, setLoading] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
-  const [lightboxType, setLightboxType] = useState('gallery')
+  const [lightboxType, setLightboxType] = useState('before')
 
   const { style: zoomStyle, handleWheel, handleMouseDown, handleTouchStart, reset, handleTouchEnd } = useZoom()
 
@@ -44,16 +44,6 @@ export const PortfolioDetailPage = () => {
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
   }, [loadProject])
 
-  const galleryImages = useMemo(() => {
-    if (!project) return []
-    const imgs = []
-    if (project.imageUrl || project.mediaUrl) imgs.push(project.imageUrl || project.mediaUrl)
-    if (project.galleryImages && project.galleryImages.length > 0) {
-      project.galleryImages.forEach((img) => imgs.push(typeof img === 'string' ? img : img.url))
-    }
-    return [...new Set(imgs.filter(Boolean))]
-  }, [project])
-
   const beforeImages = useMemo(() => {
     if (!project) return []
     if (project.beforeImages && Array.isArray(project.beforeImages)) {
@@ -70,13 +60,17 @@ export const PortfolioDetailPage = () => {
     return []
   }, [project])
 
-  const displayImages = lightboxType === 'gallery' ? galleryImages : lightboxType === 'before' ? beforeImages : afterImages
+  const heroImage = project?.imageUrl || beforeImages[0] || afterImages[0] || null
+
+  const displayImages = lightboxType === 'before' ? beforeImages : afterImages
 
   const handleLightboxNext = () => {
+    if (displayImages.length === 0) return
     setCurrentImageIndex((prev) => (prev + 1) % displayImages.length)
   }
 
   const handleLightboxPrev = () => {
+    if (displayImages.length === 0) return
     setCurrentImageIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length)
   }
 
@@ -114,10 +108,10 @@ export const PortfolioDetailPage = () => {
       <PageMeta
         title={`${project.title} — HOK Interior Designs`}
         description={project.description || `Explore ${project.title} portfolio project.`}
-        image={galleryImages[0]}
+        image={heroImage}
       />
       <div className="min-h-screen bg-[var(--bg)]">
-        {/* Hero Gallery */}
+        {/* Hero Image */}
         <section className="relative">
           <div className="relative aspect-[16/10] md:aspect-[3/2] overflow-hidden">
             <div
@@ -132,86 +126,28 @@ export const PortfolioDetailPage = () => {
               onMouseLeave={handleTouchEnd}
             >
               <AnimatePresence mode="wait">
-                <motion.img
-                  key={currentImageIndex}
-                  src={getOptimizedUrl(galleryImages[currentImageIndex], { width: 1920, crop: 'limit' })}
-                  alt={`${project.title} - Image ${currentImageIndex + 1}`}
-                  className="h-full w-full object-contain bg-[var(--secondary)]/5"
-                  initial={{ opacity: 0, scale: 1.05 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                />
+                {heroImage ? (
+                  <motion.img
+                    key="hero"
+                    src={getOptimizedUrl(heroImage, { width: 1920, crop: 'limit' })}
+                    alt={project.title}
+                    className="h-full w-full object-contain bg-[var(--secondary)]/5"
+                    initial={{ opacity: 0, scale: 1.05 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                ) : (
+                  <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
+                    <Images size={48} />
+                  </div>
+                )}
               </AnimatePresence>
             </div>
-
-            {galleryImages.length > 1 && (
-              <>
-                <button
-                  onClick={handleLightboxPrev}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-[var(--primary)] shadow-lg hover:bg-white transition-colors md:left-8"
-                  aria-label="Previous image"
-                >
-                  <ChevronLeft size={24} strokeWidth={1.5} />
-                </button>
-                <button
-                  onClick={handleLightboxNext}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-[var(--primary)] shadow-lg hover:bg-white transition-colors md:right-8"
-                  aria-label="Next image"
-                >
-                  <ChevronRight size={24} strokeWidth={1.5} />
-                </button>
-
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 md:bottom-8">
-                  {galleryImages.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentImageIndex(index)}
-                      className={`h-2 w-2 rounded-full transition-all duration-300 ${
-                        index === currentImageIndex ? 'bg-white w-8' : 'bg-white/50 hover:bg-white/75'
-                      }`}
-                      aria-label={`Go to image ${index + 1}`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-
-            <button
-              onClick={() => openLightbox('gallery', 0)}
-              className="absolute bottom-4 right-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-[var(--primary)] shadow-lg hover:bg-white transition-colors md:bottom-8 md:right-8"
-              aria-label="Open fullscreen gallery"
-            >
-              <ArrowUpRight size={24} strokeWidth={1.5} />
-            </button>
           </div>
-
-          {/* Thumbnail Strip */}
-          {galleryImages.length > 1 && (
-            <div className="mt-6 px-6 md:px-12 lg:px-20">
-              <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
-                {galleryImages.map((img, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentImageIndex(index)}
-                    className={`flex-shrink-0 h-20 w-28 md:h-24 md:w-32 rounded-xl overflow-hidden border-2 transition-all duration-300 ${
-                      index === currentImageIndex ? 'border-[var(--accent)] shadow-[0_0_0_2px_rgba(232,154,67,0.3)]' : 'border-transparent hover:border-[var(--accent)]/40'
-                    }`}
-                  >
-                    <img
-                      src={getOptimizedUrl(img, { width: 200, crop: 'limit' })}
-                      alt={`${project.title} - Image ${index + 1}`}
-                      className="h-full w-full object-contain bg-[var(--secondary)]/10"
-                      loading="lazy"
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </section>
 
-        {/* Project Details - Scrollable Container */}
+        {/* Project Details */}
         <section className="px-6 md:px-12 lg:px-20 py-16 md:py-24">
           <div className="container-wide max-w-4xl mx-auto">
             <div className="grid gap-12">
@@ -348,7 +284,7 @@ export const PortfolioDetailPage = () => {
             onClick={() => setLightboxOpen(false)}
             role="dialog"
             aria-modal="true"
-            aria-label="Fullscreen gallery"
+            aria-label="Fullscreen image gallery"
           >
             <button
               onClick={() => setLightboxOpen(false)}
@@ -392,7 +328,7 @@ export const PortfolioDetailPage = () => {
                 <motion.img
                   key={currentImageIndex}
                   src={getOptimizedUrl(displayImages[currentImageIndex], { width: 2560, crop: 'limit' })}
-                  alt={`${project.title} - Image ${currentImageIndex + 1}`}
+                  alt={`${project.title} - ${lightboxType} ${currentImageIndex + 1}`}
                   className="max-h-[90vh] max-w-[90vw] object-contain"
                   initial={{ opacity: 0, scale: 1.05 }}
                   animate={{ opacity: 1, scale: 1 }}

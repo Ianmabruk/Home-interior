@@ -23,7 +23,6 @@ export const portfolioController = {
 
   create: asyncHandler(async (req, res) => {
     const file = req.files?.media?.[0] || null
-    const galleryFiles = Array.isArray(req.files?.gallery) ? req.files.gallery : []
     const beforeFiles = Array.isArray(req.files?.before) ? req.files.before : []
     const afterFiles = Array.isArray(req.files?.after) ? req.files.after : []
     const data = {
@@ -34,20 +33,17 @@ export const portfolioController = {
       displayOrder: Number(req.body.displayOrder) || 0,
       published: req.body.published !== 'false' && req.body.published !== false,
     }
-    const mediaUrls = normalizeStringArray(req.body.mediaUrls)
-    if (mediaUrls) data.mediaUrls = mediaUrls
     if (req.body.imageUrl) data.imageUrl = req.body.imageUrl
     const beforeImages = normalizeStringArray(req.body.beforeImages)
     if (beforeImages) data.beforeImages = beforeImages
     const afterImages = normalizeStringArray(req.body.afterImages)
     if (afterImages) data.afterImages = afterImages
-    const item = await portfolioService.createPortfolio(data, file, galleryFiles, beforeFiles, afterFiles)
+    const item = await portfolioService.createPortfolio(data, file, beforeFiles, afterFiles)
     res.status(201).json({ success: true, data: item })
   }),
 
   update: asyncHandler(async (req, res) => {
     const file = req.files?.media?.[0] || null
-    const galleryFiles = Array.isArray(req.files?.gallery) ? req.files.gallery : []
     const beforeFiles = Array.isArray(req.files?.before) ? req.files.before : []
     const afterFiles = Array.isArray(req.files?.after) ? req.files.after : []
     const data = {}
@@ -57,14 +53,12 @@ export const portfolioController = {
     if (req.body.featured !== undefined) data.featured = req.body.featured === 'true' || req.body.featured === true
     if (req.body.displayOrder !== undefined) data.displayOrder = Number(req.body.displayOrder) || 0
     if (req.body.published !== undefined) data.published = req.body.published !== 'false' && req.body.published !== false
-    const mediaUrls = normalizeStringArray(req.body.mediaUrls)
-    if (mediaUrls !== undefined) data.mediaUrls = mediaUrls
     if (req.body.imageUrl) data.imageUrl = req.body.imageUrl
     const beforeImages = normalizeStringArray(req.body.beforeImages)
     if (beforeImages !== undefined) data.beforeImages = beforeImages
     const afterImages = normalizeStringArray(req.body.afterImages)
     if (afterImages !== undefined) data.afterImages = afterImages
-    const item = await portfolioService.updatePortfolio(req.params.id, data, file, galleryFiles, beforeFiles, afterFiles)
+    const item = await portfolioService.updatePortfolio(req.params.id, data, file, beforeFiles, afterFiles)
     res.json({ success: true, data: item })
   }),
 

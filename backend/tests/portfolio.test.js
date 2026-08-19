@@ -112,11 +112,11 @@ describe('Portfolio', () => {
     expect(detailRes.body.data.afterImages).toEqual([])
   })
 
-  it('should accept up to 21 gallery images', async () => {
+  it('should accept up to 21 before images', async () => {
     const req = request(app)
       .post(`${API}/admin/portfolio`)
       .set(authHeaders())
-      .field('title', 'test_21Images')
+      .field('title', 'test_21BeforeImages')
       .field('description', 'Testing 21 image limit')
       .field('category', 'Test')
       .field('featured', 'false')
@@ -124,12 +124,32 @@ describe('Portfolio', () => {
 
     for (let i = 0; i < 21; i++) {
       const img = makeFakeImage(`image_${i + 1}.png`)
-      req.attach('gallery', img.buffer, img.name)
+      req.attach('before', img.buffer, img.name)
     }
 
     const res = await req
     expect(res.status).toBe(201)
     expect(res.body.success).toBe(true)
+    expect(res.body.data.beforeImages).toHaveLength(21)
+  })
+
+  it('should reject more than 21 before images', async () => {
+    const req = request(app)
+      .post(`${API}/admin/portfolio`)
+      .set(authHeaders())
+      .field('title', 'test_TooManyBefore')
+      .field('description', 'Testing 22 image limit')
+      .field('category', 'Test')
+      .field('featured', 'false')
+      .field('displayOrder', '0')
+
+    for (let i = 0; i < 22; i++) {
+      const img = makeFakeImage(`image_${i + 1}.png`)
+      req.attach('before', img.buffer, img.name)
+    }
+
+    const res = await req
+    expect(res.status).toBe(400)
   })
 
   it('should accept before and after images', async () => {

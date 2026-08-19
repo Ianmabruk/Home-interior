@@ -9,7 +9,7 @@ async function getHomepage() {
           where: { published: true },
           orderBy: { displayOrder: 'asc' },
           take: 12,
-          select: { id: true, title: true, imageUrl: true, mediaUrls: true, featured: true, beforeImages: true, afterImages: true },
+          select: { id: true, title: true, imageUrl: true, featured: true, beforeImages: true, afterImages: true },
         }),
         prisma.virtualDesign.findMany({
           where: { published: true },

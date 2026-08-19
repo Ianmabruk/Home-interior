@@ -18,6 +18,11 @@ export function errorHandler(err, req, res, next) {
     return res.status(413).json({ success: false, message: 'Uploaded file is too large' })
   }
 
+  if (err?.name === 'MulterError' && err?.code === 'LIMIT_UNEXPECTED_FILE') {
+    res.setHeader('X-Server-ID', SERVER_ID)
+    return res.status(400).json({ success: false, message: `Too many files uploaded for field '${err?.field || 'unknown'}'. Maximum limit exceeded.` })
+  }
+
   if (err?.code === 'P2002') {
     res.setHeader('X-Server-ID', SERVER_ID)
     return res.status(409).json({ success: false, message: 'Duplicate value violates a unique constraint' })

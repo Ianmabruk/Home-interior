@@ -4,6 +4,7 @@ import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Loader2, Upload, Star 
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
+import { compressImages } from '../../utils/imageCompression'
 import { Link } from 'react-router-dom'
 
 const INITIAL_FORM = {
@@ -23,8 +24,6 @@ export const PortfolioDashboard = () => {
   const [editingId, setEditingId] = useState(null)
   const [mainImageFile, setMainImageFile] = useState(null)
   const [mainImagePreview, setMainImagePreview] = useState(null)
-  const [galleryFiles, setGalleryFiles] = useState([])
-  const [galleryPreviews, setGalleryPreviews] = useState([])
   const [beforeFiles, setBeforeFiles] = useState([])
   const [beforePreviews, setBeforePreviews] = useState([])
   const [afterFiles, setAfterFiles] = useState([])
@@ -33,12 +32,10 @@ export const PortfolioDashboard = () => {
   const [uploadProgress, setUploadProgress] = useState(null)
   const [deleteId, setDeleteId] = useState(null)
   const [isDragOverMain, setIsDragOverMain] = useState(false)
-  const [isDragOverGallery, setIsDragOverGallery] = useState(false)
   const [isDragOverBefore, setIsDragOverBefore] = useState(false)
   const [isDragOverAfter, setIsDragOverAfter] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const mainFileRef = useRef(null)
-  const galleryFileRef = useRef(null)
   const beforeFileRef = useRef(null)
   const afterFileRef = useRef(null)
 
@@ -70,18 +67,20 @@ export const PortfolioDashboard = () => {
     })
   }
 
-  const handleMainFiles = (files) => {
+  const handleMainFiles = async (files) => {
     const validFiles = Array.from(files).filter((f) => f.type.startsWith('image/'))
-    if (validFiles.length > 0) {
+    if (validFiles.length === 0) return
+    const compressed = await compressImages([validFiles[0]], { maxWidth: 1920, maxHeight: 1920 })
+    if (compressed.length > 0) {
       if (mainImagePreview && mainImagePreview.startsWith('blob:')) {
         URL.revokeObjectURL(mainImagePreview)
       }
-      setMainImageFile(validFiles[0])
-      setMainImagePreview(URL.createObjectURL(validFiles[0]))
+      setMainImageFile(compressed[0])
+      setMainImagePreview(URL.createObjectURL(compressed[0]))
     }
   }
 
-  const handleImageFiles = (files, setFiles, setPreviews, existingCount) => {
+  const handleImageFiles = async (files, setFiles, setPreviews, existingCount) => {
     const validFiles = Array.from(files).filter((f) => f.type.startsWith('image/'))
     const totalAfter = existingCount + validFiles.length
     if (totalAfter > MAX_IMAGES) {
@@ -90,39 +89,33 @@ export const PortfolioDashboard = () => {
       validFiles.splice(allowed)
     }
     if (validFiles.length === 0) return
+
+    const compressed = await compressImages(validFiles, { maxWidth: 1600, maxHeight: 1600 })
+    if (compressed.length === 0) return
+
     setFiles((prev) => {
-      const newFiles = [...prev, ...validFiles]
+      const newFiles = [...prev, ...compressed]
       setPreviews((prevPreviews) => {
         const newPreviews = [...prevPreviews]
-        validFiles.forEach((f) => newPreviews.push(URL.createObjectURL(f)))
+        compressed.forEach((f) => newPreviews.push(URL.createObjectURL(f)))
         return newPreviews
       })
       return newFiles
     })
   }
 
-  const handleGalleryFiles = (files) => {
-    handleImageFiles(files, setGalleryFiles, setGalleryPreviews, galleryFiles.length)
-  }
-
   const handleBeforeFiles = (files) => {
-    handleImageFiles(files, setBeforeFiles, setBeforePreviews, beforeFiles.length)
+    handleImageFiles(files, setBeforeFiles, setBeforePreviews, beforeFiles.filter((f) => f instanceof File).length)
   }
 
   const handleAfterFiles = (files) => {
-    handleImageFiles(files, setAfterFiles, setAfterPreviews, afterFiles.length)
+    handleImageFiles(files, setAfterFiles, setAfterPreviews, afterFiles.filter((f) => f instanceof File).length)
   }
 
   const handleMainDrop = (e) => {
     e.preventDefault()
     setIsDragOverMain(false)
     handleMainFiles(e.dataTransfer.files)
-  }
-
-  const handleGalleryDrop = (e) => {
-    e.preventDefault()
-    setIsDragOverGallery(false)
-    handleGalleryFiles(e.dataTransfer.files)
   }
 
   const handleBeforeDrop = (e) => {
@@ -138,12 +131,10 @@ export const PortfolioDashboard = () => {
   }
 
   const handleMainDragOver = (e) => { e.preventDefault(); setIsDragOverMain(true) }
-  const handleGalleryDragOver = (e) => { e.preventDefault(); setIsDragOverGallery(true) }
   const handleBeforeDragOver = (e) => { e.preventDefault(); setIsDragOverBefore(true) }
   const handleAfterDragOver = (e) => { e.preventDefault(); setIsDragOverAfter(true) }
 
   const handleMainDragLeave = () => setIsDragOverMain(false)
-  const handleGalleryDragLeave = () => setIsDragOverGallery(false)
   const handleBeforeDragLeave = () => setIsDragOverBefore(false)
   const handleAfterDragLeave = () => setIsDragOverAfter(false)
 
@@ -167,10 +158,6 @@ export const PortfolioDashboard = () => {
     })
   }
 
-  const removeGalleryImage = (index) => {
-    removeFileImage(index, setGalleryFiles, setGalleryPreviews)
-  }
-
   const removeBeforeImage = (index) => {
     removeFileImage(index, setBeforeFiles, setBeforePreviews)
   }
@@ -191,8 +178,6 @@ export const PortfolioDashboard = () => {
     })
     setMainImageFile(item.imageUrl ? { url: item.imageUrl } : null)
     setMainImagePreview(item.imageUrl || null)
-    setGalleryFiles(item.galleryImages ? item.galleryImages.map((url) => ({ url })) : [])
-    setGalleryPreviews(item.galleryImages ? [...item.galleryImages] : [])
     setBeforeFiles(item.beforeImages ? item.beforeImages.map((url) => ({ url })) : [])
     setBeforePreviews(item.beforeImages ? [...item.beforeImages] : [])
     setAfterFiles(item.afterImages ? item.afterImages.map((url) => ({ url })) : [])
@@ -201,7 +186,6 @@ export const PortfolioDashboard = () => {
   }
 
   const resetForm = () => {
-    resetPreviews(galleryPreviews)
     resetPreviews(beforePreviews)
     resetPreviews(afterPreviews)
     if (mainImagePreview && mainImagePreview.startsWith('blob:')) {
@@ -211,8 +195,6 @@ export const PortfolioDashboard = () => {
     setForm(INITIAL_FORM)
     setMainImageFile(null)
     setMainImagePreview(null)
-    setGalleryFiles([])
-    setGalleryPreviews([])
     setBeforeFiles([])
     setBeforePreviews([])
     setAfterFiles([])
@@ -226,22 +208,24 @@ export const PortfolioDashboard = () => {
     setUploadProgress(null)
 
     try {
-      const totalFiles = galleryFiles.filter((f) => f instanceof File).length +
-        beforeFiles.filter((f) => f instanceof File).length +
-        afterFiles.filter((f) => f instanceof File).length
+      const newBeforeFiles = beforeFiles.filter((f) => f instanceof File)
+      const newAfterFiles = afterFiles.filter((f) => f instanceof File)
+      const totalNewFiles = newBeforeFiles.length + newAfterFiles.length
       let uploaded = 0
-      let lastProgress = 0
+      let lastPercent = 0
 
-      const trackProgress = () => {
+      const updateProgress = () => {
         uploaded++
-        const percent = Math.round((uploaded / totalFiles) * 100)
-        if (percent > lastProgress) {
-          lastProgress = percent
-          setUploadProgress({
-            current: uploaded,
-            total: totalFiles,
-            percent,
-          })
+        if (totalNewFiles > 0) {
+          const percent = Math.round((uploaded / totalNewFiles) * 100)
+          if (percent > lastPercent || percent === 100) {
+            lastPercent = percent
+            setUploadProgress({
+              current: uploaded,
+              total: totalNewFiles,
+              percent,
+            })
+          }
         }
       }
 
@@ -255,48 +239,40 @@ export const PortfolioDashboard = () => {
 
       if (mainImageFile && mainImageFile instanceof File) {
         payload.append('media', mainImageFile)
+      } else if (mainImageFile?.url) {
+        payload.append('imageUrl', mainImageFile.url)
       }
 
-      galleryFiles.forEach((file) => {
-        if (file instanceof File) {
-          payload.append('gallery', file)
-          trackProgress()
-        } else if (file?.url) {
-          payload.append('mediaUrls', file.url)
-        }
+      newBeforeFiles.forEach((file) => {
+        payload.append('before', file)
+      })
+      beforeFiles.filter((f) => !(f instanceof File)).forEach((f) => {
+        if (f?.url) payload.append('beforeImages', f.url)
       })
 
-      beforeFiles.forEach((file) => {
-        if (file instanceof File) {
-          payload.append('before', file)
-          trackProgress()
-        } else if (file?.url) {
-          payload.append('beforeImages', file.url)
-        }
+      newAfterFiles.forEach((file) => {
+        payload.append('after', file)
       })
-
-      afterFiles.forEach((file) => {
-        if (file instanceof File) {
-          payload.append('after', file)
-          trackProgress()
-        } else if (file?.url) {
-          payload.append('afterImages', file.url)
-        }
+      afterFiles.filter((f) => !(f instanceof File)).forEach((f) => {
+        if (f?.url) payload.append('afterImages', f.url)
       })
 
       if (editingId) {
-        await api.patch(`/admin/portfolio/${editingId}`, payload)
+        await api.patch(`/admin/portfolio/${editingId}`, payload, {
+          onUploadProgress: () => updateProgress(),
+        })
       } else {
-        await api.post('/admin/portfolio', payload)
+        await api.post('/admin/portfolio', payload, {
+          onUploadProgress: () => updateProgress(),
+        })
       }
 
+      updateProgress()
       resetForm()
       load()
       dispatchAdminDataChanged('portfolio-changed')
-      if (totalFiles > 0) {
-        toast.success(
-          `${totalFiles}/${totalFiles} images uploaded successfully`,
-        )
+      if (totalNewFiles > 0) {
+        toast.success(`${uploaded}/${totalNewFiles} images uploaded successfully`)
       } else {
         toast.success(editingId ? 'Portfolio project updated successfully.' : 'Portfolio project uploaded successfully.')
       }
@@ -327,6 +303,73 @@ export const PortfolioDashboard = () => {
       toast.error(err?.message || 'Failed to delete portfolio project.')
     }
   }
+
+  const renderMainImageSection = () => (
+    <div className="space-y-2">
+      <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 flex items-center gap-2">
+        <Images size={14} strokeWidth={1.5} />
+        Main Project Image <span className="text-[var(--error)]">*</span>
+      </label>
+      <input ref={mainFileRef} type="file" accept="image/*" onChange={(e) => handleMainFiles(e.target.files)} className="hidden" />
+      <motion.div
+        whileHover={{ scale: 1.01 }}
+        onDrop={handleMainDrop}
+        onDragOver={handleMainDragOver}
+        onDragLeave={handleMainDragLeave}
+        onClick={() => mainFileRef.current?.click()}
+        className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 ${
+          isDragOverMain ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--border)] bg-[var(--bg)]/30'
+        }`}
+      >
+        {mainImagePreview ? (
+          <div className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-[var(--primary)]">Main Image</p>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                type="button"
+                onClick={() => mainFileRef.current?.click()}
+                className="text-xs text-[var(--accent)] hover:text-[var(--primary)] font-medium"
+              >
+                Replace
+              </motion.button>
+            </div>
+            <div className="relative rounded-xl overflow-hidden group">
+              <img
+                src={mainImagePreview}
+                alt="Preview"
+                className="h-40 w-full object-contain bg-[var(--secondary)]/10"
+              />
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); removeMainImage() }}
+                className="absolute top-2 right-2 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-2 rounded-full hover:bg-[var(--primary)] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X size={14} />
+              </motion.button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3 py-8">
+            <motion.div
+              animate={{ y: [0, -5, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--accent)]/10 to-[var(--secondary)]/10 flex items-center justify-center text-[var(--accent)]"
+            >
+              <UploadCloud size={28} />
+            </motion.div>
+            <div>
+              <p className="text-sm font-medium text-[var(--primary)]">Drop image here or click to browse</p>
+              <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG, WebP up to 10MB (exactly 1)</p>
+            </div>
+          </div>
+        )}
+      </motion.div>
+    </div>
+  )
 
   const renderImageSection = (
     title,
@@ -543,90 +586,8 @@ export const PortfolioDashboard = () => {
               </label>
             </div>
 
-            {/* Main Image Upload */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 flex items-center gap-2">
-                <Images size={14} strokeWidth={1.5} />
-                Main Project Image
-              </label>
-              <input ref={mainFileRef} type="file" accept="image/*" onChange={(e) => handleMainFiles(e.target.files)} className="hidden" />
-              <motion.div
-                whileHover={{ scale: 1.01 }}
-                onDrop={handleMainDrop}
-                onDragOver={handleMainDragOver}
-                onDragLeave={handleMainDragLeave}
-                onClick={() => mainFileRef.current?.click()}
-                className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 ${
-                  isDragOverMain ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--border)] bg-[var(--bg)]/30'
-                }`}
-              >
-                {mainImagePreview ? (
-                  <div className="p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-[var(--primary)]">Main Image</p>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        type="button"
-                        onClick={() => mainFileRef.current?.click()}
-                        className="text-xs text-[var(--accent)] hover:text-[var(--primary)] font-medium"
-                      >
-                        Replace
-                      </motion.button>
-                    </div>
-                    <div className="relative rounded-xl overflow-hidden group">
-                      <img
-                        src={mainImagePreview}
-                        alt="Preview"
-                        className="h-40 w-full object-contain bg-[var(--secondary)]/10"
-                      />
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); removeMainImage() }}
-                        className="absolute top-2 right-2 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-2 rounded-full hover:bg-[var(--primary)] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X size={14} />
-                      </motion.button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-3 py-8">
-                    <motion.div
-                      animate={{ y: [0, -5, 0] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--accent)]/10 to-[var(--secondary)]/10 flex items-center justify-center text-[var(--accent)]"
-                    >
-                      <UploadCloud size={28} />
-                    </motion.div>
-                    <div>
-                      <p className="text-sm font-medium text-[var(--primary)]">Drop image here or click to browse</p>
-                      <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG, WebP up to 10MB</p>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            </div>
+            {renderMainImageSection()}
 
-            {/* Gallery Images Upload */}
-            {renderImageSection(
-              'Gallery Images',
-              galleryFiles,
-              galleryPreviews,
-              setGalleryFiles,
-              setGalleryPreviews,
-              handleGalleryFiles,
-              removeGalleryImage,
-              galleryFileRef,
-              isDragOverGallery,
-              setIsDragOverGallery,
-              (e) => { handleGalleryDragOver(e); },
-              handleGalleryDragLeave,
-              handleGalleryDrop,
-            )}
-
-            {/* Before Images Upload */}
             {renderImageSection(
               'Before Images',
               beforeFiles,
@@ -638,12 +599,11 @@ export const PortfolioDashboard = () => {
               beforeFileRef,
               isDragOverBefore,
               setIsDragOverBefore,
-              (e) => { handleBeforeDragOver(e); },
+              handleBeforeDragOver,
               handleBeforeDragLeave,
               handleBeforeDrop,
             )}
 
-            {/* After Images Upload */}
             {renderImageSection(
               'After Images',
               afterFiles,
@@ -655,7 +615,7 @@ export const PortfolioDashboard = () => {
               afterFileRef,
               isDragOverAfter,
               setIsDragOverAfter,
-              (e) => { handleAfterDragOver(e); },
+              handleAfterDragOver,
               handleAfterDragLeave,
               handleAfterDrop,
             )}
@@ -705,7 +665,6 @@ export const PortfolioDashboard = () => {
         )}
       </AnimatePresence>
 
-      {/* Portfolio Gallery - Clean Luxury Grid */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -713,6 +672,9 @@ export const PortfolioDashboard = () => {
         className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
         {portfolio.map((item, i) => {
+          const previewUrl = item.imageUrl || item.beforeImages?.[0] || item.afterImages?.[0] || null
+          const imageCount = (item.beforeImages?.length || 0) + (item.afterImages?.length || 0)
+
           return (
             <motion.article
               layout
@@ -723,16 +685,9 @@ export const PortfolioDashboard = () => {
               className="group bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500"
             >
               <div className="relative aspect-[3/4] overflow-hidden">
-                {item.imageUrl ? (
+                {previewUrl ? (
                   <img
-                    src={item.imageUrl}
-                    alt={item.title}
-                    className="h-full w-full object-contain transition duration-700 group-hover:scale-105 bg-[var(--secondary)]/10"
-                    loading="lazy"
-                  />
-                ) : item.galleryImages && item.galleryImages.length > 0 ? (
-                  <img
-                    src={item.galleryImages[0]}
+                    src={previewUrl}
                     alt={item.title}
                     className="h-full w-full object-contain transition duration-700 group-hover:scale-105 bg-[var(--secondary)]/10"
                     loading="lazy"
@@ -757,7 +712,7 @@ export const PortfolioDashboard = () => {
                   </motion.div>
                 )}
 
-                {item.galleryImages && item.galleryImages.length > 0 && (
+                {imageCount > 0 && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -765,7 +720,7 @@ export const PortfolioDashboard = () => {
                   >
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--primary)]/90 backdrop-blur-sm text-white text-[10px] font-semibold uppercase tracking-widest rounded-full shadow-lg">
                       <Images size={10} strokeWidth={2} />
-                      {item.galleryImages.length} photos
+                      {imageCount} photos
                     </span>
                   </motion.div>
                 )}
@@ -810,7 +765,7 @@ export const PortfolioDashboard = () => {
                 >
                   {item.title}
                 </motion.h3>
-                {(item.galleryImages && item.galleryImages.length > 0) && (
+                {imageCount > 0 && (
                   <motion.p
                     initial={{ opacity: 0, y: 10 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -818,7 +773,7 @@ export const PortfolioDashboard = () => {
                     transition={{ delay: 0.15 }}
                     className="mt-2 text-sm leading-relaxed text-[var(--primary)]/60"
                   >
-                    {item.galleryImages.length} gallery image{item.galleryImages.length > 1 ? 's' : ''}
+                    {imageCount} image{imageCount > 1 ? 's' : ''}
                   </motion.p>
                 )}
               </div>
@@ -841,7 +796,6 @@ export const PortfolioDashboard = () => {
         )}
       </motion.div>
 
-      {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {deleteId && (
           <motion.div

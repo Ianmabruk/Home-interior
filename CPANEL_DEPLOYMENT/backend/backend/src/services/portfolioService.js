@@ -18,8 +18,6 @@ function mapPortfolio(item) {
     imageUrl: item.imageUrl,
     mediaUrl: item.imageUrl,
     cloudinaryId: item.cloudinaryId,
-    mediaUrls: item.mediaUrls || [],
-    galleryImages: item.mediaUrls || [],
     beforeImages: item.beforeImages || [],
     afterImages: item.afterImages || [],
     createdAt: item.createdAt,
@@ -51,7 +49,6 @@ async function listPortfolio({ sort = '-createdAt', limit = 100 } = {}) {
         published: true,
         imageUrl: true,
         cloudinaryId: true,
-        mediaUrls: true,
         beforeImages: true,
         afterImages: true,
         createdAt: true,
@@ -93,15 +90,9 @@ async function uploadImageFiles(files, folder) {
   return { urls, errors }
 }
 
-async function createPortfolio(data, file, galleryFiles = [], beforeFiles = [], afterFiles = []) {
+async function createPortfolio(data, file, beforeFiles = [], afterFiles = []) {
   const createData = { ...data }
-  const mediaUrls = []
-  const beforeImages = [...(data.beforeImages || [])]
-  const afterImages = [...(data.afterImages || [])]
 
-  if (galleryFiles.length > MAX_IMAGES_PER_SECTION) {
-    throw failure(400, `Gallery: Maximum ${MAX_IMAGES_PER_SECTION} images allowed`)
-  }
   if (beforeFiles.length > MAX_IMAGES_PER_SECTION) {
     throw failure(400, `Before: Maximum ${MAX_IMAGES_PER_SECTION} images allowed`)
   }
@@ -109,14 +100,8 @@ async function createPortfolio(data, file, galleryFiles = [], beforeFiles = [], 
     throw failure(400, `After: Maximum ${MAX_IMAGES_PER_SECTION} images allowed`)
   }
 
-  if (galleryFiles.length > 0) {
-    const { urls, errors } = await uploadImageFiles(galleryFiles, 'portfolio')
-    if (errors.length > 0) {
-      const errorDetails = errors.map((e) => `${e.file}: ${e.error}`).join('; ')
-      throw failure(400, `Gallery upload failed: ${errorDetails}`)
-    }
-    mediaUrls.push(...urls)
-  }
+  const beforeImages = [...(data.beforeImages || [])]
+  const afterImages = [...(data.afterImages || [])]
 
   if (beforeFiles.length > 0) {
     const { urls, errors } = await uploadImageFiles(beforeFiles, 'portfolio/before')
@@ -136,7 +121,6 @@ async function createPortfolio(data, file, galleryFiles = [], beforeFiles = [], 
     afterImages.push(...urls)
   }
 
-  if (mediaUrls.length > 0) createData.mediaUrls = mediaUrls
   if (beforeImages.length > 0) createData.beforeImages = beforeImages
   if (afterImages.length > 0) createData.afterImages = afterImages
 
@@ -144,15 +128,15 @@ async function createPortfolio(data, file, galleryFiles = [], beforeFiles = [], 
     const uploaded = await uploadFile(file.buffer, file.mimetype, 'portfolio')
     createData.imageUrl = uploaded.url
     createData.cloudinaryId = uploaded.path
-  } else if (!createData.imageUrl && (mediaUrls.length > 0 || beforeImages.length > 0)) {
-    createData.imageUrl = mediaUrls[0] || beforeImages[0]
+  } else if (!createData.imageUrl && (beforeImages.length > 0 || afterImages.length > 0)) {
+    createData.imageUrl = beforeImages[0] || afterImages[0]
   }
 
   const item = await prisma.portfolioProject.create({ data: createData })
   return mapPortfolio(item)
 }
 
-async function updatePortfolio(id, data, file, galleryFiles = [], beforeFiles = [], afterFiles = []) {
+async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []) {
   const existing = await prisma.portfolioProject.findUnique({ where: { id } })
   if (!existing) throw failure(404, 'Portfolio item not found')
 
@@ -165,56 +149,41 @@ async function updatePortfolio(id, data, file, galleryFiles = [], beforeFiles = 
     updateData.cloudinaryId = uploaded.path
   }
 
-  const mediaUrls = [...(existing.mediaUrls || [])]
-  if (galleryFiles.length > 0) {
-    if (galleryFiles.length > MAX_IMAGES_PER_SECTION) {
-      throw failure(400, `Gallery: Maximum ${MAX_IMAGES_PER_SECTION} images allowed`)
-    }
-    const { urls, errors } = await uploadImageFiles(galleryFiles, 'portfolio')
-    if (errors.length > 0) {
-      const errorDetails = errors.map(e => `${e.file}: ${e.error}`).join('; ')
-      throw failure(400, `Some gallery uploads failed: ${errorDetails}`)
-    }
-    mediaUrls.push(...urls)
-  }
-
-  if (updateData.mediaUrls === undefined) {
-    updateData.mediaUrls = mediaUrls
-  }
-
-  const beforeImages = [...(existing.beforeImages || [])]
+  const beforeImages = updateData.beforeImages || [...(existing.beforeImages || [])]
   if (beforeFiles.length > 0) {
     if (beforeFiles.length > MAX_IMAGES_PER_SECTION) {
       throw failure(400, `Before: Maximum ${MAX_IMAGES_PER_SECTION} images allowed`)
     }
     const { urls, errors } = await uploadImageFiles(beforeFiles, 'portfolio/before')
     if (errors.length > 0) {
-      const errorDetails = errors.map(e => `${e.file}: ${e.error}`).join('; ')
+      const errorDetails = errors.map((e) => `${e.file}: ${e.error}`).join('; ')
       throw failure(400, `Some before uploads failed: ${errorDetails}`)
     }
     beforeImages.push(...urls)
   }
 
-  if (updateData.beforeImages === undefined) {
-    updateData.beforeImages = beforeImages
+  if (beforeImages.length > MAX_IMAGES_PER_SECTION) {
+    beforeImages.splice(MAX_IMAGES_PER_SECTION)
   }
+  updateData.beforeImages = beforeImages
 
-  const afterImages = [...(existing.afterImages || [])]
+  const afterImages = updateData.afterImages || [...(existing.afterImages || [])]
   if (afterFiles.length > 0) {
     if (afterFiles.length > MAX_IMAGES_PER_SECTION) {
       throw failure(400, `After: Maximum ${MAX_IMAGES_PER_SECTION} images allowed`)
     }
     const { urls, errors } = await uploadImageFiles(afterFiles, 'portfolio/after')
     if (errors.length > 0) {
-      const errorDetails = errors.map(e => `${e.file}: ${e.error}`).join('; ')
+      const errorDetails = errors.map((e) => `${e.file}: ${e.error}`).join('; ')
       throw failure(400, `Some after uploads failed: ${errorDetails}`)
     }
     afterImages.push(...urls)
   }
 
-  if (updateData.afterImages === undefined) {
-    updateData.afterImages = afterImages
+  if (afterImages.length > MAX_IMAGES_PER_SECTION) {
+    afterImages.splice(MAX_IMAGES_PER_SECTION)
   }
+  updateData.afterImages = afterImages
 
   const item = await prisma.portfolioProject.update({ where: { id }, data: updateData })
   return mapPortfolio(item)
@@ -224,6 +193,6 @@ async function deletePortfolio(id) {
   const existing = await prisma.portfolioProject.findUnique({ where: { id } })
   if (!existing) throw failure(404, 'Portfolio item not found')
   if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
-  await deleteFiles([...(existing.mediaUrls || []), ...(existing.beforeImages || []), ...(existing.afterImages || [])])
+  await deleteFiles([...(existing.beforeImages || []), ...(existing.afterImages || [])])
   await prisma.portfolioProject.delete({ where: { id } })
 }

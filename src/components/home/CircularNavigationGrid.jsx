@@ -15,7 +15,7 @@ const NAV_ITEMS = [
       const list = data.portfolio || []
       const item = list[0]
       if (!item) return null
-      return item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
+      return item.imageUrl || item.mediaUrl || item.beforeImages?.[0] || null
     },
   },
   {

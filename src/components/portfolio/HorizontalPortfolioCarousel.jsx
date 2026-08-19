@@ -17,7 +17,7 @@ export const HorizontalPortfolioCarousel = memo(({ portfolio = [] }) => {
   const portfolioItems = useMemo(() => {
     if (!Array.isArray(portfolio)) return []
     return portfolio.filter(
-      (item) => item && (item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0])
+      (item) => item && (item.imageUrl || item.mediaUrl || item.beforeImages?.[0] || item.afterImages?.[0])
     )
   }, [portfolio])
 

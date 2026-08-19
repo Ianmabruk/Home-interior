@@ -15,3 +15,7 @@ coverage/
 REBUILD_REPORTS/
 SYSTEM_AUDIT_REPORT.md
 backups/
+
+# Upload artifacts
+backend/src/public/uploads/
+CPANEL_DEPLOYMENT/backend/backend/src/public/uploads/
