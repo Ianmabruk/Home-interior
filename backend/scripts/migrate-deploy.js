@@ -1,39 +1,73 @@
 #!/usr/bin/env node
-import { execSync } from 'child_process'
+import { execSync, spawnSync } from 'child_process'
 
-const MAX_RETRIES = 3
-const LOCK_TIMEOUT = 120000
-const RETRY_DELAY = 5000
+const MAX_RETRIES = 5
+const RETRY_DELAY = 10000
+const COMMAND_TIMEOUT = 180000
 
 async function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms))
 }
 
-for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-  console.log(`[migrate:deploy] Attempt ${attempt}/${MAX_RETRIES}`)
-  try {
-    execSync('prisma migrate deploy', {
-      stdio: 'inherit',
-      env: {
-        ...process.env,
-        PRISMA_MIGRATE_LOCK_TIMEOUT: String(LOCK_TIMEOUT),
-      },
-    })
-    console.log('[migrate:deploy] Migrations applied successfully')
-    process.exit(0)
-  } catch (err) {
-    const msg = err?.message || String(err)
-    const isLockTimeout = msg.includes('advisory lock') || msg.includes('P1002')
-    console.error(`[migrate:deploy] Attempt ${attempt} failed:`, msg.slice(0, 300))
+async function main() {
+  console.log('[migrate:deploy] Checking migration status...')
 
-    if (attempt < MAX_RETRIES && isLockTimeout) {
-      console.log(`[migrate:deploy] Lock contention detected. Waiting ${RETRY_DELAY / 1000}s before retry...`)
-      await sleep(RETRY_DELAY)
-    } else {
-      console.error('[migrate:deploy] Migration failed after all retries')
-      process.exit(1)
+  let isUpToDate = false
+  try {
+    const statusOutput = execSync('npx prisma migrate status', {
+      encoding: 'utf-8',
+      timeout: 60000,
+      env: { ...process.env },
+    })
+    isUpToDate = statusOutput.includes('Database schema is up to date!')
+  } catch {
+    /* continue to attempt deploy */
+  }
+
+  if (isUpToDate) {
+    console.log('[migrate:deploy] Database schema is already up to date. Skipping migration.')
+    return
+  }
+
+  console.log('[migrate:deploy] Pending migrations detected. Applying...')
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    console.log(`[migrate:deploy] Attempt ${attempt}/${MAX_RETRIES}`)
+    try {
+      execSync('npx prisma migrate deploy', {
+        stdio: 'inherit',
+        timeout: COMMAND_TIMEOUT,
+        env: {
+          ...process.env,
+          PGCONNECT_TIMEOUT: '60',
+        },
+      })
+      console.log('[migrate:deploy] Migrations applied successfully')
+      return
+    } catch (err) {
+      const msg = err?.message || String(err)
+      const isLockTimeout =
+        msg.includes('advisory lock') ||
+        msg.includes('P1002') ||
+        msg.includes('ETIMEDOUT') ||
+        msg.includes('timeout')
+      console.error(`[migrate:deploy] Attempt ${attempt} failed:`, msg.slice(0, 300))
+
+      if (isLockTimeout && attempt < MAX_RETRIES) {
+        console.log(`[migrate:deploy] Lock contention detected. Waiting ${RETRY_DELAY / 1000}s before retry...`)
+        await sleep(RETRY_DELAY)
+      } else {
+        console.error('[migrate:deploy] Migration failed after all retries')
+        process.exit(1)
+      }
     }
   }
+
+  console.error('[migrate:deploy] Migration failed after all retries')
+  process.exit(1)
 }
 
-process.exit(1)
+main().catch((err) => {
+  console.error('[migrate:deploy] Unexpected error:', err?.message || err)
+  process.exit(1)
+})
