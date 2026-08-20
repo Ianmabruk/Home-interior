@@ -446,7 +446,7 @@ export const ProductDetailPage = () => {
                 onWheel={handleWheel}
                 onMouseDown={handleMouseDown}
                 onTouchStart={handleTouchStart}
-                onTouchMove={(e) => { if (scale > 1) e.preventDefault(); handleTouchMove(e) }}
+                onTouchMove={(e) => { try { if (scale > 1) e.preventDefault() } catch {}; handleTouchMove(e) }}
                 onTouchEnd={handleTouchEnd}
                 onMouseUp={handleTouchEnd}
                 onMouseLeave={handleTouchEnd}

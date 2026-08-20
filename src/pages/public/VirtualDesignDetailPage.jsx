@@ -101,7 +101,7 @@ export const VirtualDesignDetailPage = () => {
               onWheel={handleWheel}
               onMouseDown={handleMouseDown}
               onTouchStart={handleTouchStart}
-              onTouchMove={(e) => e.preventDefault()}
+               onTouchMove={(e) => { try { e.preventDefault() } catch {} }}
               onTouchEnd={handleTouchEnd}
               onMouseUp={handleTouchEnd}
               onMouseLeave={handleTouchEnd}
@@ -338,7 +338,7 @@ export const VirtualDesignDetailPage = () => {
               onWheel={handleWheel}
               onMouseDown={handleMouseDown}
               onTouchStart={handleTouchStart}
-              onTouchMove={(e) => e.preventDefault()}
+               onTouchMove={(e) => { try { e.preventDefault() } catch {} }}
               onTouchEnd={handleTouchEnd}
               onMouseUp={handleTouchEnd}
               onMouseLeave={handleTouchEnd}
