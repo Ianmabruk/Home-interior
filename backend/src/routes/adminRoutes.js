@@ -74,15 +74,15 @@ router.use('/socials', adminSocialRoutes)
 // Admin Portfolio
 router.get('/portfolio', portfolioController.list)
 router.get('/portfolio/:id', portfolioController.get)
-router.post('/portfolio', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'before', maxCount: 21 }, { name: 'after', maxCount: 21 }]), portfolioController.create)
-router.patch('/portfolio/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'before', maxCount: 21 }, { name: 'after', maxCount: 21 }]), portfolioController.update)
+router.post('/portfolio', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'before', maxCount: 21 }, { name: 'after', maxCount: 21 }, { name: 'homepageCircularImage', maxCount: 1 }]), portfolioController.create)
+router.patch('/portfolio/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'before', maxCount: 21 }, { name: 'after', maxCount: 21 }, { name: 'homepageCircularImage', maxCount: 1 }]), portfolioController.update)
 router.delete('/portfolio/:id', portfolioController.delete)
 
 // Admin Virtual Designs
 router.get('/virtual-designs', virtualDesignController.list)
 router.get('/virtual-designs/:id', virtualDesignController.get)
-router.post('/virtual-designs', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), virtualDesignController.create)
-router.patch('/virtual-designs/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), virtualDesignController.update)
+router.post('/virtual-designs', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }, { name: 'homepageCircularImage', maxCount: 1 }]), virtualDesignController.create)
+router.patch('/virtual-designs/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }, { name: 'homepageCircularImage', maxCount: 1 }]), virtualDesignController.update)
 router.delete('/virtual-designs/:id', virtualDesignController.delete)
 
 // Admin Services
