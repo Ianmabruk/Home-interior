@@ -111,13 +111,9 @@ export const TestimonialDashboard = () => {
       }
 
       if (editing) {
-        await api.patch(`/admin/testimonials/${editing}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
+        await api.patch(`/admin/testimonials/${editing}`, formData)
       } else {
-        await api.post('/admin/testimonials', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
+        await api.post('/admin/testimonials', formData)
       }
       setStatus(editing ? 'Testimonial updated successfully' : 'Testimonial created successfully')
       resetForm()

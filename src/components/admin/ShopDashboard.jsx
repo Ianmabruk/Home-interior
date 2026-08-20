@@ -362,9 +362,7 @@ export const ShopDashboard = () => {
   const uploadShopWithUsImage = async (file) => {
     const payload = new FormData()
     payload.append('image', file)
-    await api.post('/admin/settings/shop-with-us-image', payload, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    await api.post('/admin/settings/shop-with-us-image', payload)
   }
 
   const saveShopWithUsImage = async () => {

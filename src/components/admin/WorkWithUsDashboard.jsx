@@ -191,14 +191,10 @@ export const WorkWithUsDashboard = () => {
         formData.append('removeHomepageCircularImage', 'true')
       }
       if (editingContent) {
-        await api.patch(`/admin/work-with-us/content/${editingContent}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
+        await api.patch(`/admin/work-with-us/content/${editingContent}`, formData)
         toast.success('Content updated successfully')
       } else {
-        await api.post('/admin/work-with-us/content', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
+        await api.post('/admin/work-with-us/content', formData)
         toast.success('Content created successfully')
       }
       setShowContentForm(false)

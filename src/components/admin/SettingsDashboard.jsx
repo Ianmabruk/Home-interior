@@ -108,14 +108,10 @@ export const SettingsDashboard = () => {
         payload.append('image', bannerFile)
       }
 
-      await api.put('/admin/settings', payload, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      await api.put('/admin/settings', payload)
 
       if (bannerFile && bannerFile instanceof File) {
-        await api.post('/admin/settings/shop-banner', payload, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
+        await api.post('/admin/settings/shop-banner', payload)
       }
 
       setStatus({ type: 'success', message: 'Settings saved successfully.' })
