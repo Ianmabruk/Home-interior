@@ -132,124 +132,124 @@ export const PortfolioDetailPage = () => {
         image={heroImage}
       />
       <div className="min-h-screen bg-[var(--bg)]">
-        {/* Hero Image */}
-        <section className="relative">
-          <div className="relative aspect-[4/3] md:aspect-[16/10] overflow-hidden">
-            {heroImage ? (
-              <img
-                src={getOptimizedUrl(heroImage, { width: 1920, crop: 'limit' })}
-                alt={project.title}
-                className="h-full w-full object-contain bg-[var(--secondary)]/5"
-                loading="eager"
-                decoding="async"
-              />
-            ) : (
-              <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
-                <Images size={48} />
+        {/* Project Header - Two Column on Desktop */}
+        <section className="px-5 md:px-12 lg:px-20 py-10 md:py-16">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+              {/* Main Image */}
+              <div className="relative rounded-2xl md:rounded-3xl overflow-hidden bg-[var(--secondary)]/10 aspect-[4/3] lg:aspect-auto lg:h-full min-h-[300px]">
+                {heroImage ? (
+                  <img
+                    src={getOptimizedUrl(heroImage, { width: 1200, crop: 'limit' })}
+                    alt={project.title}
+                    className="h-full w-full object-contain"
+                    loading="eager"
+                    decoding="async"
+                  />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-[var(--primary)]/30">
+                    <Images size={48} />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </section>
 
-        {/* Project Details */}
-        <section className="px-5 md:px-12 lg:px-20 py-12 md:py-16">
-          <div className="max-w-3xl mx-auto">
-            <div className="grid gap-10">
-              {/* Project Header */}
-              <div>
+              {/* Project Info */}
+              <div className="flex flex-col justify-center">
                 <p className="text-xs font-semibold uppercase tracking-widest text-[var(--accent)] mb-2">
                   {project.category || 'Portfolio'}
                 </p>
-                <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold text-[var(--primary)] leading-tight">
+                <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold text-[var(--primary)] leading-tight">
                   {project.title}
                 </h1>
-              </div>
 
-              {/* Description */}
-              {project.description && (
-                <div>
-                  <p className="text-lg md:text-xl text-[var(--primary)]/70 leading-relaxed">
-                    {project.description}
-                  </p>
-                </div>
-              )}
-
-              {/* Before Images Section */}
-              {beforeImages.length > 0 && (
-                <div>
-                  <h2 className="font-display text-2xl md:text-3xl font-medium text-[var(--primary)] mb-4">Before</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {beforeImages.slice(0, 6).map((img, index) => (
-                      <button
-                        key={`before-${index}`}
-                        onClick={() => openLightbox('before', index)}
-                        className="relative rounded-xl overflow-hidden border border-[var(--border)]/40 bg-[var(--secondary)]/10 aspect-video hover:border-[var(--accent)]/60 active:scale-[0.98] transition-all"
-                        aria-label={`View before image ${index + 1}`}
-                      >
-                        <img
-                          src={getOptimizedUrl(img.src, { width: 400, crop: 'limit' })}
-                          alt={`Before ${index + 1}`}
-                          className="h-full w-full object-contain"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </button>
-                    ))}
+                {project.description && (
+                  <div className="mt-6">
+                    <p className="text-base md:text-lg text-[var(--primary)]/70 leading-relaxed">
+                      {project.description}
+                    </p>
                   </div>
-                  {beforeImages.length > 6 && (
-                    <button
-                      onClick={() => openLightbox('before', 0)}
-                      className="mt-3 text-sm font-semibold text-[var(--accent)] hover:text-[var(--primary)] transition-colors"
-                    >
-                      View all {beforeImages.length} before images
-                    </button>
-                  )}
-                </div>
-              )}
+                )}
 
-              {/* After Images Section */}
-              {afterImages.length > 0 && (
-                <div>
-                  <h2 className="font-display text-2xl md:text-3xl font-medium text-[var(--primary)] mb-4">After</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {afterImages.slice(0, 6).map((img, index) => (
-                      <button
-                        key={`after-${index}`}
-                        onClick={() => openLightbox('after', index)}
-                        className="relative rounded-xl overflow-hidden border border-[var(--border)]/40 bg-[var(--secondary)]/10 aspect-video hover:border-[var(--accent)]/60 active:scale-[0.98] transition-all"
-                        aria-label={`View after image ${index + 1}`}
-                      >
-                        <img
-                          src={getOptimizedUrl(img.src, { width: 400, crop: 'limit' })}
-                          alt={`After ${index + 1}`}
-                          className="h-full w-full object-contain"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </button>
-                    ))}
-                  </div>
-                  {afterImages.length > 6 && (
-                    <button
-                      onClick={() => openLightbox('after', 0)}
-                      className="mt-3 text-sm font-semibold text-[var(--accent)] hover:text-[var(--primary)] transition-colors"
-                    >
-                      View all {afterImages.length} after images
-                    </button>
-                  )}
+                <div className="mt-8">
+                  <Link to="/portfolio" className="btn-luxury-secondary inline-flex items-center gap-2">
+                    <ArrowRight size={14} strokeWidth={1.5} className="rotate-180" />
+                    Back to Portfolio
+                  </Link>
                 </div>
-              )}
-
-              {/* Back to Portfolio */}
-              <div className="pt-6 border-t border-[var(--border)]/40">
-                <Link to="/portfolio" className="btn-luxury-secondary inline-flex items-center gap-2">
-                  <ArrowRight size={14} strokeWidth={1.5} className="rotate-180" />
-                  Back to Portfolio
-                </Link>
               </div>
             </div>
           </div>
         </section>
+
+        {/* Before Images Section */}
+        {beforeImages.length > 0 && (
+          <section className="px-5 md:px-12 lg:px-20 py-10 md:py-16 bg-[var(--secondary)]/10">
+            <div className="max-w-7xl mx-auto">
+              <h2 className="font-display text-2xl md:text-3xl font-medium text-[var(--primary)] mb-6">Before</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                {beforeImages.slice(0, 12).map((img, index) => (
+                  <button
+                    key={`before-${index}`}
+                    onClick={() => openLightbox('before', index)}
+                    className="relative rounded-xl overflow-hidden border border-[var(--border)]/40 bg-[var(--secondary)]/10 aspect-[4/3] hover:border-[var(--accent)]/60 active:scale-[0.98] transition-all"
+                    aria-label={`View before image ${index + 1}`}
+                  >
+                    <img
+                      src={getOptimizedUrl(img.src, { width: 600, crop: 'limit' })}
+                      alt={`Before ${index + 1}`}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </button>
+                ))}
+              </div>
+              {beforeImages.length > 12 && (
+                <button
+                  onClick={() => openLightbox('before', 0)}
+                  className="mt-4 text-sm font-semibold text-[var(--accent)] hover:text-[var(--primary)] transition-colors"
+                >
+                  View all {beforeImages.length} before images
+                </button>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* After Images Section */}
+        {afterImages.length > 0 && (
+          <section className="px-5 md:px-12 lg:px-20 py-10 md:py-16">
+            <div className="max-w-7xl mx-auto">
+              <h2 className="font-display text-2xl md:text-3xl font-medium text-[var(--primary)] mb-6">After</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                {afterImages.slice(0, 12).map((img, index) => (
+                  <button
+                    key={`after-${index}`}
+                    onClick={() => openLightbox('after', index)}
+                    className="relative rounded-xl overflow-hidden border border-[var(--border)]/40 bg-[var(--secondary)]/10 aspect-[4/3] hover:border-[var(--accent)]/60 active:scale-[0.98] transition-all"
+                    aria-label={`View after image ${index + 1}`}
+                  >
+                    <img
+                      src={getOptimizedUrl(img.src, { width: 600, crop: 'limit' })}
+                      alt={`After ${index + 1}`}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </button>
+                ))}
+              </div>
+              {afterImages.length > 12 && (
+                <button
+                  onClick={() => openLightbox('after', 0)}
+                  className="mt-4 text-sm font-semibold text-[var(--accent)] hover:text-[var(--primary)] transition-colors"
+                >
+                  View all {afterImages.length} after images
+                </button>
+              )}
+            </div>
+          </section>
+        )}
       </div>
 
       {/* Fullscreen Image Viewer */}

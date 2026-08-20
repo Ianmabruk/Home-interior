@@ -15,7 +15,7 @@ const NAV_ITEMS = [
       const list = data.portfolio || []
       const item = list[0]
       if (!item) return null
-      return item.homepageCircularImage || item.imageUrl || item.mediaUrl || item.beforeImages?.[0] || null
+      return item.homepageCircularImage || null
     },
   },
   {
@@ -25,7 +25,7 @@ const NAV_ITEMS = [
     getImage: (data) => {
       const item = data.services?.[0]
       if (!item) return null
-      return item.homepageCircularImage || item.imageUrl || item.mediaUrl || item.galleryImages?.[0] || null
+      return item.homepageCircularImage || null
     },
   },
   {
@@ -36,7 +36,7 @@ const NAV_ITEMS = [
       const list = data.virtualDesigns || []
       const item = list[0]
       if (!item) return null
-      return item.homepageCircularImage || item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
+      return item.homepageCircularImage || null
     },
   },
    {
@@ -44,18 +44,7 @@ const NAV_ITEMS = [
     label: 'Shop With Us',
     path: '/shop',
     getImage: (data) => {
-      if (data.shopWithUsHomepageImage) return data.shopWithUsHomepageImage
-      const list = Array.isArray(data.products) ? data.products : []
-      const product = list[0] || null
-      if (!product) return null
-      const images = Array.isArray(product.images) ? product.images : []
-      const firstImage = images.find((img) => {
-        if (typeof img === 'string') return img.trim() !== ''
-        return Boolean(img?.url)
-      })
-      if (typeof firstImage === 'string') return firstImage
-      if (firstImage?.url) return firstImage.url
-      return product.mainImage || product.main_image || null
+      return data.shopWithUsHomepageImage || null
     },
   },
   {
@@ -66,20 +55,20 @@ const NAV_ITEMS = [
       const list = data.blog || []
       const item = list[0]
       if (!item) return null
-      return item.homepageCircularImage || item.imageUrl || item.mediaUrl || item.mediaUrls?.[0] || item.galleryImages?.[0] || null
+      return item.homepageCircularImage || null
     },
   },
   {
     key: 'about',
     label: 'About Us',
     path: '/about',
-    getImage: (data) => data.about?.homepageCircularImage || data.aboutImages?.[0]?.imageUrl || data.about?.imageUrl || null,
+    getImage: (data) => data.about?.homepageCircularImage || null,
   },
   {
     key: 'socials',
     label: 'Socials',
     path: '/socials',
-    getImage: (data) => data.socialItems?.[0]?.homepageCircularImage || data.socialItems?.[0]?.imageUrl || data.about?.socialImage || data.about?.imageUrl || null,
+    getImage: (data) => data.socialItems?.[0]?.homepageCircularImage || null,
   },
   {
     key: 'testimonials',
@@ -89,7 +78,7 @@ const NAV_ITEMS = [
       const list = data.testimonials || []
       const item = list[0]
       if (!item) return null
-      return item.homepageCircularImage || item.photoUrl || item.imageUrl || null
+      return item.homepageCircularImage || null
     },
   },
   {
@@ -100,7 +89,7 @@ const NAV_ITEMS = [
       const list = data.workWithUs || []
       const item = list[0]
       if (!item) return null
-      return item.homepageCircularImage || item.imageUrl || item.mediaUrls?.[0] || null
+      return item.homepageCircularImage || null
     },
   },
 ]
@@ -170,8 +159,8 @@ const PlaceholderIcons = {
 }
 
 const CircleItem = memo(({ item, data, reduceMotion }) => {
-  const initialImageUrl = useMemo(() => item.getImage(data), [item, data])
-  const [imageUrl, setImageUrl] = useState(initialImageUrl)
+  const imageUrl = useMemo(() => item.getImage(data), [item, data])
+  const [hasError, setHasError] = useState(false)
   const placeholder = PlaceholderIcons[item.key]
   const circleSize = CIRCLE_SIZE
 
@@ -207,7 +196,7 @@ const CircleItem = memo(({ item, data, reduceMotion }) => {
               }
         }
       >
-        {imageUrl ? (
+        {imageUrl && !hasError ? (
           <img
             src={getOptimizedUrl(imageUrl, { width: 800, crop: 'limit' })}
             srcSet={buildSrcSet(imageUrl) || undefined}
@@ -218,7 +207,7 @@ const CircleItem = memo(({ item, data, reduceMotion }) => {
             decoding="async"
             width={circleSize}
             height={circleSize}
-            onError={() => setImageUrl(null)}
+            onError={() => setHasError(true)}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-[var(--primary)]/20">

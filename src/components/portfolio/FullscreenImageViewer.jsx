@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
 
 export const FullscreenImageViewer = ({
   images = [],
@@ -17,6 +18,8 @@ export const FullscreenImageViewer = ({
   const touchStartX = useRef(0)
   const touchEndX = useRef(0)
   const [isNavigating, setIsNavigating] = useState(false)
+  const [showThumbnails, setShowThumbnails] = useState(true)
+  const thumbnailRef = useRef(null)
 
   const totalImages = images.length
 
@@ -63,6 +66,15 @@ export const FullscreenImageViewer = ({
     }
   }, [])
 
+  useEffect(() => {
+    if (thumbnailRef.current) {
+      const activeThumb = thumbnailRef.current.children[currentIndex]
+      if (activeThumb) {
+        activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+      }
+    }
+  }, [currentIndex])
+
   if (totalImages === 0) return null
 
   const currentImage = images[currentIndex]
@@ -102,6 +114,17 @@ export const FullscreenImageViewer = ({
           {currentIndex + 1} / {totalImages}
         </span>
       </div>
+
+      {/* Toggle Thumbnails Button */}
+      {totalImages > 1 && (
+        <button
+          onClick={() => setShowThumbnails((prev) => !prev)}
+          className="absolute top-4 left-1/2 -translate-x-1/2 z-20 md:hidden px-3 py-1.5 rounded-full bg-white/10 text-white text-xs font-medium"
+          aria-label={showThumbnails ? 'Hide thumbnails' : 'Show thumbnails'}
+        >
+          {showThumbnails ? 'Hide' : 'Show'} thumbnails
+        </button>
+      )}
 
       {/* Previous Button */}
       {totalImages > 1 && (
@@ -152,21 +175,37 @@ export const FullscreenImageViewer = ({
         />
       </div>
 
-      {/* Bottom Dots */}
-      {totalImages > 1 && (
-        <div className="absolute bottom-6 left-0 right-0 z-10 flex items-center justify-center gap-2 flex-wrap px-4">
-          {images.map((_, index) => (
-            <button
-              key={index}
-              onClick={(e) => { e.stopPropagation(); onGoToIndex && onGoToIndex(index) }}
-              className={`h-2.5 rounded-full transition-all duration-300 ${
-                index === currentIndex
-                  ? 'bg-white w-8'
-                  : 'bg-white/40 hover:bg-white/70 w-2.5'
-              }`}
-              aria-label={`Go to image ${index + 1}`}
-            />
-          ))}
+      {/* Thumbnails Strip */}
+      {totalImages > 1 && showThumbnails && (
+        <div className="z-10 bg-black/60 backdrop-blur-sm">
+          <div
+            ref={thumbnailRef}
+            className="flex items-center gap-2 overflow-x-auto px-4 py-3 scrollbar-hide"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {images.map((img, index) => {
+              const thumbSrc = getImageSrc ? getImageSrc(img, index) : img.src
+              const isActive = index === currentIndex
+              return (
+                <button
+                  key={index}
+                  onClick={(e) => { e.stopPropagation(); onGoToIndex && onGoToIndex(index) }}
+                  className={`relative flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all duration-300 ${
+                    isActive ? 'border-white w-16 h-16 md:w-20 md:h-20 opacity-100' : 'border-transparent w-12 h-12 md:w-16 md:h-16 opacity-60 hover:opacity-100'
+                  }`}
+                  aria-label={`Go to image ${index + 1}`}
+                >
+                  <img
+                    src={getOptimizedUrl(thumbSrc, { width: 200, crop: 'limit' })}
+                    alt={`Thumbnail ${index + 1}`}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
     </motion.div>
