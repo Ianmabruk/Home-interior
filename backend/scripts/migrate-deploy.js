@@ -10,26 +10,7 @@ async function sleep(ms) {
 }
 
 async function main() {
-  console.log('[migrate:deploy] Checking migration status...')
-
-  let isUpToDate = false
-  try {
-    const statusOutput = execSync('npx prisma migrate status', {
-      encoding: 'utf-8',
-      timeout: 60000,
-      env: { ...process.env },
-    })
-    isUpToDate = statusOutput.includes('Database schema is up to date!')
-  } catch {
-    /* continue to attempt deploy */
-  }
-
-  if (isUpToDate) {
-    console.log('[migrate:deploy] Database schema is already up to date. Skipping migration.')
-    return
-  }
-
-  console.log('[migrate:deploy] Pending migrations detected. Applying...')
+  console.log('[migrate:deploy] Applying pending migrations...')
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     console.log(`[migrate:deploy] Attempt ${attempt}/${MAX_RETRIES}`)

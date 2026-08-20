@@ -48,6 +48,8 @@ model PortfolioProject {
   published    Boolean  @default(true)
   imageUrl     String?  @db.Text @map("image_url")
   cloudinaryId String?  @db.Text @map("cloudinary_id")
+  homepageCircularImage String? @db.Text @map("homepage_circular_image")
+  homepageCircularImageId String? @db.Text @map("homepage_circular_image_id")
   beforeImages String[] @default([]) @map("before_images") @db.Text
   afterImages  String[] @default([]) @map("after_images") @db.Text
   createdAt    DateTime @default(now()) @map("created_at")
@@ -69,6 +71,8 @@ model VirtualDesign {
   published    Boolean  @default(true)
   imageUrl     String?  @db.Text @map("image_url")
   cloudinaryId String?  @db.Text @map("cloudinary_id")
+  homepageCircularImage String? @db.Text @map("homepage_circular_image")
+  homepageCircularImageId String? @db.Text @map("homepage_circular_image_id")
   mediaType    String   @default("image") @map("media_type") @db.Text
   mediaUrls    String[] @default([]) @map("media_urls") @db.Text
   createdAt    DateTime @default(now()) @map("created_at")
