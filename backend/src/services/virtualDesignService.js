@@ -12,6 +12,8 @@ function mapVD(item) {
     galleryMedia: (item.mediaUrls || []).map((url) => ({ url, type: item.mediaType })),
     imageUrl: item.imageUrl,
     mediaUrls: item.mediaUrls,
+    homepageCircularImage: item.homepageCircularImage,
+    homepageCircularImageId: item.homepageCircularImageId,
   }
 }
 
@@ -45,14 +47,20 @@ async function getVirtualDesign(id) {
   }
 }
 
-async function createVirtualDesign(data, file, galleryFiles) {
+async function createVirtualDesign(data, file, galleryFiles, circularFile = null) {
   const createData = { ...data }
   const mediaUrls = []
 
+  const uploadPromises = []
   for (const f of galleryFiles) {
-    const uploaded = await uploadFile(f.buffer, f.mimetype, 'virtual-designs')
-    mediaUrls.push(uploaded.url)
+    uploadPromises.push(uploadFile(f.buffer, f.mimetype, 'virtual-designs'))
   }
+  const uploadedUrls = await Promise.allSettled(uploadPromises)
+  uploadedUrls.forEach((result) => {
+    if (result.status === 'fulfilled') {
+      mediaUrls.push(result.value.url)
+    }
+  })
 
   if (mediaUrls.length > 0) createData.mediaUrls = mediaUrls
   if (file) {
@@ -63,11 +71,17 @@ async function createVirtualDesign(data, file, galleryFiles) {
     createData.imageUrl = mediaUrls[0]
   }
 
+  if (circularFile) {
+    const uploaded = await uploadFile(circularFile.buffer, circularFile.mimetype, 'virtual-designs')
+    createData.homepageCircularImage = uploaded.url
+    createData.homepageCircularImageId = uploaded.path
+  }
+
   const item = await prisma.virtualDesign.create({ data: createData })
   return mapVD(item)
 }
 
-async function updateVirtualDesign(id, data, file, galleryFiles) {
+async function updateVirtualDesign(id, data, file, galleryFiles, circularFile = null) {
   const existing = await prisma.virtualDesign.findUnique({ where: { id } })
   if (!existing) throw failure(404, 'Virtual design not found')
 
@@ -80,12 +94,25 @@ async function updateVirtualDesign(id, data, file, galleryFiles) {
     updateData.cloudinaryId = uploaded.path
   }
 
+  if (circularFile) {
+    if (existing.homepageCircularImageId) await deleteFile(existing.homepageCircularImageId)
+    const uploaded = await uploadFile(circularFile.buffer, circularFile.mimetype, 'virtual-designs')
+    updateData.homepageCircularImage = uploaded.url
+    updateData.homepageCircularImageId = uploaded.path
+  }
+
   if (galleryFiles.length > 0) {
     const mediaUrls = [...(existing.mediaUrls || [])]
+    const uploadPromises = []
     for (const f of galleryFiles) {
-      const uploaded = await uploadFile(f.buffer, f.mimetype, 'virtual-designs')
-      mediaUrls.push(uploaded.url)
+      uploadPromises.push(uploadFile(f.buffer, f.mimetype, 'virtual-designs'))
     }
+    const uploadedUrls = await Promise.allSettled(uploadPromises)
+    uploadedUrls.forEach((result) => {
+      if (result.status === 'fulfilled') {
+        mediaUrls.push(result.value.url)
+      }
+    })
     updateData.mediaUrls = mediaUrls
   }
   const item = await prisma.virtualDesign.update({ where: { id }, data: updateData })

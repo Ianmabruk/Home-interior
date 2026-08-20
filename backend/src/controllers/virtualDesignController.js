@@ -16,6 +16,7 @@ export const virtualDesignController = {
   create: asyncHandler(async (req, res) => {
     const file = req.files?.media?.[0] || null
     const galleryFiles = Array.isArray(req.files?.gallery) ? req.files.gallery : []
+    const circularFile = req.files?.homepageCircularImage?.[0] || null
     if (!file && galleryFiles.length === 0) {
       return res.status(400).json({ success: false, message: 'Media file is required' })
     }
@@ -29,13 +30,14 @@ export const virtualDesignController = {
       published: req.body.published !== 'false' && req.body.published !== false,
       mediaUrls: req.body.mediaUrls || [],
     }
-    const item = await virtualDesignService.createVirtualDesign(data, file, galleryFiles)
+    const item = await virtualDesignService.createVirtualDesign(data, file, galleryFiles, circularFile)
     res.status(201).json({ success: true, data: item })
   }),
 
   update: asyncHandler(async (req, res) => {
     const file = req.files?.media?.[0] || null
     const galleryFiles = Array.isArray(req.files?.gallery) ? req.files.gallery : []
+    const circularFile = req.files?.homepageCircularImage?.[0] || null
     const data = {}
     if (req.body.title !== undefined) data.title = req.body.title
     if (req.body.description !== undefined) data.description = req.body.description
@@ -43,9 +45,9 @@ export const virtualDesignController = {
     if (req.body.mediaType !== undefined) data.mediaType = req.body.mediaType
     if (req.body.featured !== undefined) data.featured = req.body.featured === 'true' || req.body.featured === true
     if (req.body.displayOrder !== undefined) data.displayOrder = Number(req.body.displayOrder) || 0
-    if (req.body.published !== undefined) data.published = req.body.published === 'false' || req.body.published === false
+    if (req.body.published !== undefined) data.published = req.body.published !== 'false' && req.body.published !== false
     if (req.body.mediaUrls) data.mediaUrls = Array.isArray(req.body.mediaUrls) ? req.body.mediaUrls : []
-    const item = await virtualDesignService.updateVirtualDesign(req.params.id, data, file, galleryFiles)
+    const item = await virtualDesignService.updateVirtualDesign(req.params.id, data, file, galleryFiles, circularFile)
     res.json({ success: true, data: item })
   }),
 

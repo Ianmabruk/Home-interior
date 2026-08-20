@@ -25,6 +25,7 @@ export const portfolioController = {
     const file = req.files?.media?.[0] || null
     const beforeFiles = Array.isArray(req.files?.before) ? req.files.before : []
     const afterFiles = Array.isArray(req.files?.after) ? req.files.after : []
+    const circularFile = req.files?.homepageCircularImage?.[0] || null
     const data = {
       title: req.body.title || 'Untitled',
       description: req.body.description || '',
@@ -38,7 +39,7 @@ export const portfolioController = {
     if (beforeImages) data.beforeImages = beforeImages
     const afterImages = normalizeStringArray(req.body.afterImages)
     if (afterImages) data.afterImages = afterImages
-    const item = await portfolioService.createPortfolio(data, file, beforeFiles, afterFiles)
+    const item = await portfolioService.createPortfolio(data, file, beforeFiles, afterFiles, circularFile)
     res.status(201).json({ success: true, data: item })
   }),
 
@@ -46,6 +47,7 @@ export const portfolioController = {
     const file = req.files?.media?.[0] || null
     const beforeFiles = Array.isArray(req.files?.before) ? req.files.before : []
     const afterFiles = Array.isArray(req.files?.after) ? req.files.after : []
+    const circularFile = req.files?.homepageCircularImage?.[0] || null
     const data = {}
     if (req.body.title !== undefined) data.title = req.body.title
     if (req.body.description !== undefined) data.description = req.body.description
@@ -58,7 +60,7 @@ export const portfolioController = {
     if (beforeImages !== undefined) data.beforeImages = beforeImages
     const afterImages = normalizeStringArray(req.body.afterImages)
     if (afterImages !== undefined) data.afterImages = afterImages
-    const item = await portfolioService.updatePortfolio(req.params.id, data, file, beforeFiles, afterFiles)
+    const item = await portfolioService.updatePortfolio(req.params.id, data, file, beforeFiles, afterFiles, circularFile)
     res.json({ success: true, data: item })
   }),
 

@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import sharp from 'sharp'
 import { supabase, isSupabaseConfigured } from '../config/supabase.js'
 import { uploadToCloudinary, deleteFromCloudinary, deleteManyFromCloudinary } from '../config/cloudinary.js'
 import { failure } from '../utils/response.js'
@@ -8,11 +9,53 @@ import { failure } from '../utils/response.js'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const UPLOADS_DIR = path.join(__dirname, '..', 'public', 'uploads')
 
+const MAX_IMAGE_WIDTH = 2048
+const MAX_IMAGE_HEIGHT = 2048
+const IMAGE_QUALITY = 80
+
 function ensureDir(dir) {
   try {
     fs.mkdirSync(dir, { recursive: true })
   } catch {
     // Non-fatal — directory may already exist
+  }
+}
+
+async function optimizeImageBuffer(buffer, mimetype) {
+  if (!buffer || !mimetype || !mimetype.startsWith('image/')) {
+    return buffer
+  }
+
+  try {
+    const metadata = await sharp(buffer).metadata()
+    const { width, height } = metadata
+
+    if (!width || !height) {
+      return buffer
+    }
+
+    if (width <= MAX_IMAGE_WIDTH && height <= MAX_IMAGE_HEIGHT) {
+      return buffer
+    }
+
+    const pipeline = sharp(buffer)
+    if (width > MAX_IMAGE_WIDTH || height > MAX_IMAGE_HEIGHT) {
+      pipeline.resize(MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+    }
+
+    const optimized = await pipeline
+      .jpeg({ quality: IMAGE_QUALITY, progressive: true })
+      .png({ quality: IMAGE_QUALITY, progressive: true })
+      .webp({ quality: IMAGE_QUALITY })
+      .toFormat('webp')
+      .toBuffer()
+
+    return optimized
+  } catch {
+    return buffer
   }
 }
 
@@ -45,10 +88,13 @@ export async function uploadFile(buffer, mimetype, folder) {
     throw failure(400, 'No file buffer provided for upload')
   }
 
+  const optimizedBuffer = await optimizeImageBuffer(buffer, mimetype)
+  const optimizedMimetype = optimizedBuffer !== buffer ? 'image/webp' : mimetype
+
   if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
     try {
-      const uploaded = await uploadToCloudinary(buffer, mimetype, folder)
-      return { url: uploaded.url, path: uploaded.publicId, mimeType: mimetype, isLocal: false }
+      const uploaded = await uploadToCloudinary(optimizedBuffer, optimizedMimetype, folder)
+      return { url: uploaded.url, path: uploaded.publicId, mimeType: optimizedMimetype, isLocal: false }
     } catch (cloudErr) {
       if (process.env.NODE_ENV === 'production') {
         console.error('[uploadService] Cloudinary upload failed in production:', cloudErr?.message || cloudErr)
@@ -60,7 +106,7 @@ export async function uploadFile(buffer, mimetype, folder) {
 
   if (isSupabaseConfigured()) {
     try {
-      return await uploadToSupabase(buffer, mimetype, folder)
+      return await uploadToSupabase(optimizedBuffer, optimizedMimetype, folder)
     } catch (supErr) {
       if (process.env.NODE_ENV === 'production') {
         console.error('[uploadService] Supabase upload failed in production:', supErr?.message || supErr)
@@ -75,7 +121,7 @@ export async function uploadFile(buffer, mimetype, folder) {
     throw failure(500, 'File upload service is not configured. Contact support.')
   }
 
-  return uploadToLocal(buffer, mimetype, folder)
+  return uploadToLocal(optimizedBuffer, optimizedMimetype, folder)
 }
 
 export async function deleteFile(storagePath) {

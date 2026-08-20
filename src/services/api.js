@@ -8,6 +8,8 @@ export const api = axios.create({
   timeout: 15000,
 })
 
+api.defaults.timeout = 15000
+
 const CONTENT_PATHS = [
   '/homepage',
   '/portfolio',
@@ -161,11 +163,21 @@ const shouldCache = (config) => {
 
 const originals = { get: api.get, post: api.post, put: api.put, patch: api.patch, delete: api.delete }
 
+function isUploadRequest(config) {
+  const url = config.url || ''
+  const data = config.data
+  return (
+    (config.method === 'post' || config.method === 'patch' || config.method === 'put') &&
+    (data instanceof FormData || data?.[Symbol.iterator] === FormData.prototype[Symbol.iterator])
+  )
+}
+
 api.get = function (url, config) {
-  if (!shouldCache({ url, ...config })) {
-    return originals.get.call(api, url, config)
+  const merged = { ...config, timeout: config?.timeout ?? 15000 }
+  if (!shouldCache({ url, ...merged })) {
+    return originals.get.call(api, url, merged)
   }
-  const cacheKey = `get:${url}:${JSON.stringify(config?.params || {})}`
+  const cacheKey = `get:${url}:${JSON.stringify(merged?.params || {})}`
   const cached = requestCache.get(cacheKey)
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return Promise.resolve({
@@ -176,35 +188,42 @@ api.get = function (url, config) {
       config: { url, method: 'get' },
     })
   }
-  return originals.get.call(api, url, config).then((response) => {
+  return originals.get.call(api, url, merged).then((response) => {
     requestCache.set(cacheKey, { data: response.data, timestamp: Date.now() })
     return response
   })
 }
 
 api.post = function (url, data, config) {
-  return originals.post.call(api, url, data, config).then((response) => {
+  const timeout = isUploadRequest({ url, data, ...config }) ? 120000 : 15000
+  const merged = { ...config, timeout: config?.timeout ?? timeout }
+  return originals.post.call(api, url, data, merged).then((response) => {
     clearApiCache()
     return response
   })
 }
 
 api.put = function (url, data, config) {
-  return originals.put.call(api, url, data, config).then((response) => {
+  const timeout = isUploadRequest({ url, data, ...config }) ? 120000 : 15000
+  const merged = { ...config, timeout: config?.timeout ?? timeout }
+  return originals.put.call(api, url, data, merged).then((response) => {
     clearApiCache()
     return response
   })
 }
 
 api.patch = function (url, data, config) {
-  return originals.patch.call(api, url, data, config).then((response) => {
+  const timeout = isUploadRequest({ url, data, ...config }) ? 120000 : 15000
+  const merged = { ...config, timeout: config?.timeout ?? timeout }
+  return originals.patch.call(api, url, data, merged).then((response) => {
     clearApiCache()
     return response
   })
 }
 
 api.delete = function (url, config) {
-  return originals.delete.call(api, url, config).then((response) => {
+  const merged = { ...config, timeout: config?.timeout ?? 15000 }
+  return originals.delete.call(api, url, merged).then((response) => {
     clearApiCache()
     return response
   })

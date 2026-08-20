@@ -50,9 +50,14 @@ async function createHeroMedia(data, files = []) {
   const createData = { ...data }
   const mediaUrls = []
 
-  for (const f of files) {
-    const uploaded = await uploadFile(f.buffer, f.mimetype, 'homepage/hero')
-    mediaUrls.push(uploaded.url)
+  if (files.length > 0) {
+    const uploadPromises = files.map((f) => uploadFile(f.buffer, f.mimetype, 'homepage/hero'))
+    const results = await Promise.allSettled(uploadPromises)
+    results.forEach((result) => {
+      if (result.status === 'fulfilled') {
+        mediaUrls.push(result.value.url)
+      }
+    })
   }
 
   if (mediaUrls.length > 0) {
@@ -74,11 +79,14 @@ async function updateHeroMedia(id, data, files = []) {
     if (oldUrls.length > 0) {
       try { await deleteFiles(oldUrls) } catch {}
     }
+    const uploadPromises = files.map((f) => uploadFile(f.buffer, f.mimetype, 'homepage/hero'))
+    const results = await Promise.allSettled(uploadPromises)
     const mediaUrls = []
-    for (const f of files) {
-      const uploaded = await uploadFile(f.buffer, f.mimetype, 'homepage/hero')
-      mediaUrls.push(uploaded.url)
-    }
+    results.forEach((result) => {
+      if (result.status === 'fulfilled') {
+        mediaUrls.push(result.value.url)
+      }
+    })
     updateData.mediaUrls = mediaUrls
     updateData.imageUrl = mediaUrls[0]
   }

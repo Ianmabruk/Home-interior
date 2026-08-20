@@ -23,8 +23,8 @@ portfolioRoutes.delete('/:id', authenticate, authorize('ADMIN'), portfolioContro
 export const virtualDesignRoutes = Router()
 virtualDesignRoutes.get('/', cacheHeaders(5, 30), virtualDesignController.list)
 virtualDesignRoutes.get('/:id', cacheHeaders(10, 60), virtualDesignController.get)
-virtualDesignRoutes.post('/', authenticate, authorize('ADMIN'), uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), validateZod(virtualDesignSchemas.create), virtualDesignController.create)
-virtualDesignRoutes.patch('/:id', authenticate, authorize('ADMIN'), uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]), validateZod(virtualDesignSchemas.update), virtualDesignController.update)
+virtualDesignRoutes.post('/', authenticate, authorize('ADMIN'), uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }, { name: 'homepageCircularImage', maxCount: 1 }]), validateZod(virtualDesignSchemas.create), virtualDesignController.create)
+virtualDesignRoutes.patch('/:id', authenticate, authorize('ADMIN'), uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 10 }, { name: 'homepageCircularImage', maxCount: 1 }]), validateZod(virtualDesignSchemas.update), virtualDesignController.update)
 virtualDesignRoutes.delete('/:id', authenticate, authorize('ADMIN'), virtualDesignController.delete)
 
 export default router

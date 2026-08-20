@@ -9,13 +9,13 @@ async function getHomepage() {
           where: { published: true },
           orderBy: { displayOrder: 'asc' },
           take: 12,
-          select: { id: true, title: true, imageUrl: true, featured: true, beforeImages: true, afterImages: true },
+          select: { id: true, title: true, imageUrl: true, featured: true, beforeImages: true, afterImages: true, homepageCircularImage: true, homepageCircularImageId: true },
         }),
         prisma.virtualDesign.findMany({
           where: { published: true },
           orderBy: { createdAt: 'desc' },
           take: 6,
-          select: { id: true, title: true, imageUrl: true, mediaUrls: true, featured: true },
+          select: { id: true, title: true, imageUrl: true, mediaUrls: true, featured: true, homepageCircularImage: true, homepageCircularImageId: true },
         }),
         prisma.service.findMany({
           where: { isActive: true },

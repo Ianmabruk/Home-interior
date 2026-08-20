@@ -10,8 +10,8 @@ const MAX_IMAGES = 21
 
 router.get('/', portfolioController.list)
 router.get('/:id', portfolioController.get)
-router.post('/', authenticate, validateCsrfToken, uploadFields([{ name: 'media', maxCount: 1 }, { name: 'before', maxCount: MAX_IMAGES }, { name: 'after', maxCount: MAX_IMAGES }]), portfolioController.create)
-router.patch('/:id', authenticate, validateCsrfToken, uploadFields([{ name: 'media', maxCount: 1 }, { name: 'before', maxCount: MAX_IMAGES }, { name: 'after', maxCount: MAX_IMAGES }]), portfolioController.update)
+router.post('/', authenticate, validateCsrfToken, uploadFields([{ name: 'media', maxCount: 1 }, { name: 'before', maxCount: MAX_IMAGES }, { name: 'after', maxCount: MAX_IMAGES }, { name: 'homepageCircularImage', maxCount: 1 }]), portfolioController.create)
+router.patch('/:id', authenticate, validateCsrfToken, uploadFields([{ name: 'media', maxCount: 1 }, { name: 'before', maxCount: MAX_IMAGES }, { name: 'after', maxCount: MAX_IMAGES }, { name: 'homepageCircularImage', maxCount: 1 }]), portfolioController.update)
 router.delete('/:id', authenticate, validateCsrfToken, portfolioController.delete)
 
 export default router

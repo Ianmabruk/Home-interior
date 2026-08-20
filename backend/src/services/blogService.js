@@ -332,13 +332,14 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
   }
 
   const mediaUrls = []
-  for (const f of contentFiles) {
-    try {
-      const uploaded = await uploadFile(f.buffer, f.mimetype, 'blogs')
-      mediaUrls.push(uploaded.url)
-    } catch (err) {
-      console.error('[blogService.createBlog] Content image upload failed:', err?.message)
-    }
+  if (contentFiles.length > 0) {
+    const uploadPromises = contentFiles.map((f) => uploadFile(f.buffer, f.mimetype, 'blogs'))
+    const results = await Promise.allSettled(uploadPromises)
+    results.forEach((result) => {
+      if (result.status === 'fulfilled') {
+        mediaUrls.push(result.value.url)
+      }
+    })
   }
   if (mediaUrls.length > 0) createData.mediaUrls = mediaUrls
 
@@ -410,15 +411,14 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
   }
 
   if (contentFiles && contentFiles.length > 0) {
+    const uploadPromises = contentFiles.map((f) => uploadFile(f.buffer, f.mimetype, 'blogs'))
+    const results = await Promise.allSettled(uploadPromises)
     const newMediaUrls = []
-    for (const f of contentFiles) {
-      try {
-        const uploaded = await uploadFile(f.buffer, f.mimetype, 'blogs')
-        newMediaUrls.push(uploaded.url)
-      } catch (err) {
-        console.error('[blogService.updateBlog] Content image upload failed:', err?.message)
+    results.forEach((result) => {
+      if (result.status === 'fulfilled') {
+        newMediaUrls.push(result.value.url)
       }
-    }
+    })
     if (newMediaUrls.length > 0) {
       updateData.mediaUrls = [...(existing.mediaUrls || []), ...newMediaUrls]
     }

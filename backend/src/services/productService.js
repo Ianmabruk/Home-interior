@@ -93,11 +93,14 @@ async function createProduct(data, files, variantFiles = []) {
   const storagePaths = []
 
   if (Array.isArray(files)) {
-    for (const f of files) {
-      const uploaded = await uploadFile(f.buffer, f.mimetype, 'products')
-      images.push(uploaded.url)
-      if (uploaded.path) storagePaths.push(uploaded.path)
-    }
+    const uploadPromises = files.map((f) => uploadFile(f.buffer, f.mimetype, 'products'))
+    const results = await Promise.allSettled(uploadPromises)
+    results.forEach((result) => {
+      if (result.status === 'fulfilled') {
+        images.push(result.value.url)
+        if (result.value.path) storagePaths.push(result.value.path)
+      }
+    })
   }
 
   if (images.length > 0) {
@@ -157,13 +160,16 @@ async function updateProduct(id, data, files, variantFiles = []) {
   const updateData = { ...data }
 
   if (Array.isArray(files) && files.length > 0) {
+    const uploadPromises = files.map((f) => uploadFile(f.buffer, f.mimetype, 'products'))
+    const results = await Promise.allSettled(uploadPromises)
     const newImages = []
     const newStoragePaths = []
-    for (const f of files) {
-      const uploaded = await uploadFile(f.buffer, f.mimetype, 'products')
-      newImages.push(uploaded.url)
-      if (uploaded.path) newStoragePaths.push(uploaded.path)
-    }
+    results.forEach((result) => {
+      if (result.status === 'fulfilled') {
+        newImages.push(result.value.url)
+        if (result.value.path) newStoragePaths.push(result.value.path)
+      }
+    })
     const images = [...newImages, ...(existing.images || [])]
     const storagePaths = [...newStoragePaths, ...(existing.storagePaths || []).filter(Boolean)]
     updateData.images = images
