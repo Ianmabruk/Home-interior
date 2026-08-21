@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="145" viewBox="0 0 520 145" fill="none">
+  <defs>
+    <linearGradient id="nGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#E89A43" />
+      <stop offset="50%" stop-color="#D88227" />
+      <stop offset="100%" stop-color="#C66B15" />
+    </linearGradient>
+    <clipPath id="nEmblemClip">
+      <rect x="30" y="25" width="70" height="95" rx="14" />
+    </clipPath>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur" />
+      <feMerge>
+        <feMergeNode in="coloredBlur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect x="30" y="25" width="70" height="95" rx="14" fill="none" clip-path="url(#nEmblemClip)" />
+  <g clip-path="url(#nEmblemClip)" filter="url(#glow)">
+    <rect x="30" y="25" width="70" height="95" fill="url(#nGradient)" rx="14" />
+    <path d="M48 110 L48 35 L62 35 L82 95 L82 35 L96 35 L96 110 L82 110 L62 50 L62 110 Z" fill="white" fill-opacity="0.92" />
+  </g>
+
+  <g transform="translate(120, 95)" font-family="'Cormorant Garamond', Georgia, serif" font-weight="400" fill="#2A241F">
+    <text font-size="64" letter-spacing="-0.02em">HOK</text>
+  </g>
+  <g transform="translate(120, 95)" font-family="'Cormorant Garamond', Georgia, serif" font-weight="400" fill="#2A241F">
+    <text x="138" font-size="64" letter-spacing="-0.02em">Interiors</text>
+  </g>
+  <g transform="translate(120, 97)" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="300" fill="#6B4F3A">
+    <text x="270" font-size="22" letter-spacing="0.25em">Design • Build • Style</text>
+  </g>
+</svg>

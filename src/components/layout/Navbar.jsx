@@ -15,7 +15,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@context/AuthContext'
 import { useShop } from '@context/ShopContext'
-import hokLogoWebP from '@assets/hok-logo.webp'
+import LogoNEmblem from '@assets/logo-n-emblem.svg?component'
 import { prefetchMap } from '@app/prefetchMap'
 import { FULLSCREEN_MENU_ITEMS } from '@constants/navItems'
 import { useIsMobile } from '@hooks/useIsMobile'
@@ -39,7 +39,6 @@ export const Navbar = memo(() => {
   const navRef = useRef(null)
   const userMenuRef = useRef(null)
   const cartRef = useRef(null)
-  const logoRef = useRef(null)
   const reduceMotion = useIsMobile()
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -372,27 +371,20 @@ export const Navbar = memo(() => {
                className="flex-shrink-0 leading-tight group -ml-2 md:-ml-4 flex items-center"
                aria-label="HOK Interiors - Home"
              >
-               <picture>
-                 <img
-                   ref={logoRef}
-                   src={hokLogoWebP}
-                   alt="HOK Interiors"
-                   className="h-[100px] sm:h-[115px] md:h-[140px] lg:h-[155px] w-auto object-contain transition-all duration-300 group-hover:scale-102"
-                   style={{
-                     transform: prefersReducedMotion
-                       ? undefined
-                       : `perspective(800px) rotateX(${mousePos.y * 6}deg) rotateY(${mousePos.x * -6}deg)`,
-                     transformStyle: 'preserve-3d',
-                   }}
-                    loading="eager"
-                    width={520}
-                    height={145}
-                    onError={(e) => {
-                      e.target.onerror = null
-                      e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40"%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Cormorant Garamond" font-size="22" fill="%232A241F"%3EHOK%3C/svg'
-                    }}
-                  />
-               </picture>
+               <div
+                 className="relative flex items-center"
+                 style={{
+                   transform: prefersReducedMotion
+                     ? undefined
+                     : `perspective(800px) rotateX(${mousePos.y * 6}deg) rotateY(${mousePos.x * -6}deg)`,
+                   transformStyle: 'preserve-3d',
+                 }}
+               >
+                 <LogoNEmblem
+                   className="h-[100px] sm:h-[115px] md:h-[140px] lg:h-[155px] w-auto transition-all duration-300 group-hover:scale-102 drop-shadow-[0_4px_30px_rgba(0,0,0,0.15)]"
+                   aria-hidden="true"
+                 />
+               </div>
              </Link>
 
             <nav className="flex items-center justify-end flex-1 relative" role="navigation" aria-label="Main navigation">
@@ -448,22 +440,18 @@ export const Navbar = memo(() => {
 
           {/* MOBILE HEADER - LOGO CENTERED, CART + HAMBURGER ON SIDES */}
           <div className="flex md:hidden items-center justify-between h-16 px-4 relative">
-            <Link
-              to="/"
-              className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex flex-col items-center leading-none group z-10"
-              aria-label="HOK Interiors - Home"
-            >
-              <picture>
-                <img
-                  src={hokLogoWebP}
-                  alt="HOK Interiors"
-                  className="h-28 w-auto object-contain transition-all duration-300 group-hover:scale-102"
-                  loading="eager"
-                  width={180}
-                  height={72}
-                />
-              </picture>
-            </Link>
+             <Link
+               to="/"
+               className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center leading-none group z-10"
+               aria-label="HOK Interiors - Home"
+             >
+               <div className="relative flex items-center">
+                 <LogoNEmblem
+                   className="h-28 w-auto transition-all duration-300 group-hover:scale-102 drop-shadow-[0_4px_30px_rgba(0,0,0,0.15)]"
+                   aria-hidden="true"
+                 />
+               </div>
+             </Link>
 
             <button
               onClick={() => setCartOpen((p) => !p)}
