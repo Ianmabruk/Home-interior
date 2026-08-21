@@ -9,6 +9,10 @@ server/.env
 *.log
 .DS_Store
 
+# Root project uses Yarn (yarn.lock). Keep npm lock files out to avoid
+# resolution inconsistencies.
+package-lock.json
+
 # Test artifacts
 coverage/
 
