@@ -42,17 +42,18 @@ export const SocialIcons = ({ className = '', items: externalItems, dark = false
             target="_blank"
             rel="noreferrer noopener"
             aria-label={item.ariaLabel || `Follow us on ${label}`}
-            className={`inline-flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+            className={`group relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(42,36,31,0.12)] ${
               dark
-                ? 'border-white/20 bg-white/5 text-white hover:bg-bronze hover:border-bronze hover:text-charcoal'
-                : 'border-white/20 bg-white/5 text-white hover:bg-bronze hover:border-bronze hover:text-charcoal'
+                ? 'border-white/20 bg-white/10 text-white hover:bg-[var(--accent)] hover:border-[var(--accent)] hover:text-[var(--primary)]'
+                : 'border-[var(--border)]/40 bg-[var(--card)]/60 text-[var(--primary)]/70 hover:bg-[var(--accent)] hover:border-[var(--accent)] hover:text-white'
             }`}
           >
             {item.imageUrl ? (
-              <img src={item.imageUrl} alt={label} className="h-5 w-5 object-contain" loading="lazy" />
+              <img src={item.imageUrl} alt={label} className="h-5 w-5 object-contain" loading="lazy" decoding="async" width={20} height={20} />
             ) : (
-              <Icon size={16} />
+              <Icon size={18} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" aria-hidden="true" />
             )}
+            <span className="absolute inset-0 rounded-2xl ring-0 group-focus-visible:ring-2 group-focus-visible:ring-[var(--accent)]" />
           </a>
         )
       })}

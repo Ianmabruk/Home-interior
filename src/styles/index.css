@@ -170,12 +170,14 @@ section > .container-wide {
 @layer components {
   /* Luxury Buttons - Orange Accent */
   .btn-luxury-primary {
-    @apply relative inline-flex items-center justify-center gap-2 rounded-xl px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-white transition-all duration-500 overflow-hidden;
-    background: #E89A43;
+    @apply relative inline-flex items-center justify-center gap-2 rounded-full px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-white transition-all duration-500;
+    background: linear-gradient(135deg, #E89A43, #D88227);
+    border: 1px solid rgba(232,154,67,0.4);
+    box-shadow: 0 10px 40px rgba(232,154,67,0.25);
   }
   .btn-luxury-primary::before {
     content: '';
-    @apply absolute inset-0 opacity-0 transition-opacity duration-500;
+    @apply absolute inset-0 rounded-full opacity-0 transition-opacity duration-500;
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
   }
   .btn-luxury-primary:hover::before {
@@ -184,11 +186,14 @@ section > .container-wide {
   }
   .btn-luxury-primary:hover {
     @apply -translate-y-1;
-    background: #D88227;
-    box-shadow: 0 20px 60px rgba(232,154,67,0.3);
+    background: linear-gradient(135deg, #D88227, #C66B15);
+    box-shadow: 0 20px 60px rgba(232,154,67,0.4);
   }
   .btn-luxury-primary:active {
     @apply translate-y-0 scale-[0.98];
+  }
+  .btn-luxury-primary:focus-visible {
+    @apply outline-2 outline-offset-2 outline-[var(--accent)];
   }
 
   .btn-luxury-secondary {
@@ -208,6 +213,45 @@ section > .container-wide {
   }
   .btn-luxury-secondary:active {
     @apply translate-y-0 scale-[0.98];
+  }
+
+  /* Hero CTAs - modern rounded glass style */
+  .btn-hero {
+    @apply relative inline-flex items-center justify-center gap-2 rounded-full px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-white transition-all duration-500;
+    background: linear-gradient(135deg, #E89A43, #D88227);
+    border: 1px solid rgba(232,154,67,0.4);
+    box-shadow: 0 10px 40px rgba(232,154,67,0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .btn-hero::before {
+    content: '';
+    @apply absolute inset-0 rounded-full opacity-0 transition-opacity duration-500;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+  }
+  .btn-hero:hover::before {
+    @apply opacity-100;
+  }
+  .btn-hero:hover {
+    @apply -translate-y-1 scale-[1.03];
+    box-shadow: 0 20px 60px rgba(232,154,67,0.4);
+  }
+  .btn-hero:active {
+    @apply translate-y-0 scale-[0.98];
+  }
+  .btn-hero:focus-visible {
+    @apply outline-2 outline-offset-2 outline-[var(--accent)];
+  }
+
+  .btn-hero--secondary {
+    @apply border border-white/30 bg-white/10 text-white;
+  }
+  .btn-hero--secondary::before {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  }
+  .btn-hero--secondary:hover {
+    @apply bg-white/20 border-white/40;
+    box-shadow: 0 20px 60px rgba(255,255,255,0.12);
   }
 
   /* Glass Navigation */

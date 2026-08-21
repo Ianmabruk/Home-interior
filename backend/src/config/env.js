@@ -16,8 +16,10 @@ export const env = {
   databaseUrl: process.env.DATABASE_URL,
   supabaseUrl: process.env.SUPABASE_URL,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-  seedAdminEmail: process.env.SEED_ADMIN_EMAIL,
-  seedAdminPassword: process.env.SEED_ADMIN_PASSWORD,
+  adminEmail: process.env.ADMIN_EMAIL || process.env.SEED_ADMIN_EMAIL,
+  adminPassword: process.env.ADMIN_PASSWORD || process.env.SEED_ADMIN_PASSWORD,
+  seedAdminEmail: process.env.SEED_ADMIN_EMAIL || process.env.ADMIN_EMAIL,
+  seedAdminPassword: process.env.SEED_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD,
 }
 
 export function validateEnv() {
@@ -39,6 +41,14 @@ export function validateEnv() {
   }
   if (env.jwtRefreshSecret && env.jwtRefreshSecret.length < 32) {
     throw new Error('JWT_REFRESH_SECRET must be at least 32 characters')
+  }
+
+  if (env.seedAdminPassword && env.seedAdminPassword.length < 12) {
+    throw new Error('SEED_ADMIN_PASSWORD / ADMIN_PASSWORD must be at least 12 characters')
+  }
+
+  if (env.seedAdminPassword === 'admin123' && env.nodeEnv === 'production') {
+    console.warn(`[${env.serverId}] [WARNING] Using the default insecure admin password. Set a strong ADMIN_PASSWORD in production.`)
   }
 
   if (env.databaseUrl && process.env.NODE_ENV === 'production') {

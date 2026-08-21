@@ -34,11 +34,44 @@ export const Navbar = memo(() => {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const location = useLocation()
   const navRef = useRef(null)
   const userMenuRef = useRef(null)
   const cartRef = useRef(null)
+  const logoRef = useRef(null)
   const reduceMotion = useIsMobile()
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  )
+
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 20)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setPrefersReducedMotion(mq.matches)
+    const handler = (e) => setPrefersReducedMotion(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  useEffect(() => {
+    if (prefersReducedMotion) return
+    const handleMouseMove = (event) => {
+      const { innerWidth, innerHeight } = window
+      const x = (event.clientX / innerWidth - 0.5) * 2
+      const y = (event.clientY / innerHeight - 0.5) * 2
+      setMousePos({ x, y })
+    }
+    window.addEventListener('mousemove', handleMouseMove, { passive: true })
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [prefersReducedMotion])
 
   useEffect(() => {
     const onScroll = () => {
@@ -99,7 +132,7 @@ export const Navbar = memo(() => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed right-4 md:right-8 top-[104px] md:top-[112px] w-80 md:w-96 bg-white rounded-2xl shadow-[0_20px_60px_rgba(42,36,31,0.18)] border border-[#E6D8C9]/60 overflow-hidden z-[9991] backdrop-blur-xl bg-white/95 animate-fade-in"
+             className="fixed right-4 md:right-8 top-[104px] md:top-[112px] w-80 md:w-96 bg-[var(--card)]/80 rounded-2xl shadow-[0_20px_60px_rgba(42,36,31,0.18)] border border-[var(--border)]/60 overflow-hidden z-[9991] backdrop-blur-xl animate-fade-in"
             role="menu"
           >
             <div className="p-4 border-b border-[#E6D8C9]/40 flex items-center justify-between">
@@ -246,7 +279,7 @@ export const Navbar = memo(() => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed right-4 md:right-8 top-[104px] md:top-[112px] w-56 md:w-64 bg-white rounded-2xl shadow-[0_20px_60px_rgba(42,36,31,0.18)] border border-[#E6D8C9]/60 overflow-hidden z-[9991] backdrop-blur-xl bg-white/95 animate-fade-in"
+             className="fixed right-4 md:right-8 top-[104px] md:top-[112px] w-56 md:w-64 bg-[var(--card)]/80 rounded-2xl shadow-[0_20px_60px_rgba(42,36,31,0.18)] border border-[var(--border)]/60 overflow-hidden z-[9991] backdrop-blur-xl animate-fade-in"
             role="menu"
           >
             {isAuthenticated && user?.role === 'ADMIN' ? (
@@ -270,28 +303,28 @@ export const Navbar = memo(() => {
                   Logout
                 </button>
               </>
-            ) : (
-              <>
-                <Link
-                  to="/signup"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
-                  role="menuitem"
-                >
-                  <User size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                  Sign Up
-                </Link>
-                <Link
-                  to="/login"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
-                  role="menuitem"
-                >
-                  <LayoutDashboard size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
-                  Login
-                </Link>
-              </>
-            )}
+             ) : (
+               <>
+                 <Link
+                   to="/signup"
+                   onClick={() => setUserMenuOpen(false)}
+                   className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
+                   role="menuitem"
+                 >
+                   <User size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
+                   Sign Up
+                 </Link>
+                 <Link
+                   to="/admin"
+                   onClick={() => setUserMenuOpen(false)}
+                   className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#2A241F] hover:bg-[#E6D8C9]/40 transition-colors"
+                   role="menuitem"
+                 >
+                   <LayoutDashboard size={16} strokeWidth={1.5} className="text-[#E89A43]" aria-hidden="true" />
+                   Admin Access
+                 </Link>
+               </>
+             )}
           </motion.div>
         </>
       )}
@@ -322,65 +355,76 @@ export const Navbar = memo(() => {
 
   return (
     <>
-      <header
-        ref={navRef}
-        className={`relative w-full z-[9999] transition-all duration-300 sticky top-0 ${
-          scrolled
-            ? 'bg-white/90 backdrop-blur-xl border-b border-[#E6D8C9]/40 shadow-[0_8px_32px_rgba(27,23,20,0.08)]'
-            : 'bg-white/70 backdrop-blur-lg border-b border-[#E6D8C9]/30'
-        }`}
-        role="banner"
-      >
-        {/* DESKTOP HEADER - MINIMAL LUXURY */}
-        <div className="container-wide mx-auto px-4 md:px-8 lg:px-12">
-          <div className="hidden md:flex items-center justify-between h-[104px] md:h-[112px] gap-4 md:gap-8 relative">
-            <Link
-              to="/"
-              className="flex-shrink-0 leading-tight group -ml-2 md:-ml-4 flex items-center"
-              aria-label="HOK Interiors - Home"
-            >
-              <picture>
-                <img
-                  src={hokLogoWebP}
-                  alt="HOK Interiors"
-                  className="h-[100px] sm:h-[115px] md:h-[140px] lg:h-[155px] w-auto object-contain transition-all duration-300 group-hover:scale-102"
-                  loading="eager"
-                  width={520}
-                  height={145}
-                />
-              </picture>
-            </Link>
+       <header
+         ref={navRef}
+         className={`relative w-full z-[9999] transition-all duration-300 sticky top-0 ${
+           scrolled
+             ? 'bg-[var(--card)]/80 backdrop-blur-xl border-b border-[var(--border)]/60 shadow-[0_8px_32px_rgba(42,36,31,0.08)]'
+             : 'bg-[var(--card)]/70 backdrop-blur-lg border-b border-[var(--border)]/40'
+         }`}
+         role="banner"
+       >
+         {/* DESKTOP HEADER - MINIMAL LUXURY */}
+         <div className="container-wide mx-auto px-4 md:px-8 lg:px-12">
+           <div className="hidden md:flex items-center justify-between h-[104px] md:h-[112px] gap-4 md:gap-8 relative">
+             <Link
+               to="/"
+               className="flex-shrink-0 leading-tight group -ml-2 md:-ml-4 flex items-center"
+               aria-label="HOK Interiors - Home"
+             >
+               <picture>
+                 <img
+                   ref={logoRef}
+                   src={hokLogoWebP}
+                   alt="HOK Interiors"
+                   className="h-[100px] sm:h-[115px] md:h-[140px] lg:h-[155px] w-auto object-contain transition-all duration-300 group-hover:scale-102"
+                   style={{
+                     transform: prefersReducedMotion
+                       ? undefined
+                       : `perspective(800px) rotateX(${mousePos.y * 6}deg) rotateY(${mousePos.x * -6}deg)`,
+                     transformStyle: 'preserve-3d',
+                   }}
+                    loading="eager"
+                    width={520}
+                    height={145}
+                    onError={(e) => {
+                      e.target.onerror = null
+                      e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40"%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Cormorant Garamond" font-size="22" fill="%232A241F"%3EHOK%3C/svg'
+                    }}
+                  />
+               </picture>
+             </Link>
 
             <nav className="flex items-center justify-end flex-1 relative" role="navigation" aria-label="Main navigation">
               <div
                 className="flex items-center gap-3 animate-fade-in"
                 style={{ animationDelay: '0.05s' }}
               >
-                <div className="relative">
-                  <button
-                    onClick={() => setCartOpen((p) => !p)}
-                    className="relative p-2.5 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F] active:scale-95"
-                    aria-label={`Shopping cart${totalItems > 0 ? ` with ${totalItems} items` : ''}`}
-                    aria-expanded={cartOpen}
-                    aria-haspopup="true"
-                  >
-                    <ShoppingCart size={20} md={22} strokeWidth={1.5} aria-hidden="true" />
-                    {totalItems > 0 && (
-                      <span className="absolute -top-1 -right-1 min-w-[18px] h-5 rounded-full bg-[#E89A43] text-white text-[10px] font-semibold flex items-center justify-center px-1.5 animate-badge-in">
-                        {totalItems > 99 ? '99+' : totalItems}
-                      </span>
-                    )}
-                  </button>
-                </div>
+                 <div className="relative">
+                   <button
+                     onClick={() => setCartOpen((p) => !p)}
+                     className="relative p-3 rounded-full text-[#2A241F]/70 bg-[var(--card)]/60 backdrop-blur-xl border border-[var(--border)]/50 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                     aria-label={`Shopping cart${totalItems > 0 ? ` with ${totalItems} items` : ''}`}
+                     aria-expanded={cartOpen}
+                     aria-haspopup="true"
+                   >
+                     <ShoppingCart size={20} md={22} strokeWidth={1.5} aria-hidden="true" />
+                     {totalItems > 0 && (
+                       <span className="absolute -top-1 -right-1 min-w-[18px] h-5 rounded-full bg-[#E89A43] text-white text-[10px] font-semibold flex items-center justify-center px-1.5 animate-badge-in">
+                         {totalItems > 99 ? '99+' : totalItems}
+                       </span>
+                     )}
+                   </button>
+                 </div>
 
-                <div className="relative" role="menu" aria-label="User menu">
-                  <button
-                    onClick={() => setUserMenuOpen((p) => !p)}
-                    className="relative p-2.5 md:p-3 rounded-full text-[#2A241F]/70 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F]"
-                    aria-expanded={userMenuOpen}
-                    aria-haspopup="true"
-                    aria-label="User menu"
-                  >
+                 <div className="relative" role="menu" aria-label="User menu">
+                   <button
+                     onClick={() => setUserMenuOpen((p) => !p)}
+                     className="relative p-3 rounded-full text-[#2A241F]/70 bg-[var(--card)]/60 backdrop-blur-xl border border-[var(--border)]/50 transition-all duration-300 hover:bg-[#E6D8C9]/50 hover:text-[#2A241F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                     aria-expanded={userMenuOpen}
+                     aria-haspopup="true"
+                     aria-label="User menu"
+                   >
                     <User size={18} md={20} strokeWidth={1.5} aria-hidden="true" className="transition-colors duration-300" />
                     <svg
                       width="12"
@@ -551,26 +595,26 @@ export const Navbar = memo(() => {
                            <span className="font-display text-lg md:text-xl font-normal tracking-wide">Logout</span>
                          </motion.button>
                         </>
-                       ) : (
-                        <motion.div variants={itemVariants} className="space-y-3">
-                          <Link
-                            to="/signup"
-                            onClick={() => setMobileOpen(false)}
-                            className="flex items-center justify-center gap-2 rounded-full border border-[#2A241F]/20 bg-white px-6 py-3.5 text-sm font-medium text-[#2A241F] transition-all duration-300 hover:border-[#E89A43] hover:text-[#E89A43]"
-                          >
-                            <User size={16} strokeWidth={1.5} aria-hidden="true" />
-                            Sign Up
-                          </Link>
-                          <Link
-                            to="/login"
-                            onClick={() => setMobileOpen(false)}
-                            className="flex items-center justify-center gap-2 rounded-full border border-[#2A241F]/20 bg-white px-6 py-3.5 text-sm font-medium text-[#2A241F] transition-all duration-300 hover:border-[#E89A43] hover:text-[#E89A43]"
-                          >
-                            <LayoutDashboard size={16} strokeWidth={1.5} aria-hidden="true" />
-                            Login
-                          </Link>
-                        </motion.div>
-                      )}
+                      ) : (
+                         <motion.div variants={itemVariants} className="space-y-3">
+                           <Link
+                             to="/signup"
+                             onClick={() => setMobileOpen(false)}
+                             className="flex items-center justify-center gap-2 rounded-full border border-[#E6D8C9]/60 bg-white/80 px-6 py-3.5 text-sm font-medium text-[#2A241F] hover:border-[#E89A43] hover:text-[#E89A43] transition-all duration-300"
+                           >
+                             <User size={16} strokeWidth={1.5} aria-hidden="true" />
+                             Sign Up
+                           </Link>
+                           <Link
+                             to="/admin"
+                             onClick={() => setMobileOpen(false)}
+                             className="flex items-center justify-center gap-2 rounded-full border border-[#E6D8C9]/60 bg-white/80 px-6 py-3.5 text-sm font-medium text-[#2A241F] hover:border-[#E89A43] hover:text-[#E89A43] transition-all duration-300"
+                           >
+                             <LayoutDashboard size={16} strokeWidth={1.5} aria-hidden="true" />
+                             Admin Access
+                           </Link>
+                         </motion.div>
+                       )}
                     </div>
                 </motion.nav>
               </div>

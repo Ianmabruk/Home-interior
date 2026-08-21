@@ -91,7 +91,7 @@ export const AdminPage = () => {
         onLogout={logout}
       />
       <div className="flex-1 flex flex-col lg:ml-0">
-        <header className="fixed top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-xl border-b border-[#E6D8C9]/30 lg:ml-64">
+        <header className="fixed top-0 left-0 right-0 z-40 bg-[var(--card)]/80 backdrop-blur-xl border-b border-[var(--border)]/50 lg:ml-64 shadow-[0_8px_32px_rgba(42,36,31,0.04)]">
           <div className="flex items-center justify-between h-16 px-4 md:px-8">
             <div className="flex items-center gap-4">
               <button

@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { ArrowRight } from 'lucide-react'
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 
 const HOK_LINE = (
@@ -184,34 +186,61 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
         )}
       </div>
 
-      <motion.div
-        className="absolute inset-0 flex items-end pointer-events-none"
-        style={{ paddingBottom: 'clamp(40px, 6vw, 80px)', paddingLeft: 'clamp(24px, 4vw, 64px)' }}
-        initial="hidden"
-        animate="visible"
-      >
-        <div className="max-w-6xl">
-          <motion.h1
-            variants={titleVariants}
-            className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-normal tracking-[0.02em] drop-shadow-lg"
-            style={{ textShadow: '0 4px 30px rgba(0,0,0,0.25)' }}
-          >
-            {HOK_LINE}
-          </motion.h1>
-          <motion.p
-            variants={taglineVariants}
-            className="mt-4 md:mt-6 text-lg sm:text-xl md:text-2xl lg:text-3xl font-light tracking-[0.25em] uppercase text-white/90 drop-shadow-md relative z-10"
-            style={{ 
-              textShadow: '0 2px 20px rgba(0,0,0,0.2)',
-              marginTop: '-8px',
-            }}
-          >
-            {TAGLINE}
-          </motion.p>
-        </div>
-      </motion.div>
-    </section>
-  )
+       <motion.div
+         className="absolute inset-0 flex items-end pointer-events-none"
+         style={{ paddingBottom: 'clamp(40px, 6vw, 80px)', paddingLeft: 'clamp(24px, 4vw, 64px)' }}
+         initial="hidden"
+         animate="visible"
+       >
+         <div className="max-w-6xl">
+           <motion.h1
+             variants={titleVariants}
+             className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-normal tracking-[0.02em] drop-shadow-lg"
+             style={{ textShadow: '0 4px 30px rgba(0,0,0,0.25)' }}
+           >
+             {HOK_LINE}
+           </motion.h1>
+           <motion.p
+             variants={taglineVariants}
+             className="mt-4 md:mt-6 text-lg sm:text-xl md:text-2xl lg:text-3xl font-light tracking-[0.25em] uppercase text-white/90 drop-shadow-md relative z-10"
+             style={{
+               textShadow: '0 2px 20px rgba(0,0,0,0.2)',
+               marginTop: '-8px',
+             }}
+           >
+             {TAGLINE}
+           </motion.p>
+
+           <motion.div
+             className="mt-8 md:mt-10 flex flex-wrap items-center gap-4 pointer-events-auto"
+             initial={{ opacity: 0, y: 24 }}
+             animate={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+             transition={{
+               delay: prefersReducedMotion ? 0 : 0.9,
+               duration: prefersReducedMotion ? 0 : 0.8,
+               ease: [0.22, 1, 0.36, 1],
+             }}
+           >
+             <Link
+               to="/services"
+               className="btn-hero btn-hero--primary group inline-flex items-center gap-2"
+               aria-label="Explore our design services"
+             >
+               Explore Services
+               <ArrowRight size={16} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
+             </Link>
+             <Link
+               to="/shop"
+               className="btn-hero btn-hero--secondary group inline-flex items-center gap-2"
+               aria-label="Shop our curated collection"
+             >
+               Shop Collection
+             </Link>
+           </motion.div>
+         </div>
+       </motion.div>
+     </section>
+   )
 })
 
 HeroSection.displayName = 'HeroSection'

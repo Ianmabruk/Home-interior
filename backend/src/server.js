@@ -68,16 +68,22 @@ async function start() {
   try {
     const adminCount = await prisma.admin.count()
     if (adminCount === 0) {
-      const passwordHash = await bcrypt.hash(env.seedAdminPassword || 'admin123', 12)
-      await prisma.admin.create({
-        data: {
-          email: env.seedAdminEmail || 'info@hokinteriors.co.ke',
-          passwordHash,
-          fullName: 'Admin',
-          role: 'ADMIN',
-        },
-      })
-      log.info('Default admin account created (email: ' + (env.seedAdminEmail || 'info@hokinteriors.co.ke') + ')')
+      const adminEmail = env.adminEmail || 'info@hokinteriors.co.ke'
+      const adminPassword = env.adminPassword
+      if (!adminPassword) {
+        log.warn('No ADMIN_PASSWORD / SEED_ADMIN_PASSWORD set — skipping default admin creation. Set ADMIN_PASSWORD to create one.')
+      } else {
+        const passwordHash = await bcrypt.hash(adminPassword, 12)
+        await prisma.admin.create({
+          data: {
+            email: adminEmail,
+            passwordHash,
+            fullName: 'Admin',
+            role: 'ADMIN',
+          },
+        })
+        log.info('Default admin account created (email: ' + adminEmail + ')')
+      }
     } else {
       log.info('Admin accounts already exist — skipping auto-seed')
     }

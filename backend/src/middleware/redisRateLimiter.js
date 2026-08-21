@@ -56,12 +56,12 @@ export function createRateLimiter(options = {}) {
 
       current.count += 1
 
-      if (current.count > limit) {
-        const retryAfter = Math.ceil((current.resetTime - now) / 1000)
-        res.setHeader('Retry-After', String(retryAfter))
-      res.setHeader('X-Server-ID', SERVER_ID)
-      return res.status(429).json({ success: false, message: 'Too many requests, please try again later.' })
-    }
+       if (current.count > limit) {
+         const retryAfter = Math.ceil((current.resetTime - now) / 1000)
+         res.setHeader('Retry-After', String(retryAfter))
+         res.setHeader('X-Server-ID', SERVER_ID)
+         return res.status(429).json({ success: false, message: 'Too many requests, please try again later.' })
+       }
 
     res.setHeader('X-Server-ID', SERVER_ID)
     res.setHeader('X-RateLimit-Limit', String(limit))
