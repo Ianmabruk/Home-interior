@@ -4,6 +4,7 @@ import { authenticate, authorize, optionalAuth } from '../middleware/auth.js'
 import { validateCsrfToken } from '../middleware/csrf.js'
 import { validateZod } from '../middleware/validateZod.js'
 import { z } from 'zod'
+import { createRateLimiter } from '../middleware/redisRateLimiter.js'
 
 const router = Router()
 
@@ -12,8 +13,14 @@ const trackSchema = z.object({
   contact: z.string().min(1, 'Contact is required'),
 })
 
+const trackLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  limit: 10,
+  keyPrefix: 'rl:track',
+})
+
 router.post('/', optionalAuth, orderController.create)
-router.post('/track', validateZod(trackSchema), orderController.trackOrder)
+router.post('/track', trackLimiter, validateZod(trackSchema), orderController.trackOrder)
 router.get('/me', authenticate, orderController.listMine)
 router.get('/:id', authenticate, orderController.get)
 router.get('/', authenticate, authorize('ADMIN'), orderController.listAll)

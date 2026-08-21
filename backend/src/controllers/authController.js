@@ -27,8 +27,8 @@ export const authController = {
     const csrfToken = generateCsrfToken()
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: true,
+      sameSite: 'none',
       path: '/',
       maxAge: 30 * 24 * 60 * 60 * 1000,
     })
@@ -69,8 +69,8 @@ export const authController = {
     const csrfToken = generateCsrfToken()
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: true,
+      sameSite: 'none',
       path: '/',
       maxAge: 30 * 24 * 60 * 60 * 1000,
     })

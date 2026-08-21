@@ -59,6 +59,17 @@ function parseOrder(order) {
   }
 }
 
+function parseOrderSafe(order) {
+  return {
+    id: order.id,
+    trackingNumber: order.trackingNumber,
+    status: order.status,
+    customerNote: order.customerNote,
+    estimatedDelivery: order.estimatedDelivery,
+    createdAt: order.createdAt,
+  }
+}
+
 async function createOrder(data) {
   try {
     const enrichedItems = Array.isArray(data.items) ? data.items : (() => { try { return JSON.parse(data.items || '[]') } catch { return [] } })()
@@ -214,5 +225,5 @@ async function trackOrder(trackingNumber, contact) {
   if (!order) {
     throw failure(404, 'We couldn\'t verify this order. Please check your tracking number and contact details.')
   }
-  return parseOrder(order)
+  return parseOrderSafe(order)
 }

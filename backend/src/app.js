@@ -120,7 +120,9 @@ const authLimiter = createRateLimiter({
 app.use('/api/auth', authLimiter)
 
 app.use((req, res, next) => {
-  res.setHeader('X-Server-ID', process.env.SERVER_ID || 'hok-api-01')
+  if (process.env.NODE_ENV !== 'production') {
+    res.setHeader('X-Server-ID', process.env.SERVER_ID || 'hok-api-01')
+  }
   next()
 })
 
@@ -139,7 +141,6 @@ app.get(['/api/health', '/health'], async (req, res) => {
   } catch (err) {
     console.error(`[${SERVER_ID}] [health] database check failed:`, err?.message || err)
   }
-  res.setHeader('X-Server-ID', SERVER_ID)
   res.json({ database, server: 'running' })
 })
 
@@ -166,7 +167,6 @@ app.get(['/api/ready', '/ready'], async (req, res) => {
     cache = 'error'
     console.error(`[${SERVER_ID}] [ready] cache check failed:`, err?.message || err)
   }
-  res.setHeader('X-Server-ID', SERVER_ID)
   const ready = database === 'ok' && (cache === 'ok' || cache === 'not-configured')
   res.status(ready ? 200 : 503).json({ database, cache, server: 'running', ready })
 })

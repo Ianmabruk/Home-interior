@@ -1,12 +1,11 @@
 import { Router } from 'express'
 import { consultationController } from '../controllers/consultationController.js'
-import { authenticate } from '../middleware/auth.js'
+import { authenticate, authorize } from '../middleware/auth.js'
 import { validateCsrfToken } from '../middleware/csrf.js'
 
 const router = Router()
 
-router.use(authenticate)
-router.use(validateCsrfToken)
+router.use(authenticate, authorize('ADMIN'), validateCsrfToken)
 
 router.get('/', consultationController.list)
 router.patch('/:id/status', consultationController.updateStatus)

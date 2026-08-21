@@ -7,6 +7,6 @@ import { consultationSchemas } from '../validations/schemas.js'
 const router = Router()
 
 router.post('/', uploadArray('images', 10), validateZod(consultationSchemas.publicCreate), consultationController.publicCreate)
-router.get('/', consultationController.list)
+router.get('/', consultationController.publicList)
 
 export default router

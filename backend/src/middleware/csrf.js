@@ -1,33 +1,80 @@
 import crypto from 'crypto'
+import { getRedisClient, isRedisAvailable } from '../config/redis.js'
 
-const csrfStore = new Map()
+const SERVER_ID = process.env.SERVER_ID || 'hok-api-01'
+const TTL_MS = 60 * 60 * 1000 // 1 hour
+const inMemoryStore = new Map()
+
+async function redisSet(token) {
+  const client = await getRedisClient()
+  if (!client) return false
+  try {
+    await client.setEx(`csrf:${token}`, Math.ceil(TTL_MS / 1000), Date.now().toString())
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function redisGet(token) {
+  const client = await getRedisClient()
+  if (!client) return null
+  try {
+    const data = await client.get(`csrf:${token}`)
+    return data ? true : null
+  } catch {
+    return null
+  }
+}
+
+async function redisDel(token) {
+  const client = await getRedisClient()
+  if (!client) return
+  try {
+    await client.del(`csrf:${token}`)
+  } catch {
+    // ignore
+  }
+}
 
 export function generateCsrfToken() {
   const token = crypto.randomBytes(32).toString('hex')
-  csrfStore.set(token, Date.now())
+  inMemoryStore.set(token, Date.now())
+
+  const stored = redisSet(token)
+  if (!stored) {
+    console.warn(`[${SERVER_ID}] [csrf] Redis unavailable, using in-memory store`)
+  }
+
   return token
 }
 
-export function validateCsrfToken(req, res, next) {
+export async function validateCsrfToken(req, res, next) {
   const headerToken = req.headers['x-csrf-token']
 
   if (!headerToken) {
     return res.status(403).json({ success: false, message: 'Missing CSRF token' })
   }
 
-  const stored = csrfStore.get(headerToken)
-  if (!stored) {
-    return res.status(403).json({ success: false, message: 'Invalid CSRF token' })
+  const stored = await redisGet(headerToken)
+  if (stored === null) {
+    const mem = inMemoryStore.get(headerToken)
+    if (!mem) {
+      return res.status(403).json({ success: false, message: 'Invalid CSRF token' })
+    }
   }
+
+  await redisDel(headerToken)
+  inMemoryStore.delete(headerToken)
 
   next()
 }
 
 setInterval(() => {
   const now = Date.now()
-  for (const [token, timestamp] of csrfStore) {
-    if (now - timestamp > 3600000) {
-      csrfStore.delete(token)
+  for (const [token, timestamp] of inMemoryStore) {
+    if (now - timestamp > TTL_MS) {
+      inMemoryStore.delete(token)
     }
   }
 }, 60000)

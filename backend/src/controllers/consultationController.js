@@ -95,6 +95,11 @@ export const consultationController = {
     const result = await consultationService.listConsultations({ status, search, page, pageSize, type })
     res.json({ success: true, data: result })
   }),
+  publicList: asyncHandler(async (req, res) => {
+    const { status, search, page = 1, pageSize = 10, type } = req.query
+    const result = await consultationService.listPublicConsultations({ status, search, page, pageSize, type })
+    res.json({ success: true, data: result })
+  }),
 
   updateStatus: asyncHandler(async (req, res) => {
     const item = await consultationService.updateConsultationStatus(req.params.id, req.body.status)
