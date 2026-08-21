@@ -1,9 +1,16 @@
 import { PrismaClient } from '@prisma/client'
+import { env } from './env.js'
 
 const globalForPrisma = globalThis
 
-function createPrismaClient() {
-  const url = new URL(process.env.DATABASE_URL || '')
+function buildDatabaseUrl() {
+  const databaseUrl = env.databaseUrl
+  if (!databaseUrl) {
+    const err = new Error('DATABASE_URL is not configured. Set DATABASE_URL in your environment before starting the server.')
+    console.error('[database] FATAL: DATABASE_URL is missing — cannot initialize Prisma client.')
+    throw err
+  }
+  const url = new URL(databaseUrl)
   if (!url.searchParams.has('connection_limit')) {
     const limit = process.env.NODE_ENV === 'production' ? 5 : 10
     url.searchParams.set('connection_limit', String(limit))
@@ -16,13 +23,15 @@ function createPrismaClient() {
   url.searchParams.set('keepalives_idle', '30')
   url.searchParams.set('keepalives_interval', '10')
   url.searchParams.set('keepalives_count', '5')
-  const finalUrl = url.toString()
+  return url.toString()
+}
 
+function createPrismaClient() {
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     datasources: {
       db: {
-        url: finalUrl,
+        url: buildDatabaseUrl(),
       },
     },
   })
@@ -71,16 +80,37 @@ function createRetryingPrisma(rawPrisma) {
   })
 }
 
-export const prisma = createRetryingPrisma(globalForPrisma.prisma || createPrismaClient())
+let prismaInstance = null
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+function getPrismaInstance() {
+  if (prismaInstance) return prismaInstance
+  if (globalForPrisma.prisma) {
+    prismaInstance = globalForPrisma.prisma
+  } else {
+    prismaInstance = createRetryingPrisma(createPrismaClient())
+  }
+  if (process.env.NODE_ENV !== 'production') {
+    globalForPrisma.prisma = prismaInstance
+  }
+  return prismaInstance
+}
+
+export const prisma = new Proxy(
+  {},
+  {
+    get(_target, prop) {
+      return getPrismaInstance()[prop]
+    },
+  }
+)
 
 let connectPromise = null
 
 export async function connectDatabase() {
   if (connectPromise) return connectPromise
+  const instance = getPrismaInstance()
   connectPromise = withRetry(
-    () => prisma.$connect(),
+    () => instance.$connect(),
     5,
     1000,
   ).catch((err) => {
