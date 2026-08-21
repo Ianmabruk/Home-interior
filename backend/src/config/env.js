@@ -43,7 +43,7 @@ export function validateEnv() {
     throw new Error('JWT_REFRESH_SECRET must be at least 32 characters')
   }
 
-  if (env.seedAdminPassword && env.seedAdminPassword.length < 12) {
+  if (env.seedAdminPassword && env.seedAdminPassword.length < 12 && env.nodeEnv !== 'production') {
     throw new Error('SEED_ADMIN_PASSWORD / ADMIN_PASSWORD must be at least 12 characters')
   }
 
