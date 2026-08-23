@@ -17,6 +17,8 @@ const ALLOWED_STATUSES = [
   'cancelled',
 ]
 
+const PAYMENT_STATUSES = ['pending', 'submitted', 'confirmed', 'rejected']
+
 const STATUS_CONFIG = {
   'order placed': { label: 'Order Placed', color: 'bg-gray-100 text-gray-700 border-gray-200' },
   pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
@@ -29,8 +31,19 @@ const STATUS_CONFIG = {
   cancelled: { label: 'Canceled', color: 'bg-red-100 text-red-700 border-red-200' },
 }
 
+const PAYMENT_CONFIG = {
+  pending: { label: 'Payment Pending', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+  submitted: { label: 'Payment Submitted', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  confirmed: { label: 'Payment Confirmed', color: 'bg-green-100 text-green-700 border-green-200' },
+  rejected: { label: 'Payment Rejected', color: 'bg-red-100 text-red-700 border-red-200' },
+}
+
 const STATUS_COLORS = Object.fromEntries(
   Object.entries(STATUS_CONFIG).map(([k, v]) => [k, v.color])
+)
+
+const PAYMENT_COLORS = Object.fromEntries(
+  Object.entries(PAYMENT_CONFIG).map(([k, v]) => [k, v.color])
 )
 
 function formatLabel(status) {
@@ -115,6 +128,20 @@ export const OrderDashboard = () => {
       toast.success('Order status updated.')
     } catch (err) {
       toast.error(err?.message || 'Failed to update status.')
+    }
+  }
+
+  const updatePaymentStatus = async (orderId, newPaymentStatus, paymentReference = '') => {
+    try {
+      await api.patch(`/orders/${orderId}/payment`, { paymentStatus: newPaymentStatus, paymentReference })
+      setOrders((prev) => prev.map((o) => (o._id === orderId || o.id === orderId ? { ...o, paymentStatus: newPaymentStatus, paymentReference } : o)))
+      if (viewOrder && (viewOrder._id === orderId || viewOrder.id === orderId)) {
+        setViewOrder((prev) => ({ ...prev, paymentStatus: newPaymentStatus, paymentReference }))
+      }
+      dispatchAdminDataChanged('orders-changed')
+      toast.success('Payment status updated.')
+    } catch (err) {
+      toast.error(err?.message || 'Failed to update payment status.')
     }
   }
 
@@ -213,9 +240,16 @@ export const OrderDashboard = () => {
                       {order.name || 'Guest'}
                     </p>
                   </div>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-semibold border flex-shrink-0 ${statusColor}`}>
-                    {formatLabel(order.status)}
-                  </span>
+                  <div className="flex flex-col gap-1 items-end">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-semibold border flex-shrink-0 ${statusColor}`}>
+                      {formatLabel(order.status)}
+                    </span>
+                    {order.paymentStatus && (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-semibold border flex-shrink-0 ${PAYMENT_COLORS[String(order.paymentStatus).toLowerCase()] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
+                        {PAYMENT_CONFIG[String(order.paymentStatus).toLowerCase()]?.label || order.paymentStatus}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-1.5 mb-4 flex-1">
@@ -357,7 +391,46 @@ export const OrderDashboard = () => {
                     className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-[var(--accent)]/90"
                   >
                     <Save size={14} strokeWidth={1.5} />
-                    Save Updates
+                    Save Status
+                  </motion.button>
+                </div>
+
+                <div className="border-t border-[var(--border)]/40 pt-4">
+                  <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Payment Verification</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-1">Payment Status</label>
+                      <select
+                        value={String(viewOrder.paymentStatus || 'pending').toLowerCase()}
+                        onChange={(e) => setViewOrder((prev) => ({ ...prev, paymentStatus: e.target.value }))}
+                        className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition cursor-pointer"
+                      >
+                        {PAYMENT_STATUSES.map((s) => (
+                          <option key={s} value={s}>
+                            {PAYMENT_CONFIG[s]?.label || s}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-1">Payment Reference / M-Pesa Code</label>
+                      <input
+                        type="text"
+                        value={viewOrder.paymentReference || ''}
+                        onChange={(e) => setViewOrder((prev) => ({ ...prev, paymentReference: e.target.value }))}
+                        placeholder="e.g. M-Pesa confirmation code"
+                        className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                      />
+                    </div>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => updatePaymentStatus(viewOrder._id || viewOrder.id, viewOrder.paymentStatus || 'pending', viewOrder.paymentReference || '')}
+                    className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--primary)] px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-[var(--primary)]/90"
+                  >
+                    <Save size={14} strokeWidth={1.5} />
+                    Save Payment
                   </motion.button>
                 </div>
 

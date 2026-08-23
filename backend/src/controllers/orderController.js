@@ -118,4 +118,20 @@ export const orderController = {
     const order = await orderService.updateOrderStatus(req.params.id, updateData)
     res.json({ success: true, data: order })
   }),
+
+  updatePaymentStatus: asyncHandler(async (req, res) => {
+    const { paymentStatus, paymentReference } = req.body
+    if (!paymentStatus) {
+      return res.status(400).json({ success: false, message: 'Payment status is required' })
+    }
+    const normalizedPaymentStatus = String(paymentStatus).toLowerCase()
+    const allowedPaymentStatuses = ['pending', 'submitted', 'confirmed', 'rejected']
+    if (!allowedPaymentStatuses.includes(normalizedPaymentStatus)) {
+      return res.status(400).json({ success: false, message: 'Invalid payment status' })
+    }
+    const updateData = { paymentStatus: normalizedPaymentStatus }
+    if (paymentReference !== undefined) updateData.paymentReference = paymentReference
+    const order = await orderService.updateOrderStatus(req.params.id, updateData)
+    res.json({ success: true, data: order })
+  }),
 }

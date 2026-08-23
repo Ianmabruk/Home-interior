@@ -18,11 +18,33 @@ export async function sendOrderConfirmationEmail({ order, toEmail, siteName, sup
 
   const trackingUrl = `${process.env.CLIENT_URL || process.env.BASE_URL || 'https://hokinteriors.co.ke'}/track-order?tracking=${encodeURIComponent(order.trackingNumber || '')}`
 
+  const paymentInstructions = `
+    <div style="margin-top:24px;padding:16px;background:#faf8f4;border-radius:16px;border:1px solid rgba(42,36,31,0.08);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;margin-bottom:10px;">Payment Instructions</div>
+      <p style="margin:0 0 12px;font-size:14px;color:#2a241f;">Please complete payment to confirm your order.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:12px;padding:12px 16px;">
+        <tr>
+          <td style="padding:8px 12px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Business Number</div>
+            <div style="font-size:16px;color:#2a241f;margin-top:6px;font-weight:700;">0723057487</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:8px 12px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Payment Reference</div>
+            <div style="font-size:14px;color:#2a241f;margin-top:6px;">Use your order number: #${String(order._id || order.id || '').slice(-8).toUpperCase()}</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+  `
+
   const html = buildHtmlEmail({
     order,
     trackingUrl,
     siteName: siteName || 'HOK Interiors',
     supportEmail: supportEmail || 'info@hokinteriors.co.ke',
+    paymentInstructions,
   })
 
   try {
@@ -117,7 +139,7 @@ function buildNewsletterNotificationHtml({ subscriberEmail, siteName, supportEma
 </html>`
 }
 
-function buildHtmlEmail({ order, trackingUrl, siteName, supportEmail }) {
+function buildHtmlEmail({ order, trackingUrl, siteName, supportEmail, paymentInstructions }) {
   const itemsHtml = buildItemRows(order.items)
   const orderDate = order.createdAt ? new Date(order.createdAt) : new Date()
   const formattedDate = orderDate.toLocaleString('en-KE', {
@@ -192,6 +214,8 @@ function buildHtmlEmail({ order, trackingUrl, siteName, supportEmail }) {
           <td style="font-size:16px;color:#2a241f;font-weight:700;text-align:right;">KSh ${Number(order.total || 0).toLocaleString()}</td>
         </tr>
       </table>
+
+      ${paymentInstructions || ''}
 
       <div style="text-align:center;margin-top:24px;">
         <a href="${trackingUrl}" target="_blank" style="display:inline-block;padding:14px 22px;border-radius:9999px;background:#2a241f;color:#ffffff;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Track Your Order</a>

@@ -7,10 +7,10 @@ import { Link } from 'react-router-dom'
 
 const STATUS_FLOW = [
   { key: 'pending', label: 'Order Placed' },
-  { key: 'processing', label: 'Payment Confirmed' },
+  { key: 'payment confirmed', label: 'Payment Confirmed' },
   { key: 'processing', label: 'Processing' },
-  { key: 'shipped', label: 'Ready for Delivery' },
-  { key: 'shipped', label: 'Out for Delivery' },
+  { key: 'ready for delivery', label: 'Ready for Delivery' },
+  { key: 'out for delivery', label: 'Out for Delivery' },
   { key: 'delivered', label: 'Delivered' },
 ]
 
@@ -19,9 +19,9 @@ function getStatusIndex(status) {
   if (s === 'delivered') return 5
   if (s === 'cancelled' || s === 'canceled') return -1
   if (s === 'refunded') return -1
-  if (s === 'out for delivery' || s === 'being delivered') return 4
+  if (s === 'out for delivery') return 4
   if (s === 'ready for delivery' || s === 'completed') return 3
-  if (s === 'processing' || s === 'preparing') return 2
+  if (s === 'processing') return 2
   if (s === 'payment confirmed') return 1
   if (s === 'pending' || s === 'order placed' || s === 'payment pending') return 0
   return 0

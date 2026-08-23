@@ -49,6 +49,8 @@ function parseOrder(order) {
     shippingMethod: order.shippingMethod,
     paymentMethod: order.paymentMethod,
     paymentDetails: typeof order.paymentDetails === 'string' ? (() => { try { return JSON.parse(order.paymentDetails) } catch { return {} } })() : (order.paymentDetails || {}),
+    paymentStatus: order.paymentStatus || 'pending',
+    paymentReference: order.paymentReference || null,
     total: order.total,
     status: order.status,
     trackingNumber: order.trackingNumber,

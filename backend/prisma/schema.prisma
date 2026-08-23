@@ -336,6 +336,8 @@ model Order {
   shippingMethod  String?  @default("standard") @db.Text @map("shipping_method")
   paymentMethod   String   @db.Text @map("payment_method")
   paymentDetails  String   @db.Text @map("payment_details")
+  paymentStatus   String   @default("pending") @db.Text @map("payment_status")
+  paymentReference String?  @db.Text @map("payment_reference")
   total           Float
   status          String   @default("pending") @db.Text
   trackingNumber  String?  @unique @map("tracking_number") @db.Text

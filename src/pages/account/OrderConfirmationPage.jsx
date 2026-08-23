@@ -99,10 +99,22 @@ export const OrderConfirmationPage = () => {
                 </button>
               </div>
             )}
-            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-sm">
-              <Mail size={14} strokeWidth={1.5} />
-              <span>Please check your email for order confirmation and tracking details.</span>
-            </div>
+              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-sm">
+                <Mail size={14} strokeWidth={1.5} />
+                <span>Please check your email for order confirmation and payment details.</span>
+              </div>
+              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-[var(--border)]/40">
+                <Phone size={14} strokeWidth={1.5} className="text-[var(--primary)]/50" />
+                <span className="text-xs font-medium text-[var(--primary)]/60">Payment Number:</span>
+                <span className="text-sm font-semibold text-[var(--primary)]">0723057487</span>
+                <button
+                  onClick={() => navigator.clipboard.writeText('0723057487')}
+                  className="p-1 rounded hover:bg-[var(--secondary)]/20 transition-colors"
+                  aria-label="Copy payment number"
+                >
+                  <Copy size={12} strokeWidth={1.5} />
+                </button>
+              </div>
             <div className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-[var(--border)]/40">
               <span className="text-xs font-medium text-[var(--primary)]/60">Order ID:</span>
               <span className="text-sm font-semibold text-[var(--primary)]">

@@ -1,12 +1,20 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Loader2, AlertCircle, CheckCircle, ChevronRight, MapPin, ShoppingBag, Truck, Search, Mail } from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle, ChevronRight, MapPin, ShoppingBag, Truck, Search, Mail, Phone, Copy, Check } from 'lucide-react'
 import { api } from '../../services/api'
 import { useShop } from '../../context/ShopContext'
 import { useCurrency } from '../../context/CurrencyContext'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { PageMeta } from '../../hooks/usePageMeta'
+
+const PAYMENT_NUMBER = '0723057487'
+
+function validateKenyanPhone(phone) {
+  const cleaned = String(phone || '').replace(/\s+/g, '')
+  if (!cleaned) return false
+  return /^\+?254(7|1)\d{8}$/.test(cleaned) || /^0(7|1)\d{8}$/.test(cleaned)
+}
 
 export const CheckoutPage = () => {
   const { cart, clearCart } = useShop()
@@ -25,6 +33,7 @@ export const CheckoutPage = () => {
     city: '',
     country: 'Kenya',
   })
+  const [phoneError, setPhoneError] = useState('')
 
   useEffect(() => {
     if (cart?.length === 0) {
@@ -59,6 +68,14 @@ export const CheckoutPage = () => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setPhoneError('')
+
+    if (!validateKenyanPhone(formData.phone)) {
+      setPhoneError('Please enter a valid Kenyan mobile number (e.g. +254 7XX XXX XXX or 07XX XXX XXX)')
+      setLoading(false)
+      return
+    }
+
     try {
       const orderData = {
         items: cart.map(item => ({
@@ -91,9 +108,9 @@ export const CheckoutPage = () => {
         // ignore localStorage errors
       }
       if (newOrderId) {
-        setTimeout(() => navigate(`/order-confirmation/${newOrderId}`), 3500)
+        setTimeout(() => navigate(`/order-confirmation/${newOrderId}`), 5000)
       } else {
-        setTimeout(() => navigate('/shop'), 3500)
+        setTimeout(() => navigate('/shop'), 5000)
       }
     } catch (err) {
       setError(err?.message || 'Failed to place order')
@@ -134,7 +151,7 @@ export const CheckoutPage = () => {
               <CheckCircle size={48} strokeWidth={1.5} />
             </div>
             <h1 className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-4">Order Received</h1>
-            <p className="text-[var(--primary)]/60 mb-2 max-w-md mx-auto">Thank you for shopping with us! Your order has been received successfully. The admin will get back to you shortly. Please wait.</p>
+            <p className="text-[var(--primary)]/60 mb-2 max-w-md mx-auto">Thank you for your order! Please complete payment to confirm your order.</p>
             {orderId && (
               <p className="text-sm text-[var(--primary)]/50 mb-2">
                 Order Number: <span className="font-semibold text-[var(--primary)]">#{String(orderId).slice(-8).toUpperCase()}</span>
@@ -145,6 +162,24 @@ export const CheckoutPage = () => {
                 Tracking Number: <span className="font-semibold text-[var(--accent)]">{trackingNumber}</span>
               </p>
             )}
+
+            <div className="max-w-md mx-auto bg-[var(--bg)]/60 rounded-2xl border border-[var(--border)]/40 p-6 mb-8 text-left">
+              <h3 className="font-display text-xl font-medium text-[var(--primary)] mb-4 text-center">Payment Instructions</h3>
+              <p className="text-sm text-[var(--primary)]/70 mb-4 text-center">Please send payment to the number below and include your order number in the reference.</p>
+              <div className="flex items-center justify-between bg-white rounded-xl border border-[var(--border)]/40 px-4 py-3">
+                <div>
+                  <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Business Number</p>
+                  <p className="text-lg font-semibold text-[var(--primary)]">{PAYMENT_NUMBER}</p>
+                </div>
+                <button
+                  onClick={() => navigator.clipboard.writeText(PAYMENT_NUMBER)}
+                  className="p-2 rounded-lg text-[var(--primary)]/50 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors"
+                  aria-label="Copy payment number"
+                >
+                  <Copy size={16} strokeWidth={1.5} />
+                </button>
+              </div>
+            </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/shop" className="btn-luxury-primary inline-flex items-center gap-2">
@@ -166,7 +201,7 @@ export const CheckoutPage = () => {
 
             <div className="mt-8 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-sm">
               <Mail size={14} strokeWidth={1.5} />
-              <span>Please check your email for your order confirmation and tracking details.</span>
+              <span>Please check your email for order confirmation and payment details.</span>
             </div>
           </motion.div>
         ) : (
@@ -195,7 +230,8 @@ export const CheckoutPage = () => {
                     </div>
                     <div>
                       <label htmlFor="phone" className="block text-sm font-medium text-[var(--primary)] mb-1">Phone</label>
-                      <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} required className="input-luxury"                       placeholder="+254 723 057 487" />
+                      <input type="tel" id="phone" name="phone" value={formData.phone} onChange={(e) => { handleChange(e); setPhoneError('') }} required className={`input-luxury ${phoneError ? 'border-red-400 focus:border-red-400 focus:ring-red-400/40' : ''}`} placeholder="+254 723 057 487" />
+                      {phoneError && <p className="mt-1 text-xs text-red-600">{phoneError}</p>}
                     </div>
                     <div>
                       <label htmlFor="address" className="block text-sm font-medium text-[var(--primary)] mb-1">Delivery Address</label>

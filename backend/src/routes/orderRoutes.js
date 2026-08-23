@@ -25,5 +25,6 @@ router.get('/me', authenticate, orderController.listMine)
 router.get('/:id', authenticate, orderController.get)
 router.get('/', authenticate, authorize('ADMIN'), orderController.listAll)
 router.patch('/:id/status', authenticate, authorize('ADMIN'), validateCsrfToken, orderController.updateStatus)
+router.patch('/:id/payment', authenticate, authorize('ADMIN'), validateCsrfToken, orderController.updatePaymentStatus)
 
 export default router
