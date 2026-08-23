@@ -58,6 +58,10 @@ function accountUrl() {
   return trackUrl('/my-account')
 }
 
+function logoUrl() {
+  return `${frontendUrl.replace(/\/$/, '')}/hok-logo.png`
+}
+
 // Idempotency: record an email event attempt so the same logical event
 // can never be sent twice (Phase 11).
 async function hasSent(eventId) {
@@ -168,9 +172,9 @@ function baseLayout({ title, children, unsubscribe }) {
 <body style="margin:0;padding:0;background-color:#faf8f4;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#2a241f;">
   <div style="max-width:640px;margin:0 auto;padding:24px;">
     <div style="background:#ffffff;border-radius:24px;padding:28px;border:1px solid rgba(42,36,31,0.08);box-shadow:0 10px 40px rgba(42,36,31,0.06);">
-      <div style="text-align:center;margin-bottom:18px;">
-        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;color:#2a241f;letter-spacing:0.02em;">HOK <span style="color:#e89a43;">Interiors</span></div>
-      </div>
+       <div style="text-align:center;margin-bottom:18px;">
+         <img src="${logoUrl()}" alt="HOK Interiors logo" width="200" height="56" style="display:block;margin:0 auto;width:200px;height:auto;border:0;" />
+       </div>
       ${children}
       <div style="text-align:center;margin-top:24px;font-size:12px;color:#a89f91;">
         HOK Interiors · ${esc(SUPPORT_EMAIL)}
@@ -567,20 +571,10 @@ function buildNewsletterNotificationHtml({ subscriberEmail, siteName: overrideSi
     timeStyle: 'short',
     timeZone: 'Africa/Nairobi',
   })
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>New Mailing List Subscription</title>
-</head>
-<body style="margin:0;padding:0;background-color:#faf8f4;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#2a241f;">
-  <div style="max-width:640px;margin:0 auto;padding:24px;">
-    <div style="background:#ffffff;border-radius:24px;padding:28px;border:1px solid rgba(42,36,31,0.08);box-shadow:0 10px 40px rgba(42,36,31,0.06);">
-      <div style="text-align:center;margin-bottom:18px;">
-        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;color:#2a241f;letter-spacing:0.02em;">HOK <span style="color:#e89a43;">Interiors</span></div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;margin-top:8px;">New Subscription Notification</div>
-      </div>
+  return baseLayout({
+    title: sn,
+    children: `
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;margin-bottom:16px;">New Subscription Notification</div>
       <p style="margin:0 0 18px;font-size:15px;color:#2a241f;">A new subscriber has joined the HOK Interiors mailing list.</p>
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#faf8f4;border-radius:16px;padding:14px 16px;margin-bottom:18px;">
         <tr>
@@ -596,13 +590,132 @@ function buildNewsletterNotificationHtml({ subscriberEmail, siteName: overrideSi
           </td>
         </tr>
       </table>
-      <div style="text-align:center;margin-top:24px;font-size:12px;color:#a89f91;">
+      <div style="text-align:center;margin-top:18px;font-size:12px;color:#a89f91;">
         ${esc(sn)} · Need help? Contact us at ${esc(se)}
       </div>
-    </div>
-  </div>
-</body>
-</html>`
+    `,
+  })
+}
+
+function buildTrackingHtml({ order, siteName: overrideSiteName, supportEmail: overrideSupport }) {
+  const sn = overrideSiteName || siteName
+  const trackingUrl = trackUrl('/track-order', { tracking: order.trackingNumber || '' })
+  const tracking = order.trackingNumber || 'N/A'
+  const statusLabel = (order.status || 'pending').charAt(0).toUpperCase() + String(order.status || 'pending').slice(1)
+  return baseLayout({
+    title: 'Track Your HOK Order',
+    children: `
+      <h1 style="margin:0 0 18px;font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;color:#2a241f;">Track Your Order</h1>
+      <p style="margin:0 0 18px;font-size:15px;color:#2a241f;">Hello ${esc(order.name || 'there')},</p>
+      <p style="margin:0 0 18px;font-size:15px;color:#2a241f;">Track the status of your HOK Interiors order using the details below.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#faf8f4;border-radius:16px;padding:14px 16px;margin-bottom:18px;">
+        <tr>
+          <td style="padding:8px 12px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Order</div>
+            <div style="font-size:14px;color:#2a241f;margin-top:6px;">#${esc(String(order._id || order.id || '').slice(-8).toUpperCase())}</div>
+          </td>
+          <td style="padding:8px 12px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Tracking</div>
+            <div style="font-size:14px;color:#e89a43;margin-top:6px;font-weight:700;">${esc(tracking)}</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:8px 12px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Status</div>
+            <div style="font-size:14px;color:#2a241f;margin-top:6px;">${esc(statusLabel)}</div>
+          </td>
+          <td style="padding:8px 12px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Date</div>
+            <div style="font-size:14px;color:#2a241f;margin-top:6px;">${esc(new Date(order.createdAt || new Date()).toLocaleDateString('en-KE', { dateStyle: 'medium' }))}</div>
+          </td>
+        </tr>
+      </table>
+      <div style="text-align:center;margin-top:24px;">
+        ${ctaButton('Track This Order', trackingUrl)}
+      </div>
+      <p style="margin-top:18px;font-size:13px;color:#6b6055;">
+        Keep this order reference handy: ${esc(tracking)}. You can return to this page anytime to check your order's progress.
+      </p>
+    `,
+  })
+}
+
+function buildConsultationHtml({ consultation, siteName: overrideSiteName, supportEmail: overrideSupport }) {
+  const sn = overrideSiteName || siteName
+  const se = supportEmail || SUPPORT_EMAIL
+  const contactUrl = trackUrl('/contact')
+  return baseLayout({
+    title: 'HOK Interiors — Consultation Received',
+    children: `
+      <h1 style="margin:0 0 18px;font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;color:#2a241f;">Thank You for Reaching Out</h1>
+      <p style="margin:0 0 18px;font-size:15px;color:#2a241f;">Hello ${esc(consultation.name || 'there')},</p>
+      <p style="margin:0 0 18px;font-size:15px;color:#2a241f;">We have received your consultation request and one of our design consultants will contact you within 24 hours to discuss your project.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#faf8f4;border-radius:16px;padding:14px 16px;margin-bottom:18px;">
+        <tr>
+          <td style="padding:8px 12px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Service</div>
+            <div style="font-size:14px;color:#2a241f;margin-top:6px;">${esc(consultation.projectType || consultation.type || '—')}</div>
+          </td>
+          <td style="padding:8px 12px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Reference</div>
+            <div style="font-size:14px;color:#2a241f;margin-top:6px;">${esc(String(consultation.id || '').slice(-8).toUpperCase())}</div>
+          </td>
+        </tr>
+      </table>
+      ${ctaButton('Visit HOK Interiors', frontendUrl)}
+      <div style="text-align:center;margin-top:24px;font-size:12px;color:#a89f91;">
+        Have questions? Reply to this email or contact us at ${esc(se)}.
+      </div>
+    `,
+  })
+}
+
+export async function sendOrderTrackingEmail({ order, toEmail, siteName: overrideSiteName, supportEmail }) {
+  const orderId = order._id || order.id || ''
+  const html = buildTrackingHtml({ order, siteName: overrideSiteName, supportEmail })
+  const text = plaintextBase({
+    title: 'Track Your HOK Order',
+    lines: [
+      `Hello ${order.name || 'there'},`,
+      'Track the status of your HOK Interiors order.',
+      '',
+      `Order: #${String(orderId).slice(-8).toUpperCase()}`,
+      `Tracking: ${order.trackingNumber || 'N/A'}`,
+      '',
+      `Track This Order: ${trackUrl('/track-order', { tracking: order.trackingNumber || '' })}`,
+    ],
+  })
+  return sendRawEmail({
+    eventId: `order_${String(orderId)}_tracking`,
+    to: toEmail,
+    name: order.name || 'Customer',
+    subject: `Track Your HOK Order — ${order.trackingNumber || '#'+String(orderId).slice(-8).toUpperCase()}`,
+    html,
+    text,
+  })
+}
+
+export async function sendConsultationConfirmationEmail({ consultation, toEmail, siteName: overrideSiteName, supportEmail }) {
+  const id = consultation.id || consultation._id || ''
+  const html = buildConsultationHtml({ consultation, siteName: overrideSiteName, supportEmail })
+  const text = plaintextBase({
+    title: 'HOK Interiors — Consultation Received',
+    lines: [
+      `Hello ${consultation.name || 'there'},`,
+      'We have received your consultation request. A design consultant will contact you within 24 hours.',
+      '',
+      `Reference: #${String(id).slice(-8).toUpperCase()}`,
+      `Visit HOK Interiors: ${frontendUrl}`,
+    ],
+  })
+  return sendRawEmail({
+    eventId: `consultation_${String(id)}_confirmation`,
+    to: toEmail,
+    name: consultation.name || 'Customer',
+    subject: 'HOK Interiors — We received your consultation request',
+    html,
+    text,
+  })
 }
 
 export default {
@@ -610,6 +723,21 @@ export default {
   sendLoginNotification,
   sendOrderConfirmationEmail,
   sendOrderStatusUpdateEmail,
+  sendOrderTrackingEmail,
+  sendConsultationConfirmationEmail,
   sendNewsletterNotificationEmail,
+  sendMailingListWelcomeEmail,
+  getSmtpTransport,
+}
+
+export const emailService = {
+  sendWelcomeEmail,
+  sendLoginNotification,
+  sendOrderConfirmationEmail,
+  sendOrderStatusUpdateEmail,
+  sendOrderTrackingEmail,
+  sendConsultationConfirmationEmail,
+  sendNewsletterNotificationEmail,
+  sendMailingListWelcomeEmail,
   getSmtpTransport,
 }

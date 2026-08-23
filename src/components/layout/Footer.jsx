@@ -1,21 +1,52 @@
 import { useState, memo } from 'react'
 import { Link } from 'react-router-dom'
+import { toast } from 'react-hot-toast'
 import { api } from '@services/api'
 import { SocialIcons } from '@components/common/SocialIcons'
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 export const Footer = memo(() => {
   const [email, setEmail] = useState('')
-  const [status, setStatus] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const handleSubscribe = async (e) => {
     e.preventDefault()
-    setStatus('')
+    const trimmed = (email || '').trim()
+    if (!EMAIL_REGEX.test(trimmed)) {
+      toast.error('Please enter a valid email address.')
+      return
+    }
+    setSubmitting(true)
     try {
-      await api.post('/content/newsletter', { email })
-      setStatus('success')
+      const res = await api.post('/content/newsletter', { email: trimmed })
+      const newSubscriber = res.data?.newSubscriber !== false
+      if (newSubscriber) {
+        toast.success(
+          <div className="text-center">
+            <p className="font-semibold">Thank you for joining the HOK family.</p>
+            <p className="text-sm">You're now part of our design journey. We'll keep you inspired with thoughtful interiors, design stories, and updates.</p>
+          </div>,
+          { duration: 6000 }
+        )
+      } else {
+        toast(
+          <div className="text-center">
+            <p className="font-semibold">You're already part of the HOK family.</p>
+            <p className="text-sm">Thanks for your continued interest. Keep an eye on your inbox.</p>
+          </div>,
+          { duration: 5000, icon: '✓' }
+        )
+      }
       setEmail('')
-    } catch {
-      setStatus('error')
+    } catch (err) {
+      if (err?.response?.status === 400) {
+        toast.error(err?.response?.data?.message || 'A valid email address is required.')
+      } else {
+        toast.error('Unable to subscribe right now. Please try again.')
+      }
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -42,22 +73,18 @@ export const Footer = memo(() => {
                 onChange={(e) => setEmail(e.target.value)}
                 type="email"
                 required
+                disabled={submitting}
                 placeholder="Email Address"
-                className="w-full rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm text-white placeholder:text-white/40 outline-none transition-all duration-300 focus:border-[var(--accent)] focus:bg-white/10"
+                className="w-full rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm text-white placeholder:text-white/40 outline-none transition-all duration-300 focus:border-[var(--accent)] focus:bg-white/10 disabled:opacity-60"
               />
               <button
                 type="submit"
-                className="w-full rounded-full bg-[var(--accent)] px-5 py-3 text-[11px] font-semibold uppercase tracking-widest text-white transition-all duration-300 hover:bg-[var(--accent)] hover:shadow-lg"
+                disabled={submitting}
+                className="w-full rounded-full bg-[var(--accent)] px-5 py-3 text-[11px] font-semibold uppercase tracking-widest text-white transition-all duration-300 hover:bg-[var(--accent)] hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Join Mailing List
+                {submitting ? 'Joining...' : 'Join Mailing List'}
               </button>
             </form>
-            {status === 'success' && (
-              <p className="text-xs text-white/70 mt-3">Thank you for subscribing.</p>
-            )}
-            {status === 'error' && (
-              <p className="text-xs text-white/70 mt-3">Subscription failed. Please try again.</p>
-            )}
           </div>
 
           {/* Section 4: Get in Touch */}

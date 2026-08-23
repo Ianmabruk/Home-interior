@@ -17,6 +17,7 @@ import contentRoutes, { portfolioRoutes as contentPortfolioRoutes, virtualDesign
 import messageRoutes from './messageRoutes.js'
 import socialsRoutes from './socialsRoutes.js'
 import workWithUsRoutes from './workWithUsRoutes.js'
+import publicConfigController from '../controllers/publicConfigController.js'
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import { uploadSingle } from '../middleware/upload.js'
 import { uploadFile } from '../uploads/uploadService.js'
@@ -76,5 +77,8 @@ router.get('/settings/shop-banner', asyncHandler(async (req, res) => {
     res.json({ success: true, data: { shopBannerImage: '' } })
   }
 }))
+
+// Public, non-sensitive config for the PWA + push (exposes ONLY the VAPID public key).
+router.get('/config/public', publicConfigController.getConfig)
 
 export default router

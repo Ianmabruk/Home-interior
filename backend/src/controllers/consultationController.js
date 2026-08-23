@@ -1,6 +1,8 @@
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import { consultationService } from '../services/consultationService.js'
 import { uploadFile } from '../uploads/uploadService.js'
+import { triggerNewConsultationNotification } from '../services/notificationService.js'
+import { emailService } from '../services/emailService.js'
 
 function buildMessageWithImages(originalMessage, imageUrls, extraData = {}) {
   const header = {
@@ -87,6 +89,23 @@ export const consultationController = {
       purchaseDate: type === 'e-design' ? null : null,
     }
     const consultation = await consultationService.createConsultation(data)
+
+    // Fire-and-forget admin push notification (new consultation request).
+    triggerNewConsultationNotification(consultation).catch((e) =>
+      console.warn('[consultations] new-consultation push notification failed:', e?.message)
+    )
+
+    // Fire-and-forget customer confirmation email. Never blocks the response.
+    if (consultation && consultation.email) {
+      emailService
+        .sendConsultationConfirmationEmail({
+          consultation,
+          toEmail: consultation.email,
+          name: consultation.name,
+        })
+        .catch((e) => console.warn('[consultations] confirmation email failed:', e?.message))
+    }
+
     res.status(201).json({ success: true, data: consultation })
   }),
 

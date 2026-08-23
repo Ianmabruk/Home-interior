@@ -206,6 +206,25 @@ export const ProductDetailPage = () => {
             </ol>
           </nav>
 
+          {/* Prominent Exit Page control — easy to understand, not just a small X */}
+          <div className="mb-6 flex items-center justify-between">
+            <Link
+              to="/shop"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--secondary)]/30 px-5 py-3 text-sm font-semibold text-[var(--primary)]/75 transition-all duration-300 hover:border-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/5"
+            >
+              <ArrowLeft size={16} strokeWidth={1.5} className="rotate-180" />
+              Exit Page
+            </Link>
+            <Link
+              to="/shop"
+              className="md:hidden inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent)] underline"
+              aria-label="Back to shop listing"
+            >
+              <ArrowLeft size={12} strokeWidth={2} className="rotate-180" />
+              Back to Shop
+            </Link>
+          </div>
+
           <div className="grid gap-12 lg:grid-cols-2">
             <div className="relative">
               <div className="aspect-[4/3] rounded-3xl overflow-hidden bg-[var(--secondary)]/30">

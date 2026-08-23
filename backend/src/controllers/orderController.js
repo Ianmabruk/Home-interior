@@ -1,6 +1,7 @@
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import { orderService } from '../services/orderService.js'
 import { emailService } from '../services/emailService.js'
+import { triggerNewOrderNotification } from '../services/notificationService.js'
 import { failure } from '../utils/response.js'
 
 const ALLOWED_STATUSES = [
@@ -53,6 +54,14 @@ export const orderController = {
       total: Number(req.body.total) || 0,
     }
     const order = await orderService.createOrder(data)
+
+    // Fire-and-forget admin push notification (new order). Never block the
+    // customer response on push delivery; failure is logged but non-fatal.
+    if (order) {
+      triggerNewOrderNotification(order).catch((e) =>
+        console.warn('[orders] new-order push notification failed:', e?.message)
+      )
+    }
     res.status(201).json({ success: true, data: order })
   }),
 

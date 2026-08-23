@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowRight, Images } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Images } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
 import { api } from '@services/api'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
@@ -131,6 +131,25 @@ export const PortfolioDetailPage = () => {
         description={project.description || `Explore ${project.title} portfolio project.`}
         image={heroImage}
       />
+
+      {/* Prominent Exit Page control (mobile-friendly) */}
+      <div className="px-5 md:px-12 lg:px-20 pt-6 md:pt-8 flex items-center justify-between">
+        <Link
+          to="/portfolio"
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--secondary)]/30 px-5 py-3 text-sm font-semibold text-[var(--primary)]/75 transition-all duration-300 hover:border-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/5"
+        >
+          <ArrowLeft size={16} strokeWidth={1.5} className="rotate-180" />
+          Exit Page
+        </Link>
+        <Link
+          to="/portfolio"
+          className="text-xs font-semibold text-[var(--accent)] underline"
+          aria-label="Back to portfolio"
+        >
+          Back to Portfolio
+        </Link>
+      </div>
+
       <div className="min-h-screen bg-[var(--bg)]">
         {/* Project Header - Two Column on Desktop */}
         <section className="px-5 md:px-12 lg:px-20 py-10 md:py-16">
@@ -181,11 +200,34 @@ export const PortfolioDetailPage = () => {
           </div>
         </section>
 
+        {/* Before / After tab switcher */}
+        <div className="px-5 md:px-12 lg:px-20 py-8 md:py-10">
+          <div className="max-w-7xl mx-auto">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)]/40 bg-[var(--bg)]/60 p-1.5">
+              <a
+                href="#before-images"
+                className="rounded-full px-6 py-2.5 text-sm font-semibold text-[var(--primary)]/60 transition-all hover:text-[var(--accent)] hover:bg-[var(--accent)]/5"
+              >
+                BEFORE
+              </a>
+              <a
+                href="#after-images"
+                className="rounded-full px-6 py-2.5 text-sm font-semibold text-[var(--primary)]/60 transition-all hover:text-[var(--accent)] hover:bg-[var(--accent)]/5"
+              >
+                AFTER
+              </a>
+            </div>
+            <p className="mt-1 text-xs text-[var(--primary)]/40">
+              Use the tabs to jump between before and after project images.
+            </p>
+          </div>
+        </div>
+
         {/* Before Images Section */}
-        {beforeImages.length > 0 && (
-          <section className="px-5 md:px-12 lg:px-20 py-10 md:py-16 bg-[var(--secondary)]/10">
-            <div className="max-w-7xl mx-auto">
-              <h2 className="font-display text-2xl md:text-3xl font-medium text-[var(--primary)] mb-6">Before</h2>
+        <section id="before-images" className="px-5 md:px-12 lg:px-20 py-10 md:py-16 bg-[var(--secondary)]/10">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="font-display text-2xl md:text-3xl font-medium text-[var(--primary)] mb-6">Before</h2>
+            {beforeImages.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                 {beforeImages.slice(0, 12).map((img, index) => (
                   <button
@@ -204,52 +246,56 @@ export const PortfolioDetailPage = () => {
                   </button>
                 ))}
               </div>
-              {beforeImages.length > 12 && (
-                <button
-                  onClick={() => openLightbox('before', 0)}
-                  className="mt-4 text-sm font-semibold text-[var(--accent)] hover:text-[var(--primary)] transition-colors"
-                >
-                  View all {beforeImages.length} before images
-                </button>
-              )}
-            </div>
-          </section>
-        )}
+            ) : (
+              <p className="text-[var(--primary)]/55">No Before images available.</p>
+            )}
+            {beforeImages.length > 12 && (
+              <button
+                onClick={() => openLightbox('before', 0)}
+                className="mt-4 text-sm font-semibold text-[var(--accent)] hover:text-[var(--primary)] transition-colors"
+              >
+                View all {beforeImages.length} before images
+              </button>
+            )}
+          </div>
+        </section>
 
         {/* After Images Section */}
-        {afterImages.length > 0 && (
-          <section className="px-5 md:px-12 lg:px-20 py-10 md:py-16">
-            <div className="max-w-7xl mx-auto">
-              <h2 className="font-display text-2xl md:text-3xl font-medium text-[var(--primary)] mb-6">After</h2>
+        <section id="after-images" className="px-5 md:px-12 lg:px-20 py-10 md:py-16">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="font-display text-2xl md:text-3xl font-medium text-[var(--primary)] mb-6">After</h2>
+            {afterImages.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-                {afterImages.slice(0, 12).map((img, index) => (
-                  <button
-                    key={`after-${index}`}
-                    onClick={() => openLightbox('after', index)}
-                    className="relative rounded-xl overflow-hidden border border-[var(--border)]/40 bg-[var(--secondary)]/10 aspect-[4/3] hover:border-[var(--accent)]/60 active:scale-[0.98] transition-all"
-                    aria-label={`View after image ${index + 1}`}
-                  >
-                    <img
-                      src={getOptimizedUrl(img.src, { width: 600, crop: 'limit' })}
-                      alt={`After ${index + 1}`}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </button>
-                ))}
-              </div>
-              {afterImages.length > 12 && (
+              {afterImages.slice(0, 12).map((img, index) => (
                 <button
-                  onClick={() => openLightbox('after', 0)}
-                  className="mt-4 text-sm font-semibold text-[var(--accent)] hover:text-[var(--primary)] transition-colors"
+                  key={`after-${index}`}
+                  onClick={() => openLightbox('after', index)}
+                  className="relative rounded-xl overflow-hidden border border-[var(--border)]/40 bg-[var(--secondary)]/10 aspect-[4/3] hover:border-[var(--accent)]/60 active:scale-[0.98] transition-all"
+                  aria-label={`View after image ${index + 1}`}
                 >
-                  View all {afterImages.length} after images
+                  <img
+                    src={getOptimizedUrl(img.src, { width: 600, crop: 'limit' })}
+                    alt={`After ${index + 1}`}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </button>
-              )}
-            </div>
-          </section>
-        )}
+              ))}
+              </div>
+            ) : (
+              <p className="text-[var(--primary)]/55">No After images available.</p>
+            )}
+            {afterImages.length > 12 && (
+              <button
+                onClick={() => openLightbox('after', 0)}
+                className="mt-4 text-sm font-semibold text-[var(--accent)] hover:text-[var(--primary)] transition-colors"
+              >
+                View all {afterImages.length} after images
+              </button>
+            )}
+          </div>
+        </section>
       </div>
 
       {/* Fullscreen Image Viewer */}

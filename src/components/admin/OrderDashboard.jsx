@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Package, Eye, X, Search, ChevronDown, Save, ExternalLink } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
@@ -78,6 +79,27 @@ export const OrderDashboard = () => {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [viewOrder, setViewOrder] = useState(null)
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const urlOrderId = useMemo(() => {
+    try {
+      return new URLSearchParams(location.search).get('orderId') || null
+    } catch {
+      return null
+    }
+  }, [location.search])
+
+  useEffect(() => {
+    if (!urlOrderId || orders.length === 0 || viewOrder) return
+    const match = orders.find((o) => o._id === urlOrderId || o.id === urlOrderId)
+    if (match) {
+      setViewOrder(match)
+      const searchParams = new URLSearchParams(location.search)
+      searchParams.delete('orderId')
+      navigate({ search: searchParams.toString() ? `?${searchParams.toString()}` : '' }, { replace: true })
+    }
+  }, [urlOrderId, orders, viewOrder, location.search, navigate])
 
   useEffect(() => {
     let cancelled = false

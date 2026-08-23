@@ -8,6 +8,7 @@ import cloudinary from './config/cloudinary.js'
 import { isSupabaseConfigured } from './config/supabase.js'
 import { getRedisClient, disconnectRedis } from './config/redis.js'
 import { env } from './config/env.js'
+import { initPush } from './services/pushService.js'
 import fs from 'fs'
 import path from 'path'
 import bcrypt from 'bcryptjs'
@@ -55,6 +56,12 @@ async function start() {
     log.info('Database connected')
   } catch (err) {
     log.error('Database connection failed: ' + (err?.message || err))
+  }
+
+  if (initPush()) {
+    log.info('Web Push initialized (VAPID configured)')
+  } else {
+    log.warn('Web Push NOT initialized — set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY to enable admin push notifications')
   }
 
   if (process.env.REDIS_URL) {

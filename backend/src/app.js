@@ -13,6 +13,7 @@ import { notFoundHandler, errorHandler } from './middleware/errorHandler.js'
 import routes from './routes/index.js'
 import { createRateLimiter } from './middleware/redisRateLimiter.js'
 import { getRedisClient, isRedisAvailable } from './config/redis.js'
+import { buildVersionMiddleware } from './middleware/buildVersion.js'
 
 dotenv.config()
 
@@ -178,6 +179,7 @@ app.get(['/api/ready', '/ready'], async (req, res) => {
 
 app.use('/uploads', express.static(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public', 'uploads')))
 
+app.use(buildVersionMiddleware)
 app.use('/api', routes)
 
 app.use(notFoundHandler)

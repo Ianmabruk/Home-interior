@@ -14,7 +14,7 @@ export const contentController = {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!email || !emailRegex.test(email)) {
-      return res.status(400).json({ success: false, message: 'Valid email is required' })
+      return res.status(400).json({ success: false, message: 'A valid email address is required.' })
     }
 
     const normalizedEmail = email.toLowerCase().trim()
@@ -22,6 +22,8 @@ export const contentController = {
     const existing = await prisma.subscriber.findUnique({
       where: { email: normalizedEmail },
     })
+
+    const isNewSubscriber = !existing || existing.subscribed === false
 
     let subscriber = await prisma.subscriber.upsert({
       where: { email: normalizedEmail },
@@ -37,7 +39,7 @@ export const contentController = {
     })
 
     // Mailing-list welcome email to the subscriber (first subscribe or re-subscribe).
-    if (!existing || existing.subscribed === false) {
+    if (isNewSubscriber) {
       sendMailingListWelcomeEmail({
         subscriberEmail: normalizedEmail,
         unsubscribeToken: subscriber.unsubscribeToken,
@@ -55,18 +57,24 @@ export const contentController = {
       const siteNameSetting = await prisma.siteSetting.findUnique({
         where: { key: 'siteName' },
       })
-      const siteName = siteNameSetting?.value || 'HOK Interiors'
+      const notificationSiteName = siteNameSetting?.value || siteName
 
       sendNewsletterNotificationEmail({
         subscriberEmail: normalizedEmail,
-        siteName,
+        siteName: notificationSiteName,
         supportEmail: recipientEmail,
       }).catch((err) => {
         console.error('[newsletter] Failed to send notification email:', err?.message || err)
       })
     }
 
-    res.json({ success: true, data: { message: 'Subscribed successfully' } })
+    res.json({
+      success: true,
+      data: {
+        message: isNewSubscriber ? 'Subscribed successfully' : 'already_subscribed',
+        newSubscriber: isNewSubscriber,
+      },
+    })
   }),
 
   unsubscribe: asyncHandler(async (req, res) => {

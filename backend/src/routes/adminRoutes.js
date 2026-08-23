@@ -17,6 +17,8 @@ import { orderController } from '../controllers/orderController.js'
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import { adminOverviewController } from '../controllers/adminOverviewController.js'
 import { workWithUsController } from '../controllers/workWithUsController.js'
+import { notificationController } from '../controllers/notificationController.js'
+import { getBuildVersion } from '../middleware/buildVersion.js'
 import adminSocialRoutes from './adminSocialRoutes.js'
 
 const router = Router()
@@ -147,5 +149,16 @@ router.get('/work-with-us/content', workWithUsController.listContent)
 router.post('/work-with-us/content', uploadFields([{ name: 'image', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), workWithUsController.createContent)
 router.patch('/work-with-us/content/:id', uploadFields([{ name: 'image', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), workWithUsController.updateContent)
 router.delete('/work-with-us/content/:id', workWithUsController.deleteContent)
+
+// Deployment verification + push notification management (admin only)
+router.get('/version', asyncHandler(async (req, res) => {
+  res.json({
+    success: true,
+    data: { buildVersion: getBuildVersion(), server: 'HOK API' },
+  })
+}))
+router.get('/push', notificationController.listMine)
+router.post('/push/subscribe', notificationController.subscribe)
+router.delete('/push/:id', notificationController.revoke)
 
 export default router

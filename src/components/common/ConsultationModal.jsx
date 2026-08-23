@@ -1,6 +1,7 @@
 import { useState, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Loader2 } from 'lucide-react'
+import { api } from '@services/api'
 
 export const ConsultationModal = memo(({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
@@ -12,22 +13,36 @@ export const ConsultationModal = memo(({ isOpen, onClose }) => {
   })
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [error, setError] = useState(null)
 
   if (!isOpen) return null
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!formData.name || !formData.email) {
+      setError('Name and email are required')
+      return
+    }
     setSubmitting(true)
+    setError(null)
     try {
-      // Submit logic would go here
+      await api.post('/consultations', {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || undefined,
+        service: formData.service || undefined,
+        projectType: formData.service || undefined,
+        message: formData.message || undefined,
+        type: 'consultation',
+      })
       setSuccess(true)
       setTimeout(() => {
         setSuccess(false)
         setFormData({ name: '', email: '', phone: '', service: '', message: '' })
         onClose()
       }, 2000)
-    } catch {
-      // Handle error
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to submit request')
     } finally {
       setSubmitting(false)
     }
@@ -77,6 +92,16 @@ export const ConsultationModal = memo(({ isOpen, onClose }) => {
                 <h3 className="font-display text-2xl md:text-3xl font-medium text-[var(--primary)] mb-2">Book a Consultation</h3>
                 <p className="text-[var(--primary)]/60">Let&apos;s discuss your project and bring your vision to life.</p>
               </div>
+
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2 rounded-xl bg-[var(--error)]/10 p-3 text-sm text-[var(--error)]"
+                >
+                  {error}
+                </motion.div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>

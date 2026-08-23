@@ -20,6 +20,40 @@ model Admin {
   @@map("admins")
 }
 
+model PushSubscription {
+  id          String   @id @default(cuid())
+  adminId     String   @map("admin_id") @db.Text
+  endpoint    String   @unique @db.Text
+  keys        Json     @db.Json
+  active      Boolean  @default(true)
+  lastActiveAt DateTime @default(now()) @map("last_active_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("push_subscriptions")
+  @@index([adminId, active])
+}
+
+model NotificationEvent {
+  id          String   @id @default(cuid())
+  type        String   @db.Text
+  title       String   @db.Text
+  body        String?  @db.Text
+  targetUrl   String   @map("target_url") @db.Text
+  entityId    String?  @map("entity_id") @db.Text
+  entityType  String?  @map("entity_type") @db.Text
+  payload     Json?    @db.Json
+  sentCount   Int      @default(0) @map("sent_count")
+  status      String   @default("pending") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  sentAt      DateTime? @map("sent_at")
+
+  @@map("notification_events")
+  @@index([type, createdAt(desc)])
+  @@index([status])
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique @db.Text

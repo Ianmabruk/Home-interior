@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Search,
   Trash2,
@@ -173,6 +174,30 @@ export const ConsultationDashboard = () => {
   const [viewItem, setViewItem] = useState(null)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const urlViewId = useMemo(() => {
+    try {
+      return new URLSearchParams(location.search).get('viewId') || null
+    } catch {
+      return null
+    }
+  }, [location.search])
+
+  useEffect(() => {
+    if (!urlViewId || consultations.length === 0 || viewItem) return
+    const match = consultations.find((c) => c._id === urlViewId || c.id === urlViewId)
+    if (match) {
+      setViewItem(match)
+      const searchParams = new URLSearchParams(location.search)
+      searchParams.delete('viewId')
+      navigate(
+        { search: searchParams.toString() ? `?${searchParams.toString()}` : '' },
+        { replace: true }
+      )
+    }
+  }, [urlViewId, consultations, viewItem, location.search, navigate])
 
   useEffect(() => {
     const loadData = async () => {

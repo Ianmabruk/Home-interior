@@ -18,7 +18,9 @@ import {
   FileText,
   Heart,
 } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useAuth } from '@context/AuthContext'
+import { usePushNotifications } from '@hooks/usePushNotifications'
 import { Sidebar } from '@components/admin/Sidebar'
 import { AdminLoginPage } from './AdminLoginPage'
 
@@ -41,6 +43,7 @@ const ADMIN_NAV = [
 
 export const AdminPage = () => {
   const { user, isAdmin, loading, logout } = useAuth()
+  const push = usePushNotifications()
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
@@ -106,9 +109,49 @@ export const AdminPage = () => {
               </h1>
             </div>
             <div className="flex items-center gap-4">
-              <div className="hidden md:flex items-center gap-3 px-4 py-2 rounded-full bg-[var(--secondary)]/30 text-[var(--primary)]/60 text-sm">
-                <span>{user?.fullName || 'Admin'}</span>
+              <div className="flex items-center gap-2">
+                {!push.supported ? null : push.permission === 'denied' ? (
+                  <span
+                    title={push.reason}
+                    className="text-xs text-[var(--error)] whitespace-nowrap cursor-help underline decoration-dotted"
+                  >
+                    Notifications blocked
+                  </span>
+                ) : push.subscribed ? (
+                  <span className="text-xs text-[var(--success)] whitespace-nowrap" title="Push notifications enabled">
+                    Notifications enabled
+                  </span>
+                ) : null}
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => push.subscribe()}
+                  disabled={push.loading || !push.supported}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed ${
+                    push.subscribed
+                      ? 'bg-[var(--success)] text-white hover:bg-[var(--success)]/90'
+                      : 'bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90'
+                  }`}
+                  aria-label={push.subscribed ? 'Notifications enabled' : 'Enable notifications'}
+                >
+                  {push.loading ? (
+                    <>
+                      <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="19" y2="12" y1="12" x2="5" />
+                      </svg>
+                      Enabling...
+                    </>
+                  ) : push.subscribed ? (
+                    'Enabled'
+                  ) : (
+                    'Enable Notifications'
+                  )}
+                </motion.button>
               </div>
+              <span className="hidden md:block text-sm text-[var(--primary)]">
+                {user?.fullName || 'Admin'}
+              </span>
               <button
                 onClick={logout}
                 className="p-2 rounded-lg text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30 hover:text-[var(--primary)]"
