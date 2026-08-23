@@ -15,6 +15,9 @@ export const authSchemas = {
 
 export const contentSchemas = {
   newsletter: z.object({ email }),
+  unsubscribe: z.object({
+    token: z.string().min(1, 'Unsubscribe token is required'),
+  }),
 }
 
 export const contactSchemas = {

@@ -20,6 +20,16 @@ export const env = {
   adminPassword: process.env.ADMIN_PASSWORD || process.env.SEED_ADMIN_PASSWORD,
   seedAdminEmail: process.env.SEED_ADMIN_EMAIL || process.env.ADMIN_EMAIL,
   seedAdminPassword: process.env.SEED_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD,
+  email: {
+    smtpHost: process.env.SMTP_HOST || 'mail.hokinteriors.co.ke',
+    smtpPort: Number(process.env.SMTP_PORT) || 465,
+    smtpSecure: process.env.SMTP_SECURE !== 'false',
+    smtpUser: process.env.SMTP_USER || process.env.SMTP_FROM || 'info@hokinteriors.co.ke',
+    smtpFrom: process.env.SMTP_FROM || 'HOK Interiors <info@hokinteriors.co.ke>',
+    brevoApiKey: process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY,
+    brevoSender: process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'info@hokinteriors.co.ke',
+    loginNotificationEnabled: process.env.LOGIN_NOTIFICATION_ENABLED !== 'false',
+  },
 }
 
 export function validateEnv() {

@@ -1,5 +1,6 @@
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import { orderService } from '../services/orderService.js'
+import { emailService } from '../services/emailService.js'
 import { failure } from '../utils/response.js'
 
 const ALLOWED_STATUSES = [
@@ -112,10 +113,22 @@ export const orderController = {
     if (!ALLOWED_STATUSES.includes(normalizedStatus)) {
       return res.status(400).json({ success: false, message: 'Invalid status' })
     }
+    const previous = await orderService.getOrder(req.params.id)
     const updateData = { status: normalizedStatus }
     if (customerNote !== undefined) updateData.customerNote = customerNote
     if (estimatedDelivery !== undefined) updateData.estimatedDelivery = estimatedDelivery
     const order = await orderService.updateOrderStatus(req.params.id, updateData)
+
+    // Notify the customer of the status change (best-effort; never block the update).
+    if (previous && order.email && previous.status !== normalizedStatus) {
+      emailService.sendOrderStatusUpdateEmail({
+        order,
+        previousStatus: previous.status,
+        newStatus: normalizedStatus,
+        toEmail: order.email,
+      }).catch((e) => console.warn('[orders] status-update email failed:', e?.message))
+    }
+
     res.json({ success: true, data: order })
   }),
 

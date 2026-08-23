@@ -59,6 +59,7 @@ const BlogPage = lazyWithCache(() => import('@pages/public/BlogPage').then(m => 
 const BlogDetailPage = lazyWithCache(() => import('@pages/public/BlogDetailPage').then(m => ({ default: m.BlogDetailPage })), 'blog-detail')
 const ChatPage = lazyWithCache(() => import('@pages/public/ChatPage').then(m => ({ default: m.ChatPage })), 'chat')
 const TrackOrderPage = lazyWithCache(() => import('@pages/public/TrackOrderPage'), 'track-order')
+const UnsubscribePage = lazyWithCache(() => import('@pages/public/UnsubscribePage').then(m => ({ default: m.UnsubscribePage })), 'unsubscribe')
 const NotFoundPage = lazyWithCache(() => import('@pages/public/NotFoundPage').then(m => ({ default: m.NotFoundPage })), 'not-found')
 
 // Auth pages
@@ -154,6 +155,7 @@ export const AppRouter = () => {
             <Route path="/cart" element={<ErrorBoundaryRoute element={<CartPage />} />} />
             <Route path="/checkout" element={<ErrorBoundaryRoute element={<CheckoutPage />} />} />
             <Route path="/track-order" element={<ErrorBoundaryRoute element={<TrackOrderPage />} />} />
+            <Route path="/unsubscribe" element={<ErrorBoundaryRoute element={<UnsubscribePage />} />} />
             <Route path="/orders" element={<ErrorBoundaryRoute element={<OrdersPage />} />} />
             <Route path="/account" element={<ErrorBoundaryRoute element={<AccountPage />} />}>
               <Route index element={<ErrorBoundaryRoute element={<AccountPage />} />} />

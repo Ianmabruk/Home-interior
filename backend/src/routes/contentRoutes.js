@@ -12,6 +12,7 @@ const router = Router()
 
 router.get('/homepage', cacheHeaders(5, 30), contentController.homepage)
 router.post('/newsletter', validateZod(contentSchemas.newsletter), contentController.newsletter)
+router.get('/unsubscribe', validateZod(contentSchemas.unsubscribe, 'query'), contentController.unsubscribe)
 
 export const portfolioRoutes = Router()
 portfolioRoutes.get('/', cacheHeaders(5, 30), portfolioController.list)

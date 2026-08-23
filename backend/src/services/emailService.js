@@ -1,22 +1,369 @@
+import nodemailer from 'nodemailer'
 import { BrevoClient, BrevoEnvironment } from '@getbrevo/brevo'
+import { prisma } from '../config/database.js'
+import { env } from '../config/env.js'
 
-const client = new BrevoClient({
-  apiKey: process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY || '',
+// Brevo client — used only as a fallback when HostPinnacle SMTP is not configured.
+const brevoClient = new BrevoClient({
+  apiKey: env.email.brevoApiKey || '',
   environment: BrevoEnvironment.COMMON,
 })
 
-export async function sendOrderConfirmationEmail({ order, toEmail, siteName, supportEmail }) {
-  if (!toEmail) {
-    console.warn('[emailService] No recipient email provided for order confirmation')
+// Lazily create the SMTP transporter so we never construct it before env is ready.
+let smtpTransport = null
+
+function getSmtpTransport() {
+  if (smtpTransport) return smtpTransport
+  // Password is read from the process environment at call time ONLY.
+  // It is never stored on the env object, never logged, never serialized.
+  const pass = process.env.SMTP_PASSWORD
+  if (!pass) return null
+  smtpTransport = nodemailer.createTransport({
+    host: env.email.smtpHost,
+    port: env.email.smtpPort,
+    secure: env.email.smtpSecure,
+    auth: {
+      user: env.email.smtpUser,
+      pass,
+    },
+  })
+  return smtpTransport
+}
+
+const SENDER = env.email.smtpFrom
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'info@hokinteriors.co.ke'
+const siteName = (process.env.SITE_NAME) || 'HOK Interiors'
+const frontendUrl = env.clientUrl || 'https://hokinteriors.co.ke'
+
+// Escape untrusted text for safe inclusion in HTML (Phase 19).
+function esc(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function trackUrl(path = '/track-order', params) {
+  const url = new URL(frontendUrl)
+  url.pathname = path
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)))
+  }
+  return url.toString()
+}
+
+function accountUrl() {
+  return trackUrl('/my-account')
+}
+
+// Idempotency: record an email event attempt so the same logical event
+// can never be sent twice (Phase 11).
+async function hasSent(eventId) {
+  if (!eventId) return false
+  try {
+    return !!(await prisma.emailLog.findUnique({ where: { eventId } }))
+  } catch {
+    return false
+  }
+}
+
+async function recordSent({ eventId, recipient, recipientName, emailType, orderId, subject, provider, status, messageId, failureReason }) {
+  if (!eventId) return null
+  try {
+    await prisma.emailLog.upsert({
+      where: { eventId },
+      update: { status, messageId, failureReason, sentAt: status === 'sent' ? new Date() : undefined },
+      create: { eventId, recipient, recipientName, emailType, orderId, subject, provider, status, messageId, failureReason, sentAt: status === 'sent' ? new Date() : undefined },
+    })
+  } catch (e) {
+    console.warn('[emailService] failed to write email log:', e?.message)
+  }
+  return null
+}
+
+async function sendRawEmail({ eventId, to, name, subject, html, text }) {
+  if (!to) {
     return { skipped: true, reason: 'no_recipient' }
   }
 
-  if (!process.env.BREVO_API_KEY && !process.env.SENDINBLUE_API_KEY) {
-    console.warn('[emailService] Brevo API key not configured. Skipping order confirmation email.')
-    return { skipped: true, reason: 'not_configured' }
+  // Idempotency guard: never send the same event twice.
+  if (eventId && (await hasSent(eventId))) {
+    return { skipped: true, reason: 'already_sent' }
   }
 
-  const trackingUrl = `${process.env.CLIENT_URL || process.env.BASE_URL || 'https://hokinteriors.co.ke'}/track-order?tracking=${encodeURIComponent(order.trackingNumber || '')}`
+  let provider = 'none'
+  let messageId = null
+  let status = 'queued'
+  let failureReason = null
+
+  const payload = {
+    to: [{ email: to, name: name || 'Customer' }],
+    sender: { email: SENDER, name: siteName },
+    subject,
+    htmlContent: html,
+    replyTo: { email: SUPPORT_EMAIL, name: siteName },
+  }
+
+  try {
+    const transport = getSmtpTransport()
+    if (transport) {
+      // HostPinnacle SMTP (primary)
+      const info = await transport.sendMail({
+        from: SENDER,
+        to,
+        subject,
+        html,
+        text,
+        replyTo: SUPPORT_EMAIL,
+      })
+      provider = 'smtp'
+      messageId = info?.messageId || null
+      status = 'sent'
+    } else if (env.email.brevoApiKey) {
+      // Brevo fallback (existing deployments)
+      const result = await brevoClient.transactionalEmails.sendTransacEmail(payload)
+      provider = 'brevo'
+      messageId = result?.messageId || null
+      status = 'sent'
+    } else {
+      console.warn('[emailService] No SMTP_PASSWORD or BREVO_API_KEY configured. Email not sent (dev mode).')
+      provider = 'none'
+      status = 'skipped'
+      return { skipped: true, reason: 'not_configured' }
+    }
+  } catch (err) {
+    console.error('[emailService] send failed:', err?.message || err)
+    status = 'failed'
+    failureReason = err?.message || String(err)
+    provider = getSmtpTransport() ? 'smtp' : (env.email.brevoApiKey ? 'brevo' : 'none')
+    // Do NOT throw — order/registration must not be corrupted by email failure (Phase 14).
+  }
+
+  await recordSent({
+    eventId,
+    recipient: to,
+    recipientName: name,
+    emailType: subject,
+    subject,
+    provider,
+    status,
+    messageId,
+    failureReason,
+    orderId: null,
+  })
+
+  return { skipped: status === 'failed' || status === 'skipped' || status === 'queued', provider, messageId, status, failureReason }
+}
+
+function baseLayout({ title, children, unsubscribe }) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${esc(title)}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#faf8f4;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#2a241f;">
+  <div style="max-width:640px;margin:0 auto;padding:24px;">
+    <div style="background:#ffffff;border-radius:24px;padding:28px;border:1px solid rgba(42,36,31,0.08);box-shadow:0 10px 40px rgba(42,36,31,0.06);">
+      <div style="text-align:center;margin-bottom:18px;">
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;color:#2a241f;letter-spacing:0.02em;">HOK <span style="color:#e89a43;">Interiors</span></div>
+      </div>
+      ${children}
+      <div style="text-align:center;margin-top:24px;font-size:12px;color:#a89f91;">
+        HOK Interiors · ${esc(SUPPORT_EMAIL)}
+      </div>
+      ${unsubscribe || ''}
+    </div>
+  </div>
+</body>
+</html>`
+}
+
+function ctaButton(label, href) {
+  return `<a href="${href}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:14px 24px;border-radius:9999px;background:#2a241f;color:#ffffff;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">${esc(label)}</a>`
+}
+
+function plaintextBase({ title, lines }) {
+  return `${title}\n\n${lines.join('\n').trim()}\n\nHOK Interiors\n${SUPPORT_EMAIL}\n${frontendUrl}`
+}
+
+export async function sendWelcomeEmail({ userId, email, name }) {
+  const greetingName = name || 'there'
+  const html = baseLayout({
+    title: 'Welcome to HOK Interiors',
+    children: `
+      <h1 style="margin:0 0 18px;font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;color:#2a241f;">Welcome to HOK Interiors, ${esc(greetingName)}</h1>
+      <p style="margin:0 0 18px;font-size:15px;color:#2a241f;">We're delighted to have you with us. Your account has been successfully created.</p>
+      <ul style="margin:0 0 24px;font-size:14px;color:#2a241f;line-height:1.6;padding-left:20px;">
+        <li>Explore our collections</li>
+        <li>Save your account information</li>
+        <li>Place and track orders</li>
+        <li>Stay connected with HOK Interiors</li>
+      </ul>
+      ${ctaButton('Go To My Account', accountUrl())}
+      <p style="margin-top:18px;font-size:13px;color:#6b6055;">We look forward to helping you create spaces that feel like home.</p>
+    `,
+  })
+  const text = plaintextBase({
+    title: 'Welcome to HOK Interiors',
+    lines: [
+      `Welcome to HOK Interiors, ${greetingName}.`,
+      "We're delighted to have you with us. Your account has been successfully created.",
+      'You can now explore collections, save your info, place orders, and track them.',
+      `Go to My Account: ${accountUrl()}`,
+    ],
+  })
+
+  return sendRawEmail({
+    eventId: `user_${String(userId || email)}_welcome`,
+    to: email,
+    name: greetingName,
+    subject: `Welcome to HOK Interiors${name ? `, ${greetingName}` : ''}`,
+    html,
+    text,
+  })
+}
+
+export async function sendLoginNotification({ userId, email, name }) {
+  if (env.email.loginNotificationEnabled === false) {
+    return { skipped: true, reason: 'disabled' }
+  }
+  const greetingName = name || 'there'
+  const loginTime = new Date().toLocaleString('en-KE', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Africa/Nairobi',
+  })
+  const html = baseLayout({
+    title: 'New Sign-In to Your HOK Interiors Account',
+    children: `
+      <h1 style="margin:0 0 18px;font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;color:#2a241f;">New Sign-In to Your HOK Interiors Account</h1>
+      <p style="margin:0 0 18px;font-size:15px;color:#2a241f;">Hello ${esc(greetingName)},</p>
+      <p style="margin:0 0 18px;font-size:15px;color:#2a241f;">Your HOK Interiors account was successfully accessed on ${esc(loginTime)}.</p>
+      <p style="margin:0 0 24px;font-size:15px;color:#2a241f;">If you don't recognize this activity, please secure your account immediately.</p>
+      ${ctaButton('Go To My Account', accountUrl())}
+    `,
+  })
+  const text = plaintextBase({
+    title: 'New Sign-In to Your HOK Interiors Account',
+    lines: [
+      `Hello ${greetingName},`,
+      `Your HOK Interiors account was successfully accessed on ${loginTime}.`,
+      "If you don't recognize this activity, please secure your account immediately.",
+      `Go to My Account: ${accountUrl()}`,
+    ],
+  })
+
+  return sendRawEmail({
+    eventId: `user_${String(userId || email)}_login_${new Date().toISOString().slice(0, 10)}`,
+    to: email,
+    name: greetingName,
+    subject: 'New Sign-In to Your HOK Interiors Account',
+    html,
+    text,
+  })
+}
+
+export async function sendOrderConfirmationEmail({ order, toEmail, siteName: overrideSiteName, supportEmail }) {
+  const html = buildHtmlEmail({ order, siteName: overrideSiteName, supportEmail })
+  const text = buildOrderTextEmail({ order, siteName: overrideSiteName, supportEmail })
+
+  const orderId = order._id || order.id || ''
+  return sendRawEmail({
+    eventId: `order_${String(orderId)}_confirmation`,
+    to: toEmail,
+    name: order.name || 'Customer',
+    subject: `Order Confirmation — ${order.trackingNumber || ''} — HOK Interiors`.replace(/\s+—\s+$/, ''),
+    html,
+    text,
+  })
+}
+
+export async function sendOrderStatusUpdateEmail({ order, previousStatus, newStatus, toEmail, siteName: overrideSiteName, supportEmail }) {
+  const html = buildStatusHtml({ order, newStatus, previousStatus, siteName: overrideSiteName, supportEmail })
+  const text = buildStatusText({ order, newStatus, siteName: overrideSiteName })
+
+  const orderId = order._id || order.id || ''
+  return sendRawEmail({
+    eventId: `order_${String(orderId)}_status_${String(newStatus || 'updated')}`,
+    orderId,
+    to: toEmail,
+    name: order.name || 'Customer',
+    subject: `HOK Interiors Order Update — Status: ${newStatus || 'Updated'}`,
+    html,
+    text,
+  })
+}
+
+export async function sendNewsletterNotificationEmail({ subscriberEmail, siteName: overrideSiteName, supportEmail }) {
+  const html = buildNewsletterNotificationHtml({ subscriberEmail, siteName: overrideSiteName, supportEmail: supportEmail || SUPPORT_EMAIL })
+  const text = plaintextBase({
+    title: 'New HOK Interiors Mailing List Subscription',
+    lines: [`A new subscriber has joined the HOK Interiors mailing list: ${subscriberEmail}`],
+  })
+  return sendRawEmail({
+    eventId: `newsletter_notification_${String(subscriberEmail)}_${new Date().toISOString().slice(0, 10)}`,
+    to: supportEmail || SUPPORT_EMAIL,
+    name: overrideSiteName || siteName,
+    subject: `New mailing list subscription from ${subscriberEmail} — HOK Interiors`,
+    html,
+    text,
+  })
+}
+
+export async function sendMailingListWelcomeEmail({ subscriberEmail, unsubscribeToken, siteName: overrideSiteName, supportEmail }) {
+  const sn = overrideSiteName || siteName
+  const se = supportEmail || SUPPORT_EMAIL
+  const unsubscribeUrl = unsubscribeToken
+    ? trackUrl(`/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`)
+    : trackUrl('/unsubscribe')
+
+  const html = baseLayout({ title: 'Welcome to the HOK Journal', children: `
+    <h1 style="margin:0 0 18px;font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;color:#2a241f;">Welcome to the HOK Journal</h1>
+    <p style="margin:0 0 18px;font-size:15px;color:#2a241f;">Thank you for joining the HOK Interiors community.</p>
+    <p style="margin:0 0 18px;font-size:15px;color:#2a241f;">You'll now receive updates about new collections, design inspiration, projects, and special announcements from HOK Interiors.</p>
+    ${ctaButton('Visit HOK Interiors', frontendUrl)}
+    <div style="text-align:center;margin-top:24px;font-size:12px;color:#a89f91;">
+      <a href="${unsubscribeUrl}" target="_blank" rel="noopener noreferrer" style="color:#a89f91;text-decoration:underline;">Unsubscribe</a>
+    </div>
+  `, unsubscribe: `<div style="text-align:center;font-size:12px;color:#a89f91;">You're receiving this because you subscribed at ${frontendUrl}. <a href="${unsubscribeUrl}" rel="noopener noreferrer" style="color:#a89f91;text-decoration:underline;">Unsubscribe</a> at any time.</div>` })
+
+  const text = plaintextBase({
+    title: 'Welcome to the HOK Journal — HOK Interiors',
+    lines: [
+      'Thank you for joining the HOK Interiors community.',
+      "You'll now receive updates about new collections, design inspiration, projects, and special announcements.",
+      '',
+      `Visit HOK Interiors: ${frontendUrl}`,
+      `Unsubscribe: ${unsubscribeUrl}`,
+    ],
+  })
+
+  return sendRawEmail({
+    eventId: `subscriber_welcome_${String(subscriberEmail)}`,
+    to: subscriberEmail,
+    subject: 'Welcome to the HOK Journal — HOK Interiors',
+    html,
+    text,
+  })
+}
+
+// ---- HTML builders (reuse existing branded look) ----
+
+function buildHtmlEmail({ order, siteName: overrideSiteName, supportEmail: overrideSupport }) {
+  const sn = overrideSiteName || siteName
+  const se = overrideSupport || SUPPORT_EMAIL
+  const trackingUrl = trackUrl('/track-order', { tracking: order.trackingNumber || '' })
+  const shopUrl = trackUrl('/shop')
+  const orderDate = order.createdAt ? new Date(order.createdAt) : new Date()
+  const formattedDate = orderDate.toLocaleString('en-KE', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Africa/Nairobi',
+  })
 
   const paymentInstructions = `
     <div style="margin-top:24px;padding:16px;background:#faf8f4;border-radius:16px;border:1px solid rgba(42,36,31,0.08);">
@@ -32,72 +379,194 @@ export async function sendOrderConfirmationEmail({ order, toEmail, siteName, sup
         <tr>
           <td style="padding:8px 12px;">
             <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Payment Reference</div>
-            <div style="font-size:14px;color:#2a241f;margin-top:6px;">Use your order number: #${String(order._id || order.id || '').slice(-8).toUpperCase()}</div>
+            <div style="font-size:14px;color:#2a241f;margin-top:6px;">Use your order number: #${esc(String(order._id || order.id || '').slice(-8).toUpperCase())}</div>
           </td>
         </tr>
       </table>
     </div>
   `
 
-  const html = buildHtmlEmail({
-    order,
-    trackingUrl,
-    siteName: siteName || 'HOK Interiors',
-    supportEmail: supportEmail || 'info@hokinteriors.co.ke',
-    paymentInstructions,
+  return baseLayout({ title: 'Order Confirmation', children: `
+    <h1 style="margin:0 0 18px;font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;color:#2a241f;">YOUR ORDER IS CONFIRMED</h1>
+    <p style="margin:0 0 18px;font-size:15px;color:#2a241f;">Thank you for your order, ${esc(order.name || 'valued customer')}.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#faf8f4;border-radius:16px;padding:14px 16px;margin-bottom:18px;">
+      <tr>
+        <td style="width:50%;padding:8px 12px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Order</div>
+          <div style="font-size:14px;color:#2a241f;margin-top:6px;">#${esc(String(order._id || order.id || '').slice(-8).toUpperCase())}</div>
+        </td>
+        <td style="width:50%;padding:8px 12px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Date</div>
+          <div style="font-size:14px;color:#2a241f;margin-top:6px;">${formattedDate}</div>
+        </td>
+      </tr>
+      <tr>
+        <td style="width:50%;padding:8px 12px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Status</div>
+          <div style="font-size:14px;color:#2a241f;margin-top:6px;text-transform:capitalize;">${esc(order.status || 'Pending')}</div>
+        </td>
+        <td style="width:50%;padding:8px 12px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Tracking</div>
+          <div style="font-size:14px;color:#e89a43;margin-top:6px;font-weight:700;">${esc(order.trackingNumber || 'N/A')}</div>
+        </td>
+      </tr>
+    </table>
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;margin-bottom:10px;">Products</div>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      ${buildItemRowsHtml(order.items)}
+    </table>
+    <hr style="border:0;border-top:1px solid #f0ebe3;margin:18px 0;" />
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td style="padding:6px 0;font-size:13px;color:#6b6055;">Subtotal</td>
+        <td style="padding:6px 0;font-size:13px;color:#2a241f;text-align:right;font-weight:600;">KSh ${(Number(order.total || 0)).toLocaleString()}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;font-size:13px;color:#6b6055;">Shipping</td>
+        <td style="padding:6px 0;font-size:13px;color:#2a241f;text-align:right;font-weight:600;">Free</td>
+      </tr>
+      <tr>
+        <td style="font-size:16px;color:#2a241f;font-weight:700;padding-top:10px;">Total</td>
+        <td style="font-size:16px;color:#2a241f;font-weight:700;text-align:right;padding-top:10px;">KSh ${(Number(order.total || 0)).toLocaleString()}</td>
+      </tr>
+    </table>
+    ${paymentInstructions || ''}
+    <div style="text-align:center;margin-top:24px;">
+      ${ctaButton('Track Your Order', trackingUrl)}
+    </div>
+    <div style="text-align:center;margin-top:12px;">
+     <a href="${shopUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:14px 22px;border-radius:9999px;background:#ffffff;color:#2a241f;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;border:1px solid rgba(42,36,31,0.15);">Continue Shopping</a>
+      </div>
+    `, unsubscribe: '' })
+ }
+
+function buildItemRowsHtml(items) {
+  const safeItems = Array.isArray(items) ? (typeof items === 'string' ? (() => { try { return JSON.parse(items) } catch { return [] } })() : items) : []
+  return safeItems.map((item) => {
+    const imageUrl = item.image || item.selectedVariant?.image || ''
+    const name = item.name || item.productName || 'Product'
+    const qty = Number(item.quantity || 1)
+    const unitPrice = Number(item.price || item.discountPrice || 0)
+    const total = unitPrice * qty
+    return `
+      <tr>
+        <td style="padding:14px 0;border-bottom:1px solid #f0ebe3;vertical-align:top;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="width:72px;vertical-align:top;">
+                ${imageUrl ? `<img src="${imageUrl}" alt="${esc(name)}" width="64" height="64" style="display:block;width:64px;height:64px;border-radius:12px;object-fit:cover;background:#f0ebe3;" />` : `<div style="width:64px;height:64px;border-radius:12px;background:#f0ebe3;color:#a89f91;text-align:center;line-height:64px;font-size:11px;">No img</div>`}
+              </td>
+              <td style="padding-left:14px;vertical-align:top;">
+                <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:15px;color:#2a241f;font-weight:600;">${esc(name)}</div>
+                ${item.selectedVariant?.color ? `<div style="font-family:system-ui,sans-serif;font-size:12px;color:#8b5e3c;margin-top:4px;">Variant: ${esc(item.selectedVariant.color)}</div>` : ''}
+                <div style="font-family:system-ui,sans-serif;font-size:12px;color:#6b6055;margin-top:6px;">Qty: ${qty}</div>
+              </td>
+              <td style="text-align:right;vertical-align:top;white-space:nowrap;">
+                <div style="font-family:system-ui,sans-serif;font-size:14px;color:#2a241f;font-weight:600;">KSh ${total.toLocaleString()}</div>
+                <div style="font-family:system-ui,sans-serif;font-size:11px;color:#a89f91;margin-top:4px;">${unitPrice.toLocaleString()} each</div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    `
+  }).join('')
+}
+
+function buildOrderTextEmail({ order, siteName: overrideSiteName, supportEmail }) {
+  const sn = overrideSiteName || siteName
+  const se = supportEmail || SUPPORT_EMAIL
+  const trackingUrl = trackUrl('/track-order', { tracking: order.trackingNumber || '' })
+  const items = Array.isArray(order.items) ? (typeof order.items === 'string' ? (() => { try { return JSON.parse(order.items) } catch { return [] } })() : order.items) : []
+  const lines = [
+    `YOUR ORDER IS CONFIRMED`,
+    `Thank you for your order, ${order.name || 'valued customer'}.`,
+    '',
+    `Order: #${String(order._id || order.id || '').slice(-8).toUpperCase()}`,
+    `Status: ${order.status || 'Pending'}`,
+    `Tracking: ${order.trackingNumber || 'N/A'}`,
+    '',
+    'Items:',
+    ...items.map((i) => `  - ${i.name || 'Product'} x ${Number(i.quantity || 1)} @ KSh ${Number(i.price || 0).toLocaleString()}`),
+    '',
+    `Subtotal: KSh ${(Number(order.total || 0)).toLocaleString()}`,
+    `Shipping: Free`,
+    `TOTAL: KSh ${(Number(order.total || 0)).toLocaleString()}`,
+    '',
+    `Track Your Order: ${trackingUrl}`,
+    `Continue Shopping: ${trackUrl('/shop')}`,
+  ]
+  return plaintextBase({ title: sn, lines })
+}
+
+function statusLabel(status) {
+  return String(status || 'pending').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function buildStatusHtml({ order, newStatus, previousStatus, siteName: overrideSiteName, supportEmail: overrideSupport }) {
+  const sn = overrideSiteName || siteName
+  const se = overrideSupport || SUPPORT_EMAIL
+  const trackingUrl = trackUrl('/track-order', { tracking: order.trackingNumber || '' })
+  const orderDate = order.createdAt ? new Date(order.createdAt) : new Date()
+  const formattedDate = orderDate.toLocaleString('en-KE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Nairobi' })
+  return baseLayout({ title: 'Order Status Update', children: `
+    <h1 style="margin:0 0 18px;font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;color:#2a241f;">Order Update — ${sn}</h1>
+    <p style="margin:0 0 18px;font-size:15px;color:#2a241f;">Hello ${esc(order.name || 'valued customer')},</p>
+    <p style="margin:0 0 18px;font-size:15px;color:#2a241f;">Your order status has been updated.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#faf8f4;border-radius:16px;padding:14px 16px;margin-bottom:18px;">
+      <tr>
+        <td style="width:50%;padding:8px 12px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Order</div>
+          <div style="font-size:14px;color:#2a241f;margin-top:6px;">#${esc(String(order._id || order.id || '').slice(-8).toUpperCase())}</div>
+        </td>
+        <td style="width:50%;padding:8px 12px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Tracking</div>
+          <div style="font-size:14px;color:#e89a43;margin-top:6px;font-weight:700;">${esc(order.trackingNumber || 'N/A')}</div>
+        </td>
+      </tr>
+      <tr>
+        <td style="width:50%;padding:8px 12px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Previous Status</div>
+          <div style="font-size:14px;color:#2a241f;margin-top:6px;">${esc(statusLabel(previousStatus))}</div>
+        </td>
+        <td style="width:50%;padding:8px 12px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Current Status</div>
+          <div style="font-size:14px;color:#e89a43;margin-top:6px;font-weight:700;">${esc(statusLabel(newStatus))}</div>
+        </td>
+      </tr>
+    </table>
+    <div style="text-align:center;margin-top:24px;">
+      ${ctaButton('Track Your Order', trackingUrl)}
+     </div>
+    <p style="margin-top:18px;font-size:12px;color:#6b6055;">Order placed on ${formattedDate}.</p>
+   `, unsubscribe: '' })
+  }
+
+function buildStatusText({ order, newStatus }) {
+  const trackingUrl = trackUrl('/track-order', { tracking: order.trackingNumber || '' })
+  return plaintextBase({
+    title: 'Order Status Update — HOK Interiors',
+    lines: [
+      `Hello ${order.name || 'valued customer'},`,
+      'Your order status has been updated.',
+      '',
+      `Order: #${String(order._id || order.id || '').slice(-8).toUpperCase()}`,
+      `Tracking: ${order.trackingNumber || 'N/A'}`,
+      `Current Status: ${statusLabel(newStatus)}`,
+      '',
+      `Track Your Order: ${trackingUrl}`,
+    ],
   })
-
-  try {
-    const result = await client.transactionalEmails.sendTransacEmail({
-      to: [{ email: toEmail, name: order.name || 'Customer' }],
-      sender: { email: process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'info@hokinteriors.co.ke', name: siteName || 'HOK Interiors' },
-      subject: `Order Confirmation ${order.trackingNumber || ''} — ${siteName || 'HOK Interiors'}`,
-      htmlContent: html,
-    })
-    return { skipped: false, messageId: result?.messageId || null }
-  } catch (err) {
-    console.error('[emailService] Failed to send order confirmation:', err)
-    return { skipped: true, reason: 'send_failed', error: err?.message }
-  }
 }
 
-export async function sendNewsletterNotificationEmail({ subscriberEmail, siteName, supportEmail }) {
-  if (!subscriberEmail) {
-    console.warn('[emailService] No subscriber email provided for newsletter notification')
-    return { skipped: true, reason: 'no_subscriber_email' }
-  }
-
-  if (!process.env.BREVO_API_KEY && !process.env.SENDINBLUE_API_KEY) {
-    console.warn('[emailService] Brevo API key not configured. Skipping newsletter notification email.')
-    return { skipped: true, reason: 'not_configured' }
-  }
-
-  const recipientEmail = supportEmail || process.env.SUPPORT_EMAIL || 'info@hokinteriors.co.ke'
-
-  const html = buildNewsletterNotificationHtml({ subscriberEmail, siteName, supportEmail: recipientEmail })
-
-  try {
-    const result = await client.transactionalEmails.sendTransacEmail({
-      to: [{ email: recipientEmail, name: siteName || 'HOK Interiors' }],
-      sender: { email: process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'info@hokinteriors.co.ke', name: siteName || 'HOK Interiors' },
-      replyTo: { email: subscriberEmail },
-      subject: `New mailing list subscription from ${subscriberEmail} — ${siteName || 'HOK Interiors'}`,
-      htmlContent: html,
-    })
-    return { skipped: false, messageId: result?.messageId || null }
-  } catch (err) {
-    console.error('[emailService] Failed to send newsletter notification:', err)
-    return { skipped: true, reason: 'send_failed', error: err?.message }
-  }
-}
-
-function buildNewsletterNotificationHtml({ subscriberEmail, siteName, supportEmail }) {
+function buildNewsletterNotificationHtml({ subscriberEmail, siteName: overrideSiteName, supportEmail }) {
+  const sn = overrideSiteName || siteName
+  const se = supportEmail || SUPPORT_EMAIL
   const formattedDate = new Date().toLocaleString('en-KE', {
     dateStyle: 'medium',
     timeStyle: 'short',
     timeZone: 'Africa/Nairobi',
   })
-
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -112,172 +581,35 @@ function buildNewsletterNotificationHtml({ subscriberEmail, siteName, supportEma
         <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;color:#2a241f;letter-spacing:0.02em;">HOK <span style="color:#e89a43;">Interiors</span></div>
         <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;margin-top:8px;">New Subscription Notification</div>
       </div>
-
       <p style="margin:0 0 18px;font-size:15px;color:#2a241f;">A new subscriber has joined the HOK Interiors mailing list.</p>
-
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#faf8f4;border-radius:16px;padding:14px 16px;margin-bottom:18px;">
         <tr>
           <td style="padding:8px 12px;">
             <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Subscriber Email</div>
-            <div style="font-size:14px;color:#2a241f;margin-top:6px;word-break:break-all;">${subscriberEmail}</div>
+            <div style="font-size:14px;color:#2a241f;margin-top:6px;word-break:break-all;">${esc(subscriberEmail)}</div>
           </td>
         </tr>
         <tr>
           <td style="padding:8px 12px;">
             <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Subscribed At</div>
-            <div style="font-size:14px;color:#2a241f;margin-top:6px;">${formattedDate}</div>
+            <div style="font-size:14px;color:#2a241f;margin-top:6px;">${esc(formattedDate)}</div>
           </td>
         </tr>
       </table>
-
       <div style="text-align:center;margin-top:24px;font-size:12px;color:#a89f91;">
-        ${siteName || 'HOK Interiors'} · Need help? Contact us at ${supportEmail || 'info@hokinteriors.co.ke'}
+        ${esc(sn)} · Need help? Contact us at ${esc(se)}
       </div>
     </div>
   </div>
 </body>
 </html>`
-}
-
-function buildHtmlEmail({ order, trackingUrl, siteName, supportEmail, paymentInstructions }) {
-  const itemsHtml = buildItemRows(order.items)
-  const orderDate = order.createdAt ? new Date(order.createdAt) : new Date()
-  const formattedDate = orderDate.toLocaleString('en-KE', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Africa/Nairobi',
-  })
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Order Confirmation</title>
-</head>
-<body style="margin:0;padding:0;background-color:#faf8f4;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#2a241f;">
-  <div style="max-width:640px;margin:0 auto;padding:24px;">
-    <div style="background:#ffffff;border-radius:24px;padding:28px;border:1px solid rgba(42,36,31,0.08);box-shadow:0 10px 40px rgba(42,36,31,0.06);">
-      <div style="text-align:center;margin-bottom:18px;">
-        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;color:#2a241f;letter-spacing:0.02em;">HOK <span style="color:#e89a43;">Interiors</span></div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;margin-top:8px;">Order Confirmation</div>
-      </div>
-
-      <p style="margin:0 0 18px;font-size:15px;color:#2a241f;">Thank you for your order, ${order.name || 'valued customer'}.</p>
-
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#faf8f4;border-radius:16px;padding:14px 16px;margin-bottom:18px;">
-        <tr>
-          <td style="width:50%;padding:8px 12px;">
-            <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Order</div>
-            <div style="font-size:14px;color:#2a241f;margin-top:6px;">#${String(order._id || order.id || '').slice(-8).toUpperCase()}</div>
-          </td>
-          <td style="width:50%;padding:8px 12px;">
-            <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Date</div>
-            <div style="font-size:14px;color:#2a241f;margin-top:6px;">${formattedDate}</div>
-          </td>
-        </tr>
-        <tr>
-          <td style="width:50%;padding:8px 12px;">
-            <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Status</div>
-            <div style="font-size:14px;color:#2a241f;margin-top:6px;text-transform:capitalize;">${order.status || 'Pending'}</div>
-          </td>
-          <td style="width:50%;padding:8px 12px;">
-            <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;">Tracking</div>
-            <div style="font-size:14px;color:#e89a43;margin-top:6px;font-weight:700;">${order.trackingNumber || 'N/A'}</div>
-          </td>
-        </tr>
-      </table>
-
-      <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e3c;margin-bottom:10px;">Items</div>
-      <table width="100%" cellpadding="0" cellspacing="0" border="0">
-        ${itemsHtml || '<tr><td style="padding:12px 0;color:#6b6055;font-size:14px;">No items</td></tr>'}
-      </table>
-
-      <hr style="border:0;border-top:1px solid #f0ebe3;margin:18px 0;" />
-
-      <table width="100%" cellpadding="0" cellspacing="0" border="0">
-        <tr>
-          <td style="padding:6px 0;font-size:13px;color:#6b6055;">Subtotal</td>
-          <td style="padding:6px 0;font-size:13px;color:#2a241f;text-align:right;font-weight:600;">KSh ${Number(order.total || 0).toLocaleString()}</td>
-        </tr>
-        <tr>
-          <td style="padding:6px 0;font-size:13px;color:#6b6055;">Shipping</td>
-          <td style="padding:6px 0;font-size:13px;color:#2a241f;text-align:right;font-weight:600;">Free</td>
-        </tr>
-      </table>
-
-      <hr style="border:0;border-top:1px solid #f0ebe3;margin:18px 0;" />
-
-      <table width="100%" cellpadding="0" cellspacing="0" border="0">
-        <tr>
-          <td style="font-size:16px;color:#2a241f;font-weight:700;">Total</td>
-          <td style="font-size:16px;color:#2a241f;font-weight:700;text-align:right;">KSh ${Number(order.total || 0).toLocaleString()}</td>
-        </tr>
-      </table>
-
-      ${paymentInstructions || ''}
-
-      <div style="text-align:center;margin-top:24px;">
-        <a href="${trackingUrl}" target="_blank" style="display:inline-block;padding:14px 22px;border-radius:9999px;background:#2a241f;color:#ffffff;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Track Your Order</a>
-      </div>
-
-      <div style="text-align:center;margin-top:12px;">
-        <a href="${process.env.BASE_URL || 'https://hokinteriors.co.ke'}/shop" target="_blank" style="display:inline-block;padding:14px 22px;border-radius:9999px;background:#ffffff;color:#2a241f;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;border:1px solid rgba(42,36,31,0.15);">Continue Shopping</a>
-      </div>
-
-      <div style="text-align:center;margin-top:24px;font-size:12px;color:#a89f91;">
-        ${siteName || 'HOK Interiors'} · Need help? Contact us at ${supportEmail || 'info@hokinteriors.co.ke'}
-      </div>
-    </div>
-  </div>
-</body>
-</html>`
-}
-
-function buildItemRows(items) {
-  const safeItems = Array.isArray(items) ? items : []
-  return safeItems
-    .map((item) => {
-      const imageUrl = item.image || item.selectedVariant?.image || ''
-      const name = item.name || item.productName || 'Product'
-      const qty = Number(item.quantity || 1)
-      const unitPrice = Number(item.price || item.discountPrice || 0)
-      const total = unitPrice * qty
-      return `
-        <tr>
-          <td style="padding:14px 0;border-bottom:1px solid #f0ebe3;vertical-align:top;">
-            <table cellpadding="0" cellspacing="0" border="0" style="width:100%;">
-              <tr>
-                <td style="width:72px;vertical-align:top;">
-                  ${
-                    imageUrl
-                      ? `<img src="${imageUrl}" alt="${name}" width="64" height="64" style="display:block;width:64px;height:64px;border-radius:12px;object-fit:cover;background:#f0ebe3;" />`
-                      : `<div style="width:64px;height:64px;border-radius:12px;background:#f0ebe3;color:#a89f91;text-align:center;line-height:64px;font-size:11px;">No img</div>`
-                  }
-                </td>
-                <td style="padding-left:14px;vertical-align:top;">
-                  <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:15px;color:#2a241f;font-weight:600;">${name}</div>
-                  ${
-                    item.selectedVariant?.color
-                      ? `<div style="font-family:system-ui,sans-serif;font-size:12px;color:#8b5e3c;margin-top:4px;">Variant: ${item.selectedVariant.color}</div>`
-                      : ''
-                  }
-                  <div style="font-family:system-ui,sans-serif;font-size:12px;color:#6b6055;margin-top:6px;">Qty: ${qty}</div>
-                </td>
-                <td style="text-align:right;vertical-align:top;white-space:nowrap;">
-                  <div style="font-family:system-ui,sans-serif;font-size:14px;color:#2a241f;font-weight:600;">KSh ${total.toLocaleString()}</div>
-                  <div style="font-family:system-ui,sans-serif;font-size:11px;color:#a89f91;margin-top:4px;">${unitPrice.toLocaleString()} each</div>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      `
-    })
-    .join('')
 }
 
 export default {
+  sendWelcomeEmail,
+  sendLoginNotification,
   sendOrderConfirmationEmail,
+  sendOrderStatusUpdateEmail,
   sendNewsletterNotificationEmail,
+  getSmtpTransport,
 }

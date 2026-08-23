@@ -445,3 +445,40 @@ model PasswordReset {
   @@index([adminId, token])
   @@index([userId, token])
 }
+
+model Subscriber {
+  id            String   @id @default(cuid())
+  email         String   @unique @db.Text
+  name          String?  @db.Text
+  subscribed    Boolean  @default(true) @db.Boolean
+  unsubscribeToken String? @unique @db.Text @map("unsubscribe_token")
+  source        String?  @default("website") @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("subscribers")
+  @@index([email])
+  @@index([subscribed])
+}
+
+model EmailLog {
+  id             String   @id @default(cuid())
+  eventId        String   @unique @db.Text @map("event_id")
+  recipient      String   @db.Text
+  recipientName  String?  @db.Text @map("recipient_name")
+  emailType      String   @db.Text @map("email_type")
+  orderId        String?  @db.Text @map("order_id")
+  subject        String?  @db.Text
+  provider       String?  @db.Text @map("provider")
+  status         String   @default("sent") @db.Text
+  messageId      String?  @db.Text @map("message_id")
+  failureReason  String?  @db.Text @map("failure_reason")
+  sentAt         DateTime? @db.Timestamp @map("sent_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("email_logs")
+  @@index([eventId])
+  @@index([emailType, createdAt(desc)])
+  @@index([orderId])
+  @@index([recipient])
+}

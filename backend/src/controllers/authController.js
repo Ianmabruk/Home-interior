@@ -5,6 +5,7 @@ import { customerAuthService } from '../services/customerAuthService.js'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../config/database.js'
 import { generateCsrfToken } from '../middleware/csrf.js'
+import { emailService } from '../services/emailService.js'
 
 export const authController = {
   login: asyncHandler(async (req, res) => {
@@ -32,6 +33,16 @@ export const authController = {
       path: '/',
       maxAge: 30 * 24 * 60 * 60 * 1000,
     })
+
+    // Optional login notification (configurable; failures never block login).
+    if (result.user?.email) {
+      emailService.sendLoginNotification({
+        userId: result.user.id || result.user._id,
+        email: result.user.email,
+        name: result.user.fullName || result.user.name || result.user.email,
+      }).catch((e) => console.warn('[auth] login notification failed:', e?.message))
+    }
+
     res.json({ success: true, data: { user: result.user, accessToken: result.accessToken, csrfToken } })
   }),
 
@@ -46,6 +57,15 @@ export const authController = {
 
     const user = await customerAuthService.register({ email, password, fullName, phone })
     const csrfToken = generateCsrfToken()
+
+    // Welcome email (triggered only after the account is persisted).
+    // Failures are caught so a transient email issue never deletes the new account.
+    emailService.sendWelcomeEmail({
+      userId: user?.id || user?._id,
+      email: user.email,
+      name: user.fullName || user.name || '',
+    }).catch((e) => console.warn('[auth] welcome email failed:', e?.message))
+
     res.status(201).json({ success: true, data: user })
   }),
 
