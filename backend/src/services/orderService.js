@@ -72,9 +72,58 @@ function parseOrderSafe(order) {
   }
 }
 
+function buildOrderSignature(data) {
+  const items = Array.isArray(data.items) ? data.items : []
+  const normalized = items.map((i) => ({
+    productId: i.productId || null,
+    variantId: i.variantId || null,
+    quantity: Number(i.quantity) || 1,
+    price: Number(i.price) || 0,
+  })).sort((a, b) => `${a.productId}:${a.variantId}`.localeCompare(`${b.productId}:${b.variantId}`))
+  return `${String(data.email).toLowerCase()}|${Number(data.total) || 0}|${JSON.stringify(normalized)}`
+}
+
+const pendingOrders = new Map()
+const recentOrderCache = new Map()
+const IDEMPOTENCY_WINDOW_MS = 30_000
+
 async function createOrder(data) {
   try {
     const enrichedItems = Array.isArray(data.items) ? data.items : (() => { try { return JSON.parse(data.items || '[]') } catch { return [] } })()
+    if (!enrichedItems.length) {
+      throw failure(400, 'Order must contain at least one item')
+    }
+
+    const signature = buildOrderSignature(data)
+
+    if (pendingOrders.has(signature)) {
+      return pendingOrders.get(signature)
+    }
+
+    const now = Date.now()
+    const cached = recentOrderCache.get(signature)
+    if (cached && now - cached.timestamp < IDEMPOTENCY_WINDOW_MS) {
+      return cached.order
+    }
+
+    const promise = createOrderInternal(data, signature)
+    pendingOrders.set(signature, promise)
+    try {
+      const order = await promise
+      recentOrderCache.set(signature, { order, timestamp: Date.now() })
+      return order
+    } finally {
+      pendingOrders.delete(signature)
+    }
+  } catch (err) {
+    console.error('[orders] createOrder failed:', err)
+    if (err?.status) throw err
+    throw failure(500, err?.message || 'Failed to create order')
+  }
+}
+
+async function createOrderInternal(data, signature) {
+  const enrichedItems = Array.isArray(data.items) ? data.items : (() => { try { return JSON.parse(data.items || '[]') } catch { return [] } })()
     if (!enrichedItems.length) {
       throw failure(400, 'Order must contain at least one item')
     }
@@ -169,11 +218,6 @@ async function createOrder(data) {
     }
 
     return parseOrder(created)
-  } catch (err) {
-    console.error('[orders] createOrder failed:', err)
-    if (err?.status) throw err
-    throw failure(500, err?.message || 'Failed to create order')
-  }
 }
 
 async function getOrder(id) {
