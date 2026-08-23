@@ -10,11 +10,19 @@ import { useCurrency } from '@context/CurrencyContext'
 
 const STATUS_COLORS = {
   pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  'payment confirmed': 'bg-yellow-100 text-yellow-700 border-yellow-200',
   processing: 'bg-blue-100 text-blue-700 border-blue-200',
-  shipped: 'bg-purple-100 text-purple-700 border-purple-200',
+  completed: 'bg-blue-100 text-blue-700 border-blue-200',
+  'ready for delivery': 'bg-purple-100 text-purple-700 border-purple-200',
+  'out for delivery': 'bg-orange-100 text-orange-700 border-orange-200',
   delivered: 'bg-green-100 text-green-700 border-green-200',
   cancelled: 'bg-red-100 text-red-700 border-red-200',
-  'being delivered': 'bg-orange-100 text-orange-700 border-orange-200',
+}
+
+const STATUS_LABELS = {
+  'payment confirmed': 'Payment Confirmed',
+  'ready for delivery': 'Ready for Delivery',
+  'out for delivery': 'Out for Delivery',
 }
 
 export const OrdersPage = () => {
@@ -128,12 +136,12 @@ export const OrdersPage = () => {
               const statusColor = STATUS_COLORS[statusKey] || 'bg-gray-100 text-gray-700 border-gray-200'
 
               return (
-                <motion.div
-                  key={order._id || order.id || index}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03 }}
-                  className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)]"
+                  <motion.div
+                    key={order._id || order.id || index}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                    className="bg-white rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)] border border-[var(--border)]/40"
                 >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -142,7 +150,7 @@ export const OrdersPage = () => {
                           Order #{String(order._id || order.id || '').slice(-8).toUpperCase()}
                         </h3>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-2xs font-medium border ${statusColor}`}>
-                          {order.status || 'Pending'}
+                          {STATUS_LABELS[statusKey] || order.status || 'Pending'}
                         </span>
                       </div>
                       <p className="text-sm text-[var(--primary)]/60">{items.length} item{items.length !== 1 ? 's' : ''} · {formatPrice(Number(order.total || 0))}</p>

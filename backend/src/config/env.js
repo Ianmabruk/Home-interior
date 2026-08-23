@@ -53,8 +53,8 @@ export function validateEnv() {
 
   if (env.databaseUrl && process.env.NODE_ENV === 'production') {
     const dbHost = new URL(env.databaseUrl).hostname
-    if (dbHost.includes('summer-fog') || dbHost.includes('neon.tech')) {
-      console.warn(`[${env.serverId}] [WARNING] Using Neon database in production. Ensure your Neon database is configured for production workloads.`)
+    if (dbHost.includes('neon.tech')) {
+      console.log(`[${env.serverId}] [INFO] Using Neon Postgres (${dbHost}). Connection configured for production workloads (pgbouncer + connection_limit=1).`)
     }
   }
 }

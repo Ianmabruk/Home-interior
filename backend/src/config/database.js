@@ -11,14 +11,32 @@ function buildDatabaseUrl() {
     throw err
   }
   const url = new URL(databaseUrl)
-  if (!url.searchParams.has('connection_limit')) {
-    const limit = process.env.NODE_ENV === 'production' ? 5 : 10
-    url.searchParams.set('connection_limit', String(limit))
+  const isNeon = url.hostname.includes('neon.tech')
+  const usingPooler = url.hostname.includes('-pooler')
+
+  // Strip params we manage so we never stack duplicate values across restarts.
+  for (const key of ['connection_limit', 'pgbouncer', 'connect_timeout', 'pool_timeout', 'idle_in_transaction_session_timeout', 'tcp_user_timeout']) {
+    url.searchParams.delete(key)
   }
-  url.searchParams.set('connect_timeout', '10')
-  url.searchParams.set('pool_timeout', '20')
+
+  if (usingPooler) {
+    // Neon's serverless pooler is a PgBouncer in transaction-pooling mode.
+    // Prisma must treat it as a single pooled connection: pgbouncer=true tells
+    // Prisma to use transaction pooling and connection_limit=1 prevents it from
+    // opening extra sockets on top of the pooler. Without these, Neon closes the
+    // idle spare connections and Prisma throws `Error { kind: Closed }`.
+    url.searchParams.set('pgbouncer', 'true')
+    url.searchParams.set('connection_limit', '1')
+  } else if (isNeon) {
+    url.searchParams.set('connection_limit', process.env.NODE_ENV === 'production' ? '5' : '10')
+  } else {
+    url.searchParams.set('connection_limit', process.env.NODE_ENV === 'production' ? '5' : '10')
+  }
+
+  url.searchParams.set('connect_timeout', '15')
+  url.searchParams.set('pool_timeout', '30')
   url.searchParams.set('idle_in_transaction_session_timeout', '30000')
-  url.searchParams.set('tcp_user_timeout', '30000')
+  // keepalives keep direct (non-pooled) TCP connections alive; ignored by the pooler.
   url.searchParams.set('keepalives', '1')
   url.searchParams.set('keepalives_idle', '30')
   url.searchParams.set('keepalives_interval', '10')

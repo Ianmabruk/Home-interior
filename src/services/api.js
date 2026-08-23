@@ -164,7 +164,6 @@ const shouldCache = (config) => {
 const originals = { get: api.get, post: api.post, put: api.put, patch: api.patch, delete: api.delete }
 
 function isUploadRequest(config) {
-  const url = config.url || ''
   const data = config.data
   return (
     (config.method === 'post' || config.method === 'patch' || config.method === 'put') &&

@@ -23,7 +23,7 @@ export function useZoom() {
   }, [])
 
   const handleWheel = useCallback((e) => {
-    try { e.preventDefault() } catch {}
+    try { e.preventDefault() } catch { /* noop */ }
     const delta = e.deltaY > 0 ? 0.9 : 1.1
     setScale((prev) => {
       const newScale = Math.min(Math.max(prev * delta, 1), 5)
@@ -63,7 +63,7 @@ export function useZoom() {
   }, [isDragging, scale])
 
   const handleTouchMove = useCallback((e) => {
-    try { e.preventDefault() } catch {}
+    try { e.preventDefault() } catch { /* noop */ }
     if (e.touches.length === 1 && isDragging && scale > 1) {
       const dx = e.touches[0].clientX - dragStartRef.current.x
       const dy = e.touches[0].clientY - dragStartRef.current.y

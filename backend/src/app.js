@@ -51,18 +51,23 @@ app.use(
 )
 app.use(helmet.referrerPolicy({ policy: 'strict-origin-when-cross-origin' }))
 app.use(helmet.crossOriginResourcePolicy({ policy: 'cross-origin' }))
-app.use(morgan((tokens, req, res) => {
-  return [
-    `[${SERVER_ID}]`,
-    tokens.method(req, res),
-    tokens.url(req, res),
-    tokens.status(req, res),
-    tokens.res(req, res, 'content-length'),
-    '-',
-    tokens['response-time'](req, res),
-    'ms'
-  ].join(' ')
-}))
+// Request logging is skipped in production to avoid per-request stdout I/O
+// overhead (log shipping on platforms like Render). In development it gives
+// useful request traces without affecting production throughput.
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan((tokens, req, res) => {
+    return [
+      `[${SERVER_ID}]`,
+      tokens.method(req, res),
+      tokens.url(req, res),
+      tokens.status(req, res),
+      tokens.res(req, res, 'content-length'),
+      '-',
+      tokens['response-time'](req, res),
+      'ms'
+    ].join(' ')
+  }))
+}
 app.use(cookieParser())
 app.use(express.json({ limit: '1mb' }))
 

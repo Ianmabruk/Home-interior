@@ -1,7 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
-import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowRight } from 'lucide-react'
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 
 const HOK_LINE = (
@@ -12,30 +10,30 @@ const HOK_LINE = (
 )
 const TAGLINE = 'Design • Build • Style'
 
-const titleVariants = {
-  hidden: { opacity: 0, x: -120 },
+const buildTitleVariants = (reduced) => ({
+  hidden: reduced ? { opacity: 0 } : { opacity: 0, x: 120 },
   visible: {
     opacity: 1,
     x: 0,
     transition: {
-      duration: 1.8,
+      duration: reduced ? 0.6 : 1.8,
       ease: [0.22, 1, 0.36, 1],
     },
   },
-}
+})
 
-const taglineVariants = {
-  hidden: { opacity: 0, x: 120 },
+const buildTaglineVariants = (reduced) => ({
+  hidden: reduced ? { opacity: 0 } : { opacity: 0, x: -120 },
   visible: {
     opacity: 1,
     x: 0,
     transition: {
-      delay: 0.4,
-      duration: 1.8,
+      delay: reduced ? 0 : 0.4,
+      duration: reduced ? 0.6 : 1.8,
       ease: [0.22, 1, 0.36, 1],
     },
   },
-}
+})
 
 const HeroSection = memo(({ heroImages = [], className = '' }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -47,6 +45,9 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const firstImageLoadedRef = useRef(false)
   const transitionTimeoutRef = useRef(null)
+
+  const titleVariants = useMemo(() => buildTitleVariants(prefersReducedMotion), [prefersReducedMotion])
+  const taglineVariants = useMemo(() => buildTaglineVariants(prefersReducedMotion), [prefersReducedMotion])
 
   const images = useMemo(() => {
     if (!heroImages || heroImages.length === 0) return []
@@ -208,42 +209,15 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
                marginTop: '-8px',
              }}
            >
-             {TAGLINE}
-           </motion.p>
+               {TAGLINE}
+             </motion.p>
+           </div>
+         </motion.div>
+       </section>
+     )
+   })
 
-           <motion.div
-             className="mt-8 md:mt-10 flex flex-wrap items-center gap-4 pointer-events-auto"
-             initial={{ opacity: 0, y: 24 }}
-             animate={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
-             transition={{
-               delay: prefersReducedMotion ? 0 : 0.9,
-               duration: prefersReducedMotion ? 0 : 0.8,
-               ease: [0.22, 1, 0.36, 1],
-             }}
-           >
-             <Link
-               to="/services"
-               className="btn-hero btn-hero--primary group inline-flex items-center gap-2"
-               aria-label="Explore our design services"
-             >
-               Explore Services
-               <ArrowRight size={16} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
-             </Link>
-             <Link
-               to="/shop"
-               className="btn-hero btn-hero--secondary group inline-flex items-center gap-2"
-               aria-label="Shop our curated collection"
-             >
-               Shop Collection
-             </Link>
-           </motion.div>
-         </div>
-       </motion.div>
-     </section>
-   )
-})
+   HeroSection.displayName = 'HeroSection'
 
-HeroSection.displayName = 'HeroSection'
-
-export { HeroSection }
-export default HeroSection
+   export { HeroSection }
+   export default HeroSection

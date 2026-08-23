@@ -92,14 +92,15 @@ export const Sidebar = ({ items = [], currentRoute, onNavigate, open, collapsed,
         </nav>
 
         <div className="p-4 border-t border-[#E6D8C9]/30 space-y-2">
-          <Link
-            to="/"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30 hover:text-[var(--primary)] transition-all duration-200"
+          <a
+            href={import.meta.env.VITE_CLIENT_URL || window.location.origin}
             target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--primary)]/60 hover:bg-[var(--secondary)]/30 hover:text-[var(--primary)] transition-all duration-200"
           >
             <LayoutDashboard size={20} strokeWidth={1.5} />
             <span className="font-medium">View Site</span>
-          </Link>
+          </a>
           {onLogout && (
             <button
               onClick={onLogout}

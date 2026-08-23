@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle, Package, ChevronRight, Copy, Search, Mail } from 'lucide-react'
+import { CheckCircle, Package, ChevronRight, Copy, Search, Mail, Phone } from 'lucide-react'
 import { api } from '../../services/api'
 import { PageMeta } from '../../hooks/usePageMeta'
 import { useCurrency } from '../../context/CurrencyContext'

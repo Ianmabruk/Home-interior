@@ -10,6 +10,7 @@ import {
   Star,
   Images,
   Loader2,
+  UploadCloud,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'

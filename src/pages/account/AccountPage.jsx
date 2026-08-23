@@ -8,6 +8,28 @@ import { useShop } from '../../context/ShopContext'
 import { useCurrency } from '../../context/CurrencyContext'
 import { PageMeta } from '../../hooks/usePageMeta'
 
+const STATUS_COLORS = {
+  pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  'payment confirmed': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  processing: 'bg-blue-100 text-blue-700 border-blue-200',
+  completed: 'bg-blue-100 text-blue-700 border-blue-200',
+  'ready for delivery': 'bg-purple-100 text-purple-700 border-purple-200',
+  'out for delivery': 'bg-orange-100 text-orange-700 border-orange-200',
+  delivered: 'bg-green-100 text-green-700 border-green-200',
+  cancelled: 'bg-red-100 text-red-700 border-red-200',
+}
+
+const StatusBadge = ({ status }) => {
+  const normalized = (status || 'pending').toLowerCase()
+  const classes = STATUS_COLORS[normalized] || 'bg-gray-100 text-gray-700 border-gray-200'
+  const label = normalized || 'pending'
+  return (
+    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${classes}`}>
+      {label}
+    </span>
+  )
+}
+
 export const AccountPage = () => {
   const { user, logout, loading: authLoading } = useAuth()
   const { cart, wishlist, fetchCart, fetchWishlist } = useShop()
@@ -216,9 +238,7 @@ export const AccountPage = () => {
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-medium text-[var(--primary)]">Order #{order._id?.slice(-8).toUpperCase()}</span>
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.status === 'Delivered' ? 'bg-green-100 text-green-700' : order.status === 'Being Delivered' ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                              {order.status}
-                            </span>
+                            <StatusBadge status={order.status} />
                           </div>
                           <p className="text-sm text-[var(--primary)]/50">{order.items?.length || 0} items · {formatPrice(order.total || 0)}</p>
                           <p className="text-xs text-[var(--primary)]/40">{new Date(order.createdAt).toLocaleDateString()}</p>
