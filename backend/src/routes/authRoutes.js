@@ -17,5 +17,6 @@ router.post('/refresh', refreshRateLimiter, authController.refresh)
 router.post('/logout', authController.logout)
 router.get('/me', authenticate, authController.me)
 router.patch('/me', authenticate, validateZod(authSchemas.updateProfile), authController.updateProfile)
+router.post('/csrf', authenticate, authController.getCsrfToken)
 
 export default router

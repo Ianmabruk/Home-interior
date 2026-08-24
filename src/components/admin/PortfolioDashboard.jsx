@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
-import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Loader2, Upload, Star } from 'lucide-react'
+import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Loader2, Upload, Star, Check, RefreshCw, WifiOff } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { compressImages } from '../../utils/imageCompression'
+import { uploadPortfolioImages, uploadSingleImage, validateImageFile } from '../../services/portfolioUploadService'
 import { Link } from 'react-router-dom'
 
 const INITIAL_FORM = {
@@ -19,7 +20,7 @@ const INITIAL_FORM = {
 const MAX_IMAGES = 21
 
 export const PortfolioDashboard = () => {
-  const [portfolio, setPortfolio] = useState([])
+   const [portfolio, setPortfolio] = useState([])
   const [form, setForm] = useState(INITIAL_FORM)
   const [editingId, setEditingId] = useState(null)
   const [mainImageFile, setMainImageFile] = useState(null)
@@ -31,7 +32,9 @@ export const PortfolioDashboard = () => {
   const [afterFiles, setAfterFiles] = useState([])
   const [afterPreviews, setAfterPreviews] = useState([])
    const [loading, setLoading] = useState(false)
-   const [uploadProgress, setUploadProgress] = useState(null)
+   const [uploadImageStates, setUploadImageStates] = useState([])
+   const [isUploadingImages, setIsUploadingImages] = useState(false)
+   const [uploadOverallProgress, setUploadOverallProgress] = useState(0)
    const [deleteId, setDeleteId] = useState(null)
    const [isDragOverMain, setIsDragOverMain] = useState(false)
    const [isDragOverCircular, setIsDragOverCircular] = useState(false)
@@ -41,6 +44,7 @@ export const PortfolioDashboard = () => {
    const [beforeOrderChanged, setBeforeOrderChanged] = useState(false)
    const [afterOrderChanged, setAfterOrderChanged] = useState(false)
    const [isReorderSaving, setIsReorderSaving] = useState(false)
+   const [isOffline, setIsOffline] = useState(!navigator.onLine)
   const mainFileRef = useRef(null)
   const circularFileRef = useRef(null)
   const beforeFileRef = useRef(null)
@@ -63,7 +67,21 @@ export const PortfolioDashboard = () => {
   useEffect(() => {
     const handler = () => { load() }
     window.addEventListener('admin-data-changed', handler)
-    return () => window.removeEventListener('admin-data-changed', handler)
+    const goOnline = () => {
+      setIsOffline(false)
+      toast.success('Connection restored. Resuming uploads...')
+    }
+    const goOffline = () => {
+      setIsOffline(true)
+      toast.error('You are offline. Uploads are paused.')
+    }
+    window.addEventListener('online', goOnline)
+    window.addEventListener('offline', goOffline)
+    return () => {
+      window.removeEventListener('admin-data-changed', handler)
+      window.removeEventListener('online', goOnline)
+      window.removeEventListener('offline', goOffline)
+    }
   }, [load])
 
   const resetPreviews = (previews) => {
@@ -261,162 +279,393 @@ export const PortfolioDashboard = () => {
     setShowForm(false)
   }
 
+  const updateUploadImageState = (id, updates) => {
+    setUploadImageStates((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+    )
+  }
+
+  const retryFailedImage = useCallback(async (imageState) => {
+    const { file, id, imageType } = imageState
+    const formData = new FormData()
+    formData.append('media', file)
+    formData.append('folder', `portfolio/${imageType}`)
+
+    updateUploadImageState(id, { status: 'retrying', error: null, retries: (imageState.retries || 0) + 1 })
+
+    try {
+      const res = await api.post('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120000,
+        onUploadProgress: (e) => {
+          if (e.total > 0) {
+            const percent = (e.loaded / e.total) * 100
+            updateUploadImageState(id, { progress: percent })
+          }
+        },
+      })
+
+      const url = res.data?.url
+      updateUploadImageState(id, { status: 'completed', progress: 100, url, error: null })
+      toast.success(`Image "${file?.name}" uploaded successfully`)
+      return url
+    } catch (err) {
+      const errorMsg = err?.response?.data?.message || err?.message || 'Upload failed'
+      updateUploadImageState(id, { status: 'failed', error: errorMsg })
+      toast.error(`Image "${file?.name}" failed: ${errorMsg}`)
+      return null
+    }
+  }, [])
+
+  const uploadWithProgress = async (files, imageType, overallStartPercent, overallEndPercent) => {
+    if (files.length === 0) {
+      return { successful: [], failed: [] }
+    }
+
+    const initialStates = files.map((file, idx) => ({
+      id: `${imageType}-${Date.now()}-${idx}`,
+      file,
+      fileName: file.name,
+      imageType,
+      status: 'pending',
+      progress: 0,
+      error: null,
+      url: null,
+      retries: 0,
+    }))
+    setUploadImageStates((prev) => [...prev, ...initialStates])
+
+    const results = await uploadPortfolioImages(files, imageType, {
+      onImageProgress: (idx, percent, _fileName, status) => {
+        if (idx !== null && initialStates[idx]) {
+          updateUploadImageState(initialStates[idx].id, { progress: percent, status: status || 'uploading' })
+        }
+      },
+      onOverallProgress: (percent) => {
+        setUploadOverallProgress(overallStartPercent + (percent / 100) * (overallEndPercent - overallStartPercent))
+      },
+    })
+
+    const successful = []
+    const failed = []
+
+    results.forEach((result, idx) => {
+      if (result?.url) {
+        successful.push({ ...result, index: idx })
+        updateUploadImageState(initialStates[idx]?.id, { status: 'completed', progress: 100, url: result.url })
+      } else if (result?.error) {
+        failed.push({ error: result.error, file: files[idx], index: idx, imageType })
+        updateUploadImageState(initialStates[idx]?.id, { status: 'failed', error: result.error?.message || 'Upload failed' })
+      }
+    })
+
+    return { successful, failed }
+  }
+
   const submit = async (e) => {
     e.preventDefault()
-    if (loading) return
+    if (loading || isUploadingImages) return
     setLoading(true)
-    setUploadProgress(null)
+    setUploadOverallProgress(0)
+    setUploadImageStates([])
 
     try {
       const newBeforeFiles = beforeFiles.filter((f) => f instanceof File)
       const newAfterFiles = afterFiles.filter((f) => f instanceof File)
-      const totalNewFiles = newBeforeFiles.length + newAfterFiles.length
-      let uploaded = 0
-      let lastPercent = 0
 
-      const updateProgress = () => {
-        uploaded++
-        if (totalNewFiles > 0) {
-          const percent = Math.round((uploaded / totalNewFiles) * 100)
-          if (percent > lastPercent || percent === 100) {
-            lastPercent = percent
-            setUploadProgress({
-              current: uploaded,
-              total: totalNewFiles,
-              percent,
+      const totalNewFiles = newBeforeFiles.length + newAfterFiles.length
+
+      if (totalNewFiles > 0) {
+        setIsUploadingImages(true)
+
+        const validationErrors = []
+        newBeforeFiles.forEach((f, i) => {
+          const errors = validateImageFile(f)
+          if (errors.length > 0) validationErrors.push(`Before image ${i + 1} ("${f.name}"): ${errors.join(', ')}`)
+        })
+        newAfterFiles.forEach((f, i) => {
+          const errors = validateImageFile(f)
+          if (errors.length > 0) validationErrors.push(`After image ${i + 1} ("${f.name}"): ${errors.join(', ')}`)
+        })
+        if (validationErrors.length > 0) {
+          validationErrors.forEach((err) => toast.error(err))
+          throw new Error('Some images failed validation')
+        }
+
+        const compressedBefore = newBeforeFiles.length > 0
+          ? await compressImages(newBeforeFiles, { maxWidth: 1920, maxHeight: 1920, quality: 0.82 })
+          : []
+        const compressedAfter = newAfterFiles.length > 0
+          ? await compressImages(newAfterFiles, { maxWidth: 1920, maxHeight: 1920, quality: 0.82 })
+          : []
+
+        const beforeResult = await uploadWithProgress(
+          compressedBefore,
+          'before',
+          0,
+          totalNewFiles > 0 ? 50 : 0,
+        )
+
+        const afterResult = await uploadWithProgress(
+          compressedAfter,
+          'after',
+          totalNewFiles > 0 ? 50 : 0,
+          100,
+        )
+
+        const allSuccessful = [...beforeResult.successful, ...afterResult.successful]
+        const allFailed = [...beforeResult.failed, ...afterResult.failed]
+
+        if (allFailed.length > 0) {
+          allFailed.forEach((f) => {
+            const msg = f.error?.message || f.error || 'Upload failed'
+            toast.error(`Failed: ${f.file?.name || 'unknown'} — ${msg}`)
+          })
+        }
+
+        if (allSuccessful.length === 0 && allFailed.length > 0) {
+          throw new Error(`Failed to upload ${allFailed.length} image(s). See details above.`)
+        }
+
+        const uploadedBeforeUrls = compressedBefore
+          .map((f, idx) => {
+            const res = beforeResult.successful.find((r) => r.index === idx)
+            return res?.url
+          })
+          .filter(Boolean)
+        const uploadedAfterUrls = compressedAfter
+          .map((f, idx) => {
+            const res = afterResult.successful.find((r) => r.index === idx)
+            return res?.url
+          })
+          .filter(Boolean)
+
+        const existingBeforeUrls = beforeFiles
+          .filter((f) => !(f instanceof File))
+          .map((f) => (typeof f === 'string' ? f : f?.url))
+          .filter(Boolean)
+        const existingAfterUrls = afterFiles
+          .filter((f) => !(f instanceof File))
+          .map((f) => (typeof f === 'string' ? f : f?.url))
+          .filter(Boolean)
+
+        const finalBeforeUrls = [...existingBeforeUrls, ...uploadedBeforeUrls]
+        const finalAfterUrls = [...existingAfterUrls, ...uploadedAfterUrls]
+
+        if (finalBeforeUrls.length > MAX_IMAGES) {
+          throw new Error(`Before images exceed limit of ${MAX_IMAGES}`)
+        }
+        if (finalAfterUrls.length > MAX_IMAGES) {
+          throw new Error(`After images exceed limit of ${MAX_IMAGES}`)
+        }
+
+        const payload = new FormData()
+        payload.append('title', form.title)
+        if (form.description) payload.append('description', form.description)
+        if (form.category) payload.append('category', form.category)
+        payload.append('featured', String(form.featured))
+        payload.append('displayOrder', String(form.displayOrder || 0))
+        payload.append('published', String(form.published))
+
+        if (mainImageFile && mainImageFile instanceof File) {
+          const mainUploaded = await uploadSingleImage(mainImageFile, 'portfolio', {
+            signal: null,
+            maxRetries: 3,
+            onProgress: () => {
+            },
+            onStateChange: () => {
+            },
+          })
+          payload.append('imageUrl', mainUploaded.url)
+          payload.append('cloudinaryId', mainUploaded.path)
+        } else if (mainImageFile?.url) {
+          payload.append('imageUrl', mainImageFile.url)
+        }
+
+        if (circularImageFile && circularImageFile instanceof File) {
+          const circUploaded = await uploadSingleImage(circularImageFile, 'portfolio', {
+            signal: null,
+            maxRetries: 3,
+            onProgress: () => {
+            },
+            onStateChange: () => {
+            },
+          })
+          payload.append('homepageCircularImage', circUploaded.url)
+          payload.append('homepageCircularImageId', circUploaded.path)
+        }
+
+        finalBeforeUrls.forEach((url) => payload.append('beforeImages', url))
+        finalAfterUrls.forEach((url) => payload.append('afterImages', url))
+
+        const portfolioRes = editingId
+          ? await api.patch(`/admin/portfolio/${editingId}`, payload)
+          : await api.post('/admin/portfolio', payload)
+
+        let orderSaved = false
+        if (editingId && (beforeOrderChanged || afterOrderChanged)) {
+          const freshItem = portfolioRes.data
+
+          const newBeforeBlobUrls = beforePreviews.filter(
+            (p) => typeof p === 'string' && p.startsWith('blob:'),
+          )
+          const newAfterBlobUrls = afterPreviews.filter(
+            (p) => typeof p === 'string' && p.startsWith('blob:'),
+          )
+
+          const newBeforeCloudinaryUrls = (freshItem.beforeImages || []).slice(
+            -newBeforeBlobUrls.length,
+          )
+          const newAfterCloudinaryUrls = (freshItem.afterImages || []).slice(
+            -newAfterBlobUrls.length,
+          )
+
+          const blobToCloudinaryBefore = new Map()
+          newBeforeBlobUrls.forEach((blobUrl, idx) => {
+            if (newBeforeCloudinaryUrls[idx]) {
+              blobToCloudinaryBefore.set(blobUrl, newBeforeCloudinaryUrls[idx])
+            }
+          })
+
+          const blobToCloudinaryAfter = new Map()
+          newAfterBlobUrls.forEach((blobUrl, idx) => {
+            if (newAfterCloudinaryUrls[idx]) {
+              blobToCloudinaryAfter.set(blobUrl, newAfterCloudinaryUrls[idx])
+            }
+          })
+
+          const freshBeforeMap = new Map(
+            (freshItem.portfolioImages || [])
+              .filter((img) => img.imageType === 'before')
+              .map((img) => [img.imageUrl, img]),
+          )
+          const freshAfterMap = new Map(
+            (freshItem.portfolioImages || [])
+              .filter((img) => img.imageType === 'after')
+              .map((img) => [img.imageUrl, img]),
+          )
+
+          const buildOrderList = (previews, imageType, freshMap, blobMap) => {
+            return previews.map((preview, idx) => {
+              let url = typeof preview === 'string' ? preview : preview?.url
+              if (!url) return null
+              if (blobMap.has(url)) {
+                url = blobMap.get(url)
+              }
+              const freshImg = freshMap.get(url)
+              return {
+                id: freshImg?.id,
+                imageUrl: url,
+                imageType,
+                sortOrder: idx,
+              }
             })
           }
-        }
-      }
 
-      const payload = new FormData()
-      payload.append('title', form.title)
-      if (form.description) payload.append('description', form.description)
-      if (form.category) payload.append('category', form.category)
-      payload.append('featured', String(form.featured))
-      payload.append('displayOrder', String(form.displayOrder || 0))
-      payload.append('published', String(form.published))
+          const beforeOrder = buildOrderList(beforePreviews, 'before', freshBeforeMap, blobToCloudinaryBefore)
+          const afterOrder = buildOrderList(afterPreviews, 'after', freshAfterMap, blobToCloudinaryAfter)
 
-      if (mainImageFile && mainImageFile instanceof File) {
-        payload.append('media', mainImageFile)
-      } else if (mainImageFile?.url) {
-        payload.append('imageUrl', mainImageFile.url)
-      }
-
-      if (circularImageFile && circularImageFile instanceof File) {
-        payload.append('homepageCircularImage', circularImageFile)
-      }
-
-      newBeforeFiles.forEach((file) => {
-        payload.append('before', file)
-      })
-      beforeFiles.filter((f) => !(f instanceof File)).forEach((f) => {
-        const url = typeof f === 'string' ? f : f?.url
-        if (url) payload.append('beforeImages', url)
-      })
-
-      newAfterFiles.forEach((file) => {
-        payload.append('after', file)
-      })
-      afterFiles.filter((f) => !(f instanceof File)).forEach((f) => {
-        const url = typeof f === 'string' ? f : f?.url
-        if (url) payload.append('afterImages', url)
-      })
-
-      const mainRes = editingId
-        ? await api.patch(`/admin/portfolio/${editingId}`, payload, {
-            onUploadProgress: () => updateProgress(),
-          })
-        : await api.post('/admin/portfolio', payload, {
-            onUploadProgress: () => updateProgress(),
-          })
-
-      updateProgress()
-
-      let orderSaved = false
-      if (editingId && (beforeOrderChanged || afterOrderChanged)) {
-        const freshItem = mainRes.data
-
-        const newBeforeBlobUrls = beforePreviews.filter(
-          (p) => typeof p === 'string' && p.startsWith('blob:'),
-        )
-        const newAfterBlobUrls = afterPreviews.filter(
-          (p) => typeof p === 'string' && p.startsWith('blob:'),
-        )
-
-        const newBeforeCloudinaryUrls = (freshItem.beforeImages || []).slice(
-          -newBeforeBlobUrls.length,
-        )
-        const newAfterCloudinaryUrls = (freshItem.afterImages || []).slice(
-          -newAfterBlobUrls.length,
-        )
-
-        const blobToCloudinaryBefore = new Map()
-        newBeforeBlobUrls.forEach((blobUrl, idx) => {
-          if (newBeforeCloudinaryUrls[idx]) {
-            blobToCloudinaryBefore.set(blobUrl, newBeforeCloudinaryUrls[idx])
-          }
-        })
-
-        const blobToCloudinaryAfter = new Map()
-        newAfterBlobUrls.forEach((blobUrl, idx) => {
-          if (newAfterCloudinaryUrls[idx]) {
-            blobToCloudinaryAfter.set(blobUrl, newAfterCloudinaryUrls[idx])
-          }
-        })
-
-        const freshBeforeMap = new Map(
-          (freshItem.portfolioImages || [])
-            .filter((img) => img.imageType === 'before')
-            .map((img) => [img.imageUrl, img]),
-        )
-        const freshAfterMap = new Map(
-          (freshItem.portfolioImages || [])
-            .filter((img) => img.imageType === 'after')
-            .map((img) => [img.imageUrl, img]),
-        )
-
-        const buildOrderList = (previews, imageType, freshMap, blobMap) => {
-          return previews.map((preview, idx) => {
-            let url = typeof preview === 'string' ? preview : preview?.url
-            if (!url) return null
-            if (blobMap.has(url)) {
-              url = blobMap.get(url)
-            }
-            const freshImg = freshMap.get(url)
-            return {
-              id: freshImg?.id,
-              imageUrl: url,
-              imageType,
-              sortOrder: idx,
-            }
-          })
+          await saveImageOrder(beforeOrder, afterOrder)
+          orderSaved = true
         }
 
-        const beforeOrder = buildOrderList(beforePreviews, 'before', freshBeforeMap, blobToCloudinaryBefore)
-        const afterOrder = buildOrderList(afterPreviews, 'after', freshAfterMap, blobToCloudinaryAfter)
-
-        await saveImageOrder(beforeOrder, afterOrder)
-        orderSaved = true
-      }
-
-      resetForm()
-      load()
-      dispatchAdminDataChanged('portfolio-changed')
-      if (totalNewFiles > 0) {
-        toast.success(`${uploaded}/${totalNewFiles} images uploaded successfully`)
+        resetForm()
+        load()
+        dispatchAdminDataChanged('portfolio-changed')
+        if (totalNewFiles > 0) {
+          const successCount = allSuccessful.length
+          const failCount = allFailed.length
+          if (failCount > 0) {
+            toast.success(`${successCount}/${totalNewFiles} images uploaded successfully. ${failCount} failed.`)
+          } else {
+            toast.success(`${successCount}/${totalNewFiles} images uploaded successfully`)
+          }
+        } else {
+          toast.success(editingId ? 'Portfolio project updated successfully.' : 'Portfolio project created successfully.')
+        }
+        if (orderSaved) {
+          toast.success('Image order saved')
+        }
       } else {
-        toast.success(editingId ? 'Portfolio project updated successfully.' : 'Portfolio project uploaded successfully.')
-      }
-      if (orderSaved) {
-        toast.success('Image order saved')
+        const payload = new FormData()
+        payload.append('title', form.title)
+        if (form.description) payload.append('description', form.description)
+        if (form.category) payload.append('category', form.category)
+        payload.append('featured', String(form.featured))
+        payload.append('displayOrder', String(form.displayOrder || 0))
+        payload.append('published', String(form.published))
+
+        if (mainImageFile && mainImageFile instanceof File) {
+          payload.append('media', mainImageFile)
+        } else if (mainImageFile?.url) {
+          payload.append('imageUrl', mainImageFile.url)
+        }
+
+        if (circularImageFile && circularImageFile instanceof File) {
+          payload.append('homepageCircularImage', circularImageFile)
+        }
+
+        const existingBeforeUrls = beforeFiles
+          .filter((f) => !(f instanceof File))
+          .map((f) => (typeof f === 'string' ? f : f?.url))
+          .filter(Boolean)
+        const existingAfterUrls = afterFiles
+          .filter((f) => !(f instanceof File))
+          .map((f) => (typeof f === 'string' ? f : f?.url))
+          .filter(Boolean)
+
+        existingBeforeUrls.forEach((url) => payload.append('beforeImages', url))
+        existingAfterUrls.forEach((url) => payload.append('afterImages', url))
+
+        const portfolioRes = editingId
+          ? await api.patch(`/admin/portfolio/${editingId}`, payload)
+          : await api.post('/admin/portfolio', payload)
+
+        if (editingId && (beforeOrderChanged || afterOrderChanged)) {
+          const freshItem = portfolioRes.data
+          const freshBeforeMap = new Map(
+            (freshItem.portfolioImages || [])
+              .filter((img) => img.imageType === 'before')
+              .map((img) => [img.imageUrl, img]),
+          )
+          const freshAfterMap = new Map(
+            (freshItem.portfolioImages || [])
+              .filter((img) => img.imageType === 'after')
+              .map((img) => [img.imageUrl, img]),
+          )
+
+          const buildOrderList = (previews, imageType, freshMap) => {
+            return previews.map((preview, idx) => {
+              const url = typeof preview === 'string' ? preview : preview?.url
+              const freshImg = freshMap.get(url)
+              return {
+                id: freshImg?.id,
+                imageUrl: url,
+                imageType,
+                sortOrder: idx,
+              }
+            })
+          }
+
+          const beforeOrder = buildOrderList(beforePreviews, 'before', freshBeforeMap)
+          const afterOrder = buildOrderList(afterPreviews, 'after', freshAfterMap)
+
+          await saveImageOrder(beforeOrder, afterOrder)
+        }
+
+        resetForm()
+        load()
+        dispatchAdminDataChanged('portfolio-changed')
+        toast.success(editingId ? 'Portfolio project updated successfully.' : 'Portfolio project created successfully.')
       }
     } catch (err) {
       console.error('Submit error:', err)
       toast.error(err?.message || 'Failed to save portfolio project. Please try again.')
     } finally {
       setLoading(false)
-      setUploadProgress(null)
+      setIsUploadingImages(false)
+      setUploadOverallProgress(0)
+      setUploadImageStates([])
     }
   }
 
@@ -950,23 +1199,109 @@ export const PortfolioDashboard = () => {
               </motion.button>
             )}
 
-            {uploadProgress && uploadProgress.total > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[var(--primary)]/70 flex items-center gap-2">
+            {isUploadingImages && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-[var(--primary)] flex items-center gap-2">
                     <Upload size={14} className="animate-bounce" />
-                    Uploading {uploadProgress.current}/{uploadProgress.total} images
+                    Uploading portfolio images...
                   </span>
-                  <span className="text-xs text-[var(--primary)]/50">{uploadProgress.percent}%</span>
+                  <span className="text-xs text-[var(--primary)]/50">
+                    {uploadImageStates.filter((s) => s.status === 'completed').length}
+                    /{uploadImageStates.length} images uploaded
+                  </span>
                 </div>
+
                 <div className="w-full bg-[var(--border)]/30 rounded-full h-2 overflow-hidden">
                   <motion.div
                     className="bg-[var(--accent)] h-2 rounded-full"
                     initial={{ width: 0 }}
-                    animate={{ width: `${uploadProgress.percent}%` }}
+                    animate={{ width: `${uploadOverallProgress}%` }}
                     transition={{ duration: 0.3 }}
                   />
                 </div>
+
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {uploadImageStates.map((s) => (
+                    <div
+                      key={s.id}
+                      className="flex items-center gap-3 p-2 rounded-lg bg-[var(--border)]/10"
+                    >
+                      <div className="flex-1 flex items-center gap-2">
+                        <div className="w-6 flex-shrink-0 flex items-center justify-center">
+                          {s.status === 'completed' && <Check size={14} className="text-green-500" />}
+                          {s.status === 'uploading' && <Upload size={14} className="text-[var(--accent)] animate-pulse" />}
+                          {s.status === 'retrying' && <RefreshCw size={14} className="text-orange-500 animate-spin" />}
+                          {s.status === 'failed' && <X size={14} className="text-[var(--error)]" />}
+                          {s.status === 'compressing' && <Loader2 size={14} className="text-[var(--accent)] animate-spin" />}
+                          {(s.status === 'pending' || s.status === 'queued') && <div className="w-2 h-2 rounded-full bg-[var(--primary)]/30" />}
+                        </div>
+                        <span className="text-xs text-[var(--primary)]/70 truncate flex-1">
+                          {s.fileName || 'unknown'}
+                        </span>
+                        {s.status === 'failed' && s.error && (
+                          <span className="text-xs text-[var(--error)] truncate">
+                            {s.error}
+                          </span>
+                        )}
+                      </div>
+                      <div className="w-16 text-right">
+                        <span className="text-xs text-[var(--primary)]/50">
+                          {s.status === 'pending' ? 'Pending' :
+                           s.status === 'queuing' ? 'Queued' :
+                           s.status === 'compressing' ? 'Compressing' :
+                           s.status === 'uploading' ? `${Math.round(s.progress)}%` :
+                           s.status === 'uploaded' ? 'Uploaded' :
+                           s.status === 'retrying' ? 'Retrying' :
+                           s.status === 'failed' ? 'Failed' :
+                           s.status === 'completed' ? 'Done' : s.status}
+                        </span>
+                        {s.status === 'failed' && (
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            type="button"
+                            onClick={() => retryFailedImage(s)}
+                            className="ml-2 text-xs text-[var(--accent)] hover:text-[var(--accent)]/80"
+                          >
+                            Retry
+                          </motion.button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={() => {
+                    toast('Upload cancelled. Failed images can be retried.', { icon: '⚠️' })
+                  }}
+                  className="text-xs text-[var(--primary)]/50 hover:text-[var(--error)] transition"
+                >
+                  Cancel all uploads
+                </motion.button>
+              </div>
+            )}
+
+            {!isUploadingImages && uploadImageStates.some((s) => s.status === 'failed') && (
+              <div className="p-3 rounded-lg bg-[var(--error)]/10 text-[var(--error)] text-sm">
+                <p className="font-medium mb-1">Some images failed to upload:</p>
+                <ul className="list-disc list-inside text-xs">
+                  {uploadImageStates.filter((s) => s.status === 'failed').map((s, i) => (
+                    <li key={i}>{s.fileName}: {s.error}</li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-xs">You can retry failed images or try uploading again.</p>
+              </div>
+            )}
+
+            {isOffline && (
+              <div className="p-3 rounded-lg bg-orange-500/10 text-orange-600 text-sm flex items-center gap-2">
+                <WifiOff size={14} />
+                You are currently offline. Uploads will resume when connection is restored.
               </div>
             )}
 
@@ -984,11 +1319,11 @@ export const PortfolioDashboard = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="flex-1 rounded-full bg-[var(--primary)] text-white py-3 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--primary)]/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                disabled={loading}
+                disabled={loading || isUploadingImages || isOffline}
                 type="submit"
               >
                 {loading && <Loader2 size={14} className="animate-spin" />}
-                {loading ? 'Saving...' : editingId ? 'Update Project' : 'Upload Project'}
+                {isUploadingImages ? 'Uploading images...' : (loading ? 'Saving...' : (editingId ? 'Update Project' : 'Upload Project'))}
               </motion.button>
             </div>
           </motion.form>

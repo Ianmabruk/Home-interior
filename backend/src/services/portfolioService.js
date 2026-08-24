@@ -197,6 +197,10 @@ async function createPortfolio(data, file, beforeFiles = [], afterFiles = [], ci
   ])
   const uploadElapsed = Date.now() - uploadStart
 
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[${process.env.SERVER_ID || 'backend'}] [portfolioService] createPortfolio uploads completed in ${uploadElapsed}ms (before=${beforeFiles.length}, after=${afterFiles.length}, main=${!!file})`)
+  }
+
   if (beforeResult.status === 'rejected') {
     throw failure(500, `Before upload failed: ${beforeResult.reason?.message || 'Unknown error'}`)
   }
@@ -268,6 +272,7 @@ async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []
   const afterImages = updateData.afterImages || [...(existing.afterImages || [])]
 
   const uploadPromises = []
+  const uploadStart = Date.now()
 
   if (file) {
     if (existing.cloudinaryId) uploadPromises.push(deleteFile(existing.cloudinaryId))
@@ -296,6 +301,9 @@ async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []
     uploadPromises.push(
       uploadImageFiles(beforeFiles, 'portfolio/before').then(({ urls, errors }) => {
         if (errors.length > 0) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.error(`[${process.env.SERVER_ID || 'backend'}] [portfolioService] updatePortfolio: ${errors.length} before upload errors`)
+          }
           const errorDetails = errors.map((e) => `${e.file}: ${e.error}`).join('; ')
           throw failure(400, `Some before uploads failed: ${errorDetails}`)
         }
@@ -311,6 +319,9 @@ async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []
     uploadPromises.push(
       uploadImageFiles(afterFiles, 'portfolio/after').then(({ urls, errors }) => {
         if (errors.length > 0) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.error(`[${process.env.SERVER_ID || 'backend'}] [portfolioService] updatePortfolio: ${errors.length} after upload errors`)
+          }
           const errorDetails = errors.map((e) => `${e.file}: ${e.error}`).join('; ')
           throw failure(400, `Some after uploads failed: ${errorDetails}`)
         }
@@ -320,6 +331,11 @@ async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []
   }
 
   const uploadResults = await Promise.allSettled(uploadPromises)
+  const uploadElapsed = Date.now() - uploadStart
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[${process.env.SERVER_ID || 'backend'}] [portfolioService] updatePortfolio uploads completed in ${uploadElapsed}ms (beforeFiles=${beforeFiles.length}, afterFiles=${afterFiles.length})`)
+  }
 
   const failedUploads = uploadResults.filter((r) => r.status === 'rejected')
   if (failedUploads.length > 0) {

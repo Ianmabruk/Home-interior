@@ -93,7 +93,7 @@ api.interceptors.response.use(
     const status = error?.response?.status
     const originalRequest = error.config
 
-    if (status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh')) {
+    if (status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh') && !originalRequest.url?.includes('/auth/csrf')) {
       if (refreshFailed) {
         refreshFailed = false
         const message = error?.response?.data?.message || error?.message || 'Session expired'
@@ -130,6 +130,22 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newToken}`
         return api(originalRequest)
       } catch {
+        return Promise.reject(error)
+      }
+    }
+
+    if (status === 403 && !originalRequest._retry && !originalRequest.url?.includes('/auth/csrf')) {
+      console.info('[auth] CSRF token rejected — refreshing and retrying')
+      originalRequest._retry = true
+      try {
+        const res = await api.post('/auth/csrf')
+        const newCsrf = res.data?.csrfToken
+        if (newCsrf) {
+          setStoredCsrfToken(newCsrf)
+        }
+        return api(originalRequest)
+      } catch (refreshErr) {
+        console.warn('[auth] CSRF refresh failed:', refreshErr?.response?.status, refreshErr?.message)
         return Promise.reject(error)
       }
     }
