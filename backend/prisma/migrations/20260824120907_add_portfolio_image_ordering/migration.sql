@@ -47,17 +47,3 @@ SELECT
 FROM "portfolios" p,
   LATERAL UNNEST(p."after_images") WITH ORDINALITY AS elem(url, idx)
 WHERE p."after_images" IS NOT NULL AND array_length(p."after_images", 1) > 0;
-
--- Trigger to auto-update updated_at on portfolio_images
-CREATE OR REPLACE FUNCTION trigger_update_portfolio_images_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW."updated_at" = CURRENT_TIMESTAMP;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER IF NOT EXISTS "portfolio_images_updated_at_trigger"
-  BEFORE UPDATE ON "portfolio_images"
-  FOR EACH ROW
-  EXECUTE FUNCTION trigger_update_portfolio_images_updated_at();
