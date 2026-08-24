@@ -30,8 +30,8 @@ function tryResolveFailedMigrations(output) {
   for (const name of names) {
     console.log(`[migrate:deploy] Marking ${name} as rolled back...`)
     try {
-      execSync(`npx prisma migrate resolve --rolled-back ${name}`, {
-        stdio: 'pipe',
+      const resolveOutput = execSync(`npx prisma migrate resolve --rolled-back ${name}`, {
+        stdio: ['pipe', 'pipe', 'pipe'],
         timeout: 60000,
         env,
         encoding: 'utf-8',
@@ -51,18 +51,26 @@ async function main() {
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     console.log(`[migrate:deploy] Attempt ${attempt}/${MAX_RETRIES}`)
+
+    let stdout, stderr
     try {
-      execSync('npx prisma migrate deploy', {
-        stdio: 'pipe',
+      const result = execSync('npx prisma migrate deploy', {
+        stdio: ['pipe', 'pipe', 'pipe'],
         timeout: COMMAND_TIMEOUT,
         env,
         encoding: 'utf-8',
       })
+      stdout = result || ''
+      console.log(stdout)
       console.log('[migrate:deploy] Migrations applied successfully')
       return
     } catch (err) {
-      const output = (err?.stdout || '') + (err?.stderr || '') + (err?.message || String(err))
+      stdout = (err?.stdout || '') || ''
+      stderr = (err?.stderr || '') || ''
+      console.error(stdout)
+      console.error(stderr)
 
+      const output = stdout + stderr + (err?.message || '')
       const isLockTimeout =
         output.includes('advisory lock') ||
         output.includes('P1002') ||
@@ -84,7 +92,7 @@ async function main() {
         }
       }
 
-      console.error(`[migrate:deploy] Attempt ${attempt} failed:`, output.slice(0, 500))
+      console.error(`[migrate:deploy] Attempt ${attempt} failed`)
       if (attempt >= MAX_RETRIES) {
         console.error('[migrate:deploy] Migration failed after all retries')
         process.exit(1)
