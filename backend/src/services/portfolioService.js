@@ -319,7 +319,13 @@ async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []
     )
   }
 
-  await Promise.allSettled(uploadPromises)
+  const uploadResults = await Promise.allSettled(uploadPromises)
+
+  const failedUploads = uploadResults.filter((r) => r.status === 'rejected')
+  if (failedUploads.length > 0) {
+    const reasons = failedUploads.map((r) => r.reason?.message || 'Unknown error').join('; ')
+    throw failure(500, `Upload failed: ${reasons}`)
+  }
 
   if (beforeImages.length > MAX_IMAGES_PER_SECTION) {
     beforeImages.splice(MAX_IMAGES_PER_SECTION)
@@ -396,12 +402,21 @@ async function reorderPortfolioImages(projectId, orderList) {
 
   await prisma.$transaction(async (tx) => {
     for (const item of orderList) {
-      const where = item.id !== undefined ? { id: item.id } : {
-        portfolioProjectId_imageType_imageUrl: {
-          portfolioProjectId: projectId,
-          imageType: item.imageType,
-          imageUrl: item.imageUrl,
-        },
+      let where
+      if (item.id !== undefined) {
+        where = { id: item.id }
+      } else {
+        const existing = await tx.portfolioImage.findFirst({
+          where: {
+            portfolioProjectId: projectId,
+            imageType: item.imageType,
+            imageUrl: item.imageUrl,
+          },
+        })
+        if (!existing) {
+          throw failure(400, `Image not found for type ${item.imageType}: ${item.imageUrl}`)
+        }
+        where = { id: existing.id }
       }
       await tx.portfolioImage.update({
         where,

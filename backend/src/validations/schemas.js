@@ -143,31 +143,39 @@ export const serviceSchemas = {
   }),
 }
 
+const stringArray = z
+  .union([z.array(z.string()), z.string()])
+  .transform((val) => {
+    if (Array.isArray(val)) return val.filter(Boolean)
+    if (typeof val === 'string') return val ? [val] : []
+    return []
+  })
+
 export const portfolioSchemas = {
-  create: z.object({
-    title: z.string().min(1, 'Title is required'),
-    description: z.string().optional(),
-    category: z.string().optional(),
-    featured: z.union([z.boolean(), z.string()]).optional(),
-    displayOrder: z.coerce.number().int().nonnegative().optional(),
-    published: z.union([z.boolean(), z.string()]).optional(),
-    mediaUrls: z.array(z.string()).max(21, 'Maximum 21 gallery images allowed').optional(),
-    beforeImages: z.array(z.string()).max(21, 'Maximum 21 before images allowed').optional(),
-    afterImages: z.array(z.string()).max(21, 'Maximum 21 after images allowed').optional(),
-    imageUrl: z.string().optional(),
-  }),
-  update: z.object({
-    title: z.string().optional(),
-    description: z.string().optional(),
-    category: z.string().optional(),
-    featured: z.union([z.boolean(), z.string()]).optional(),
-    displayOrder: z.coerce.number().int().nonnegative().optional(),
-    published: z.union([z.boolean(), z.string()]).optional(),
-    mediaUrls: z.array(z.string()).max(21, 'Maximum 21 gallery images allowed').optional(),
-    beforeImages: z.array(z.string()).max(21, 'Maximum 21 before images allowed').optional(),
-    afterImages: z.array(z.string()).max(21, 'Maximum 21 after images allowed').optional(),
-  }),
-}
+    create: z.object({
+      title: z.string().min(1, 'Title is required'),
+      description: z.string().optional(),
+      category: z.string().optional(),
+      featured: z.union([z.boolean(), z.string()]).optional(),
+      displayOrder: z.coerce.number().int().nonnegative().optional(),
+      published: z.union([z.boolean(), z.string()]).optional(),
+      mediaUrls: z.array(z.string()).max(21, 'Maximum 21 gallery images allowed').optional(),
+      beforeImages: stringArray.max(21, 'Maximum 21 before images allowed').optional(),
+      afterImages: stringArray.max(21, 'Maximum 21 after images allowed').optional(),
+      imageUrl: z.string().optional(),
+    }),
+    update: z.object({
+      title: z.string().optional(),
+      description: z.string().optional(),
+      category: z.string().optional(),
+      featured: z.union([z.boolean(), z.string()]).optional(),
+      displayOrder: z.coerce.number().int().nonnegative().optional(),
+      published: z.union([z.boolean(), z.string()]).optional(),
+      mediaUrls: z.array(z.string()).max(21, 'Maximum 21 gallery images allowed').optional(),
+      beforeImages: stringArray.max(21, 'Maximum 21 before images allowed').optional(),
+      afterImages: stringArray.max(21, 'Maximum 21 after images allowed').optional(),
+    }),
+  }
 
 export const virtualDesignSchemas = {
   create: z.object({

@@ -209,10 +209,31 @@ export const PortfolioDashboard = () => {
     setMainImagePreview(item.imageUrl || null)
     setCircularImageFile(item.homepageCircularImage ? { url: item.homepageCircularImage } : null)
     setCircularImagePreview(item.homepageCircularImage || null)
-    setBeforeFiles(item.beforeImages ? item.beforeImages.map((url) => ({ url })) : [])
-    setBeforePreviews(item.beforeImages ? [...item.beforeImages] : [])
-    setAfterFiles(item.afterImages ? item.afterImages.map((url) => ({ url })) : [])
-    setAfterPreviews(item.afterImages ? [...item.afterImages] : [])
+
+    const beforePortfolioImages = (item.portfolioImages || []).filter((img) => img.imageType === 'before')
+    setBeforeFiles(
+      beforePortfolioImages.length > 0
+        ? beforePortfolioImages.map((img) => ({ id: img.id, url: img.imageUrl }))
+        : (item.beforeImages || []).map((url) => ({ url })),
+    )
+    setBeforePreviews(
+      beforePortfolioImages.length > 0
+        ? beforePortfolioImages.map((img) => img.imageUrl)
+        : [...(item.beforeImages || [])],
+    )
+
+    const afterPortfolioImages = (item.portfolioImages || []).filter((img) => img.imageType === 'after')
+    setAfterFiles(
+      afterPortfolioImages.length > 0
+        ? afterPortfolioImages.map((img) => ({ id: img.id, url: img.imageUrl }))
+        : (item.afterImages || []).map((url) => ({ url })),
+    )
+    setAfterPreviews(
+      afterPortfolioImages.length > 0
+        ? afterPortfolioImages.map((img) => img.imageUrl)
+        : [...(item.afterImages || [])],
+    )
+
     setShowForm(true)
     setBeforeOrderChanged(false)
     setAfterOrderChanged(false)
@@ -290,27 +311,95 @@ export const PortfolioDashboard = () => {
         payload.append('before', file)
       })
       beforeFiles.filter((f) => !(f instanceof File)).forEach((f) => {
-        if (f?.url) payload.append('beforeImages', f.url)
+        const url = typeof f === 'string' ? f : f?.url
+        if (url) payload.append('beforeImages', url)
       })
 
       newAfterFiles.forEach((file) => {
         payload.append('after', file)
       })
       afterFiles.filter((f) => !(f instanceof File)).forEach((f) => {
-        if (f?.url) payload.append('afterImages', f.url)
+        const url = typeof f === 'string' ? f : f?.url
+        if (url) payload.append('afterImages', url)
       })
 
-      if (editingId) {
-        await api.patch(`/admin/portfolio/${editingId}`, payload, {
-          onUploadProgress: () => updateProgress(),
-        })
-      } else {
-        await api.post('/admin/portfolio', payload, {
-          onUploadProgress: () => updateProgress(),
-        })
-      }
+      const mainRes = editingId
+        ? await api.patch(`/admin/portfolio/${editingId}`, payload, {
+            onUploadProgress: () => updateProgress(),
+          })
+        : await api.post('/admin/portfolio', payload, {
+            onUploadProgress: () => updateProgress(),
+          })
 
       updateProgress()
+
+      let orderSaved = false
+      if (editingId && (beforeOrderChanged || afterOrderChanged)) {
+        const freshItem = mainRes.data
+
+        const newBeforeBlobUrls = beforePreviews.filter(
+          (p) => typeof p === 'string' && p.startsWith('blob:'),
+        )
+        const newAfterBlobUrls = afterPreviews.filter(
+          (p) => typeof p === 'string' && p.startsWith('blob:'),
+        )
+
+        const newBeforeCloudinaryUrls = (freshItem.beforeImages || []).slice(
+          -newBeforeBlobUrls.length,
+        )
+        const newAfterCloudinaryUrls = (freshItem.afterImages || []).slice(
+          -newAfterBlobUrls.length,
+        )
+
+        const blobToCloudinaryBefore = new Map()
+        newBeforeBlobUrls.forEach((blobUrl, idx) => {
+          if (newBeforeCloudinaryUrls[idx]) {
+            blobToCloudinaryBefore.set(blobUrl, newBeforeCloudinaryUrls[idx])
+          }
+        })
+
+        const blobToCloudinaryAfter = new Map()
+        newAfterBlobUrls.forEach((blobUrl, idx) => {
+          if (newAfterCloudinaryUrls[idx]) {
+            blobToCloudinaryAfter.set(blobUrl, newAfterCloudinaryUrls[idx])
+          }
+        })
+
+        const freshBeforeMap = new Map(
+          (freshItem.portfolioImages || [])
+            .filter((img) => img.imageType === 'before')
+            .map((img) => [img.imageUrl, img]),
+        )
+        const freshAfterMap = new Map(
+          (freshItem.portfolioImages || [])
+            .filter((img) => img.imageType === 'after')
+            .map((img) => [img.imageUrl, img]),
+        )
+
+        const buildOrderList = (previews, imageType, freshMap, blobMap) => {
+          return previews.map((preview, idx) => {
+            let url = typeof preview === 'string' ? preview : preview?.url
+            if (!url) return null
+            if (blobMap.has(url)) {
+              url = blobMap.get(url)
+            }
+            const freshImg = freshMap.get(url)
+            return {
+              id: freshImg?.id,
+              imageUrl: url,
+              imageType,
+              sortOrder: idx,
+            }
+          })
+        }
+
+        const beforeOrder = buildOrderList(beforePreviews, 'before', freshBeforeMap, blobToCloudinaryBefore)
+        const afterOrder = buildOrderList(afterPreviews, 'after', freshAfterMap, blobToCloudinaryAfter)
+
+        await saveImageOrder(beforeOrder, afterOrder)
+        orderSaved = true
+      }
+
       resetForm()
       load()
       dispatchAdminDataChanged('portfolio-changed')
@@ -319,8 +408,8 @@ export const PortfolioDashboard = () => {
       } else {
         toast.success(editingId ? 'Portfolio project updated successfully.' : 'Portfolio project uploaded successfully.')
       }
-      if (editingId && (beforeOrderChanged || afterOrderChanged)) {
-        await saveImageOrder(beforePreviews, afterPreviews)
+      if (orderSaved) {
+        toast.success('Image order saved')
       }
     } catch (err) {
       console.error('Submit error:', err)
@@ -423,15 +512,15 @@ export const PortfolioDashboard = () => {
     setIsReorderSaving(true)
     try {
       const payload = {
-        before: newBeforeOrder.map((f, idx) => ({
-          id: f.id || undefined,
-          imageUrl: typeof f === 'string' ? f : f.url,
+        before: newBeforeOrder.map((item, idx) => ({
+          id: item?.id || undefined,
+          imageUrl: item?.imageUrl,
           imageType: 'before',
           sortOrder: idx,
         })),
-        after: newAfterOrder.map((f, idx) => ({
-          id: f.id || undefined,
-          imageUrl: typeof f === 'string' ? f : f.url,
+        after: newAfterOrder.map((item, idx) => ({
+          id: item?.id || undefined,
+          imageUrl: item?.imageUrl,
           imageType: 'after',
           sortOrder: idx,
         })),
@@ -439,8 +528,8 @@ export const PortfolioDashboard = () => {
       const res = await api.put(`/admin/portfolio/${editingId}/images/order`, payload)
       if (res.data?.success || res.data?.data) {
         const updated = res.data.data || res.data
-        setBeforePreviews(updated.beforeImages || newBeforeOrder.map((f) => typeof f === 'string' ? f : f.url))
-        setAfterPreviews(updated.afterImages || newAfterOrder.map((f) => typeof f === 'string' ? f : f.url))
+        setBeforePreviews(updated.beforeImages || newBeforeOrder.map((f) => f?.imageUrl).filter(Boolean))
+        setAfterPreviews(updated.afterImages || newAfterOrder.map((f) => f?.imageUrl).filter(Boolean))
         setBeforeOrderChanged(false)
         setAfterOrderChanged(false)
         toast.success('Image order saved')
@@ -517,17 +606,21 @@ export const PortfolioDashboard = () => {
                 Add More
               </motion.button>
             </div>
-            <Reorder.Group
-              axis="x"
-              values={previews}
-              onReorder={(newOrder) => {
-                setPreviews(newOrder)
-                setFiles((prev) => {
-                  const fileObjs = prev.filter((f) => f instanceof File)
-                  return [...fileObjs, ...newOrder]
-                })
-                setOrderChanged(true)
-              }}
+              <Reorder.Group
+                axis="x"
+                values={previews}
+                onReorder={(newOrder) => {
+                  setPreviews(newOrder)
+                  setFiles((prev) => {
+                    const fileObjs = prev.filter((f) => f instanceof File)
+                    const urlObjs = newOrder.map((src) => {
+                      if (typeof src === 'string') return { url: src }
+                      return src
+                    })
+                    return [...fileObjs, ...urlObjs]
+                  })
+                  setOrderChanged(true)
+                }}
               className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3"
             >
               {previews.map((src, i) => {
@@ -819,7 +912,37 @@ export const PortfolioDashboard = () => {
                 whileTap={{ scale: 0.98 }}
                 type="button"
                 disabled={isReorderSaving}
-                onClick={() => saveImageOrder(beforePreviews, afterPreviews)}
+                onClick={() => {
+                  const savedBefore = portfolio.find((p) => (p._id || p.id) === editingId)
+                  const freshBeforeMap = new Map(
+                    (savedBefore?.portfolioImages || [])
+                      .filter((img) => img.imageType === 'before')
+                      .map((img) => [img.imageUrl, img]),
+                  )
+                  const freshAfterMap = new Map(
+                    (savedBefore?.portfolioImages || [])
+                      .filter((img) => img.imageType === 'after')
+                      .map((img) => [img.imageUrl, img]),
+                  )
+
+                  const buildOrderList = (previews, imageType, freshMap) => {
+                    return previews.map((preview, idx) => {
+                      const url = typeof preview === 'string' ? preview : preview?.url
+                      const freshImg = freshMap.get(url)
+                      return {
+                        id: freshImg?.id,
+                        imageUrl: url,
+                        imageType,
+                        sortOrder: idx,
+                      }
+                    })
+                  }
+
+                  saveImageOrder(
+                    buildOrderList(beforePreviews, 'before', freshBeforeMap),
+                    buildOrderList(afterPreviews, 'after', freshAfterMap),
+                  )
+                }}
                 className="w-full rounded-full bg-[var(--accent)] text-white py-3 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--accent)]/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isReorderSaving ? <Loader2 size={14} className="animate-spin" /> : null}
