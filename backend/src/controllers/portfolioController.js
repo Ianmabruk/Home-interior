@@ -22,6 +22,7 @@ export const portfolioController = {
   }),
 
   create: asyncHandler(async (req, res) => {
+    const t0 = Date.now()
     const file = req.files?.media?.[0] || null
     const beforeFiles = Array.isArray(req.files?.before) ? req.files.before : []
     const afterFiles = Array.isArray(req.files?.after) ? req.files.after : []
@@ -40,10 +41,17 @@ export const portfolioController = {
     const afterImages = normalizeStringArray(req.body.afterImages)
     if (afterImages) data.afterImages = afterImages
     const item = await portfolioService.createPortfolio(data, file, beforeFiles, afterFiles, circularFile)
+    const elapsed = Date.now() - t0
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[portfolio] create completed in ${elapsed}ms (before=${beforeFiles.length}, after=${afterFiles.length}, main=${!!file})`)
+    } else if (elapsed > 5000) {
+      console.warn(`[portfolio] create took ${elapsed}ms — investigate performance`)
+    }
     res.status(201).json({ success: true, data: item })
   }),
 
   update: asyncHandler(async (req, res) => {
+    const t0 = Date.now()
     const file = req.files?.media?.[0] || null
     const beforeFiles = Array.isArray(req.files?.before) ? req.files.before : []
     const afterFiles = Array.isArray(req.files?.after) ? req.files.after : []
@@ -61,11 +69,44 @@ export const portfolioController = {
     const afterImages = normalizeStringArray(req.body.afterImages)
     if (afterImages !== undefined) data.afterImages = afterImages
     const item = await portfolioService.updatePortfolio(req.params.id, data, file, beforeFiles, afterFiles, circularFile)
+    const elapsed = Date.now() - t0
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[portfolio] update completed in ${elapsed}ms (before=${beforeFiles.length}, after=${afterFiles.length}, main=${!!file})`)
+    } else if (elapsed > 5000) {
+      console.warn(`[portfolio] update took ${elapsed}ms — investigate performance`)
+    }
     res.json({ success: true, data: item })
   }),
 
   delete: asyncHandler(async (req, res) => {
     await portfolioService.deletePortfolio(req.params.id)
     res.json({ success: true, data: { message: 'Deleted' } })
+  }),
+
+  reorderImages: asyncHandler(async (req, res) => {
+    const { before, after } = req.body
+    const orderList = []
+    if (Array.isArray(before)) {
+      before.forEach((img, idx) => {
+        orderList.push({
+          id: img?.id,
+          imageUrl: img?.imageUrl || img?.url,
+          imageType: 'before',
+          sortOrder: idx,
+        })
+      })
+    }
+    if (Array.isArray(after)) {
+      after.forEach((img, idx) => {
+        orderList.push({
+          id: img?.id,
+          imageUrl: img?.imageUrl || img?.url,
+          imageType: 'after',
+          sortOrder: idx,
+        })
+      })
+    }
+    const item = await portfolioService.reorderPortfolioImages(req.params.id, orderList)
+    res.json({ success: true, data: item })
   }),
 }

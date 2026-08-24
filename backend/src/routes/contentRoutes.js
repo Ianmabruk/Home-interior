@@ -20,6 +20,7 @@ portfolioRoutes.get('/:id', cacheHeaders(10, 60), portfolioController.get)
 portfolioRoutes.post('/', authenticate, authorize('ADMIN'), uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 21 }, { name: 'before', maxCount: 21 }, { name: 'after', maxCount: 21 }, { name: 'homepageCircularImage', maxCount: 1 }]), validateZod(portfolioSchemas.create), portfolioController.create)
 portfolioRoutes.patch('/:id', authenticate, authorize('ADMIN'), uploadFields([{ name: 'media', maxCount: 1 }, { name: 'gallery', maxCount: 21 }, { name: 'before', maxCount: 21 }, { name: 'after', maxCount: 21 }, { name: 'homepageCircularImage', maxCount: 1 }]), validateZod(portfolioSchemas.update), portfolioController.update)
 portfolioRoutes.delete('/:id', authenticate, authorize('ADMIN'), portfolioController.delete)
+portfolioRoutes.put('/:id/images/order', authenticate, authorize('ADMIN'), portfolioController.reorderImages)
 
 export const virtualDesignRoutes = Router()
 virtualDesignRoutes.get('/', cacheHeaders(5, 30), virtualDesignController.list)

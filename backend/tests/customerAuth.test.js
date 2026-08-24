@@ -64,9 +64,11 @@ describe('Customer Authentication', () => {
 
     expect(res.status).toBe(201)
     expect(res.body.success).toBe(true)
-    expect(res.body.data.email).toBe(email)
-    expect(res.body.data.role).toBe('CUSTOMER')
-    expect(res.body.data.id).toBeDefined()
+    expect(res.body.data.user.email).toBe(email)
+    expect(res.body.data.user.role).toBe('CUSTOMER')
+    expect(res.body.data.user.id).toBeDefined()
+    expect(res.body.data.accessToken).toBeDefined()
+    expect(res.body.data.csrfToken).toBeDefined()
   })
 
   it('should reject duplicate email registration', async () => {

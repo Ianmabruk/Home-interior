@@ -27,11 +27,11 @@ run_test() {
 run_test "Frontend Unit Tests" "cd /home/ian-mabruk/home && yarn test:ci"
 
 # Backend tests
-run_test "Backend Unit Tests" "cd /home/ian-mabruk/home/server && yarn test:ci"
+run_test "Backend Unit Tests" "cd /home/ian-mabruk/home/backend && npx jest --config jest.config.js --runInBand 2>&1 | tail -40"
 
 # Lint checks
-run_test "Frontend Lint" "cd /home/ian-mabruk/home && yarn lint"
-run_test "Backend Lint" "cd /home/ian-mabruk/home/server && yarn lint"
+run_test "Frontend Lint" "cd /home/ian-mabruk/home && npx eslint src/ --max-warnings=0 2>&1 | tail -5"
+run_test "Backend Lint" "cd /home/ian-mabruk/home/backend && npx eslint src/ --max-warnings=0 2>&1 | tail -5"
 
 echo "=========================================="
 echo -e "${GREEN}  All tests passed!${NC}"

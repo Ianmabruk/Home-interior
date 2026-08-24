@@ -48,9 +48,14 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (fullName, email, password, phone) => {
     const res = await api.post('/auth/register', { fullName, email, password, phone })
-    const user = res.data
-    if (user?.id) {
-      return { success: true, user, needsLogin: true }
+    const data = res.data
+    if (data?.accessToken) {
+      localStorage.setItem('hok_access_token', data.accessToken)
+      setUser(data.user || null)
+      return { success: true, user: data.user, needsLogin: false }
+    }
+    if (data?.user?.id || data?._id) {
+      return { success: true, user: data.user || data, needsLogin: true }
     }
     return { success: false, message: 'Registration failed' }
   }, [])

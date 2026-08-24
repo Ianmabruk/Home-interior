@@ -33,8 +33,8 @@ function buildDatabaseUrl() {
     url.searchParams.set('connection_limit', process.env.NODE_ENV === 'production' ? '5' : '10')
   }
 
-  url.searchParams.set('connect_timeout', '15')
-  url.searchParams.set('pool_timeout', '30')
+  url.searchParams.set('connect_timeout', '5')
+  url.searchParams.set('pool_timeout', '10')
   url.searchParams.set('idle_in_transaction_session_timeout', '30000')
   // keepalives keep direct (non-pooled) TCP connections alive; ignored by the pooler.
   url.searchParams.set('keepalives', '1')
@@ -57,7 +57,8 @@ function createPrismaClient() {
 
 const RETRYABLE_CODES = new Set(['P2024', 'P1001', 'P1008', 'P1009'])
 
-export async function withRetry(fn, retries = 3, delayMs = 250) {
+export async function withRetry(fn, retries = 3, delayMs = 100, maxTotalMs = 3000) {
+  const startTime = Date.now()
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       return await fn()
@@ -66,7 +67,11 @@ export async function withRetry(fn, retries = 3, delayMs = 250) {
       const message = String(err?.message || '')
       const isRetryable = RETRYABLE_CODES.has(code) || /kind:\s*Closed/i.test(message) || /P1002/i.test(message)
       if (!isRetryable || attempt === retries) throw err
-      await new Promise((r) => setTimeout(r, delayMs * (attempt + 1)))
+      const elapsed = Date.now() - startTime
+      if (elapsed >= maxTotalMs) throw err
+      const delay = Math.min(delayMs * (attempt + 1), maxTotalMs - elapsed)
+      if (delay > 0) await new Promise((r) => setTimeout(r, delay))
+      if (Date.now() - startTime >= maxTotalMs) throw err
     }
   }
 }
@@ -124,6 +129,21 @@ export const prisma = new Proxy(
 
 let connectPromise = null
 
+const KEEPALIVE_INTERVAL = 30 * 1000
+
+function startKeepalive() {
+  if (globalForPrisma.__keepaliveStarted) return
+  globalForPrisma.__keepaliveStarted = true
+  setInterval(async () => {
+    try {
+      const instance = getPrismaInstance()
+      await instance.$queryRaw`SELECT 1`
+    } catch (err) {
+      console.error('[database] keepalive ping failed:', err?.message || err)
+    }
+  }, KEEPALIVE_INTERVAL)
+}
+
 export async function connectDatabase() {
   if (connectPromise) return connectPromise
   const instance = getPrismaInstance()
@@ -136,6 +156,8 @@ export async function connectDatabase() {
     connectPromise = null
     throw err
   })
+  await connectPromise
+  startKeepalive()
   return connectPromise
 }
 

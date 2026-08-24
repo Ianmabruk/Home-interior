@@ -21,13 +21,15 @@ export const SignupPage = () => {
     setSuccess(null)
     try {
       const result = await register(formData.fullName, formData.email, formData.password, formData.phone)
-      if (result?.needsLogin) {
+      if (result?.success && !result?.needsLogin) {
+        navigate('/orders', { replace: true })
+        setSuccess('Account created successfully!')
+      } else if (result?.needsLogin) {
         await login(formData.email, formData.password)
         navigate('/orders', { replace: true })
         setSuccess('Account created successfully!')
       } else {
-        setSuccess('Account created. You can now sign in.')
-        setTimeout(() => navigate('/login', { replace: true }), 1500)
+        setError(result?.message || 'Registration failed. Please try again.')
       }
     } catch (err) {
       setError(err?.message || 'We could not create your account. Please check your information and try again.')

@@ -4,8 +4,60 @@ import { failure } from '../utils/response.js'
 
 const MAX_IMAGES_PER_SECTION = 21
 
-function mapPortfolio(item) {
+async function syncPortfolioImages(projectId, beforeImages, afterImages) {
+  const before = beforeImages.map((url, idx) => ({
+    portfolioProjectId: projectId,
+    imageUrl: url,
+    imageType: 'before',
+    sortOrder: idx,
+  }))
+  const after = afterImages.map((url, idx) => ({
+    portfolioProjectId: projectId,
+    imageUrl: url,
+    imageType: 'after',
+    sortOrder: idx,
+  }))
+  const all = [...before, ...after]
+
+  if (all.length === 0) return
+
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.portfolioImage.findMany({
+      where: { portfolioProjectId: projectId },
+      select: { id: true, imageUrl: true, imageType: true },
+    })
+    const existingKeys = new Set(existing.map((img) => `${img.imageType}:${img.imageUrl}`))
+    const existingIdsToDelete = existing.filter((img) => {
+      const key = `${img.imageType}:${img.imageUrl}`
+      return !all.some((newImg) => newImg.imageType === img.imageType && newImg.imageUrl === img.imageUrl)
+    }).map((img) => img.id)
+
+    if (existingIdsToDelete.length > 0) {
+      await tx.portfolioImage.deleteMany({ where: { id: { in: existingIdsToDelete } } })
+    }
+
+    for (const newImg of all) {
+      const key = `${newImg.imageType}:${newImg.imageUrl}`
+      if (!existingKeys.has(key)) {
+        await tx.portfolioImage.create({ data: newImg })
+      }
+    }
+  })
+}
+
+function mapPortfolio(item, portfolioImages = []) {
   if (!item) return null
+
+  const beforeImages = portfolioImages
+    .filter((img) => img.imageType === 'before')
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((img) => img.imageUrl)
+
+  const afterImages = portfolioImages
+    .filter((img) => img.imageType === 'after')
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((img) => img.imageUrl)
+
   return {
     _id: item.id,
     id: item.id,
@@ -20,8 +72,17 @@ function mapPortfolio(item) {
     cloudinaryId: item.cloudinaryId,
     homepageCircularImage: item.homepageCircularImage,
     homepageCircularImageId: item.homepageCircularImageId,
-    beforeImages: item.beforeImages || [],
-    afterImages: item.afterImages || [],
+    beforeImages: beforeImages.length > 0 ? beforeImages : (item.beforeImages || []),
+    afterImages: afterImages.length > 0 ? afterImages : (item.afterImages || []),
+    portfolioImages: portfolioImages
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((img) => ({
+        id: img.id,
+        imageUrl: img.imageUrl,
+        imageType: img.imageType,
+        sortOrder: img.sortOrder,
+        cloudinaryId: img.cloudinaryId,
+      })),
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   }
@@ -33,6 +94,7 @@ export const portfolioService = {
   createPortfolio,
   updatePortfolio,
   deletePortfolio,
+  reorderPortfolioImages,
 }
 
 async function listPortfolio({ sort = '-createdAt', limit = 100 } = {}) {
@@ -57,8 +119,19 @@ async function listPortfolio({ sort = '-createdAt', limit = 100 } = {}) {
         updatedAt: true,
       },
     })
-    return items.map(mapPortfolio)
-  } catch {
+    const result = await Promise.all(
+      items.map(async (item) => {
+        const portfolioImages = await prisma.portfolioImage.findMany({
+          where: { portfolioProjectId: item.id },
+          orderBy: { sortOrder: 'asc' },
+          select: { id: true, imageUrl: true, imageType: true, sortOrder: true, cloudinaryId: true },
+        })
+        return mapPortfolio(item, portfolioImages)
+      }),
+    )
+    return result
+  } catch (err) {
+    console.error('[portfolioService] listPortfolio error:', err?.message || err)
     return []
   }
 }
@@ -67,7 +140,12 @@ async function getPortfolio(id) {
   try {
     const item = await prisma.portfolioProject.findUnique({ where: { id } })
     if (!item) throw failure(404, 'Portfolio item not found')
-    return mapPortfolio(item)
+    const portfolioImages = await prisma.portfolioImage.findMany({
+      where: { portfolioProjectId: item.id },
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true, imageUrl: true, imageType: true, sortOrder: true, cloudinaryId: true },
+    })
+    return mapPortfolio(item, portfolioImages)
   } catch (err) {
     if (err?.status === 404) throw err
     throw failure(500, 'Failed to fetch portfolio item')
@@ -75,6 +153,7 @@ async function getPortfolio(id) {
 }
 
 async function uploadImageFiles(files, folder) {
+  const tStart = Date.now()
   const urls = []
   const errors = []
   const uploadResults = await Promise.allSettled(
@@ -89,10 +168,14 @@ async function uploadImageFiles(files, folder) {
       errors.push({ file: file?.originalname || `file_${index}`, error: reason })
     }
   })
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[portfolioService] uploadImageFiles: ${files.length} files to ${folder} in ${Date.now() - tStart}ms (urls=${urls.length}, errors=${errors.length})`)
+  }
   return { urls, errors }
 }
 
 async function createPortfolio(data, file, beforeFiles = [], afterFiles = [], circularFile = null) {
+  const tStart = Date.now()
   const createData = { ...data }
 
   if (beforeFiles.length > MAX_IMAGES_PER_SECTION) {
@@ -105,12 +188,14 @@ async function createPortfolio(data, file, beforeFiles = [], afterFiles = [], ci
   const beforeImages = [...(data.beforeImages || [])]
   const afterImages = [...(data.afterImages || [])]
 
+  const uploadStart = Date.now()
   const [beforeResult, afterResult, mainResult, circularResult] = await Promise.allSettled([
     beforeFiles.length > 0 ? uploadImageFiles(beforeFiles, 'portfolio/before') : Promise.resolve({ urls: [], errors: [] }),
     afterFiles.length > 0 ? uploadImageFiles(afterFiles, 'portfolio/after') : Promise.resolve({ urls: [], errors: [] }),
     file ? uploadFile(file.buffer, file.mimetype, 'portfolio') : Promise.resolve(null),
     circularFile ? uploadFile(circularFile.buffer, circularFile.mimetype, 'portfolio') : Promise.resolve(null),
   ])
+  const uploadElapsed = Date.now() - uploadStart
 
   if (beforeResult.status === 'rejected') {
     throw failure(500, `Before upload failed: ${beforeResult.reason?.message || 'Unknown error'}`)
@@ -157,7 +242,19 @@ async function createPortfolio(data, file, beforeFiles = [], afterFiles = [], ci
     createData.homepageCircularImageId = circularUploaded.path
   }
 
+  const dbStart = Date.now()
   const item = await prisma.portfolioProject.create({ data: createData })
+  const dbElapsed = Date.now() - dbStart
+
+  await syncPortfolioImages(item.id, beforeImages, afterImages)
+
+  const total = Date.now() - tStart
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[portfolioService] createPortfolio: upload=${uploadElapsed}ms db=${dbElapsed}ms total=${total}ms (before=${beforeFiles.length}, after=${afterFiles.length}, main=${!!file})`)
+  } else if (total > 5000) {
+    console.warn(`[portfolioService] createPortfolio slow: upload=${uploadElapsed}ms db=${dbElapsed}ms total=${total}ms`)
+  }
+
   return mapPortfolio(item)
 }
 
@@ -234,8 +331,16 @@ async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []
   }
   updateData.afterImages = afterImages
 
-  const item = await prisma.portfolioProject.update({ where: { id }, data: updateData })
-  return mapPortfolio(item)
+   const item = await prisma.portfolioProject.update({ where: { id }, data: updateData })
+
+  await syncPortfolioImages(id, beforeImages, afterImages)
+
+  const portfolioImages = await prisma.portfolioImage.findMany({
+    where: { portfolioProjectId: id },
+    orderBy: { sortOrder: 'asc' },
+    select: { id: true, imageUrl: true, imageType: true, sortOrder: true, cloudinaryId: true },
+  })
+  return mapPortfolio(item, portfolioImages)
 }
 
 async function deletePortfolio(id) {
@@ -243,5 +348,74 @@ async function deletePortfolio(id) {
   if (!existing) throw failure(404, 'Portfolio item not found')
   if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
   await deleteFiles([...(existing.beforeImages || []), ...(existing.afterImages || [])])
+  await prisma.portfolioImage.deleteMany({ where: { portfolioProjectId: id } })
   await prisma.portfolioProject.delete({ where: { id } })
+}
+
+async function reorderPortfolioImages(projectId, orderList) {
+  const project = await prisma.portfolioProject.findUnique({ where: { id: projectId } })
+  if (!project) throw failure(404, 'Portfolio item not found')
+
+  const existingImages = await prisma.portfolioImage.findMany({
+    where: { portfolioProjectId: projectId },
+    select: { id: true, imageUrl: true, imageType: true, sortOrder: true },
+  })
+
+  const existingById = new Map(existingImages.map((img) => [img.id, img]))
+  const existingByUrl = new Map(existingImages.map((img) => [`${img.imageType}:${img.imageUrl}`, img]))
+  const seenIds = new Set()
+  const seenUrls = new Set()
+
+  for (const item of orderList) {
+    if (item.id !== undefined) {
+      if (seenIds.has(item.id)) {
+        throw failure(400, `Duplicate image ID: ${item.id}`)
+      }
+      seenIds.add(item.id)
+      if (!existingById.has(item.id)) {
+        throw failure(400, `Unknown image ID: ${item.id}`)
+      }
+    } else if (item.imageUrl !== undefined) {
+      const key = `${item.imageType || 'before'}:${item.imageUrl}`
+      if (seenUrls.has(key)) {
+        throw failure(400, `Duplicate image URL: ${item.imageUrl}`)
+      }
+      seenUrls.add(key)
+      if (!existingByUrl.has(key)) {
+        throw failure(400, `Unknown image URL for type ${item.imageType}: ${item.imageUrl}`)
+      }
+    }
+
+    if (item.sortOrder < 0) {
+      throw failure(400, `Sort order must be non-negative: ${item.sortOrder}`)
+    }
+    if (item.imageType !== 'before' && item.imageType !== 'after') {
+      throw failure(400, `Invalid image type: ${item.imageType}`)
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    for (const item of orderList) {
+      const where = item.id !== undefined ? { id: item.id } : {
+        portfolioProjectId_imageType_imageUrl: {
+          portfolioProjectId: projectId,
+          imageType: item.imageType,
+          imageUrl: item.imageUrl,
+        },
+      }
+      await tx.portfolioImage.update({
+        where,
+        data: { sortOrder: item.sortOrder },
+      })
+    }
+  })
+
+  const updatedImages = await prisma.portfolioImage.findMany({
+    where: { portfolioProjectId: projectId },
+    orderBy: { sortOrder: 'asc' },
+    select: { id: true, imageUrl: true, imageType: true, sortOrder: true, cloudinaryId: true },
+  })
+
+  const projectAfter = await prisma.portfolioProject.findUnique({ where: { id: projectId } })
+  return mapPortfolio(projectAfter, updatedImages)
 }

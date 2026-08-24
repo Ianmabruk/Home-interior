@@ -73,19 +73,21 @@ model User {
 }
 
 model PortfolioProject {
-  id           String   @id @default(cuid())
-  title        String   @db.Text
-  description  String?  @db.Text
-  category     String?  @db.Text
-  featured     Boolean  @default(false)
-  displayOrder Int      @default(0) @map("display_order")
-  published    Boolean  @default(true)
-  imageUrl     String?  @db.Text @map("image_url")
-  cloudinaryId String?  @db.Text @map("cloudinary_id")
-  homepageCircularImage String? @db.Text @map("homepage_circular_image")
-  homepageCircularImageId String? @db.Text @map("homepage_circular_image_id")
-  beforeImages String[] @default([]) @map("before_images") @db.Text
-  afterImages  String[] @default([]) @map("after_images") @db.Text
+  id                      String           @id @default(cuid())
+  title                   String           @db.Text
+  description             String?          @db.Text
+  category                String?          @db.Text
+  featured                Boolean          @default(false)
+  displayOrder            Int              @default(0) @map("display_order")
+  published               Boolean          @default(true)
+  imageUrl                String?          @db.Text @map("image_url")
+  cloudinaryId            String?          @db.Text @map("cloudinary_id")
+  homepageCircularImage   String?          @db.Text @map("homepage_circular_image")
+  homepageCircularImageId String?          @db.Text @map("homepage_circular_image_id")
+  beforeImages            String[]         @default([]) @map("before_images") @db.Text
+  afterImages             String[]         @default([]) @map("after_images") @db.Text
+  portfolioImages         PortfolioImage[]
+
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -93,6 +95,23 @@ model PortfolioProject {
   @@index([published, featured, displayOrder(asc)])
   @@index([displayOrder(asc)])
   @@index([featured, createdAt(desc)])
+}
+
+model PortfolioImage {
+  id             String   @id @default(cuid())
+  portfolioProjectId String  @map("portfolio_project_id") @db.Text
+  imageUrl       String   @db.Text @map("image_url")
+  imageType      String   @default("before") @map("image_type") @db.Text
+  cloudinaryId   String?  @db.Text @map("cloudinary_id")
+  sortOrder      Int      @default(0) @map("sort_order")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  portfolioProject PortfolioProject @relation(fields: [portfolioProjectId], references: [id], onDelete: Cascade)
+
+  @@map("portfolio_images")
+  @@index([portfolioProjectId, imageType, sortOrder(asc)])
 }
 
 model VirtualDesign {

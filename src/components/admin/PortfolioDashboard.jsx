@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Loader2, Upload, Star } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
@@ -30,14 +30,17 @@ export const PortfolioDashboard = () => {
   const [beforePreviews, setBeforePreviews] = useState([])
   const [afterFiles, setAfterFiles] = useState([])
   const [afterPreviews, setAfterPreviews] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(null)
-  const [deleteId, setDeleteId] = useState(null)
-  const [isDragOverMain, setIsDragOverMain] = useState(false)
-  const [isDragOverCircular, setIsDragOverCircular] = useState(false)
-  const [isDragOverBefore, setIsDragOverBefore] = useState(false)
-  const [isDragOverAfter, setIsDragOverAfter] = useState(false)
-  const [showForm, setShowForm] = useState(false)
+   const [loading, setLoading] = useState(false)
+   const [uploadProgress, setUploadProgress] = useState(null)
+   const [deleteId, setDeleteId] = useState(null)
+   const [isDragOverMain, setIsDragOverMain] = useState(false)
+   const [isDragOverCircular, setIsDragOverCircular] = useState(false)
+   const [isDragOverBefore, setIsDragOverBefore] = useState(false)
+   const [isDragOverAfter, setIsDragOverAfter] = useState(false)
+   const [showForm, setShowForm] = useState(false)
+   const [beforeOrderChanged, setBeforeOrderChanged] = useState(false)
+   const [afterOrderChanged, setAfterOrderChanged] = useState(false)
+   const [isReorderSaving, setIsReorderSaving] = useState(false)
   const mainFileRef = useRef(null)
   const circularFileRef = useRef(null)
   const beforeFileRef = useRef(null)
@@ -211,6 +214,8 @@ export const PortfolioDashboard = () => {
     setAfterFiles(item.afterImages ? item.afterImages.map((url) => ({ url })) : [])
     setAfterPreviews(item.afterImages ? [...item.afterImages] : [])
     setShowForm(true)
+    setBeforeOrderChanged(false)
+    setAfterOrderChanged(false)
   }
 
   const resetForm = () => {
@@ -237,6 +242,7 @@ export const PortfolioDashboard = () => {
 
   const submit = async (e) => {
     e.preventDefault()
+    if (loading) return
     setLoading(true)
     setUploadProgress(null)
 
@@ -312,6 +318,9 @@ export const PortfolioDashboard = () => {
         toast.success(`${uploaded}/${totalNewFiles} images uploaded successfully`)
       } else {
         toast.success(editingId ? 'Portfolio project updated successfully.' : 'Portfolio project uploaded successfully.')
+      }
+      if (editingId && (beforeOrderChanged || afterOrderChanged)) {
+        await saveImageOrder(beforePreviews, afterPreviews)
       }
     } catch (err) {
       console.error('Submit error:', err)
@@ -408,6 +417,49 @@ export const PortfolioDashboard = () => {
     </div>
   )
 
+  const saveImageOrder = useCallback(async (newBeforeOrder, newAfterOrder) => {
+    if (!editingId) return
+    if (isReorderSaving) return
+    setIsReorderSaving(true)
+    try {
+      const payload = {
+        before: newBeforeOrder.map((f, idx) => ({
+          id: f.id || undefined,
+          imageUrl: typeof f === 'string' ? f : f.url,
+          imageType: 'before',
+          sortOrder: idx,
+        })),
+        after: newAfterOrder.map((f, idx) => ({
+          id: f.id || undefined,
+          imageUrl: typeof f === 'string' ? f : f.url,
+          imageType: 'after',
+          sortOrder: idx,
+        })),
+      }
+      const res = await api.put(`/admin/portfolio/${editingId}/images/order`, payload)
+      if (res.data?.success || res.data?.data) {
+        const updated = res.data.data || res.data
+        setBeforePreviews(updated.beforeImages || newBeforeOrder.map((f) => typeof f === 'string' ? f : f.url))
+        setAfterPreviews(updated.afterImages || newAfterOrder.map((f) => typeof f === 'string' ? f : f.url))
+        setBeforeOrderChanged(false)
+        setAfterOrderChanged(false)
+        toast.success('Image order saved')
+        dispatchAdminDataChanged('portfolio-changed')
+      }
+    } catch (err) {
+      toast.error(err?.message || 'Failed to save image order')
+      const savedBefore = portfolio.find((p) => (p._id || p.id) === editingId)
+      if (savedBefore) {
+        setBeforePreviews([...(savedBefore.beforeImages || [])])
+        setAfterPreviews([...(savedBefore.afterImages || [])])
+      }
+      setBeforeOrderChanged(false)
+      setAfterOrderChanged(false)
+    } finally {
+      setIsReorderSaving(false)
+    }
+  }, [editingId, isReorderSaving, portfolio])
+
   const renderImageSection = (
     title,
     files,
@@ -422,11 +474,16 @@ export const PortfolioDashboard = () => {
     dragOverHandler,
     dragLeaveHandler,
     dropHandler,
+    orderChanged,
+    setOrderChanged,
   ) => (
     <div className="space-y-2">
       <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 flex items-center gap-2">
         <Images size={14} strokeWidth={1.5} />
         {title} (<span className="text-[var(--accent)]">{previews.length}</span>/{MAX_IMAGES})
+        {orderChanged && (
+          <span className="text-[var(--accent)] text-[10px] font-medium">• Unsaved changes</span>
+        )}
       </label>
       <input
         ref={fileRef}
@@ -460,29 +517,54 @@ export const PortfolioDashboard = () => {
                 Add More
               </motion.button>
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+            <Reorder.Group
+              axis="x"
+              values={previews}
+              onReorder={(newOrder) => {
+                setPreviews(newOrder)
+                setFiles((prev) => {
+                  const fileObjs = prev.filter((f) => f instanceof File)
+                  return [...fileObjs, ...newOrder]
+                })
+                setOrderChanged(true)
+              }}
+              className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3"
+            >
               {previews.map((src, i) => {
                 return (
-                  <div key={i} className="relative rounded-xl overflow-hidden group">
-                    <img
-                      src={src}
-                      alt={`Preview ${i + 1}`}
-                      className="h-20 w-full object-contain bg-[var(--secondary)]/10"
-                      loading="lazy"
-                    />
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); removeFn(i) }}
-                      className="absolute top-1 right-1 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-1.5 rounded-full hover:bg-[var(--primary)] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X size={12} />
-                    </motion.button>
-                  </div>
+                  <Reorder.Item
+                    key={`${src}-${i}`}
+                    value={src}
+                    as="div"
+                  >
+                    <div className="relative rounded-xl overflow-hidden group">
+                      <img
+                        src={src}
+                        alt={`Preview ${i + 1}`}
+                        className="h-20 w-full object-contain bg-[var(--secondary)]/10"
+                        loading="lazy"
+                      />
+                      <div className="absolute top-1 left-1 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
+                        <div className="flex flex-col gap-0.5">
+                          <div className="w-3 h-0.5 bg-white rounded-full"></div>
+                          <div className="w-3 h-0.5 bg-white rounded-full"></div>
+                          <div className="w-3 h-0.5 bg-white rounded-full"></div>
+                        </div>
+                      </div>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); removeFn(i) }}
+                        className="absolute top-1 right-1 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-1.5 rounded-full hover:bg-[var(--primary)] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={12} />
+                      </motion.button>
+                    </div>
+                  </Reorder.Item>
                 )
               })}
-            </div>
+            </Reorder.Group>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3 py-8">
@@ -694,7 +776,7 @@ export const PortfolioDashboard = () => {
             </div>
 
             {renderImageSection(
-              'Before Images',
+              'Before Images (Optional)',
               beforeFiles,
               beforePreviews,
               setBeforeFiles,
@@ -707,10 +789,13 @@ export const PortfolioDashboard = () => {
               handleBeforeDragOver,
               handleBeforeDragLeave,
               handleBeforeDrop,
+              beforeOrderChanged,
+              setBeforeOrderChanged,
+              'before',
             )}
 
             {renderImageSection(
-              'After Images',
+              'After Images (Optional)',
               afterFiles,
               afterPreviews,
               setAfterFiles,
@@ -723,6 +808,23 @@ export const PortfolioDashboard = () => {
               handleAfterDragOver,
               handleAfterDragLeave,
               handleAfterDrop,
+              afterOrderChanged,
+              setAfterOrderChanged,
+              'after',
+            )}
+
+            {(beforeOrderChanged || afterOrderChanged) && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                disabled={isReorderSaving}
+                onClick={() => saveImageOrder(beforePreviews, afterPreviews)}
+                className="w-full rounded-full bg-[var(--accent)] text-white py-3 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--accent)]/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isReorderSaving ? <Loader2 size={14} className="animate-spin" /> : null}
+                Save Image Order
+              </motion.button>
             )}
 
             {uploadProgress && uploadProgress.total > 0 && (

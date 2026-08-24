@@ -7,6 +7,8 @@ export const getProjectImage = (item) => {
     item.mediaUrl ||
     item.mediaUrls?.[0] ||
     item.galleryImages?.[0] ||
+    item.beforeImages?.[0] ||
+    item.afterImages?.[0] ||
     null
   )
 }

@@ -2,8 +2,9 @@ import { asyncHandler } from '../middleware/asyncHandler.js'
 import { failure } from '../utils/response.js'
 import { authService } from '../services/authService.js'
 import { customerAuthService } from '../services/customerAuthService.js'
-import bcrypt from 'bcryptjs'
-import { prisma } from '../config/database.js'
+import jwt from 'jsonwebtoken'
+import { prisma, withRetry } from '../config/database.js'
+import { env } from '../config/env.js'
 import { generateCsrfToken } from '../middleware/csrf.js'
 import { emailService } from '../services/emailService.js'
 
@@ -47,6 +48,7 @@ export const authController = {
   }),
 
   register: asyncHandler(async (req, res) => {
+    const t0 = Date.now()
     const { email, password, fullName, phone } = req.body
     if (!email || !password || !fullName) {
       return res.status(400).json({ success: false, message: 'Name, email, and password are required' })
@@ -58,15 +60,44 @@ export const authController = {
     const user = await customerAuthService.register({ email, password, fullName, phone })
     const csrfToken = generateCsrfToken()
 
-    // Welcome email (triggered only after the account is persisted).
-    // Failures are caught so a transient email issue never deletes the new account.
+    const accessToken = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role },
+      env.jwtAccessSecret,
+      { expiresIn: env.accessTokenTtl || '15m' },
+    )
+    const refreshToken = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role },
+      env.jwtRefreshSecret,
+      { expiresIn: env.refreshTokenTtl || '30d' },
+    )
+
+    await withRetry(() => prisma.passwordReset.create({
+      data: {
+        userId: user.id,
+        token: refreshToken,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    })).catch(() => {})
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    })
+
     emailService.sendWelcomeEmail({
       userId: user?.id || user?._id,
       email: user.email,
       name: user.fullName || user.name || '',
     }).catch((e) => console.warn('[auth] welcome email failed:', e?.message))
 
-    res.status(201).json({ success: true, data: user })
+    const t1 = Date.now()
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[auth] register completed in ${t1 - t0}ms`)
+    }
+    res.status(201).json({ success: true, data: { user, accessToken, csrfToken } })
   }),
 
   refresh: asyncHandler(async (req, res) => {

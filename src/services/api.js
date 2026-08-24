@@ -194,7 +194,7 @@ api.get = function (url, config) {
 }
 
 api.post = function (url, data, config) {
-  const timeout = isUploadRequest({ url, data, ...config }) ? 120000 : 15000
+  const timeout = isUploadRequest({ url, data, method: 'post', ...config }) ? 120000 : 15000
   const merged = { ...config, timeout: config?.timeout ?? timeout }
   return originals.post.call(api, url, data, merged).then((response) => {
     clearApiCache()
@@ -203,7 +203,7 @@ api.post = function (url, data, config) {
 }
 
 api.put = function (url, data, config) {
-  const timeout = isUploadRequest({ url, data, ...config }) ? 120000 : 15000
+  const timeout = isUploadRequest({ url, data, method: 'put', ...config }) ? 120000 : 15000
   const merged = { ...config, timeout: config?.timeout ?? timeout }
   return originals.put.call(api, url, data, merged).then((response) => {
     clearApiCache()
@@ -212,7 +212,7 @@ api.put = function (url, data, config) {
 }
 
 api.patch = function (url, data, config) {
-  const timeout = isUploadRequest({ url, data, ...config }) ? 120000 : 15000
+  const timeout = isUploadRequest({ url, data, method: 'patch', ...config }) ? 120000 : 15000
   const merged = { ...config, timeout: config?.timeout ?? timeout }
   return originals.patch.call(api, url, data, merged).then((response) => {
     clearApiCache()
