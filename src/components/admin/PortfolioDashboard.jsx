@@ -349,14 +349,16 @@ export const PortfolioDashboard = () => {
     const successful = []
     const failed = []
 
-    results.forEach((result, idx) => {
-      if (result?.url) {
-        successful.push({ ...result, index: idx })
-        updateUploadImageState(initialStates[idx]?.id, { status: 'completed', progress: 100, url: result.url })
-      } else if (result?.error) {
-        failed.push({ error: result.error, file: files[idx], index: idx, imageType })
-        updateUploadImageState(initialStates[idx]?.id, { status: 'failed', error: result.error?.message || 'Upload failed' })
-      }
+    results.successful.forEach((result) => {
+      successful.push(result)
+      const idx = result.index
+      updateUploadImageState(initialStates[idx]?.id, { status: 'completed', progress: 100, url: result.url })
+    })
+
+    results.failed.forEach((result) => {
+      failed.push(result)
+      const idx = result.index
+      updateUploadImageState(initialStates[idx]?.id, { status: 'failed', error: result.error?.message || 'Upload failed' })
     })
 
     return { successful, failed }

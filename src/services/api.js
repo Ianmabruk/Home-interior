@@ -134,18 +134,35 @@ api.interceptors.response.use(
       }
     }
 
-    if (status === 403 && !originalRequest._retry && !originalRequest.url?.includes('/auth/csrf') && !originalRequest.url?.includes('/auth/refresh')) {
-      console.info('[auth] CSRF token rejected — refreshing token and retrying')
+    if (status === 403 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh') && !originalRequest.url?.includes('/auth/csrf')) {
+      console.info('[auth] CSRF token rejected — refreshing and retrying')
       originalRequest._retry = true
       try {
-        const res = await api.post('/auth/refresh')
-        const newCsrf = res.data?.csrfToken
-        if (newCsrf) {
-          setStoredCsrfToken(newCsrf)
+        if (!refreshingPromise) {
+          refreshingPromise = api
+            .post('/auth/refresh')
+            .then((res) => {
+              const accessToken = res.data?.accessToken
+              if (accessToken) {
+                localStorage.setItem('hok_access_token', accessToken)
+                if (res.data?.csrfToken) setStoredCsrfToken(res.data.csrfToken)
+              }
+              console.info('[auth] token refreshed after CSRF rejection')
+              return accessToken || true
+            })
+            .catch((refreshErr) => {
+              console.warn('[auth] CSRF refresh failed:', refreshErr?.response?.status, refreshErr?.message)
+              localStorage.removeItem('hok_access_token')
+              refreshFailed = true
+              return Promise.reject(refreshErr)
+            })
+            .finally(() => {
+              refreshingPromise = null
+            })
         }
+        await refreshingPromise
         return api(originalRequest)
-      } catch (refreshErr) {
-        console.warn('[auth] CSRF refresh failed:', refreshErr?.response?.status, refreshErr?.message)
+      } catch {
         return Promise.reject(error)
       }
     }
