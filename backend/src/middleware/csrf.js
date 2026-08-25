@@ -62,10 +62,11 @@ export async function validateCsrfToken(req, res, next) {
     if (!mem) {
       return res.status(403).json({ success: false, message: 'Invalid CSRF token' })
     }
+    if (Date.now() - mem > TTL_MS) {
+      inMemoryStore.delete(headerToken)
+      return res.status(403).json({ success: false, message: 'Expired CSRF token' })
+    }
   }
-
-  await redisDel(headerToken)
-  inMemoryStore.delete(headerToken)
 
   next()
 }

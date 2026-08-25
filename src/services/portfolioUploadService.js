@@ -28,10 +28,11 @@ function jitter(base) {
 
 export async function refreshCsrf() {
   try {
-    const res = await api.post('/auth/csrf')
-    return res.data?.csrfToken
-  } catch {
-    throw new Error('Failed to refresh CSRF token')
+    const res = await api.post('/auth/refresh')
+    const token = res.data?.csrfToken
+    return token
+  } catch (refreshErr) {
+    throw new Error('Failed to refresh CSRF token', { cause: refreshErr })
   }
 }
 

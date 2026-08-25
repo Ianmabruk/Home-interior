@@ -134,11 +134,11 @@ api.interceptors.response.use(
       }
     }
 
-    if (status === 403 && !originalRequest._retry && !originalRequest.url?.includes('/auth/csrf')) {
-      console.info('[auth] CSRF token rejected — refreshing and retrying')
+    if (status === 403 && !originalRequest._retry && !originalRequest.url?.includes('/auth/csrf') && !originalRequest.url?.includes('/auth/refresh')) {
+      console.info('[auth] CSRF token rejected — refreshing token and retrying')
       originalRequest._retry = true
       try {
-        const res = await api.post('/auth/csrf')
+        const res = await api.post('/auth/refresh')
         const newCsrf = res.data?.csrfToken
         if (newCsrf) {
           setStoredCsrfToken(newCsrf)
