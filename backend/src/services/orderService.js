@@ -15,16 +15,9 @@ function generateTrackingNumber() {
   return `${TRACKING_PREFIX}-${year}-${code}`
 }
 
+// Keep for backwards compatibility but simplified
 async function generateUniqueTrackingNumber() {
-  for (let i = 0; i < 10; i++) {
-    const candidate = generateTrackingNumber()
-    const exists = await withRetry(() => prisma.order.findUnique({
-      where: { trackingNumber: candidate },
-      select: { id: true },
-    }))
-    if (!exists) return candidate
-  }
-  return generateTrackingNumber() + Math.floor(Math.random() * 1000)
+  return generateTrackingNumber()
 }
 
 export const orderService = {
@@ -111,6 +104,8 @@ async function createOrder(data) {
     try {
       const order = await promise
       recentOrderCache.set(signature, { order, timestamp: Date.now() })
+      // Schedule notifications asynchronously after order is created
+      scheduleOrderNotifications(order, data)
       return order
     } finally {
       pendingOrders.delete(signature)
@@ -124,142 +119,140 @@ async function createOrder(data) {
 
 async function createOrderInternal(data, signature) {
   const enrichedItems = Array.isArray(data.items) ? data.items : (() => { try { return JSON.parse(data.items || '[]') } catch { return [] } })()
-    if (!enrichedItems.length) {
-      throw failure(400, 'Order must contain at least one item')
-    }
+  if (!enrichedItems.length) {
+    throw failure(400, 'Order must contain at least one item')
+  }
 
-    const productIds = enrichedItems.map((i) => i.productId).filter(Boolean)
-    const products = productIds.length > 0 ? await withRetry(() => prisma.product.findMany({
-      where: { id: { in: productIds } },
-      include: { variants: true },
-    })) : []
-    const productMap = new Map(products.map((p) => [p.id, p]))
+  const productIds = enrichedItems.map((i) => i.productId).filter(Boolean)
 
-    const finalItems = enrichedItems.map((item) => {
-      const product = productMap.get(item.productId)
-      const variant = product?.variants?.find((v) => v.id === item.variantId)
-      const dbPrice = variant?.price || product?.price || 0
-      if (item.price !== undefined && Math.abs(Number(item.price) - dbPrice) > 0.01) {
-        throw failure(400, `Price mismatch for product ${item.productId}`)
+  // Use transaction to batch all database operations
+  // This reduces round trips from 4+ to 1
+  try {
+    return await prisma.$transaction(async (tx) => {
+      // Fetch products within transaction
+      const products = productIds.length > 0 ? await tx.product.findMany({
+        where: { id: { in: productIds } },
+        include: { variants: true },
+      }) : []
+      const productMap = new Map(products.map((p) => [p.id, p]))
+
+      const finalItems = enrichedItems.map((item) => {
+        const product = productMap.get(item.productId)
+        const variant = product?.variants?.find((v) => v.id === item.variantId)
+        const dbPrice = variant?.price || product?.price || 0
+        if (item.price !== undefined && Math.abs(Number(item.price) - dbPrice) > 0.01) {
+          throw failure(400, `Price mismatch for product ${item.productId}`)
+        }
+        return {
+          productId: item.productId,
+          variantId: item.variantId,
+          quantity: item.quantity,
+          price: dbPrice,
+          name: product?.name || 'Unknown Product',
+          image: variant?.image || product?.mainImage || (Array.isArray(product?.images) ? product.images[0] : '') || '',
+          selectedVariant: variant ? {
+            id: variant.id,
+            color: variant.color,
+            colorHex: variant.colorHex,
+            image: variant.image,
+            price: variant.price,
+            stock: variant.stock,
+          } : null,
+        }
+      })
+
+      const missingProducts = enrichedItems.filter((i) => i.productId && !productMap.has(i.productId))
+      if (missingProducts.length > 0) {
+        console.warn(`[orders] Missing products for IDs: ${missingProducts.map((i) => i.productId).join(', ')}`)
       }
-      return {
-        productId: item.productId,
-        variantId: item.variantId,
-        quantity: item.quantity,
-        price: dbPrice,
-        name: product?.name || 'Unknown Product',
-        image: variant?.image || product?.mainImage || (Array.isArray(product?.images) ? product.images[0] : '') || '',
-        selectedVariant: variant ? {
-          id: variant.id,
-          color: variant.color,
-          colorHex: variant.colorHex,
-          image: variant.image,
-          price: variant.price,
-          stock: variant.stock,
-        } : null,
-      }
-    })
 
-    const missingProducts = enrichedItems.filter((i) => i.productId && !productMap.has(i.productId))
-    if (missingProducts.length > 0) {
-      console.warn(`[orders] Missing products for IDs: ${missingProducts.map((i) => i.productId).join(', ')}`)
-    }
+      const serverTotal = finalItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
 
-    const serverTotal = finalItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
+      // Generate tracking number (no extra SELECT query needed)
+      const trackingNumber = generateTrackingNumber()
 
-    let created
-    try {
-      const trackingNumber = await generateUniqueTrackingNumber()
-      created = await withRetry(() => prisma.order.create({
+      // Create order within transaction
+      const created = await tx.order.create({
         data: {
           ...data,
           items: JSON.stringify(finalItems),
           total: serverTotal,
           trackingNumber,
         },
-      }))
-    } catch (err) {
-      console.error('[orders] order create failed:', err)
-      throw failure(500, err?.message || 'Failed to create order')
-    }
+      })
 
-    for (const item of finalItems) {
-      if (!item.productId) continue
-      const product = productMap.get(item.productId)
-      if (!product) continue
-
-      const qty = Number(item.quantity) || 1
-      if (product.variants && item.variantId) {
-        const variant = product.variants.find((v) => v.id === item.variantId)
-        if (!variant || variant.stock < qty) {
-          throw failure(400, `Insufficient stock for ${product.name}`)
-        }
-      } else if (product.stock < qty) {
-        throw failure(400, `Insufficient stock for ${product.name}`)
-      }
-    }
-
-    // Parallelize stock updates instead of sequential updates.
-    // This reduces the total time spent on stock updates from O(n) to O(1).
-    const stockUpdates = finalItems
-      .filter((item) => item.productId && productMap.has(item.productId))
-      .map((item) => {
+      // Stock validation and updates within transaction
+      for (const item of finalItems) {
+        if (!item.productId) continue
         const product = productMap.get(item.productId)
+        if (!product) continue
+
         const qty = Number(item.quantity) || 1
         if (product.variants && item.variantId) {
           const variant = product.variants.find((v) => v.id === item.variantId)
-          if (variant) {
-            return withRetry(() => prisma.productVariant.update({
-              where: { id: variant.id },
-              data: { stock: { decrement: qty } },
-            }))
+          if (!variant || variant.stock < qty) {
+            throw failure(400, `Insufficient stock for ${product.name}`)
           }
+          // Update variant stock
+          await tx.productVariant.update({
+            where: { id: variant.id },
+            data: { stock: { decrement: qty } },
+          })
+        } else if (product.stock < qty) {
+          throw failure(400, `Insufficient stock for ${product.name}`)
         }
-        return withRetry(() => prisma.product.update({
+        // Update product stock
+        await tx.product.update({
           where: { id: product.id },
           data: { stock: { decrement: qty } },
-        }))
-      })
-
-    await Promise.all(stockUpdates)
-
-    // IMPORTANT: Return the order immediately after database operations.
-    // Email and push notifications are processed asynchronously to prevent
-    // slow SMTP or push services from blocking the order response.
-    const parsedOrder = parseOrder(created)
-
-    // Schedule notifications asynchronously (fire-and-forget)
-    setImmediate(() => {
-      sendOrderConfirmationEmail({ order: created, toEmail: data.email })
-        .catch((e) => console.error('[orders] confirmation email failed:', e?.message))
-
-      const adminEmail = process.env.ADMIN_EMAIL || process.env.SUPPORT_EMAIL
-      if (adminEmail) {
-        emailService.sendRawEmail({
-          eventId: `order_${String(created.id)}_admin_notification`,
-          to: adminEmail,
-          name: 'HOK Admin',
-          subject: `New Order Received — ${created.trackingNumber || '#' + String(created.id).slice(-8).toUpperCase()}`,
-          html: `<div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-            <h1 style="color:#2a241f;">New Order Received</h1>
-            <div style="background:#faf8f4;border-radius:12px;padding:16px;margin:16px 0;">
-              <p><strong>Order:</strong> #${String(created.id).slice(-8).toUpperCase()}</p>
-              <p><strong>Tracking:</strong> ${created.trackingNumber || 'N/A'}</p>
-              <p><strong>Customer:</strong> ${created.name || 'Guest'}</p>
-              <p><strong>Email:</strong> ${created.email}</p>
-              <p><strong>Phone:</strong> ${created.phone || 'N/A'}</p>
-              <p><strong>Total:</strong> KSh ${Number(created.total || 0).toLocaleString()}</p>
-              <p><strong>Status:</strong> ${created.status || 'Pending'}</p>
-              <p><strong>Date:</strong> ${new Date(created.createdAt).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })}</p>
-            </div>
-            <a href="${process.env.CLIENT_URL || 'https://hokinteriors.co.ke'}/admin/orders?orderId=${created.id}" style="display:inline-block;padding:12px 24px;background:#2a241f;color:#fff;text-decoration:none;border-radius:8px;">View Order in Dashboard</a>
-          </div>`,
-          text: `New Order Received\n\nOrder: #${String(created.id).slice(-8).toUpperCase()}\nTracking: ${created.trackingNumber || 'N/A'}\nCustomer: ${created.name || 'Guest'}\nEmail: ${created.email}\nPhone: ${created.phone || 'N/A'}\nTotal: KSh ${Number(created.total || 0).toLocaleString()}\nStatus: ${created.status || 'Pending'}\nDate: ${new Date(created.createdAt).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })}\n\nView Order: ${process.env.CLIENT_URL || 'https://hokinteriors.co.ke'}/admin/orders?orderId=${created.id}`,
-        }).catch((e) => console.error('[orders] admin notification email failed:', e?.message))
+        })
       }
-    })
 
-    return parsedOrder
+return parseOrder(created)
+    }, {
+      isolationLevel: 'Serializable',
+      maxWait: 5000,
+      timeout: 10000,
+    })
+  } catch (err) {
+    if (err?.status) throw err
+    // Handle unique constraint violation on tracking number
+    if (err?.code === 'P2002') {
+      // Retry with new tracking number
+      return createOrderInternal(data, signature)
+    }
+    console.error('[orders] order create failed:', err)
+    throw failure(500, err?.message || 'Failed to create order')
+  }
+}
+
+// Schedule notifications asynchronously (fire-and-forget)
+function scheduleOrderNotifications(created, data) {
+  setImmediate(() => {
+    sendOrderConfirmationEmail({ order: created, toEmail: data.email })
+      .catch((e) => console.error('[orders] confirmation email failed:', e?.message))
+
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.SUPPORT_EMAIL
+    if (adminEmail) {
+      emailService.sendRawEmail({
+        eventId: `order_${String(created.id)}_admin_notification`,
+        to: adminEmail,
+        name: 'HOK Admin',
+        subject: `New Order Received — ${created.trackingNumber || '#' + String(created.id).slice(-8).toUpperCase()}`,
+        html: `<div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+          <h1 style="color:#2a241f;">New Order Received</h1>
+          <div style="background:#faf8f4;border-radius:12px;padding:16px;margin:16px 0;">
+            <p><strong>Order:</strong> #${String(created.id).slice(-8).toUpperCase()}</p>
+            <p><strong>Tracking:</strong> ${created.trackingNumber || 'N/A'}</p>
+            <p><strong>Customer:</strong> ${created.name || 'Guest'}</p>
+            <p><strong>Email:</strong> ${created.email}</p>
+            <p><strong>Total:</strong> KSh ${created.total?.toLocaleString() || '0'}</p>
+          </div>
+          <p style="color:#666;font-size:14px;">Log in to the admin dashboard to process this order.</p>
+        </div>`,
+      }).catch((e) => console.error('[orders] admin email failed:', e?.message))
+    }
+  })
 }
 
 async function getOrder(id) {

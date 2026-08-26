@@ -11,7 +11,7 @@ import { env } from './config/env.js'
 import { initPush } from './services/pushService.js'
 import fs from 'fs'
 import path from 'path'
-import bcrypt from 'bcryptjs'
+import { CIRCULAR_TAB_DEFINITIONS } from './constants/circularTabs.js'
 
 const SERVER_ID = process.env.SERVER_ID || 'hok-api-01'
 const log = {
@@ -96,6 +96,18 @@ async function start() {
     }
   } catch (err) {
     log.warn('Auto-seed admin failed: ' + (err?.message || err))
+  }
+
+  try {
+    for (const tab of CIRCULAR_TAB_DEFINITIONS) {
+      const existing = await prisma.circularTab.findUnique({ where: { key: tab.key } })
+      if (!existing) {
+        await prisma.circularTab.create({ data: tab })
+        log.info(`Circular tab '${tab.key}' created`)
+      }
+    }
+  } catch (err) {
+    log.warn('Auto-seed circular tabs failed: ' + (err?.message || err))
   }
 
   try {

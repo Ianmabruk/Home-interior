@@ -82,7 +82,9 @@ export const AdminPage = () => {
     return <AdminLoginPage />
   }
 
-  const currentRoute = ADMIN_NAV.find((nav) => location.pathname.startsWith(nav.to)) || ADMIN_NAV[0]
+  const currentRoute = [...ADMIN_NAV]
+    .sort((a, b) => b.to.length - a.to.length)
+    .find((nav) => location.pathname.startsWith(nav.to)) || ADMIN_NAV[0]
 
   return (
     <div className="min-h-screen bg-[var(--bg)] flex">

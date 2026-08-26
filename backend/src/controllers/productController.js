@@ -106,7 +106,7 @@ export const productController = {
     if (req.body.sku !== undefined) data.sku = req.body.sku
     if (req.body.tags !== undefined) data.tags = req.body.tags
     if (req.body.isFeatured !== undefined) data.featured = req.body.isFeatured === 'true' || req.body.isFeatured === true
-    if (req.body.isPublished !== undefined) data.inStock = req.body.isPublished === 'false' || req.body.isPublished === false
+    if (req.body.isPublished !== undefined) data.inStock = req.body.isPublished !== 'false' && req.body.isPublished !== false
     if (req.body.variants !== undefined) {
       try { data.variants = JSON.parse(req.body.variants) } catch { data.variants = [] }
     }

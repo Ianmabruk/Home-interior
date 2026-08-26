@@ -29,13 +29,10 @@ export const CircularTabDashboard = () => {
     try {
       const res = await api.get('/admin/circular-tabs')
       const data = Array.isArray(res.data) ? res.data : res.data?.data || []
-      const tabsMap = {}
       const previewMap = {}
       for (const tab of data) {
-        tabsMap[tab.key] = tab
         previewMap[tab.key] = tab.imageUrl || null
       }
-      setTabs(tabsMap)
       setPreviews(previewMap)
       setFiles({})
     } catch {

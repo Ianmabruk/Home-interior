@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import { prisma } from '../config/database.js'
 import { env } from '../config/env.js'
+import { CIRCULAR_TAB_DEFINITIONS } from '../constants/circularTabs.js'
 
 async function seed() {
   let critical = true
@@ -111,6 +112,18 @@ async function seed() {
     }
   } catch (err) {
     console.warn('Seeding: hero media seed skipped:', err?.message || err)
+  }
+
+  try {
+    for (const tab of CIRCULAR_TAB_DEFINITIONS) {
+      const existing = await prisma.circularTab.findUnique({ where: { key: tab.key } })
+      if (!existing) {
+        await prisma.circularTab.create({ data: tab })
+      }
+    }
+    console.log('Default circular tabs created')
+  } catch (err) {
+    console.warn('Seeding: circular tabs seed skipped:', err?.message || err)
   }
 
   console.log('Seeding complete')

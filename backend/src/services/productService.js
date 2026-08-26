@@ -1,6 +1,9 @@
 import { prisma } from '../config/database.js'
 import { uploadFile, deleteFiles } from '../uploads/uploadService.js'
 import { failure } from '../utils/response.js'
+import { getCached, setCached, invalidateCache } from '../utils/cache.js'
+
+const PRODUCTS_CACHE_TTL = 30000 // 30 seconds
 
 function mapProduct(item) {
   if (!item) return null
@@ -46,6 +49,10 @@ export const productService = {
 
 async function listProducts({ sort = '-createdAt', limit = 100, featured } = {}) {
   try {
+    const cacheKey = `products:list:${sort}:${limit}:${featured}`
+    const cached = getCached(cacheKey)
+    if (cached) return cached
+
     const orderBy = sort?.startsWith('-') ? { [sort.slice(1)]: 'desc' } : { createdAt: 'asc' }
     const where = { inStock: true }
     if (featured !== undefined) {
@@ -58,7 +65,9 @@ async function listProducts({ sort = '-createdAt', limit = 100, featured } = {})
       take: Number(limit) || 100,
       include: { variants: true },
     })
-    return items.map(mapProduct)
+    const result = items.map(mapProduct)
+    setCached(cacheKey, result, PRODUCTS_CACHE_TTL)
+    return result
   } catch {
     return []
   }
@@ -147,6 +156,8 @@ async function createProduct(data, files, variantFiles = []) {
     include: { variants: true },
   })
 
+  // Invalidate products cache after creation
+  invalidateCache('products:list')
   return mapProduct(item)
 }
 

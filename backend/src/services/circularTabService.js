@@ -1,17 +1,9 @@
 import { prisma, withRetry } from '../config/database.js'
 import { failure } from '../utils/response.js'
+import { VALID_CIRCULAR_KEYS } from '../constants/circularTabs.js'
+import { getCached, setCached, invalidateCache } from '../utils/cache.js'
 
-const VALID_CIRCULAR_KEYS = new Set([
-  'portfolio',
-  'services',
-  'virtual_design',
-  'shop_with_us',
-  'blog',
-  'about_us',
-  'socials',
-  'testimonials',
-  'work_with_us',
-])
+const CIRCULAR_TABS_CACHE_TTL = 60000 // 1 minute
 
 function mapCircularTab(tab) {
   return {
@@ -66,10 +58,16 @@ async function updateCircularTab(key, data) {
     data: updateData,
   }))
 
+  // Invalidate circular tabs cache after update
+  invalidateCache('circularTabs:')
   return mapCircularTab(updated)
 }
 
 async function getHomepageCircularTabs() {
+  const cacheKey = 'circularTabs:homepage'
+  const cached = getCached(cacheKey)
+  if (cached) return cached
+
   const tabs = await withRetry(() => prisma.circularTab.findMany({
     where: { active: true },
     orderBy: { displayOrder: 'asc' },
@@ -84,6 +82,7 @@ async function getHomepageCircularTabs() {
       imageKey: tab.imageKey,
     }
   }
+  setCached(cacheKey, result, CIRCULAR_TABS_CACHE_TTL)
   return result
 }
 
