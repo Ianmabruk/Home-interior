@@ -47,10 +47,7 @@ export const SocialDashboard = () => {
   const [file, setFile] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [dragId, setDragId] = useState(null)
-  const [homepageCircularImage, setHomepageCircularImage] = useState(null)
-  const [homepageCircularImagePreview, setHomepageCircularImagePreview] = useState(null)
   const fileRef = useRef(null)
-  const circularFileRef = useRef(null)
 
   const loadItems = useCallback(async () => {
     try {
@@ -76,10 +73,7 @@ export const SocialDashboard = () => {
     setForm(INITIAL_ITEM)
     setPreview(null)
     setFile(null)
-    setHomepageCircularImage(null)
-    setHomepageCircularImagePreview(null)
     if (fileRef.current) fileRef.current.value = ''
-    if (circularFileRef.current) circularFileRef.current.value = ''
   }
 
   const openAdd = () => {
@@ -99,8 +93,6 @@ export const SocialDashboard = () => {
     })
     setPreview(item.imageUrl || null)
     setFile(null)
-    setHomepageCircularImage(null)
-    setHomepageCircularImagePreview(item.homepageCircularImage || null)
     setShowForm(true)
   }
 
@@ -111,16 +103,6 @@ export const SocialDashboard = () => {
       setPreview(URL.createObjectURL(f))
     } else {
       setPreview(null)
-    }
-  }
-
-  const handleCircularImageFile = (e) => {
-    const f = e.target.files?.[0] || null
-    setHomepageCircularImage(f)
-    if (f?.type?.startsWith('image/')) {
-      setHomepageCircularImagePreview(URL.createObjectURL(f))
-    } else {
-      setHomepageCircularImagePreview(null)
     }
   }
 
@@ -145,11 +127,6 @@ export const SocialDashboard = () => {
       payload.append('displayOrder', String(form.displayOrder || 0))
       payload.append('isActive', String(form.isActive))
       if (file) payload.append('image', file)
-      if (homepageCircularImage) {
-        payload.append('homepageCircularImage', homepageCircularImage)
-      } else if (editingId && !homepageCircularImagePreview) {
-        payload.append('removeHomepageCircularImage', 'true')
-      }
 
       if (editingId) {
         await api.patch(`/admin/socials/${editingId}`, payload)
@@ -478,32 +455,6 @@ export const SocialDashboard = () => {
                     >
                       <ImageIcon size={28} className="text-[var(--primary)]/30" />
                       <p className="text-xs text-[var(--primary)]/50">Click to upload image</p>
-                    </motion.div>
-                  )}
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Homepage Circular Tab Image</label>
-                  <input ref={circularFileRef} type="file" accept="image/*" onChange={handleCircularImageFile} className="hidden" />
-                  {homepageCircularImagePreview ? (
-                    <div className="relative rounded-xl overflow-hidden">
-                      <img src={homepageCircularImagePreview} alt="Circular preview" className="h-40 w-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => { setHomepageCircularImage(null); setHomepageCircularImagePreview(null); if (circularFileRef.current) circularFileRef.current.value = '' }}
-                        className="absolute top-2 right-2 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-2 rounded-full hover:bg-[var(--primary)] shadow-lg"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ) : (
-                    <motion.div
-                      whileHover={{ scale: 1.01 }}
-                      onClick={() => circularFileRef.current?.click()}
-                      className="border-2 border-dashed border-[var(--border)] rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-[var(--accent)] transition-colors h-40"
-                    >
-                      <ImageIcon size={28} className="text-[var(--primary)]/30" />
-                      <p className="text-xs text-[var(--primary)]/50">Click to upload homepage circular image</p>
                     </motion.div>
                   )}
                 </div>

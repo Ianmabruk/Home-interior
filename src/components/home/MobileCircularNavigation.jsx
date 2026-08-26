@@ -11,86 +11,55 @@ const NAV_ITEMS_MOBILE = [
     key: 'portfolio',
     label: 'Portfolio',
     path: '/portfolio',
-    getImage: (data) => {
-      const list = data.portfolio || []
-      const item = list[0]
-      if (!item) return null
-      return item.homepageCircularImage || null
-    },
+    circularKey: 'portfolio',
   },
   {
     key: 'services',
     label: 'Services',
     path: '/services',
-    getImage: (data) => {
-      const item = data.services?.[0]
-      if (!item) return null
-      return item.homepageCircularImage || null
-    },
+    circularKey: 'services',
   },
   {
     key: 'virtualDesigns',
     label: 'Virtual Designs',
     path: '/virtual-design',
-    getImage: (data) => {
-      const list = data.virtualDesigns || []
-      const item = list[0]
-      if (!item) return null
-      return item.homepageCircularImage || null
-    },
+    circularKey: 'virtual_design',
   },
-   {
+  {
     key: 'shop',
     label: 'Shop With Us',
     path: '/shop',
-    getImage: (data) => {
-      return data.shopWithUsHomepageImage || null
-    },
+    circularKey: 'shop_with_us',
   },
   {
     key: 'blog',
     label: 'Blog',
     path: '/blog',
-    getImage: (data) => {
-      const list = data.blog || []
-      const item = list[0]
-      if (!item) return null
-      return item.homepageCircularImage || null
-    },
+    circularKey: 'blog',
   },
   {
     key: 'about',
     label: 'About Us',
     path: '/about',
-    getImage: (data) => data.about?.homepageCircularImage || null,
+    circularKey: 'about_us',
   },
   {
     key: 'socials',
     label: 'Socials',
     path: '/socials',
-    getImage: (data) => data.socialItems?.[0]?.homepageCircularImage || null,
+    circularKey: 'socials',
   },
   {
     key: 'testimonials',
     label: 'Testimonials',
     path: '/testimonials',
-    getImage: (data) => {
-      const list = data.testimonials || []
-      const item = list[0]
-      if (!item) return null
-      return item.homepageCircularImage || null
-    },
+    circularKey: 'testimonials',
   },
   {
     key: 'workWithUs',
     label: 'Work With Us',
     path: '/work-with-us',
-    getImage: (data) => {
-      const list = data.workWithUs || []
-      const item = list[0]
-      if (!item) return null
-      return item.homepageCircularImage || null
-    },
+    circularKey: 'work_with_us',
   },
 ]
 
@@ -159,7 +128,11 @@ const PlaceholderIcons = {
 }
 
 const CircleItemMobile = memo(({ item, data, reduceMotion }) => {
-  const imageUrl = useMemo(() => item.getImage(data), [item, data])
+  const imageUrl = useMemo(() => {
+    const circularTabs = data.circularTabs || {}
+    const tab = circularTabs[item.circularKey]
+    return tab?.imageUrl || null
+  }, [item.circularKey, data.circularTabs])
   const [hasError, setHasError] = useState(false)
   const placeholder = PlaceholderIcons[item.key]
 
@@ -247,20 +220,10 @@ const CircleItemMobile = memo(({ item, data, reduceMotion }) => {
 
 CircleItemMobile.displayName = 'CircleItemMobile'
 
-export const MobileCircularNavigation = memo(({ portfolio = [], virtualDesigns = [], services = [], products = [], about = null, aboutImages = [], socialItems = [], blog = [], testimonials = [], workWithUs = [], shopWithUsHomepageImage = null }) => {
+export const MobileCircularNavigation = memo(({ circularTabs = {} }) => {
   const data = useMemo(() => ({
-    portfolio,
-    virtualDesigns,
-    services,
-    products,
-    about,
-    aboutImages,
-    socialItems,
-    blog,
-    testimonials,
-    workWithUs,
-    shopWithUsHomepageImage,
-  }), [portfolio, virtualDesigns, services, products, about, aboutImages, socialItems, blog, testimonials, workWithUs, shopWithUsHomepageImage])
+    circularTabs,
+  }), [circularTabs])
   const reduceMotion = useIsMobile()
 
   return (

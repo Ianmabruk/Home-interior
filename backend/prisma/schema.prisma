@@ -515,23 +515,39 @@ model Subscriber {
 }
 
 model EmailLog {
-  id             String   @id @default(cuid())
-  eventId        String   @unique @db.Text @map("event_id")
-  recipient      String   @db.Text
-  recipientName  String?  @db.Text @map("recipient_name")
-  emailType      String   @db.Text @map("email_type")
-  orderId        String?  @db.Text @map("order_id")
-  subject        String?  @db.Text
-  provider       String?  @db.Text @map("provider")
-  status         String   @default("sent") @db.Text
-  messageId      String?  @db.Text @map("message_id")
-  failureReason  String?  @db.Text @map("failure_reason")
-  sentAt         DateTime? @db.Timestamp @map("sent_at")
-  createdAt      DateTime @default(now()) @map("created_at")
+   id             String   @id @default(cuid())
+   eventId        String   @unique @db.Text @map("event_id")
+   recipient      String   @db.Text
+   recipientName  String?  @db.Text @map("recipient_name")
+   emailType      String   @db.Text @map("email_type")
+   orderId        String?  @db.Text @map("order_id")
+   subject        String?  @db.Text
+   provider       String?  @db.Text @map("provider")
+   status         String   @default("sent") @db.Text
+   messageId      String?  @db.Text @map("message_id")
+   failureReason  String?  @db.Text @map("failure_reason")
+   sentAt         DateTime? @db.Timestamp @map("sent_at")
+   createdAt      DateTime @default(now()) @map("created_at")
 
-  @@map("email_logs")
-  @@index([eventId])
-  @@index([emailType, createdAt(desc)])
-  @@index([orderId])
-  @@index([recipient])
-}
+   @@map("email_logs")
+   @@index([eventId])
+   @@index([emailType, createdAt(desc)])
+   @@index([orderId])
+   @@index([recipient])
+ }
+
+ model CircularTab {
+   id           String   @id @default(cuid())
+   key          String   @unique @db.Text
+   title        String   @db.Text
+   imageUrl     String?  @db.Text @map("image_url")
+   imageKey     String?  @db.Text @map("image_key")
+   active       Boolean  @default(true)
+   displayOrder Int      @default(0) @map("display_order")
+   createdAt    DateTime @default(now()) @map("created_at")
+   updatedAt    DateTime @updatedAt @map("updated_at")
+
+   @@map("circular_tabs")
+   @@index([key])
+   @@index([displayOrder(asc)])
+ }

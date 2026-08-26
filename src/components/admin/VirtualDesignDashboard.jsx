@@ -10,7 +10,6 @@ import {
   Star,
   Images,
   Loader2,
-  UploadCloud,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
@@ -31,21 +30,17 @@ export const VirtualDesignDashboard = () => {
   const [editingId, setEditingId] = useState(null)
   const [mainMediaFiles, setMainMediaFiles] = useState([])
   const [mainMediaPreviews, setMainMediaPreviews] = useState([])
-  const [circularImageFile, setCircularImageFile] = useState(null)
-  const [circularImagePreview, setCircularImagePreview] = useState(null)
   const [galleryFiles, setGalleryFiles] = useState([])
   const [galleryPreviews, setGalleryPreviews] = useState([])
   const [loading, setLoading] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
   const [isDragOverMain, setIsDragOverMain] = useState(false)
-  const [isDragOverCircular, setIsDragOverCircular] = useState(false)
   const [isDragOverGallery, setIsDragOverGallery] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
   const [optimisticDeletes, setOptimisticDeletes] = useState(new Set())
   const mainFileRef = useRef(null)
   const videoRef = useRef(null)
-  const circularFileRef = useRef(null)
   const galleryFileRef = useRef(null)
 
   const load = useCallback(async () => {
@@ -74,14 +69,6 @@ export const VirtualDesignDashboard = () => {
     }
   }, [])
 
-  const handleCircularFiles = useCallback((files) => {
-    const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
-    if (validFiles.length > 0) {
-      setCircularImageFile(validFiles[0])
-      setCircularImagePreview(URL.createObjectURL(validFiles[0]))
-    }
-  }, [])
-
   const handleGalleryFiles = useCallback((files) => {
     const validFiles = Array.from(files).filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'))
     const newFiles = [...galleryFiles, ...validFiles].slice(0, 10)
@@ -95,15 +82,6 @@ export const VirtualDesignDashboard = () => {
       URL.revokeObjectURL(prev[index])
       return prev.filter((_, i) => i !== index)
     })
-  }, [])
-
-  const removeCircularImage = useCallback(() => {
-    setCircularImageFile(null)
-    setCircularImagePreview(prev => {
-      if (prev) URL.revokeObjectURL(prev)
-      return null
-    })
-    if (circularFileRef.current) circularFileRef.current.value = ''
   }, [])
 
   const removeGalleryMedia = useCallback((index) => {
@@ -125,8 +103,6 @@ export const VirtualDesignDashboard = () => {
     })
     setMainMediaFiles(item.mediaUrl ? [{ url: item.mediaUrl, type: item.mediaType }] : [])
     setMainMediaPreviews(item.mediaUrl ? [item.mediaUrl] : [])
-    setCircularImageFile(item.homepageCircularImage ? { url: item.homepageCircularImage } : [])
-    setCircularImagePreview(item.homepageCircularImage || null)
     setGalleryFiles(item.galleryMedia ? item.galleryMedia.map(m => ({ url: m.url, type: m.type })) : [])
     setGalleryPreviews(item.galleryMedia ? item.galleryMedia.map(m => m.url) : [])
     setShowForm(true)
@@ -138,11 +114,6 @@ export const VirtualDesignDashboard = () => {
     setForm(INITIAL_FORM)
     setMainMediaFiles([])
     setMainMediaPreviews([])
-    setCircularImageFile(null)
-    setCircularImagePreview(prev => {
-      if (prev) URL.revokeObjectURL(prev)
-      return null
-    })
     setGalleryFiles([])
     setGalleryPreviews([])
     setShowForm(false)
@@ -197,13 +168,6 @@ export const VirtualDesignDashboard = () => {
       } else if (editingId && file && file.url) {
         // Preserve existing media URL when editing without uploading a new file
         payload.append('mediaUrl', file.url)
-      }
-
-      if (circularImageFile && circularImageFile instanceof File) {
-        payload.append('homepageCircularImage', circularImageFile)
-      } else if (editingId && circularImageFile && circularImageFile.url) {
-        // Preserve existing circular image URL when editing without uploading a new file
-        payload.append('homepageCircularImage', circularImageFile.url)
       }
 
       if (galleryFiles.length > 0) {
@@ -467,74 +431,6 @@ export const VirtualDesignDashboard = () => {
                     <div>
                       <p className="text-sm font-medium text-[var(--primary)]">Drop {form.mediaType === 'video' ? 'video' : 'image'} here or click to browse</p>
                       <p className="text-[10px] text-[var(--primary)]/50 mt-1">{form.mediaType === 'video' ? 'MP4, MOV, WebM up to 50MB' : 'PNG, JPG, WebP up to 10MB'}</p>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 flex items-center gap-2">
-                <Images size={14} strokeWidth={1.5} />
-                Homepage Circular Tab Image
-              </label>
-              <p className="text-[10px] text-[var(--primary)]/50">
-                This image is used for the Virtual Design circular tab on the homepage.
-              </p>
-              <input ref={circularFileRef} type="file" accept="image/*" onChange={(e) => handleCircularFiles(e.target.files)} className="hidden" />
-              <motion.div
-                whileHover={{ scale: 1.01 }}
-                onDrop={(e) => { e.preventDefault(); setIsDragOverCircular(false); handleCircularFiles(e.dataTransfer.files) }}
-                onDragOver={(e) => { e.preventDefault(); setIsDragOverCircular(true) }}
-                onDragLeave={() => setIsDragOverCircular(false)}
-                onClick={() => circularFileRef.current?.click()}
-                className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 ${
-                  isDragOverCircular ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--border)] bg-[var(--bg)]/30'
-                }`}
-              >
-                {circularImagePreview ? (
-                  <div className="p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-[var(--primary)]">Homepage Circular Tab Image</p>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        type="button"
-                        onClick={() => circularFileRef.current?.click()}
-                        className="text-xs text-[var(--accent)] hover:text-[var(--primary)] font-medium"
-                      >
-                        Replace
-                      </motion.button>
-                    </div>
-                    <div className="relative rounded-xl overflow-hidden group">
-                      <img
-                        src={circularImagePreview}
-                        alt="Circular tab preview"
-                        className="h-40 w-full object-contain bg-[var(--secondary)]/10"
-                      />
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); removeCircularImage() }}
-                        className="absolute top-2 right-2 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-2 rounded-full hover:bg-[var(--primary)] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X size={14} />
-                      </motion.button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-3 py-8">
-                    <motion.div
-                      animate={{ y: [0, -5, 0] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--accent)]/10 to-[var(--secondary)]/10 flex items-center justify-center text-[var(--accent)]"
-                    >
-                      <UploadCloud size={28} />
-                    </motion.div>
-                    <div>
-                      <p className="text-sm font-medium text-[var(--primary)]">Drop image here or click to browse</p>
-                      <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG, WebP up to 10MB</p>
                     </div>
                   </div>
                 )}

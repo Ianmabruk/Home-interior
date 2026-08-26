@@ -41,8 +41,6 @@ export const WorkWithUsDashboard = () => {
     description: '',
     image: null,
     imagePreview: null,
-    homepageCircularImage: null,
-    homepageCircularImagePreview: null,
     displayOrder: 0,
     isActive: true,
   })
@@ -185,11 +183,6 @@ export const WorkWithUsDashboard = () => {
       if (contentForm.image) {
         formData.append('image', contentForm.image)
       }
-      if (contentForm.homepageCircularImage) {
-        formData.append('homepageCircularImage', contentForm.homepageCircularImage)
-      } else if (editingContent && !contentForm.homepageCircularImagePreview) {
-        formData.append('removeHomepageCircularImage', 'true')
-      }
       if (editingContent) {
         await api.patch(`/admin/work-with-us/content/${editingContent}`, formData)
         toast.success('Content updated successfully')
@@ -215,8 +208,6 @@ export const WorkWithUsDashboard = () => {
       description: item.description || '',
       image: null,
       imagePreview: item.imageUrl || null,
-      homepageCircularImage: null,
-      homepageCircularImagePreview: item.homepageCircularImage || null,
       displayOrder: item.displayOrder || 0,
       isActive: item.isActive !== false,
     })
@@ -237,7 +228,7 @@ export const WorkWithUsDashboard = () => {
   }
 
   const resetContentForm = () => {
-    setContentForm({ title: '', description: '', image: null, imagePreview: null, homepageCircularImage: null, homepageCircularImagePreview: null, displayOrder: 0, isActive: true })
+    setContentForm({ title: '', description: '', image: null, imagePreview: null, displayOrder: 0, isActive: true })
     setEditingContent(null)
   }
 
@@ -839,39 +830,6 @@ export const WorkWithUsDashboard = () => {
                       </button>
                     </div>
                   )}
-                </div>
-
-                <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--bg)]/40 space-y-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Homepage Circular Tab Image</p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        setContentForm((f) => ({ ...f, homepageCircularImage: file }))
-                        const reader = new FileReader()
-                        reader.onloadend = () => {
-                          setContentForm((f) => ({ ...f, homepageCircularImagePreview: reader.result }))
-                        }
-                        reader.readAsDataURL(file)
-                      }
-                    }}
-                    className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
-                  />
-                  {contentForm.homepageCircularImagePreview && (
-                    <div className="mt-2 relative inline-block">
-                      <img src={contentForm.homepageCircularImagePreview} alt="Circular preview" className="h-24 w-24 rounded-full object-cover border border-[var(--border)]" />
-                      <button
-                        type="button"
-                        onClick={() => setContentForm((f) => ({ ...f, homepageCircularImage: null, homepageCircularImagePreview: null }))}
-                        className="absolute -top-2 -right-2 p-1 rounded-full bg-[var(--error)] text-white"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  )}
-                  <p className="text-[10px] text-[var(--primary)]/40">Used for the Work With Us homepage circular tab.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

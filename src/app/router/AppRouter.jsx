@@ -90,6 +90,7 @@ const AboutDashboard = lazyWithCache(() => import('@components/admin/AboutDashbo
 const SocialDashboard = lazyWithCache(() => import('@components/admin/SocialDashboard').then(m => ({ default: m.SocialDashboard })), 'social-dashboard')
 const WorkWithUsDashboard = lazyWithCache(() => import('@components/admin/WorkWithUsDashboard').then(m => ({ default: m.default })), 'work-with-us-dashboard')
 const TestimonialsDashboard = lazyWithCache(() => import('@components/admin/TestimonialDashboard').then(m => ({ default: m.default })), 'testimonials-dashboard')
+const CircularTabDashboard = lazyWithCache(() => import('@components/admin/CircularTabDashboard').then(m => ({ default: m.default })), 'circular-tab-dashboard')
 
 const ErrorBoundaryRoute = memo(({ element }) => (
   <ErrorBoundary fallback={<ErrorFallback />}>
@@ -179,8 +180,9 @@ export const AppRouter = () => {
                <Route path="orders" element={<ErrorBoundaryRoute element={<OrderDashboard />} />} />
                <Route path="consultations" element={<ErrorBoundaryRoute element={<ConsultationDashboard />} />} />
                <Route path="work-with-us" element={<ErrorBoundaryRoute element={<WorkWithUsDashboard />} />} />
-               <Route path="testimonials" element={<ErrorBoundaryRoute element={<TestimonialsDashboard />} />} />
-               <Route path="settings" element={<ErrorBoundaryRoute element={<SettingsDashboard />} />} />
+<Route path="testimonials" element={<ErrorBoundaryRoute element={<TestimonialsDashboard />} />} />
+                <Route path="circular-tabs" element={<ErrorBoundaryRoute element={<CircularTabDashboard />} />} />
+                <Route path="settings" element={<ErrorBoundaryRoute element={<SettingsDashboard />} />} />
              </Route>
 
            <Route element={<AuthShell />}>

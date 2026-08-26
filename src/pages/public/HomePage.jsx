@@ -25,19 +25,20 @@ const EmptySection = memo(() => (
 EmptySection.displayName = 'EmptySection'
 
 export const HomePage = memo(() => {
-   const [portfolio, setPortfolio] = useState([])
-  const [services, setServices] = useState([])
-  const [virtualDesigns, setVirtualDesigns] = useState([])
-  const [products, setProducts] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [heroImages, setHeroImages] = useState([])
-  const [about, setAbout] = useState(null)
-  const [aboutImages, setAboutImages] = useState([])
-  const [socialItems, setSocialItems] = useState([])
-  const [blog, setBlog] = useState([])
-  const [workWithUs, setWorkWithUs] = useState([])
-  const [testimonials, setTestimonials] = useState([])
-  const [shopWithUsHomepageImage, setShopWithUsHomepageImage] = useState(null)
+    const [portfolio, setPortfolio] = useState([])
+   const [services, setServices] = useState([])
+   const [virtualDesigns, setVirtualDesigns] = useState([])
+   const [products, setProducts] = useState([])
+   const [loading, setLoading] = useState(true)
+   const [heroImages, setHeroImages] = useState([])
+   const [about, setAbout] = useState(null)
+   const [aboutImages, setAboutImages] = useState([])
+   const [socialItems, setSocialItems] = useState([])
+   const [blog, setBlog] = useState([])
+   const [workWithUs, setWorkWithUs] = useState([])
+   const [testimonials, setTestimonials] = useState([])
+   const [shopWithUsHomepageImage, setShopWithUsHomepageImage] = useState(null)
+   const [circularTabs, setCircularTabs] = useState({})
 
   const loadData = useCallback(async () => {
     try {
@@ -54,6 +55,7 @@ export const HomePage = memo(() => {
       setWorkWithUs(data.workWithUs || [])
       setTestimonials(data.testimonials || [])
       setShopWithUsHomepageImage(data.shopWithUsHomepageImage || null)
+      setCircularTabs(data.circularTabs || {})
 
       const homeHeroImages = data.heroImages || data.heroMedia || []
       if (Array.isArray(homeHeroImages) && homeHeroImages.length > 0) {
@@ -132,6 +134,7 @@ export const HomePage = memo(() => {
         payload?.type === 'socials-changed' ||
         payload?.type === 'work-with-us-changed' ||
         payload?.type === 'testimonials-changed' ||
+        payload?.type === 'circular-tabs-changed' ||
         payload?.type === 'settings-changed'
       ) {
         clearApiCache('/homepage')
@@ -170,36 +173,12 @@ export const HomePage = memo(() => {
 
       {/* CIRCULAR NAVIGATION */}
       <SectionErrorBoundary sectionName="CircularNavigation" fallback={<EmptySection />}>
-        <CircularNavigationGrid
-          portfolio={portfolio}
-          virtualDesigns={virtualDesigns}
-          services={services}
-          products={products}
-          about={about}
-          aboutImages={aboutImages}
-          socialItems={socialItems}
-          blog={blog}
-          testimonials={testimonials}
-          workWithUs={workWithUs}
-          shopWithUsHomepageImage={shopWithUsHomepageImage}
-        />
+        <CircularNavigationGrid circularTabs={circularTabs} />
       </SectionErrorBoundary>
 
       {/* MOBILE CIRCULAR NAVIGATION */}
       <SectionErrorBoundary sectionName="MobileCircularNavigation" fallback={<EmptySection />}>
-        <MobileCircularNavigation
-          portfolio={portfolio}
-          virtualDesigns={virtualDesigns}
-           services={services}
-          products={products}
-          about={about}
-          aboutImages={aboutImages}
-          socialItems={socialItems}
-          blog={blog}
-          testimonials={testimonials}
-          workWithUs={workWithUs}
-          shopWithUsHomepageImage={shopWithUsHomepageImage}
-        />
+        <MobileCircularNavigation circularTabs={circularTabs} />
       </SectionErrorBoundary>
 
       {/* INTERNAL LINKS */}

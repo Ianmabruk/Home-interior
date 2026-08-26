@@ -18,6 +18,7 @@ import { asyncHandler } from '../middleware/asyncHandler.js'
 import { adminOverviewController } from '../controllers/adminOverviewController.js'
 import { workWithUsController } from '../controllers/workWithUsController.js'
 import { notificationController } from '../controllers/notificationController.js'
+import { circularTabController } from '../controllers/circularTabController.js'
 import { getBuildVersion } from '../middleware/buildVersion.js'
 import adminSocialRoutes from './adminSocialRoutes.js'
 
@@ -150,6 +151,11 @@ router.get('/work-with-us/content', workWithUsController.listContent)
 router.post('/work-with-us/content', uploadFields([{ name: 'image', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), workWithUsController.createContent)
 router.patch('/work-with-us/content/:id', uploadFields([{ name: 'image', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), workWithUsController.updateContent)
 router.delete('/work-with-us/content/:id', workWithUsController.deleteContent)
+
+// Admin Circular Tabs (centralized circular tab management)
+router.get('/circular-tabs', circularTabController.list)
+router.patch('/circular-tabs/:key', uploadSingle('image'), validateCsrfToken, circularTabController.update)
+router.delete('/circular-tabs/:key/image', validateCsrfToken, circularTabController.removeImage)
 
 // Deployment verification + push notification management (admin only)
 router.get('/version', asyncHandler(async (req, res) => {

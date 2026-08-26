@@ -1,5 +1,6 @@
 import { prisma, withRetry } from '../config/database.js'
 import { contactService } from './contactService.js'
+import { circularTabService } from './circularTabService.js'
 
 // Individual query timeout: if a single query takes longer than this,
 // it will be rejected and the homepage will still load with the other data.
@@ -143,6 +144,9 @@ async function getHomepage() {
         mediaUrls: item.mediaUrls || [],
       }))
 
+      // Fetch centralized circular tabs
+      const circularTabs = await circularTabService.getHomepageCircularTabs()
+
        return {
         portfolio,
         virtualDesigns,
@@ -162,6 +166,7 @@ async function getHomepage() {
         contact,
         workWithUs: mappedWorkWithUs,
         shopWithUsHomepageImage: shopWithUsImage?.value || null,
+        circularTabs,
       }
     } catch (err) {
       console.error('[homepageService] Failed to load homepage data:', err)

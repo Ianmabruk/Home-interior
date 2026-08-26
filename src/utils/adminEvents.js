@@ -38,4 +38,5 @@ export const ADMIN_EVENT_TYPES = {
   SETTINGS_CHANGED: 'settings-changed',
   BLOG_CHANGED: 'blog-changed',
   ORDERS_CHANGED: 'orders-changed',
+  CIRCULAR_TABS_CHANGED: 'circular-tabs-changed',
 }

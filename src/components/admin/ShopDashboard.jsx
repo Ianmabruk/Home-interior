@@ -15,8 +15,6 @@ import {
   Tag,
   Box,
   Loader2,
-  Upload,
-  Save,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api, clearApiCache } from '../../services/api'
@@ -71,10 +69,6 @@ export const ShopDashboard = () => {
   const [variantFiles, setVariantFiles] = useState([])
   const [variantPreviews, setVariantPreviews] = useState([])
   const [error, setError] = useState('')
-  const [shopWithUsImage, setShopWithUsImage] = useState(null)
-  const [shopWithUsPreview, setShopWithUsPreview] = useState(null)
-  const [shopWithUsUploading, setShopWithUsUploading] = useState(false)
-  const shopWithUsRef = useRef(null)
   const reduceMotion = useIsMobile()
   const fileRef = useRef(null)
 
@@ -89,20 +83,6 @@ export const ShopDashboard = () => {
         sessionStorage.setItem('hok_shop_products_ts', String(Date.now()))
       } catch {
         // ignore sessionStorage errors
-      }
-
-      try {
-        const settingsRes = await api.get('/admin/settings')
-        const settings = settingsRes.data || {}
-        if (settings.shopWithUsHomepageImage) {
-          setShopWithUsImage(settings.shopWithUsHomepageImage)
-          setShopWithUsPreview(settings.shopWithUsHomepageImage)
-        } else {
-          setShopWithUsImage(null)
-          setShopWithUsPreview(null)
-        }
-      } catch {
-        // ignore
       }
     } catch {
       setAllProducts([])
@@ -356,56 +336,6 @@ export const ShopDashboard = () => {
     a.download = 'products.csv'
     a.click()
     URL.revokeObjectURL(url)
-  }
-
-  const uploadShopWithUsImage = async (file) => {
-    const payload = new FormData()
-    payload.append('image', file)
-    await api.post('/admin/settings/shop-with-us-image', payload)
-  }
-
-  const saveShopWithUsImage = async () => {
-    if (!shopWithUsImage || !(shopWithUsImage instanceof File)) {
-      toast.success('Shop With Us image saved.')
-      dispatchAdminDataChanged('settings-changed')
-      return
-    }
-    setShopWithUsUploading(true)
-    try {
-      await uploadShopWithUsImage(shopWithUsImage)
-      setShopWithUsImage(shopWithUsPreview)
-      dispatchAdminDataChanged('settings-changed')
-      toast.success('Shop With Us homepage image saved.')
-    } catch (err) {
-      toast.error(err?.message || 'Failed to upload Shop With Us image.')
-    } finally {
-      setShopWithUsUploading(false)
-    }
-  }
-
-  const deleteShopWithUsImage = async () => {
-    try {
-      await api.delete('/admin/settings/shop-with-us-image')
-      setShopWithUsImage(null)
-      setShopWithUsPreview(null)
-      dispatchAdminDataChanged('settings-changed')
-      toast.success('Shop With Us image deleted.')
-    } catch (err) {
-      toast.error(err?.message || 'Failed to delete image.')
-    }
-  }
-
-  const uploadShopWithUsFromInput = async (e) => {
-    const rawFile = e.target.files?.[0] || null
-    if (!rawFile) return
-    if (!rawFile.type.startsWith('image/')) {
-      toast.error('Please select a valid image file.')
-      return
-    }
-    const compressed = await compressImages([rawFile], { maxWidth: 1600, maxHeight: 1600, quality: 0.82 })
-    const file = compressed[0] || rawFile
-    setShopWithUsImage(file)
-    setShopWithUsPreview(URL.createObjectURL(file))
   }
 
   return (
@@ -794,77 +724,9 @@ export const ShopDashboard = () => {
           >
             {loading ? 'Saving…' : editingId ? 'Update Product' : 'Add Product'}
           </motion.button>
-        </motion.form>
+</motion.form>
 
-        {/* Shop With Us Homepage Image */}
-        <div className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)] space-y-4 mt-6">
-          <h3 className="font-display text-xl text-[var(--primary)]">Shop With Us Homepage Image</h3>
-          <p className="text-[10px] text-[var(--primary)]/50">
-            This circular image appears on the homepage "Shop With Us" tab. Separate from product images.
-          </p>
-          {shopWithUsPreview ? (
-            <div className="relative rounded-xl overflow-hidden">
-              <img
-                src={shopWithUsPreview}
-                alt="Shop With Us preview"
-                className="h-48 w-full object-contain bg-[var(--secondary)]/10"
-              />
-              <div className="absolute top-2 right-2 flex gap-1">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  type="button"
-                  onClick={() => shopWithUsRef.current?.click()}
-                  className="p-1.5 bg-white/90 backdrop-blur-sm rounded-full text-[var(--primary)] shadow-lg"
-                  aria-label="Replace image"
-                >
-                  <Upload size={14} />
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  type="button"
-                  onClick={deleteShopWithUsImage}
-                  className="p-1.5 bg-[var(--error)]/90 backdrop-blur-sm rounded-full text-white shadow-lg"
-                  aria-label="Delete image"
-                >
-                  <Trash2 size={14} />
-                </motion.button>
-              </div>
-            </div>
-          ) : (
-            <div
-              className="border-2 border-dashed border-[var(--border)] rounded-2xl p-8 text-center cursor-pointer hover:border-[var(--accent)] transition-colors"
-              onClick={() => shopWithUsRef.current?.click()}
-            >
-              <UploadCloud size={32} className="mx-auto mb-3 text-[var(--accent)]" />
-              <p className="text-sm text-[var(--primary)]">Click to upload Shop With Us image</p>
-              <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG up to 10MB</p>
-            </div>
-          )}
-          <input
-            ref={shopWithUsRef}
-            type="file"
-            accept="image/*"
-            onChange={uploadShopWithUsFromInput}
-            className="hidden"
-          />
-          {shopWithUsImage && shopWithUsImage instanceof File && (
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              type="button"
-              onClick={saveShopWithUsImage}
-              disabled={shopWithUsUploading}
-              className="w-full rounded-full bg-[var(--accent)] text-white py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--accent)]/90 hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {shopWithUsUploading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-              {shopWithUsUploading ? 'Uploading...' : 'Save Shop With Us Image'}
-            </motion.button>
-          )}
-        </div>
-
-         {productsLoading && allProducts.length === 0 ? (
+          {productsLoading && allProducts.length === 0 ? (
            <div className="col-span-full flex flex-col items-center justify-center py-16">
              <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)] mb-3" />
              <p className="text-sm text-[var(--primary)]/50 font-medium">Loading products...</p>

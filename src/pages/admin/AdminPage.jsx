@@ -17,6 +17,7 @@ import {
   Globe,
   FileText,
   Heart,
+  CircleDot,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAuth } from '@context/AuthContext'
@@ -38,6 +39,7 @@ const ADMIN_NAV = [
   { id: 'consultations', label: 'Consultations', icon: MessageSquare, to: '/admin/consultations' },
   { id: 'work-with-us', label: 'Work With Us', icon: FileText, to: '/admin/work-with-us' },
   { id: 'testimonials', label: 'Testimonials', icon: Heart, to: '/admin/testimonials' },
+  { id: 'circular-tabs', label: 'Circular Tabs', icon: CircleDot, to: '/admin/circular-tabs' },
   { id: 'settings', label: 'Settings', icon: Settings, to: '/admin/settings' },
 ]
 
