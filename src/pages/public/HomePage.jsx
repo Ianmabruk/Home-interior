@@ -40,6 +40,15 @@ export const HomePage = memo(() => {
    const [shopWithUsHomepageImage, setShopWithUsHomepageImage] = useState(null)
    const [circularTabs, setCircularTabs] = useState({})
 
+  const loadCircularTabs = useCallback(async () => {
+    try {
+      const res = await api.get('/circular-tabs')
+      setCircularTabs(res.data || {})
+    } catch {
+      setCircularTabs({})
+    }
+  }, [])
+
   const loadData = useCallback(async () => {
     try {
       const homeRes = await api.get('/homepage')
@@ -55,7 +64,6 @@ export const HomePage = memo(() => {
       setWorkWithUs(data.workWithUs || [])
       setTestimonials(data.testimonials || [])
       setShopWithUsHomepageImage(data.shopWithUsHomepageImage || null)
-      setCircularTabs(data.circularTabs || {})
 
       const homeHeroImages = data.heroImages || data.heroMedia || []
       if (Array.isArray(homeHeroImages) && homeHeroImages.length > 0) {
@@ -116,9 +124,10 @@ export const HomePage = memo(() => {
     }
   }, [])
 
-  useEffect(() => {
+useEffect(() => {
     loadData()
-  }, [loadData])
+    loadCircularTabs()
+  }, [loadData, loadCircularTabs])
 
   useEffect(() => {
     const handler = (event) => {
@@ -134,16 +143,18 @@ export const HomePage = memo(() => {
         payload?.type === 'socials-changed' ||
         payload?.type === 'work-with-us-changed' ||
         payload?.type === 'testimonials-changed' ||
-        payload?.type === 'circular-tabs-changed' ||
         payload?.type === 'settings-changed'
       ) {
         clearApiCache('/homepage')
         loadData()
       }
+      if (payload?.type === 'circular-tabs-changed') {
+        loadCircularTabs()
+      }
     }
     window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
-  }, [loadData])
+  }, [loadData, loadCircularTabs])
 
   if (loading) {
     return (

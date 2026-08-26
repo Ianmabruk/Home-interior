@@ -25,6 +25,7 @@ import { authenticate } from '../middleware/auth.js'
 import { cacheHeaders } from '../middleware/cacheHeaders.js'
 import { contentController } from '../controllers/contentController.js'
 import { prisma } from '../config/database.js'
+import { circularTabController } from '../controllers/circularTabController.js'
 
 const router = Router()
 
@@ -58,6 +59,9 @@ router.use('/blog', publicBlogRoutes)
 router.use('/admin/blog', blogRoutes)
 router.use('/content/work-with-us', workWithUsRoutes)
 router.use('/work-with-us', workWithUsRoutes)
+
+// Public circular tabs API (for homepage)
+router.get('/circular-tabs', circularTabController.getHomepage)
 
 router.post('/test-upload', authenticate, uploadSingle('media'), asyncHandler(async (req, res) => {
   if (!req.file) {
