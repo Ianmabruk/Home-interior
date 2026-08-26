@@ -27,6 +27,8 @@ function buildDatabaseUrl() {
     // idle spare connections and Prisma throws `Error { kind: Closed }`.
     url.searchParams.set('pgbouncer', 'true')
     url.searchParams.set('connection_limit', '1')
+    // Increase pool_timeout for pooler to allow queuing without timeout
+    url.searchParams.set('pool_timeout', '10')
   } else if (isNeon) {
     // Increased connection limit to prevent pool exhaustion under load.
     // Neon supports up to 100 connections on paid plans; we use a conservative
