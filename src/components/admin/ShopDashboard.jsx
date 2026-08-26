@@ -8,7 +8,6 @@ import {
   X,
   UploadCloud,
   ImageIcon,
-  Eye,
   ChevronLeft,
   ChevronRight,
   FileText,
@@ -347,7 +346,7 @@ export const ShopDashboard = () => {
     const header = 'Name,Category,Price,Discount Price,Stock,SKU,Status\n'
     const rows = filtered
       .map((p) =>
-        `"${(p.name || '').replace(/"/g, '""')}","${p.category || ''}",${p.price || 0},${p.discountPrice || 0},${p.stock || 0},"${p.sku || ''}",${p.isPublished ? 'Published' : 'Draft'}`
+        `"${(p.name || '').replace(/"/g, '""')}","${p.category || ''}",KSh ${p.price || 0},KSh ${p.discountPrice || 0},${p.stock || 0},"${p.sku || ''}",${p.isPublished ? 'Published' : 'Draft'}`
       )
       .join('\n')
     const blob = new Blob([header + rows], { type: 'text/csv' })
@@ -519,35 +518,35 @@ export const ShopDashboard = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">
-                Price ($)
-              </label>
-              <input
-                value={form.price}
-                onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                type="number"
-                step="0.01"
-                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                placeholder="0.00"
-                required
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">
-                Discount Price ($)
-              </label>
-              <input
-                value={form.discountPrice}
-                onChange={(e) => setForm((f) => ({ ...f, discountPrice: e.target.value }))}
-                type="number"
-                step="0.01"
-                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                placeholder="0.00"
-              />
-            </div>
-          </div>
+           <div className="grid grid-cols-2 gap-3">
+             <div className="space-y-1">
+               <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">
+                 Price (KSh)
+               </label>
+               <input
+                 value={form.price}
+                 onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                 type="number"
+                 step="0.01"
+                 className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                 placeholder="0.00"
+                 required
+               />
+             </div>
+             <div className="space-y-1">
+               <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">
+                 Discount Price (KSh)
+               </label>
+               <input
+                 value={form.discountPrice}
+                 onChange={(e) => setForm((f) => ({ ...f, discountPrice: e.target.value }))}
+                 type="number"
+                 step="0.01"
+                 className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                 placeholder="0.00"
+               />
+             </div>
+           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
@@ -865,127 +864,105 @@ export const ShopDashboard = () => {
           )}
         </div>
 
-        {productsLoading && allProducts.length === 0 ? (
-          <div className="col-span-full flex flex-col items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)] mb-3" />
-            <p className="text-sm text-[var(--primary)]/50 font-medium">Loading products...</p>
-          </div>
-        ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {paginated.map((item, i) => (
-            <motion.div
-              layout
-              key={item._id || item.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: reduceMotion ? 0 : i * 0.05 }}
-              className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)] overflow-hidden group flex flex-col"
-            >
-              <div className="relative aspect-square overflow-hidden rounded-xl mb-3 bg-[var(--secondary)]/10">
-                {typeof item.images?.[0] === 'string' || item.images?.[0]?.url ? (
-                  <img
-                    src={typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url}
-                    alt={item.name}
-                    className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
-                    loading="lazy"
-                    decoding="async"
-                    width={400}
-                    height={400}
-                  />
-                ) : (
-                  <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
-                    <ImageIcon size={40} />
-                  </div>
-                )}
-                {item.discountPrice && (
-                  <span className="absolute top-3 left-3 bg-gradient-to-r from-[var(--accent)] to-[var(--accent)] text-white text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-lg">
-                    {Math.round(((item.price - item.discountPrice) / item.price) * 100)}%
-                    OFF
-                  </span>
-                )}
-                {item.stock === 0 && (
-                  <span className="absolute top-3 right-3 bg-[var(--primary)] text-white text-[10px] font-semibold px-2.5 py-1 rounded-full">
-                    Out of Stock
-                  </span>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setViewItem(item)}
-                    className="p-2 bg-white/90 backdrop-blur-sm rounded-xl text-[var(--primary)] hover:bg-white shadow-lg"
-                  >
-                    <Eye size={14} />
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => startEdit(item)}
-                    className="p-2 bg-white/90 backdrop-blur-sm rounded-xl text-[var(--primary)] hover:bg-white shadow-lg"
-                  >
-                    <Edit size={14} />
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={(e) => { e.stopPropagation(); deleteProductImage(item._id || item.id, 0) }}
-                    className="p-2 bg-orange-500/90 backdrop-blur-sm rounded-xl text-white hover:bg-orange-500 shadow-lg"
-                    aria-label="Delete first image"
-                  >
-                    <Trash2 size={14} />
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setDeleteId(item._id || item.id)}
-                    className="p-2 bg-[var(--error)]/90 backdrop-blur-sm rounded-xl text-white hover:bg-[var(--error)] shadow-lg"
-                    aria-label="Delete product"
-                  >
-                    <Box size={14} />
-                  </motion.button>
-                </div>
-              </div>
-              <div className="p-5">
-                <p className="font-display text-lg text-[var(--primary)] line-clamp-1">
-                  {item.name}
-                </p>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-[var(--accent)] mt-1 font-medium">
-                  {item.category}
-                </p>
-                <div className="flex items-center gap-2 mt-3">
-                  <p className="font-semibold text-[var(--primary)]">
-                    ${item.discountPrice || item.price}
-                  </p>
-                  {item.discountPrice && (
-                    <p className="text-sm text-[var(--primary)]/50 line-through">${item.price}</p>
-                  )}
-                </div>
-                <p className="text-[10px] text-[var(--primary)]/50 mt-1.5">
-                  SKU: {item.sku} | Stock: {item.stock}
-                  {item.variants && item.variants.length > 0 && (
-                    <span className="ml-2">| Colors: {item.variants.map((v) => v.color).join(', ')}</span>
-                  )}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-          {paginated.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="col-span-full py-20 text-center"
-            >
-              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-[var(--secondary)]/30 to-[var(--accent)]/10 flex items-center justify-center mb-4 text-[var(--primary)]/30">
-                <ImageIcon size={32} />
-              </div>
-              <p className="font-display text-xl text-[var(--primary)]/30">
-                No products found
-              </p>
-            </motion.div>
-            )}
-          </div>
-        )}
+         {productsLoading && allProducts.length === 0 ? (
+           <div className="col-span-full flex flex-col items-center justify-center py-16">
+             <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)] mb-3" />
+             <p className="text-sm text-[var(--primary)]/50 font-medium">Loading products...</p>
+           </div>
+         ) : (
+           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+             {paginated.map((item, i) => (
+             <motion.div
+               layout
+               key={item._id || item.id}
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: reduceMotion ? 0 : i * 0.03 }}
+               className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl shadow-[0_10px_40px_rgba(42,36,31,0.06)] overflow-hidden flex flex-col"
+             >
+               {/* Product Image - Square */}
+               <div className="relative aspect-square overflow-hidden bg-[var(--secondary)]/10">
+                 {typeof item.images?.[0] === 'string' || item.images?.[0]?.url ? (
+                   <img
+                     src={typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url}
+                     alt={item.name}
+                     className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+                     loading="lazy"
+                     decoding="async"
+                     width={400}
+                     height={400}
+                   />
+                 ) : (
+                   <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
+                     <ImageIcon size={48} />
+                   </div>
+                 )}
+                 {item.discountPrice && (
+                   <span className="absolute top-2 left-2 bg-gradient-to-r from-[var(--accent)] to-[var(--accent)] text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-lg">
+                     {Math.round(((item.price - item.discountPrice) / item.price) * 100)}% OFF
+                   </span>
+                 )}
+                 {item.stock === 0 && (
+                   <span className="absolute top-2 right-2 bg-[var(--primary)] text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                     Out of Stock
+                   </span>
+                 )}
+               </div>
+               {/* Product Info */}
+               <div className="p-4 flex-1 flex flex-col">
+                 <h3 className="font-display text-base text-[var(--primary)] line-clamp-2 mb-1">
+                   {item.name}
+                 </h3>
+                 <p className="text-[10px] uppercase tracking-[0.15em] text-[var(--accent)] font-medium mb-2">
+                   {item.category}
+                 </p>
+                 <div className="flex items-center gap-2 mb-3">
+                   <p className="font-semibold text-[var(--primary)]">
+                     KSh {Number(item.discountPrice || item.price).toLocaleString()}
+                   </p>
+                   {item.discountPrice && (
+                     <p className="text-sm text-[var(--primary)]/50 line-through">KSh {Number(item.price).toLocaleString()}</p>
+                   )}
+                 </div>
+                 <p className="text-[10px] text-[var(--primary)]/50 mb-3">
+                   SKU: {item.sku || 'N/A'} | Stock: {item.stock}
+                 </p>
+                 {/* Edit and Delete Buttons - Always Visible */}
+                 <div className="flex gap-2 mt-auto">
+                   <button
+                     onClick={() => startEdit(item)}
+                     className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] px-3 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-[var(--accent)]/90"
+                   >
+                     <Edit size={12} />
+                     Edit
+                   </button>
+                   <button
+                     onClick={() => setDeleteId(item._id || item.id)}
+                     className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-[var(--error)] px-3 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-[var(--error)]/90"
+                   >
+                     <Trash2 size={12} />
+                     Delete
+                   </button>
+                 </div>
+               </div>
+             </motion.div>
+           ))}
+           {paginated.length === 0 && (
+             <motion.div
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               className="col-span-full py-20 text-center"
+             >
+               <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-[var(--secondary)]/30 to-[var(--accent)]/10 flex items-center justify-center mb-4 text-[var(--primary)]/30">
+                 <ImageIcon size={32} />
+               </div>
+               <p className="font-display text-xl text-[var(--primary)]/30">
+                 No products found
+               </p>
+             </motion.div>
+             )}
+           </div>
+         )}
       </div>
 
       {totalPages > 1 && (
@@ -1127,14 +1104,14 @@ export const ShopDashboard = () => {
                 </div>
               )}
               <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: 'Category', value: viewItem.category },
-                  { label: 'Price', value: `$${viewItem.discountPrice || viewItem.price}` },
-                  { label: 'Stock', value: viewItem.stock },
-                  { label: 'SKU', value: viewItem.sku },
-                  { label: 'Status', value: viewItem.isPublished ? 'Published' : 'Draft' },
-                  { label: 'Featured', value: viewItem.isFeatured ? 'Yes' : 'No' },
-                ].map((field, i) => (
+                 {[
+                   { label: 'Category', value: viewItem.category },
+                   { label: 'Price', value: `KSh ${Number(viewItem.discountPrice || viewItem.price).toLocaleString()}` },
+                   { label: 'Stock', value: viewItem.stock },
+                   { label: 'SKU', value: viewItem.sku },
+                   { label: 'Status', value: viewItem.isPublished ? 'Published' : 'Draft' },
+                   { label: 'Featured', value: viewItem.isFeatured ? 'Yes' : 'No' },
+                 ].map((field, i) => (
                   <div
                     key={i}
                     className="bg-gradient-to-r from-[var(--bg)] to-[var(--secondary)]/10 rounded-xl p-3"

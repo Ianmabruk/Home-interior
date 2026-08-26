@@ -223,48 +223,43 @@ async function createOrderInternal(data, signature) {
 
     await Promise.all(stockUpdates)
 
-    try {
-      await sendOrderConfirmationEmail({
-        order: created,
-        toEmail: data.email,
-      })
-    } catch (emailErr) {
-      console.error('[orders] order confirmation email failed:', emailErr)
-    }
+    // IMPORTANT: Return the order immediately after database operations.
+    // Email and push notifications are processed asynchronously to prevent
+    // slow SMTP or push services from blocking the order response.
+    const parsedOrder = parseOrder(created)
 
-    // Send admin notification email (fire-and-forget)
-    try {
+    // Schedule notifications asynchronously (fire-and-forget)
+    setImmediate(() => {
+      sendOrderConfirmationEmail({ order: created, toEmail: data.email })
+        .catch((e) => console.error('[orders] confirmation email failed:', e?.message))
+
       const adminEmail = process.env.ADMIN_EMAIL || process.env.SUPPORT_EMAIL
       if (adminEmail) {
-        await emailService.sendRawEmail({
+        emailService.sendRawEmail({
           eventId: `order_${String(created.id)}_admin_notification`,
           to: adminEmail,
           name: 'HOK Admin',
           subject: `New Order Received — ${created.trackingNumber || '#' + String(created.id).slice(-8).toUpperCase()}`,
-          html: `
-            <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-              <h1 style="color:#2a241f;">New Order Received</h1>
-              <div style="background:#faf8f4;border-radius:12px;padding:16px;margin:16px 0;">
-                <p><strong>Order:</strong> #${String(created.id).slice(-8).toUpperCase()}</p>
-                <p><strong>Tracking:</strong> ${created.trackingNumber || 'N/A'}</p>
-                <p><strong>Customer:</strong> ${created.name || 'Guest'}</p>
-                <p><strong>Email:</strong> ${created.email}</p>
-                <p><strong>Phone:</strong> ${created.phone || 'N/A'}</p>
-                <p><strong>Total:</strong> KSh ${Number(created.total || 0).toLocaleString()}</p>
-                <p><strong>Status:</strong> ${created.status || 'Pending'}</p>
-                <p><strong>Date:</strong> ${new Date(created.createdAt).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })}</p>
-              </div>
-              <a href="${process.env.CLIENT_URL || 'https://hokinteriors.co.ke'}/admin/orders?orderId=${created.id}" style="display:inline-block;padding:12px 24px;background:#2a241f;color:#fff;text-decoration:none;border-radius:8px;">View Order in Dashboard</a>
+          html: `<div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+            <h1 style="color:#2a241f;">New Order Received</h1>
+            <div style="background:#faf8f4;border-radius:12px;padding:16px;margin:16px 0;">
+              <p><strong>Order:</strong> #${String(created.id).slice(-8).toUpperCase()}</p>
+              <p><strong>Tracking:</strong> ${created.trackingNumber || 'N/A'}</p>
+              <p><strong>Customer:</strong> ${created.name || 'Guest'}</p>
+              <p><strong>Email:</strong> ${created.email}</p>
+              <p><strong>Phone:</strong> ${created.phone || 'N/A'}</p>
+              <p><strong>Total:</strong> KSh ${Number(created.total || 0).toLocaleString()}</p>
+              <p><strong>Status:</strong> ${created.status || 'Pending'}</p>
+              <p><strong>Date:</strong> ${new Date(created.createdAt).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })}</p>
             </div>
-          `,
+            <a href="${process.env.CLIENT_URL || 'https://hokinteriors.co.ke'}/admin/orders?orderId=${created.id}" style="display:inline-block;padding:12px 24px;background:#2a241f;color:#fff;text-decoration:none;border-radius:8px;">View Order in Dashboard</a>
+          </div>`,
           text: `New Order Received\n\nOrder: #${String(created.id).slice(-8).toUpperCase()}\nTracking: ${created.trackingNumber || 'N/A'}\nCustomer: ${created.name || 'Guest'}\nEmail: ${created.email}\nPhone: ${created.phone || 'N/A'}\nTotal: KSh ${Number(created.total || 0).toLocaleString()}\nStatus: ${created.status || 'Pending'}\nDate: ${new Date(created.createdAt).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })}\n\nView Order: ${process.env.CLIENT_URL || 'https://hokinteriors.co.ke'}/admin/orders?orderId=${created.id}`,
-        })
+        }).catch((e) => console.error('[orders] admin notification email failed:', e?.message))
       }
-    } catch (adminEmailErr) {
-      console.error('[orders] admin notification email failed:', adminEmailErr)
-    }
+    })
 
-    return parseOrder(created)
+    return parsedOrder
 }
 
 async function getOrder(id) {
