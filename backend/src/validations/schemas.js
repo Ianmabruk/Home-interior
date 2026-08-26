@@ -151,6 +151,8 @@ const stringArray = z
     return []
   })
 
+const stringArrayMax21 = stringArray.refine((val) => val.length <= 21, 'Maximum 21 images allowed')
+
 export const portfolioSchemas = {
     create: z.object({
       title: z.string().min(1, 'Title is required'),
@@ -160,8 +162,8 @@ export const portfolioSchemas = {
       displayOrder: z.coerce.number().int().nonnegative().optional(),
       published: z.union([z.boolean(), z.string()]).optional(),
       mediaUrls: z.array(z.string()).max(21, 'Maximum 21 gallery images allowed').optional(),
-      beforeImages: stringArray.max(21, 'Maximum 21 before images allowed').optional(),
-      afterImages: stringArray.max(21, 'Maximum 21 after images allowed').optional(),
+      beforeImages: stringArrayMax21.optional(),
+      afterImages: stringArrayMax21.optional(),
       imageUrl: z.string().optional(),
     }),
     update: z.object({
@@ -172,8 +174,8 @@ export const portfolioSchemas = {
       displayOrder: z.coerce.number().int().nonnegative().optional(),
       published: z.union([z.boolean(), z.string()]).optional(),
       mediaUrls: z.array(z.string()).max(21, 'Maximum 21 gallery images allowed').optional(),
-      beforeImages: stringArray.max(21, 'Maximum 21 before images allowed').optional(),
-      afterImages: stringArray.max(21, 'Maximum 21 after images allowed').optional(),
+      beforeImages: stringArrayMax21.optional(),
+      afterImages: stringArrayMax21.optional(),
     }),
   }
 
