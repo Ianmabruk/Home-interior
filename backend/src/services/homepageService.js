@@ -122,7 +122,8 @@ async function getHomepage() {
       const heroMedia = getResult(7, [])
       const featuredProducts = getResult(8, [])
       const shopWithUsImage = getResult(9, null)
-      const blog = getResult(10, [])
+      const blogRaw = getResult(10, [])
+      const blog = Array.isArray(blogRaw) ? blogRaw : []
       const socialItems = getResult(11, [])
       const contact = getResult(12, null)
 
