@@ -1,6 +1,6 @@
 import { prisma, withRetry } from '../config/database.js'
 import { failure } from '../utils/response.js'
-import { sendOrderConfirmationEmail } from './emailService.js'
+import { sendOrderConfirmationEmail, default as emailService } from './emailService.js'
 
 const TRACKING_PREFIX = 'HOK'
 const TRACKING_LENGTH = 6
@@ -194,19 +194,34 @@ async function createOrderInternal(data, signature) {
         if (!variant || variant.stock < qty) {
           throw failure(400, `Insufficient stock for ${product.name}`)
         }
-        await withRetry(() => prisma.productVariant.update({
-          where: { id: variant.id },
-          data: { stock: { decrement: qty } },
-        }))
       } else if (product.stock < qty) {
         throw failure(400, `Insufficient stock for ${product.name}`)
-      } else {
-        await withRetry(() => prisma.product.update({
+      }
+    }
+
+    // Parallelize stock updates instead of sequential updates.
+    // This reduces the total time spent on stock updates from O(n) to O(1).
+    const stockUpdates = finalItems
+      .filter((item) => item.productId && productMap.has(item.productId))
+      .map((item) => {
+        const product = productMap.get(item.productId)
+        const qty = Number(item.quantity) || 1
+        if (product.variants && item.variantId) {
+          const variant = product.variants.find((v) => v.id === item.variantId)
+          if (variant) {
+            return withRetry(() => prisma.productVariant.update({
+              where: { id: variant.id },
+              data: { stock: { decrement: qty } },
+            }))
+          }
+        }
+        return withRetry(() => prisma.product.update({
           where: { id: product.id },
           data: { stock: { decrement: qty } },
         }))
-      }
-    }
+      })
+
+    await Promise.all(stockUpdates)
 
     try {
       await sendOrderConfirmationEmail({
@@ -215,6 +230,38 @@ async function createOrderInternal(data, signature) {
       })
     } catch (emailErr) {
       console.error('[orders] order confirmation email failed:', emailErr)
+    }
+
+    // Send admin notification email (fire-and-forget)
+    try {
+      const adminEmail = process.env.ADMIN_EMAIL || process.env.SUPPORT_EMAIL
+      if (adminEmail) {
+        await emailService.sendRawEmail({
+          eventId: `order_${String(created.id)}_admin_notification`,
+          to: adminEmail,
+          name: 'HOK Admin',
+          subject: `New Order Received — ${created.trackingNumber || '#' + String(created.id).slice(-8).toUpperCase()}`,
+          html: `
+            <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+              <h1 style="color:#2a241f;">New Order Received</h1>
+              <div style="background:#faf8f4;border-radius:12px;padding:16px;margin:16px 0;">
+                <p><strong>Order:</strong> #${String(created.id).slice(-8).toUpperCase()}</p>
+                <p><strong>Tracking:</strong> ${created.trackingNumber || 'N/A'}</p>
+                <p><strong>Customer:</strong> ${created.name || 'Guest'}</p>
+                <p><strong>Email:</strong> ${created.email}</p>
+                <p><strong>Phone:</strong> ${created.phone || 'N/A'}</p>
+                <p><strong>Total:</strong> KSh ${Number(created.total || 0).toLocaleString()}</p>
+                <p><strong>Status:</strong> ${created.status || 'Pending'}</p>
+                <p><strong>Date:</strong> ${new Date(created.createdAt).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })}</p>
+              </div>
+              <a href="${process.env.CLIENT_URL || 'https://hokinteriors.co.ke'}/admin/orders?orderId=${created.id}" style="display:inline-block;padding:12px 24px;background:#2a241f;color:#fff;text-decoration:none;border-radius:8px;">View Order in Dashboard</a>
+            </div>
+          `,
+          text: `New Order Received\n\nOrder: #${String(created.id).slice(-8).toUpperCase()}\nTracking: ${created.trackingNumber || 'N/A'}\nCustomer: ${created.name || 'Guest'}\nEmail: ${created.email}\nPhone: ${created.phone || 'N/A'}\nTotal: KSh ${Number(created.total || 0).toLocaleString()}\nStatus: ${created.status || 'Pending'}\nDate: ${new Date(created.createdAt).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })}\n\nView Order: ${process.env.CLIENT_URL || 'https://hokinteriors.co.ke'}/admin/orders?orderId=${created.id}`,
+        })
+      }
+    } catch (adminEmailErr) {
+      console.error('[orders] admin notification email failed:', adminEmailErr)
     }
 
     return parseOrder(created)

@@ -4,6 +4,7 @@ import { Search, Package, CheckCircle2 } from 'lucide-react'
 import { api } from '@services/api'
 import { PageMeta } from '@hooks/usePageMeta'
 import { Link } from 'react-router-dom'
+import { useCurrency } from '@context/CurrencyContext'
 
 const STATUS_FLOW = [
   { key: 'pending', label: 'Order Placed' },
@@ -33,6 +34,7 @@ export const TrackOrderPage = () => {
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const { formatPrice } = useCurrency()
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault()
@@ -104,14 +106,14 @@ export const TrackOrderPage = () => {
                       <p className="text-sm font-medium text-[var(--primary)] truncate">{item.name || 'Product'}</p>
                       <p className="text-2xs text-[var(--primary)]/50">Qty: {item.quantity || 1}</p>
                     </div>
-                    <p className="text-sm font-medium text-[var(--primary)]">${Number(item.price || 0).toFixed(2)}</p>
+                    <p className="text-sm font-medium text-[var(--primary)]">{formatPrice(Number(item.price || 0) * (item.quantity || 1))}</p>
                   </div>
                 ))}
               </div>
               <div className="border-t border-[var(--border)]/40 pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-[var(--primary)]/55">Total</span>
-                  <span className="font-medium text-[var(--primary)]">${Number(result.total || 0).toFixed(2)}</span>
+                  <span className="font-medium text-[var(--primary)]">{formatPrice(Number(result.total || 0))}</span>
                 </div>
               </div>
             </div>

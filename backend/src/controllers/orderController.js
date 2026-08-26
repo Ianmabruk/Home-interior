@@ -156,4 +156,14 @@ export const orderController = {
     const order = await orderService.updateOrderStatus(req.params.id, updateData)
     res.json({ success: true, data: order })
   }),
+
+  updateTrackingNumber: asyncHandler(async (req, res) => {
+    const { trackingNumber } = req.body
+    if (!trackingNumber || !String(trackingNumber).trim()) {
+      return res.status(400).json({ success: false, message: 'Tracking number is required' })
+    }
+    const normalizedTracking = String(trackingNumber).trim().toUpperCase()
+    const order = await orderService.updateOrderStatus(req.params.id, { trackingNumber: normalizedTracking })
+    res.json({ success: true, data: order })
+  }),
 }

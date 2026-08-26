@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
 import { motion } from 'framer-motion'
-import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
+import { getOptimizedUrl, buildSrcSet, getVideoPosterUrl, getOptimizedVideoUrl } from '../../utils/cloudinaryHelpers'
 
 const HOK_LINE = (
   <>
@@ -40,7 +40,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
   const [displayIndex, setDisplayIndex] = useState(0)
   const [opacityA, setOpacityA] = useState(1)
   const [opacityB, setOpacityB] = useState(0)
-  const [nextImage, setNextImage] = useState(null)
+  const [nextMedia, setNextMedia] = useState(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const firstImageLoadedRef = useRef(false)
@@ -49,40 +49,49 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
   const titleVariants = useMemo(() => buildTitleVariants(prefersReducedMotion), [prefersReducedMotion])
   const taglineVariants = useMemo(() => buildTaglineVariants(prefersReducedMotion), [prefersReducedMotion])
 
-  const images = useMemo(() => {
+  const mediaItems = useMemo(() => {
     if (!heroImages || heroImages.length === 0) return []
-    const allImages = []
+    const allMedia = []
     heroImages.forEach(item => {
       if (!item) return
-      const urls = item.mediaUrls?.length > 0 ? item.mediaUrls : (item.imageUrl ? [item.imageUrl] : [])
-      urls.forEach(url => {
-        if (url) {
-          allImages.push({
-            url,
-            alt: item.title || item.alt || 'Luxury interior design project',
-          })
-        }
-      })
+      // Support both video and image media
+      if (item.mediaUrls?.length > 0) {
+        item.mediaUrls.forEach(url => {
+          if (url) {
+            allMedia.push({
+              url,
+              type: url.match(/\.(mp4|webm|ogg|mov)(\?|$)/i) ? 'video' : 'image',
+              alt: item.title || item.alt || 'Luxury interior design project',
+            })
+          }
+        })
+      } else if (item.imageUrl) {
+        allMedia.push({
+          url: item.imageUrl,
+          type: 'image',
+          alt: item.title || item.alt || 'Luxury interior design project',
+        })
+      }
     })
-    return allImages
+    return allMedia
   }, [heroImages])
 
-  const firstImageUrl = images[0]?.url
+  const firstMediaUrl = mediaItems[0]?.url
 
   useEffect(() => {
-    if (!firstImageUrl || firstImageLoadedRef.current) return
+    if (!firstMediaUrl || firstImageLoadedRef.current) return
     firstImageLoadedRef.current = true
     const link = document.createElement('link')
     link.rel = 'preload'
     link.as = 'image'
-    link.href = getOptimizedUrl(firstImageUrl, { width: 1920, crop: 'limit' })
+    link.href = getVideoPosterUrl(firstMediaUrl) || getOptimizedUrl(firstMediaUrl, { width: 1920, crop: 'limit' })
     link.fetchPriority = 'high'
     document.head.appendChild(link)
     return () => {
       const existing = document.querySelector(`link[href="${link.href}"]`)
       if (existing) existing.remove()
     }
-  }, [firstImageUrl])
+  }, [firstMediaUrl])
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -93,17 +102,17 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
   }, [])
 
   useEffect(() => {
-    if (images.length <= 1 || prefersReducedMotion) return
+    if (mediaItems.length <= 1 || prefersReducedMotion) return
     const interval = 8500
     const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % images.length)
+      setCurrentIndex((prev) => (prev + 1) % mediaItems.length)
     }, interval)
     return () => clearInterval(timer)
-  }, [images.length, prefersReducedMotion])
+  }, [mediaItems.length, prefersReducedMotion])
 
   useEffect(() => {
     if (currentIndex === displayIndex) return
-    setNextImage(images[currentIndex])
+    setNextMedia(mediaItems[currentIndex])
     setOpacityA(0)
     setOpacityB(1)
 
@@ -115,7 +124,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
       setDisplayIndex(currentIndex)
       setOpacityA(1)
       setOpacityB(0)
-      setNextImage(null)
+      setNextMedia(null)
     }, duration)
 
     return () => {
@@ -123,17 +132,53 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
         clearTimeout(transitionTimeoutRef.current)
       }
     }
-  }, [currentIndex, displayIndex, images, prefersReducedMotion])
+  }, [currentIndex, displayIndex, mediaItems, prefersReducedMotion])
 
-  const currentImage = images[displayIndex]
-  const activeImage = currentImage?.url
-  const activeAlt = currentImage?.alt || 'Luxury interior design'
+  const currentMedia = mediaItems[displayIndex]
 
   const handleImageLoad = useCallback(() => {
     if (!isLoaded) setIsLoaded(true)
   }, [isLoaded])
 
-  if (!images.length) {
+  const renderMedia = (media, opacity, isNext = false) => {
+    if (!media) return null
+    if (media.type === 'video') {
+      return (
+        <video
+          key={media.url}
+          src={getOptimizedVideoUrl(media.url) || media.url}
+          poster={getVideoPosterUrl(media.url)}
+          muted
+          loop
+          playsInline
+          autoPlay={!isNext}
+          preload={isNext ? 'none' : 'metadata'}
+          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-out"
+          style={{ opacity, background: 'var(--primary)' }}
+          onLoadedData={handleImageLoad}
+        />
+      )
+    }
+    return (
+      <img
+        key={media.url}
+        src={getOptimizedUrl(media.url, { width: 1920, crop: 'limit' })}
+        srcSet={buildSrcSet(media.url) || undefined}
+        sizes={buildSrcSet(media.url) ? '100vw' : undefined}
+        fetchPriority={isNext ? 'low' : 'high'}
+        alt={media.alt}
+        className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-out"
+        style={{ opacity, background: 'var(--primary)' }}
+        loading={isNext ? 'lazy' : 'eager'}
+        decoding="async"
+        onLoad={handleImageLoad}
+        width={1920}
+        height={1080}
+      />
+    )
+  }
+
+  if (!mediaItems.length) {
     return (
       <section
         className={`relative w-full h-[85vh] lg:h-screen min-h-[500px] overflow-hidden bg-[var(--primary)] ${className}`}
@@ -157,34 +202,8 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
         className={`absolute inset-0 will-change-transform ${!prefersReducedMotion ? 'ken-burns' : ''}`}
         style={{ animationDuration: '12s' }}
       >
-        <img
-          src={getOptimizedUrl(activeImage, { width: 1920, crop: 'limit' })}
-          srcSet={buildSrcSet(activeImage) || undefined}
-          sizes={buildSrcSet(activeImage) ? '100vw' : undefined}
-          fetchPriority="high"
-          alt={activeAlt}
-            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-out"
-          style={{ opacity: opacityA, background: 'var(--primary)' }}
-          loading="eager"
-          decoding="async"
-          onLoad={handleImageLoad}
-          width={1920}
-          height={1080}
-        />
-        {nextImage && (
-          <img
-            src={getOptimizedUrl(nextImage.url, { width: 1920, crop: 'limit' })}
-            srcSet={buildSrcSet(nextImage.url) || undefined}
-            sizes={buildSrcSet(nextImage.url) ? '100vw' : undefined}
-            alt={nextImage.alt}
-            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-out"
-            style={{ opacity: opacityB, background: 'var(--primary)' }}
-            loading="lazy"
-            decoding="async"
-            width={1920}
-            height={1080}
-          />
-        )}
+        {renderMedia(currentMedia, opacityA)}
+        {nextMedia && renderMedia(nextMedia, opacityB, true)}
       </div>
 
        <motion.div

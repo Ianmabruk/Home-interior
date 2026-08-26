@@ -15,7 +15,7 @@ function buildDatabaseUrl() {
   const usingPooler = url.hostname.includes('-pooler')
 
   // Strip params we manage so we never stack duplicate values across restarts.
-  for (const key of ['connection_limit', 'pgbouncer', 'connect_timeout', 'pool_timeout', 'idle_in_transaction_session_timeout', 'tcp_user_timeout']) {
+  for (const key of ['connection_limit', 'pgbouncer', 'connect_timeout', 'pool_timeout', 'idle_in_transaction_session_timeout', 'tcp_user_timeout', 'statement_timeout']) {
     url.searchParams.delete(key)
   }
 
@@ -28,14 +28,24 @@ function buildDatabaseUrl() {
     url.searchParams.set('pgbouncer', 'true')
     url.searchParams.set('connection_limit', '1')
   } else if (isNeon) {
-    url.searchParams.set('connection_limit', process.env.NODE_ENV === 'production' ? '5' : '10')
+    // Increased connection limit to prevent pool exhaustion under load.
+    // Neon supports up to 100 connections on paid plans; we use a conservative
+    // limit that handles concurrent requests without exhausting the pool.
+    url.searchParams.set('connection_limit', process.env.NODE_ENV === 'production' ? '10' : '10')
   } else {
-    url.searchParams.set('connection_limit', process.env.NODE_ENV === 'production' ? '5' : '10')
+    url.searchParams.set('connection_limit', process.env.NODE_ENV === 'production' ? '10' : '10')
   }
 
+  // connect_timeout: max seconds to wait for a connection to establish
   url.searchParams.set('connect_timeout', '5')
-  url.searchParams.set('pool_timeout', '10')
+  // pool_timeout: max seconds to wait for a connection from the pool.
+  // Reduced from 10s to fail fast when pool is exhausted rather than queueing requests.
+  url.searchParams.set('pool_timeout', '5')
+  // idle_in_transaction_session_timeout: kill idle transactions after 30s
   url.searchParams.set('idle_in_transaction_session_timeout', '30000')
+  // statement_timeout: kill queries running longer than 10s at the database level.
+  // This prevents a single slow query from hogging a connection indefinitely.
+  url.searchParams.set('statement_timeout', '10000')
   // keepalives keep direct (non-pooled) TCP connections alive; ignored by the pooler.
   url.searchParams.set('keepalives', '1')
   url.searchParams.set('keepalives_idle', '30')
@@ -57,7 +67,7 @@ function createPrismaClient() {
 
 const RETRYABLE_CODES = new Set(['P2024', 'P1001', 'P1008', 'P1009'])
 
-export async function withRetry(fn, retries = 3, delayMs = 100, maxTotalMs = 3000) {
+export async function withRetry(fn, retries = 3, delayMs = 100, maxTotalMs = 5000) {
   const startTime = Date.now()
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -65,7 +75,7 @@ export async function withRetry(fn, retries = 3, delayMs = 100, maxTotalMs = 300
     } catch (err) {
       const code = err?.code
       const message = String(err?.message || '')
-      const isRetryable = RETRYABLE_CODES.has(code) || /kind:\s*Closed/i.test(message) || /P1002/i.test(message)
+      const isRetryable = RETRYABLE_CODES.has(code) || /kind:\s*Closed/i.test(message) || /P1002/i.test(message) || /timed out/i.test(message)
       if (!isRetryable || attempt === retries) throw err
       const elapsed = Date.now() - startTime
       if (elapsed >= maxTotalMs) throw err

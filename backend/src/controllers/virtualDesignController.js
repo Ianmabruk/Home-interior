@@ -47,6 +47,19 @@ export const virtualDesignController = {
     if (req.body.displayOrder !== undefined) data.displayOrder = Number(req.body.displayOrder) || 0
     if (req.body.published !== undefined) data.published = req.body.published !== 'false' && req.body.published !== false
     if (req.body.mediaUrls) data.mediaUrls = Array.isArray(req.body.mediaUrls) ? req.body.mediaUrls : []
+    // Handle existing media URL preservation when no new file is uploaded
+    if (req.body.mediaUrl) data.imageUrl = req.body.mediaUrl
+    // Handle existing gallery URLs preservation
+    if (req.body.existingMediaUrls) {
+      try {
+        const existingUrls = JSON.parse(req.body.existingMediaUrls)
+        if (Array.isArray(existingUrls)) {
+          data.mediaUrls = [...existingUrls, ...(data.mediaUrls || [])]
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
     const item = await virtualDesignService.updateVirtualDesign(req.params.id, data, file, galleryFiles, circularFile)
     res.json({ success: true, data: item })
   }),

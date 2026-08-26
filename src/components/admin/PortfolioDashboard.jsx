@@ -1400,24 +1400,26 @@ export const PortfolioDashboard = () => {
                   <Eye size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
                 </Link>
 
-                <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="absolute top-3 left-3 flex gap-2 z-10">
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => startEdit(item)}
-                    className="p-2 bg-white/90 backdrop-blur-sm rounded-xl text-[var(--primary)] hover:bg-white shadow-lg"
+                    className="p-2.5 bg-[var(--primary)] rounded-xl text-white shadow-lg hover:bg-[var(--primary)]/90 transition-colors"
                     aria-label="Edit project"
+                    title="Edit project"
                   >
-                    <Edit size={14} />
+                    <Edit size={16} />
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setDeleteId(item._id || item.id)}
-                    className="p-2 bg-[var(--error)]/90 backdrop-blur-sm rounded-xl text-white hover:bg-[var(--error)] shadow-lg"
+                    className="p-2.5 bg-[var(--error)] rounded-xl text-white shadow-lg hover:bg-[var(--error)]/90 transition-colors"
                     aria-label="Delete project"
+                    title="Delete project"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={16} />
                   </motion.button>
                 </div>
               </div>

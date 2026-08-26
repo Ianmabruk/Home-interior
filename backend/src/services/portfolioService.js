@@ -100,36 +100,20 @@ export const portfolioService = {
 async function listPortfolio({ sort = '-createdAt', limit = 100 } = {}) {
   try {
     const orderBy = sort?.startsWith('-') ? { [sort.slice(1)]: 'desc' } : { createdAt: 'asc' }
+    // Fetch portfolio projects AND their images in a single query using include.
+    // This avoids the N+1 query problem where we previously made a separate
+    // database query for each project's images.
     const items = await prisma.portfolioProject.findMany({
       orderBy,
       take: Number(limit) || 100,
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        category: true,
-        featured: true,
-        displayOrder: true,
-        published: true,
-        imageUrl: true,
-        cloudinaryId: true,
-        beforeImages: true,
-        afterImages: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    })
-    const result = await Promise.all(
-      items.map(async (item) => {
-        const portfolioImages = await prisma.portfolioImage.findMany({
-          where: { portfolioProjectId: item.id },
+      include: {
+        portfolioImages: {
           orderBy: { sortOrder: 'asc' },
           select: { id: true, imageUrl: true, imageType: true, sortOrder: true, cloudinaryId: true },
-        })
-        return mapPortfolio(item, portfolioImages)
-      }),
-    )
-    return result
+        },
+      },
+    })
+    return items.map((item) => mapPortfolio(item, item.portfolioImages))
   } catch (err) {
     console.error('[portfolioService] listPortfolio error:', err?.message || err)
     return []
@@ -138,14 +122,17 @@ async function listPortfolio({ sort = '-createdAt', limit = 100 } = {}) {
 
 async function getPortfolio(id) {
   try {
-    const item = await prisma.portfolioProject.findUnique({ where: { id } })
-    if (!item) throw failure(404, 'Portfolio item not found')
-    const portfolioImages = await prisma.portfolioImage.findMany({
-      where: { portfolioProjectId: item.id },
-      orderBy: { sortOrder: 'asc' },
-      select: { id: true, imageUrl: true, imageType: true, sortOrder: true, cloudinaryId: true },
+    const item = await prisma.portfolioProject.findUnique({
+      where: { id },
+      include: {
+        portfolioImages: {
+          orderBy: { sortOrder: 'asc' },
+          select: { id: true, imageUrl: true, imageType: true, sortOrder: true, cloudinaryId: true },
+        },
+      },
     })
-    return mapPortfolio(item, portfolioImages)
+    if (!item) throw failure(404, 'Portfolio item not found')
+    return mapPortfolio(item, item.portfolioImages)
   } catch (err) {
     if (err?.status === 404) throw err
     throw failure(500, 'Failed to fetch portfolio item')
@@ -357,12 +344,16 @@ async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []
 
   await syncPortfolioImages(id, beforeImages, afterImages)
 
-  const portfolioImages = await prisma.portfolioImage.findMany({
-    where: { portfolioProjectId: id },
-    orderBy: { sortOrder: 'asc' },
-    select: { id: true, imageUrl: true, imageType: true, sortOrder: true, cloudinaryId: true },
+  const updatedItem = await prisma.portfolioProject.findUnique({
+    where: { id },
+    include: {
+      portfolioImages: {
+        orderBy: { sortOrder: 'asc' },
+        select: { id: true, imageUrl: true, imageType: true, sortOrder: true, cloudinaryId: true },
+      },
+    },
   })
-  return mapPortfolio(item, portfolioImages)
+  return mapPortfolio(updatedItem, updatedItem.portfolioImages)
 }
 
 async function deletePortfolio(id) {
@@ -441,12 +432,14 @@ async function reorderPortfolioImages(projectId, orderList) {
     }
   })
 
-  const updatedImages = await prisma.portfolioImage.findMany({
-    where: { portfolioProjectId: projectId },
-    orderBy: { sortOrder: 'asc' },
-    select: { id: true, imageUrl: true, imageType: true, sortOrder: true, cloudinaryId: true },
+  const projectAfter = await prisma.portfolioProject.findUnique({
+    where: { id: projectId },
+    include: {
+      portfolioImages: {
+        orderBy: { sortOrder: 'asc' },
+        select: { id: true, imageUrl: true, imageType: true, sortOrder: true, cloudinaryId: true },
+      },
+    },
   })
-
-  const projectAfter = await prisma.portfolioProject.findUnique({ where: { id: projectId } })
-  return mapPortfolio(projectAfter, updatedImages)
+  return mapPortfolio(projectAfter, projectAfter.portfolioImages)
 }

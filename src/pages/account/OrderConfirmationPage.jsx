@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle, Package, ChevronRight, Copy, Search, Mail, Phone } from 'lucide-react'
+import { CheckCircle, Package, ChevronRight, Copy, Search, Mail, Phone, AlertCircle } from 'lucide-react'
 import { api } from '../../services/api'
 import { PageMeta } from '../../hooks/usePageMeta'
 import { useCurrency } from '../../context/CurrencyContext'
+
+const MPESA_NUMBER = '0723 05 74 87'
 
 export const OrderConfirmationPage = () => {
   const { id } = useParams()
@@ -12,6 +14,9 @@ export const OrderConfirmationPage = () => {
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [paymentConfirming, setPaymentConfirming] = useState(false)
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false)
+  const [paymentError, setPaymentError] = useState(null)
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -68,6 +73,22 @@ export const OrderConfirmationPage = () => {
     }
   }
 
+  const handleConfirmPayment = async () => {
+    setPaymentConfirming(true)
+    setPaymentError(null)
+    try {
+      await api.patch(`/orders/${id}/payment`, {
+        paymentStatus: 'submitted',
+        paymentReference: `CONFIRMED-${Date.now()}`,
+      })
+      setPaymentConfirmed(true)
+    } catch (err) {
+      setPaymentError(err?.message || 'Failed to submit payment confirmation')
+    } finally {
+      setPaymentConfirming(false)
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[var(--bg)] py-12 md:py-16">
       <PageMeta
@@ -105,8 +126,8 @@ export const OrderConfirmationPage = () => {
               </div>
               <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-[var(--border)]/40">
                 <Phone size={14} strokeWidth={1.5} className="text-[var(--primary)]/50" />
-                <span className="text-xs font-medium text-[var(--primary)]/60">Payment Number:</span>
-                <span className="text-sm font-semibold text-[var(--primary)]">0723057487</span>
+                <span className="text-xs font-medium text-[var(--primary)]/60">M-Pesa:</span>
+                <span className="text-sm font-semibold text-[var(--primary)]">{MPESA_NUMBER}</span>
                 <button
                   onClick={() => navigator.clipboard.writeText('0723057487')}
                   className="p-1 rounded hover:bg-[var(--secondary)]/20 transition-colors"
@@ -177,6 +198,66 @@ export const OrderConfirmationPage = () => {
           </div>
 
           <div className="bg-white rounded-3xl border border-[var(--border)]/40 p-6 md:p-8 shadow-[0_10px_40px_rgba(42,36,31,0.06)] mb-6">
+            <h2 className="font-display text-xl font-medium text-[var(--primary)] mb-4">Make Payment</h2>
+            <p className="text-sm text-[var(--primary)]/70 mb-4">Complete your payment via M-Pesa to confirm your order.</p>
+            <div className="bg-[var(--bg)]/60 rounded-2xl border border-[var(--border)]/40 p-6 mb-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">M-Pesa Send Money</p>
+                  <p className="text-xl font-semibold text-[var(--primary)]">{MPESA_NUMBER}</p>
+                </div>
+                <button
+                  onClick={() => navigator.clipboard.writeText('0723057487')}
+                  className="p-2 rounded-lg text-[var(--primary)]/50 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors"
+                  aria-label="Copy payment number"
+                >
+                  <Copy size={18} strokeWidth={1.5} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between bg-white rounded-xl border border-[var(--border)]/40 px-4 py-3">
+                <span className="text-sm text-[var(--primary)]/60">Amount to Pay</span>
+                <span className="text-lg font-semibold text-[var(--primary)]">{formatPrice(total)}</span>
+              </div>
+            </div>
+
+            {paymentConfirmed ? (
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-[var(--success)]/10 text-[var(--success)]">
+                <CheckCircle size={20} strokeWidth={2} />
+                <span className="text-sm">Payment confirmation submitted. We will verify your payment shortly.</span>
+              </div>
+            ) : (
+              <div>
+                {paymentError && (
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-[var(--error)]/10 text-[var(--error)] mb-4">
+                    <AlertCircle size={20} strokeWidth={2} />
+                    <span className="text-sm">{paymentError}</span>
+                  </div>
+                )}
+                <button
+                  onClick={handleConfirmPayment}
+                  disabled={paymentConfirming}
+                  className="w-full btn-luxury-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {paymentConfirming ? (
+                    <>
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      Confirming...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={14} strokeWidth={1.5} />
+                      I Have Made Payment — Confirm Payment
+                    </>
+                  )}
+                </button>
+                <p className="mt-2 text-xs text-[var(--primary)]/50 text-center">
+                  Click this button after sending money via M-Pesa
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-3xl border border-[var(--border)]/40 p-6 md:p-8 shadow-[0_10px_40px_rgba(42,36,31,0.06)] mb-6">
             <h2 className="font-display text-xl font-medium text-[var(--primary)] mb-4">Shipping Information</h2>
             <div className="grid gap-3 md:grid-cols-2">
               <div>
@@ -209,22 +290,22 @@ export const OrderConfirmationPage = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/orders"
-              className="btn-luxury-primary inline-flex items-center gap-2"
-            >
-              <Package size={14} strokeWidth={1.5} />
-              View All Orders
-            </Link>
             {order.trackingNumber && (
               <Link
                 to={`/track-order?tracking=${order.trackingNumber}`}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--border)] bg-white text-xs font-semibold uppercase tracking-widest text-[var(--primary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all"
+                className="btn-luxury-primary inline-flex items-center gap-2"
               >
                 <Search size={14} strokeWidth={1.5} />
                 Track Your Order
               </Link>
             )}
+            <Link
+              to="/orders"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--border)] bg-white text-xs font-semibold uppercase tracking-widest text-[var(--primary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all"
+            >
+              <Package size={14} strokeWidth={1.5} />
+              View All Orders
+            </Link>
             <Link
               to="/shop"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--border)] bg-white text-xs font-semibold uppercase tracking-widest text-[var(--primary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all"

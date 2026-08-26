@@ -21,6 +21,10 @@ export const app = express()
 
 const SERVER_ID = process.env.SERVER_ID || 'hok-api-01'
 
+// Request timeout: abort requests that take longer than 30 seconds.
+// This prevents a single slow query from hanging the server indefinitely.
+const REQUEST_TIMEOUT_MS = 30000
+
 app.set('trust proxy', 1)
 app.use(compression())
 app.use(
@@ -71,6 +75,19 @@ if (process.env.NODE_ENV !== 'production') {
 }
 app.use(cookieParser())
 app.use(express.json({ limit: '1mb' }))
+
+// Request timeout middleware: abort requests that exceed the timeout.
+// This ensures that slow queries or external API calls don't hang the server.
+app.use((req, res, next) => {
+  const timeout = req.path.includes('/upload') || req.path.includes('/media') ? 120000 : REQUEST_TIMEOUT_MS
+  res.setTimeout(timeout, () => {
+    console.error(`[${SERVER_ID}] [timeout] ${req.method} ${req.originalUrl} exceeded ${timeout}ms`)
+    if (!res.headersSent) {
+      res.status(408).json({ success: false, message: 'Request timeout' })
+    }
+  })
+  next()
+})
 
 const allowedOrigins = [
   process.env.CLIENT_URL,

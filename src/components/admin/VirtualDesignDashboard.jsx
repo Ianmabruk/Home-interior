@@ -194,18 +194,31 @@ export const VirtualDesignDashboard = () => {
       const file = mainMediaFiles[0]
       if (file && file instanceof File) {
         payload.append('media', file)
+      } else if (editingId && file && file.url) {
+        // Preserve existing media URL when editing without uploading a new file
+        payload.append('mediaUrl', file.url)
       }
 
       if (circularImageFile && circularImageFile instanceof File) {
         payload.append('homepageCircularImage', circularImageFile)
+      } else if (editingId && circularImageFile && circularImageFile.url) {
+        // Preserve existing circular image URL when editing without uploading a new file
+        payload.append('homepageCircularImage', circularImageFile.url)
       }
 
       if (galleryFiles.length > 0) {
+        const existingGalleryUrls = []
         galleryFiles.forEach((file) => {
           if (file instanceof File) {
             payload.append('gallery', file)
+          } else if (file && file.url) {
+            existingGalleryUrls.push(file.url)
           }
         })
+        // Preserve existing gallery URLs when editing
+        if (editingId && existingGalleryUrls.length > 0) {
+          payload.append('existingMediaUrls', JSON.stringify(existingGalleryUrls))
+        }
       }
 
       if (editingId) {

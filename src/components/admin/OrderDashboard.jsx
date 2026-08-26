@@ -5,6 +5,7 @@ import { Package, Eye, X, Search, ChevronDown, Save, ExternalLink } from 'lucide
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
+import { useCurrency } from '../../context/CurrencyContext'
 
 const ALLOWED_STATUSES = [
   'order placed',
@@ -79,8 +80,10 @@ export const OrderDashboard = () => {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [viewOrder, setViewOrder] = useState(null)
+  const [trackingInput, setTrackingInput] = useState('')
   const location = useLocation()
   const navigate = useNavigate()
+  const { formatPrice } = useCurrency()
 
   const urlOrderId = useMemo(() => {
     try {
@@ -164,6 +167,20 @@ export const OrderDashboard = () => {
       toast.success('Payment status updated.')
     } catch (err) {
       toast.error(err?.message || 'Failed to update payment status.')
+    }
+  }
+
+  const updateTrackingNumber = async (orderId, trackingNumber) => {
+    try {
+      await api.patch(`/orders/${orderId}/tracking`, { trackingNumber })
+      setOrders((prev) => prev.map((o) => (o._id === orderId || o.id === orderId ? { ...o, trackingNumber } : o)))
+      if (viewOrder && (viewOrder._id === orderId || viewOrder.id === orderId)) {
+        setViewOrder((prev) => ({ ...prev, trackingNumber }))
+      }
+      dispatchAdminDataChanged('orders-changed')
+      toast.success('Tracking number updated.')
+    } catch (err) {
+      toast.error(err?.message || 'Failed to update tracking number.')
     }
   }
 
@@ -298,7 +315,7 @@ export const OrderDashboard = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-2xs text-[var(--primary)]/40">Total</span>
-                    <span className="text-sm font-semibold text-[var(--primary)]">${Number(order.total || 0).toFixed(2)}</span>
+                    <span className="text-sm font-semibold text-[var(--primary)]">{formatPrice(Number(order.total || 0))}</span>
                   </div>
                 </div>
 
@@ -356,14 +373,42 @@ export const OrderDashboard = () => {
                 </div>
               </div>
 
-                {viewOrder.trackingNumber && (
-                  <div>
-                    <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Tracking Number</p>
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20">
-                      <span className="text-sm font-semibold text-[var(--accent)]">{viewOrder.trackingNumber}</span>
-                    </div>
-                  </div>
-                )}
+                 {viewOrder.trackingNumber && (
+                   <div>
+                     <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Tracking Number</p>
+                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20">
+                       <span className="text-sm font-semibold text-[var(--accent)]">{viewOrder.trackingNumber}</span>
+                     </div>
+                   </div>
+                 )}
+
+                 <div className="border-t border-[var(--border)]/40 pt-4">
+                   <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Update Tracking Number</p>
+                   <div className="flex gap-2">
+                     <input
+                       type="text"
+                       value={trackingInput}
+                       onChange={(e) => setTrackingInput(e.target.value)}
+                       placeholder="Enter tracking number"
+                       className="flex-1 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
+                     />
+                     <motion.button
+                       whileHover={{ scale: 1.02 }}
+                       whileTap={{ scale: 0.98 }}
+                       onClick={() => {
+                         if (trackingInput.trim()) {
+                           updateTrackingNumber(viewOrder._id || viewOrder.id, trackingInput.trim())
+                           setTrackingInput('')
+                         }
+                       }}
+                       disabled={!trackingInput.trim()}
+                       className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-[var(--accent)]/90 disabled:opacity-50"
+                     >
+                       <Save size={14} strokeWidth={1.5} />
+                       Save
+                     </motion.button>
+                   </div>
+                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -471,7 +516,7 @@ export const OrderDashboard = () => {
                         )}
                       </div>
                       <span className="text-sm font-medium text-[var(--primary)]">
-                        ${Number(item.price || item.discountPrice || item.total || 0).toFixed(2)}
+                        {formatPrice(Number(item.price || item.discountPrice || item.total || 0))}
                       </span>
                     </div>
                   ))}
@@ -515,7 +560,7 @@ export const OrderDashboard = () => {
 
               <div className="flex items-center justify-between border-t border-[var(--border)] pt-4">
                 <span className="text-sm font-medium text-[var(--primary)]">Total</span>
-                <span className="font-display text-2xl font-medium text-[var(--primary)]">${Number(viewOrder.total || 0).toFixed(2)}</span>
+                <span className="font-display text-2xl font-medium text-[var(--primary)]">{formatPrice(Number(viewOrder.total || 0))}</span>
               </div>
             </div>
           </motion.div>

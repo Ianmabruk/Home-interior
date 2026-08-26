@@ -8,7 +8,7 @@ import { useCurrency } from '../../context/CurrencyContext'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { PageMeta } from '../../hooks/usePageMeta'
 
-const PAYMENT_NUMBER = '0723057487'
+const PAYMENT_NUMBER = '0723 05 74 87'
 
 function validateKenyanPhone(phone) {
   const cleaned = String(phone || '').replace(/\s+/g, '')
@@ -93,7 +93,11 @@ export const CheckoutPage = () => {
           country: formData.country,
         },
         shippingMethod: 'standard',
-        paymentMethod: 'cash_on_delivery',
+        paymentMethod: 'mpesa',
+        paymentDetails: {
+          mpesaNumber: '0723 05 74 87',
+          reference: `ORDER-${Date.now()}`,
+        },
         total,
       }
       const res = await api.post('/orders', orderData)
@@ -164,20 +168,25 @@ export const CheckoutPage = () => {
             )}
 
             <div className="max-w-md mx-auto bg-[var(--bg)]/60 rounded-2xl border border-[var(--border)]/40 p-6 mb-8 text-left">
-              <h3 className="font-display text-xl font-medium text-[var(--primary)] mb-4 text-center">Payment Instructions</h3>
-              <p className="text-sm text-[var(--primary)]/70 mb-4 text-center">Please send payment to the number below and include your order number in the reference.</p>
-              <div className="flex items-center justify-between bg-white rounded-xl border border-[var(--border)]/40 px-4 py-3">
+              <h3 className="font-display text-xl font-medium text-[var(--primary)] mb-4 text-center">Make Payment via M-Pesa</h3>
+              <p className="text-sm text-[var(--primary)]/70 mb-4 text-center">Send money to the number below to confirm your order.</p>
+              <div className="flex items-center justify-between bg-white rounded-xl border border-[var(--border)]/40 px-4 py-3 mb-4">
                 <div>
-                  <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Business Number</p>
+                  <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">M-Pesa Send Money</p>
                   <p className="text-lg font-semibold text-[var(--primary)]">{PAYMENT_NUMBER}</p>
                 </div>
                 <button
-                  onClick={() => navigator.clipboard.writeText(PAYMENT_NUMBER)}
+                  onClick={() => navigator.clipboard.writeText('0723057487')}
                   className="p-2 rounded-lg text-[var(--primary)]/50 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors"
                   aria-label="Copy payment number"
                 >
                   <Copy size={16} strokeWidth={1.5} />
                 </button>
+              </div>
+              <div className="bg-[var(--accent)]/10 rounded-xl p-4">
+                <p className="text-sm text-[var(--primary)]/80 text-center">
+                  <strong>Amount:</strong> {formatPrice(total)}
+                </p>
               </div>
             </div>
 

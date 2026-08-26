@@ -381,7 +381,12 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
   }
 
   if (videoFile) {
-    if (!imageFile && existing.cloudinaryId) pathsToDelete.push(existing.cloudinaryId)
+    // Delete the existing video (not the image) when a new video is uploaded.
+    // The video URL is stored in the `video` column, so we extract its public ID.
+    if (existing.video) {
+      const videoPublicId = extractPublicId(existing.video)
+      if (videoPublicId) pathsToDelete.push(videoPublicId)
+    }
 
     try {
       const uploaded = await uploadFile(videoFile.buffer, videoFile.mimetype, 'blogs')

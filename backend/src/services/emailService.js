@@ -728,6 +728,7 @@ export default {
   sendNewsletterNotificationEmail,
   sendMailingListWelcomeEmail,
   getSmtpTransport,
+  sendRawEmail,
 }
 
 export const emailService = {
@@ -740,4 +741,5 @@ export const emailService = {
   sendNewsletterNotificationEmail,
   sendMailingListWelcomeEmail,
   getSmtpTransport,
+  sendRawEmail,
 }

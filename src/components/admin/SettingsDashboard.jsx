@@ -8,7 +8,7 @@ import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 const INITIAL_SETTINGS = {
   siteName: '',
   supportEmail: '',
-  currency: 'USD',
+  currency: 'KES',
   maintenanceMode: false,
   shippingPolicy: '',
   returnPolicy: '',
@@ -198,15 +198,9 @@ export const SettingsDashboard = () => {
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Currency</label>
-                  <select
-                    value={settings.currency}
-                    onChange={(e) => handleChange('currency', e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                  >
-                    <option value="USD">USD ($)</option>
-                    <option value="KES">KES (KSh)</option>
-                    <option value="EUR">EUR (€)</option>
-                  </select>
+                  <div className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)]/50 px-4 py-3 text-sm text-[var(--primary)]/70 h-12 flex items-center">
+                    KES (KSh) — Kenyan Shilling
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <input

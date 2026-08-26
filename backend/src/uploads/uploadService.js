@@ -12,6 +12,8 @@ const UPLOADS_DIR = path.join(__dirname, '..', 'public', 'uploads')
 const MAX_IMAGE_WIDTH = 2048
 const MAX_IMAGE_HEIGHT = 2048
 const IMAGE_QUALITY = 80
+// Timeout for image processing to prevent blocking on large/corrupt images
+const IMAGE_PROCESSING_TIMEOUT_MS = 15000
 
 function ensureDir(dir) {
   try {
@@ -26,37 +28,48 @@ async function optimizeImageBuffer(buffer, mimetype) {
     return buffer
   }
 
-  try {
-    const metadata = await sharp(buffer).metadata()
-    const { width, height } = metadata
+  // Wrap image processing in a timeout to prevent blocking on large images
+  return Promise.race([
+    processImageBuffer(buffer, mimetype),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Image processing timeout')), IMAGE_PROCESSING_TIMEOUT_MS)
+    ),
+  ]).catch((err) => {
+    // If processing fails or times out, return the original buffer
+    // The upload will still succeed, just without optimization
+    console.warn(`[uploadService] Image optimization failed, using original: ${err?.message || err}`)
+    return buffer
+  })
+}
 
-    if (!width || !height) {
-      return buffer
-    }
+async function processImageBuffer(buffer, mimetype) {
+  const metadata = await sharp(buffer).metadata()
+  const { width, height } = metadata
 
-    if (width <= MAX_IMAGE_WIDTH && height <= MAX_IMAGE_HEIGHT) {
-      return buffer
-    }
-
-    const pipeline = sharp(buffer)
-    if (width > MAX_IMAGE_WIDTH || height > MAX_IMAGE_HEIGHT) {
-      pipeline.resize(MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT, {
-        fit: 'inside',
-        withoutEnlargement: true,
-      })
-    }
-
-    const optimized = await pipeline
-      .jpeg({ quality: IMAGE_QUALITY, progressive: true })
-      .png({ quality: IMAGE_QUALITY, progressive: true })
-      .webp({ quality: IMAGE_QUALITY })
-      .toFormat('webp')
-      .toBuffer()
-
-    return optimized
-  } catch {
+  if (!width || !height) {
     return buffer
   }
+
+  if (width <= MAX_IMAGE_WIDTH && height <= MAX_IMAGE_HEIGHT) {
+    return buffer
+  }
+
+  const pipeline = sharp(buffer)
+  if (width > MAX_IMAGE_WIDTH || height > MAX_IMAGE_HEIGHT) {
+    pipeline.resize(MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT, {
+      fit: 'inside',
+      withoutEnlargement: true,
+    })
+  }
+
+  const optimized = await pipeline
+    .jpeg({ quality: IMAGE_QUALITY, progressive: true })
+    .png({ quality: IMAGE_QUALITY, progressive: true })
+    .webp({ quality: IMAGE_QUALITY })
+    .toFormat('webp')
+    .toBuffer()
+
+  return optimized
 }
 
 async function uploadToLocal(buffer, mimetype, folder) {
