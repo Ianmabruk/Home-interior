@@ -12,6 +12,7 @@ export const authService = {
 }
 
 async function login(email, password) {
+  // Single query to fetch admin
   const admin = await withRetry(() => prisma.admin.findUnique({
     where: { email },
     select: { id: true, email: true, passwordHash: true, fullName: true, role: true },
@@ -30,14 +31,18 @@ async function login(email, password) {
   const accessToken = jwt.sign(payload, env.jwtAccessSecret, { expiresIn: env.accessTokenTtl || '15m' })
   const refreshToken = jwt.sign(payload, env.jwtRefreshSecret, { expiresIn: env.refreshTokenTtl || '30d' })
 
-  await withRetry(() => prisma.passwordReset.deleteMany({ where: { adminId: admin.id } })).catch(() => {})
-  await withRetry(() => prisma.passwordReset.create({
-    data: {
-      adminId: admin.id,
-      token: refreshToken,
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    },
-  }))
+  // Store refresh token for session management (async, non-blocking)
+  // This is not critical for login success
+  setImmediate(() => {
+    prisma.passwordReset.deleteMany({ where: { adminId: admin.id } }).catch(() => {})
+    prisma.passwordReset.create({
+      data: {
+        adminId: admin.id,
+        token: refreshToken,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    }).catch(() => {})
+  })
 
   return {
     user: { id: admin.id, email: admin.email, fullName: admin.fullName, role: admin.role },

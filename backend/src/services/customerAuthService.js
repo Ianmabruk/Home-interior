@@ -61,13 +61,16 @@ async function login(email, password) {
   const accessToken = jwt.sign(payload, env.jwtAccessSecret, { expiresIn: env.accessTokenTtl || '15m' })
   const refreshToken = jwt.sign(payload, env.jwtRefreshSecret, { expiresIn: env.refreshTokenTtl || '30d' })
 
-  await withRetry(() => prisma.passwordReset.create({
-    data: {
-      userId: user.id,
-      token: refreshToken,
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    },
-  })).catch(() => {})
+  // Store refresh token asynchronously - not critical for login success
+  setImmediate(() => {
+    prisma.passwordReset.create({
+      data: {
+        userId: user.id,
+        token: refreshToken,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    }).catch(() => {})
+  })
 
   return {
     user: { id: user.id, email: user.email, fullName: user.fullName, phone: user.phone, role: user.role },

@@ -71,13 +71,16 @@ export const authController = {
       { expiresIn: env.refreshTokenTtl || '30d' },
     )
 
-    await withRetry(() => prisma.passwordReset.create({
-      data: {
-        userId: user.id,
-        token: refreshToken,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      },
-    })).catch(() => {})
+    // Store refresh token asynchronously - not critical for signup response
+    setImmediate(() => {
+      withRetry(() => prisma.passwordReset.create({
+        data: {
+          userId: user.id,
+          token: refreshToken,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+      })).catch(() => {})
+    })
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
