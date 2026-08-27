@@ -77,21 +77,26 @@ async function start() {
     const adminCount = await prisma.admin.count()
     if (adminCount === 0) {
       const adminEmail = env.adminEmail || 'info@hokinteriors.co.ke'
-      const adminPassword = env.adminPassword
-      if (!adminPassword) {
-        log.warn('No ADMIN_PASSWORD / SEED_ADMIN_PASSWORD set — skipping default admin creation. Set ADMIN_PASSWORD to create one.')
-      } else {
-        const passwordHash = await bcrypt.hash(adminPassword, 12)
-        await prisma.admin.create({
-          data: {
-            email: adminEmail,
-            passwordHash,
-            fullName: 'Admin',
-            role: 'ADMIN',
-          },
-        })
-        log.info('Default admin account created (email: ' + adminEmail + ')')
-      }
+      const adminPassword = env.adminPassword || 'admin123'
+      const passwordHash = await bcrypt.hash(adminPassword, 12)
+      await prisma.admin.create({
+        data: {
+          email: adminEmail,
+          passwordHash,
+          fullName: 'Admin',
+          role: 'ADMIN',
+        },
+      })
+      log.info('Default admin account created (email: ' + adminEmail + ')')
+    } else if (process.env.RESET_ADMIN_PASSWORD) {
+      const adminEmail = env.adminEmail || 'info@hokinteriors.co.ke'
+      const adminPassword = process.env.RESET_ADMIN_PASSWORD
+      const passwordHash = await bcrypt.hash(adminPassword, 12)
+      await prisma.admin.updateMany({
+        where: { email: adminEmail },
+        data: { passwordHash },
+      })
+      log.info('Admin password reset for ' + adminEmail)
     } else {
       log.info('Admin accounts already exist — skipping auto-seed')
     }

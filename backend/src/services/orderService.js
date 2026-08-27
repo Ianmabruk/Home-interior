@@ -1,4 +1,4 @@
-import { prisma, withRetry } from '../config/database.js'
+import { prisma, withRetry, withRetryTransaction } from '../config/database.js'
 import { failure } from '../utils/response.js'
 import { sendOrderConfirmationEmail, default as emailService } from './emailService.js'
 
@@ -130,7 +130,8 @@ async function createOrderInternal(data, signature) {
   // Use transaction to batch all database operations
   // This reduces round trips from 4+ to 1
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await withRetryTransaction(() =>
+      prisma.$transaction(async (tx) => {
       const txT0 = Date.now()
       // Fetch products within transaction
       const products = productIds.length > 0 ? await tx.product.findMany({
@@ -225,8 +226,9 @@ async function createOrderInternal(data, signature) {
       maxWait: 5000,
       timeout: 10000,
     })
-    console.log(`[ORDER ${signature}] INTERNAL_COMPLETE ${Date.now() - t0}ms`)
-    return result
+  )
+  console.log(`[ORDER ${signature}] INTERNAL_COMPLETE ${Date.now() - t0}ms`)
+  return result
   } catch (err) {
     console.error(`[ORDER ${signature}] INTERNAL_FAILED ${Date.now() - t0}ms`, err?.code, err?.message || err)
     if (err?.status) throw err

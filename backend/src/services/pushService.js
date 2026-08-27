@@ -74,8 +74,11 @@ export async function deactivateSubscription(endpoint) {
 }
 
 async function sendToOne(sub, payload) {
-  try {
-    await webpush.sendNotification(sub.endpoint, payload, {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      resolve({ ok: false, reason: 'timeout' })
+    }, 10000)
+    webpush.sendNotification(sub.endpoint, payload, {
       vapidDetails: {
         publicKey: VAPID_PUBLIC_KEY,
         privateKey: VAPID_PRIVATE_KEY,
@@ -83,15 +86,20 @@ async function sendToOne(sub, payload) {
       },
       TTL: 60,
     })
-    return { ok: true }
-  } catch (err) {
-    const status = err?.statusCode || err?.response?.statusCode
-    if (status === 404 || status === 410) {
-      await deactivateSubscription(sub.endpoint)
-      return { ok: false, reason: 'endpoint-gone' }
-    }
-    return { ok: false, reason: err?.message || 'send-error' }
-  }
+      .then(() => {
+        clearTimeout(timer)
+        resolve({ ok: true })
+      })
+      .catch((err) => {
+        clearTimeout(timer)
+        const status = err?.statusCode || err?.response?.statusCode
+        if (status === 404 || status === 410) {
+          deactivateSubscription(sub.endpoint).catch(() => {})
+          resolve({ ok: false, reason: 'endpoint-gone' })
+        }
+        resolve({ ok: false, reason: err?.message || 'send-error' })
+      })
+  })
 }
 
 export async function notifyAdmins({ title, body, url, tag }) {
@@ -103,21 +111,28 @@ export async function notifyAdmins({ title, body, url, tag }) {
   if (subs.length === 0) return { sent: 0, failed: 0, skipped: false }
 
   const payload = JSON.stringify({ title, body, url, tag })
+
+  // Send all notifications in parallel with per-subscription timeout.
+  const results = await Promise.allSettled(
+    subs.map((sub) => {
+      const parsedKeys = (() => {
+        try { return typeof sub.keys === 'string' ? JSON.parse(sub.keys) : sub.keys } catch { return {} }
+      })()
+      const nativeSub = {
+        endpoint: sub.endpoint,
+        keys: {
+          p256dh: parsedKeys.p256dh,
+          auth: parsedKeys.auth,
+        },
+      }
+      return sendToOne(nativeSub, payload)
+    })
+  )
+
   let sent = 0
   let failed = 0
-  for (const sub of subs) {
-    const parsedKeys = (() => {
-      try { return typeof sub.keys === 'string' ? JSON.parse(sub.keys) : sub.keys } catch { return {} }
-    })()
-    const nativeSub = {
-      endpoint: sub.endpoint,
-      keys: {
-        p256dh: parsedKeys.p256dh,
-        auth: parsedKeys.auth,
-      },
-    }
-    const result = await sendToOne(nativeSub, payload)
-    if (result.ok) sent++
+  for (const r of results) {
+    if (r.status === 'fulfilled' && r.value?.ok) sent++
     else failed++
   }
   return { sent, failed, skipped: false }

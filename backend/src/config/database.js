@@ -20,25 +20,15 @@ function buildDatabaseUrl() {
   }
 
   if (usingPooler) {
-    // When using Neon's serverless pooler (PgBouncer in transaction-pooling mode),
-    // pgbouncer=true tells Prisma to use transaction pooling.
-    // connection_limit controls how many concurrent connections Prisma opens to the pooler.
-    // Neon's pooler multiplexes connections, so we can use a higher limit without
-    // exhausting database resources. Using limit=1 causes severe pool starvation
-    // when multiple queries run concurrently (e.g., homepage's 13 parallel queries).
     url.searchParams.set('pgbouncer', 'true')
     url.searchParams.set('connection_limit', process.env.NODE_ENV === 'production' ? '10' : '5')
-    url.searchParams.set('pool_timeout', '10')
   } else if (isNeon) {
     url.searchParams.set('connection_limit', process.env.NODE_ENV === 'production' ? '10' : '10')
   } else {
     url.searchParams.set('connection_limit', process.env.NODE_ENV === 'production' ? '10' : '10')
   }
 
-  // connect_timeout: max seconds to wait for a connection to establish
   url.searchParams.set('connect_timeout', '5')
-  // pool_timeout: max seconds to wait for a connection from the pool.
-  // Set to 10s to allow queuing during burst traffic without premature timeout
   url.searchParams.set('pool_timeout', '10')
   // idle_in_transaction_session_timeout: kill idle transactions after 30s
   url.searchParams.set('idle_in_transaction_session_timeout', '30000')
@@ -66,6 +56,25 @@ function createPrismaClient() {
 
 const RETRYABLE_CODES = new Set(['P2024', 'P1001', 'P1008', 'P1009'])
 
+export function withTimeout(promise, timeoutMs = 10000) {
+  let timer
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`Query timed out after ${timeoutMs}ms`))
+    }, timeoutMs)
+  })
+  return Promise.race([
+    promise.then((value) => {
+      clearTimeout(timer)
+      return value
+    }),
+    timeout.then((_, err) => {
+      if (typeof promise.cancel === 'function') promise.cancel()
+      throw err
+    }),
+  ])
+}
+
 export async function withRetry(fn, retries = 3, delayMs = 100, maxTotalMs = 5000) {
   const startTime = Date.now()
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -85,12 +94,25 @@ export async function withRetry(fn, retries = 3, delayMs = 100, maxTotalMs = 500
   }
 }
 
+export async function withRetryTransaction(fn, retries = 1, delayMs = 200) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn()
+    } catch (err) {
+      const code = err?.code
+      const message = String(err?.message || '')
+      const isRetryable = RETRYABLE_CODES.has(code) || /kind:\s*Closed/i.test(message) || /P1002/i.test(message)
+      if (!isRetryable || attempt === retries) throw err
+      if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs))
+    }
+  }
+}
+
 function createRetryingPrisma(rawPrisma) {
   const retryableQueryMethods = new Set([
     'findMany', 'findFirst', 'findUnique', 'create', 'createMany',
     'update', 'updateMany', 'delete', 'deleteMany', 'count',
     'groupBy', '$queryRaw', '$queryRawUnsafe', '$executeRaw', '$executeRawUnsafe',
-    '$transaction',
   ])
 
   function retryable(fn) {

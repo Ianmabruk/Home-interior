@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer'
-import { prisma } from '../config/database.js'
+import { prisma, withTimeout } from '../config/database.js'
 import { env } from '../config/env.js'
 
 // Lazily create the SMTP transporter so we never construct it before env is ready.
@@ -99,26 +99,18 @@ async function sendRawEmail({ eventId, to, name, subject, html, text }) {
   let status = 'queued'
   let failureReason = null
 
-  const payload = {
-    to: [{ email: to, name: name || 'Customer' }],
-    sender: { email: SENDER, name: siteName },
-    subject,
-    htmlContent: html,
-    replyTo: { email: SUPPORT_EMAIL, name: siteName },
-  }
-
   try {
     const transport = getSmtpTransport()
     if (transport) {
       // HostPinnacle SMTP (primary)
-      const info = await transport.sendMail({
+      const info = await withTimeout(transport.sendMail({
         from: SENDER,
         to,
         subject,
         html,
         text,
         replyTo: SUPPORT_EMAIL,
-      })
+      }), 10000)
       provider = 'smtp'
       messageId = info?.messageId || null
       status = 'sent'
