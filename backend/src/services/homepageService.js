@@ -112,19 +112,22 @@ async function getHomepage() {
         return fallback
       }
 
-      const portfolio = getResult(0, [])
-      const virtualDesigns = getResult(1, [])
-      const services = getResult(2, [])
+      // Defensive guard: ensure each result is an array (in case Prisma or the
+      // retry wrapper returns an unexpected type). This prevents "X.map is not a function"
+      // errors that would crash the entire homepage response.
+      const asArray = (val) => Array.isArray(val) ? val : []
+      const portfolio = asArray(getResult(0, []))
+      const virtualDesigns = asArray(getResult(1, []))
+      const services = asArray(getResult(2, []))
       const about = getResult(3, null)
-      const aboutImages = getResult(4, [])
-      const testimonials = getResult(5, [])
-      const workWithUs = getResult(6, [])
-      const heroMedia = getResult(7, [])
-      const featuredProducts = getResult(8, [])
+      const aboutImages = asArray(getResult(4, []))
+      const testimonials = asArray(getResult(5, []))
+      const workWithUs = asArray(getResult(6, []))
+      const heroMedia = asArray(getResult(7, []))
+      const featuredProducts = asArray(getResult(8, []))
       const shopWithUsImage = getResult(9, null)
-      const blogRaw = getResult(10, [])
-      const blog = Array.isArray(blogRaw) ? blogRaw : []
-      const socialItems = getResult(11, [])
+      const blog = asArray(getResult(10, []))
+      const socialItems = asArray(getResult(11, []))
       const contact = getResult(12, null)
 
       const featuredPortfolio = portfolio.filter((p) => p.featured).slice(0, 3)
