@@ -26,8 +26,6 @@ export const env = {
     smtpSecure: process.env.SMTP_SECURE !== 'false',
     smtpUser: process.env.SMTP_USER || process.env.SMTP_FROM || 'info@hokinteriors.co.ke',
     smtpFrom: process.env.SMTP_FROM || 'HOK Interiors <info@hokinteriors.co.ke>',
-    brevoApiKey: process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY,
-    brevoSender: process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'info@hokinteriors.co.ke',
     loginNotificationEnabled: process.env.LOGIN_NOTIFICATION_ENABLED !== 'false',
   },
 }

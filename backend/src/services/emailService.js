@@ -1,13 +1,6 @@
 import nodemailer from 'nodemailer'
-import { BrevoClient, BrevoEnvironment } from '@getbrevo/brevo'
 import { prisma } from '../config/database.js'
 import { env } from '../config/env.js'
-
-// Brevo client — used only as a fallback when HostPinnacle SMTP is not configured.
-const brevoClient = new BrevoClient({
-  apiKey: env.email.brevoApiKey || '',
-  environment: BrevoEnvironment.COMMON,
-})
 
 // Lazily create the SMTP transporter so we never construct it before env is ready.
 let smtpTransport = null
@@ -93,8 +86,12 @@ async function sendRawEmail({ eventId, to, name, subject, html, text }) {
   }
 
   // Idempotency guard: never send the same event twice.
-  if (eventId && (await hasSent(eventId))) {
-    return { skipped: true, reason: 'already_sent' }
+  // Run this check asynchronously to avoid blocking the order/response.
+  if (eventId) {
+    const alreadySent = await hasSent(eventId).catch(() => false)
+    if (alreadySent) {
+      return { skipped: true, reason: 'already_sent' }
+    }
   }
 
   let provider = 'none'
@@ -125,14 +122,8 @@ async function sendRawEmail({ eventId, to, name, subject, html, text }) {
       provider = 'smtp'
       messageId = info?.messageId || null
       status = 'sent'
-    } else if (env.email.brevoApiKey) {
-      // Brevo fallback (existing deployments)
-      const result = await brevoClient.transactionalEmails.sendTransacEmail(payload)
-      provider = 'brevo'
-      messageId = result?.messageId || null
-      status = 'sent'
     } else {
-      console.warn('[emailService] No SMTP_PASSWORD or BREVO_API_KEY configured. Email not sent (dev mode).')
+      console.warn('[emailService] No SMTP_PASSWORD configured. Email not sent (dev mode).')
       provider = 'none'
       status = 'skipped'
       return { skipped: true, reason: 'not_configured' }
@@ -141,11 +132,12 @@ async function sendRawEmail({ eventId, to, name, subject, html, text }) {
     console.error('[emailService] send failed:', err?.message || err)
     status = 'failed'
     failureReason = err?.message || String(err)
-    provider = getSmtpTransport() ? 'smtp' : (env.email.brevoApiKey ? 'brevo' : 'none')
-    // Do NOT throw — order/registration must not be corrupted by email failure (Phase 14).
+    provider = 'smtp'
+    // Do NOT throw — order/registration must not be corrupted by email failure.
   }
 
-  await recordSent({
+  // Record sent email asynchronously to avoid blocking the response
+  recordSent({
     eventId,
     recipient: to,
     recipientName: name,
@@ -156,7 +148,7 @@ async function sendRawEmail({ eventId, to, name, subject, html, text }) {
     messageId,
     failureReason,
     orderId: null,
-  })
+  }).catch(() => {})
 
   return { skipped: status === 'failed' || status === 'skipped' || status === 'queued', provider, messageId, status, failureReason }
 }

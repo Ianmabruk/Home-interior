@@ -25,20 +25,9 @@ const EmptySection = memo(() => (
 EmptySection.displayName = 'EmptySection'
 
 export const HomePage = memo(() => {
-    const [portfolio, setPortfolio] = useState([])
-   const [services, setServices] = useState([])
-   const [virtualDesigns, setVirtualDesigns] = useState([])
-   const [products, setProducts] = useState([])
-   const [loading, setLoading] = useState(true)
-   const [heroImages, setHeroImages] = useState([])
-   const [about, setAbout] = useState(null)
-   const [aboutImages, setAboutImages] = useState([])
-   const [socialItems, setSocialItems] = useState([])
-   const [blog, setBlog] = useState([])
-   const [workWithUs, setWorkWithUs] = useState([])
-   const [testimonials, setTestimonials] = useState([])
-   const [shopWithUsHomepageImage, setShopWithUsHomepageImage] = useState(null)
-   const [circularTabs, setCircularTabs] = useState({})
+    const [loading, setLoading] = useState(true)
+    const [heroImages, setHeroImages] = useState([])
+    const [circularTabs, setCircularTabs] = useState({})
 
   const loadCircularTabs = useCallback(async () => {
     try {
@@ -53,17 +42,6 @@ export const HomePage = memo(() => {
     try {
       const homeRes = await api.get('/homepage')
       const data = homeRes.data || {}
-      setPortfolio(data.portfolio || [])
-      setServices(data.services || [])
-      setVirtualDesigns(data.virtualInteriorDesign || data.virtualDesigns || [])
-      setProducts(data.products || [])
-      setAbout(data.about || null)
-      setAboutImages(data.aboutImages || [])
-      setSocialItems(data.socialItems || [])
-      setBlog(data.blog || [])
-      setWorkWithUs(data.workWithUs || [])
-      setTestimonials(data.testimonials || [])
-      setShopWithUsHomepageImage(data.shopWithUsHomepageImage || null)
 
       const homeHeroImages = data.heroImages || data.heroMedia || []
       if (Array.isArray(homeHeroImages) && homeHeroImages.length > 0) {
@@ -74,47 +52,16 @@ export const HomePage = memo(() => {
         const heroList = Array.isArray(heroData) ? heroData : []
         setHeroImages(heroList)
       }
-
-      if (!Array.isArray(data.workWithUs) || data.workWithUs.length === 0) {
-        try {
-          const wwuRes = await api.get('/work-with-us')
-          const wwuData = wwuRes.data
-          const wwuList = Array.isArray(wwuData) ? wwuData : []
-          setWorkWithUs(wwuList)
-        } catch (wwuErr) {
-          console.warn('[HOME] Failed to load work-with-us:', wwuErr?.message)
-        }
-      }
     } catch (err) {
       console.warn('[HOME] Failed to load data, fetching individual endpoints:', err?.message)
       try {
-        const [heroRes, portfolioRes, servicesRes, productsRes, virtualRes] = await Promise.allSettled([
+        const [heroRes] = await Promise.allSettled([
           api.get('/hero-media'),
-          api.get('/portfolio'),
-          api.get('/services'),
-          api.get('/products', { params: { sort: '-createdAt', limit: 1 } }),
-          api.get('/virtual-design'),
         ])
         if (heroRes.status === 'fulfilled') {
           const heroData = heroRes.value.data
           const heroList = Array.isArray(heroData) ? heroData : (heroData || [])
           setHeroImages(heroList)
-        }
-        if (portfolioRes.status === 'fulfilled') {
-          const portfolioData = portfolioRes.value.data
-          setPortfolio(Array.isArray(portfolioData) ? portfolioData : [])
-        }
-        if (servicesRes.status === 'fulfilled') {
-          const servicesData = servicesRes.value.data
-          setServices(Array.isArray(servicesData) ? servicesData : [])
-        }
-        if (productsRes.status === 'fulfilled') {
-          const productsData = productsRes.value.data
-          setProducts(Array.isArray(productsData) ? productsData : [])
-        }
-        if (virtualRes.status === 'fulfilled') {
-          const virtualData = virtualRes.value.data
-          setVirtualDesigns(Array.isArray(virtualData) ? virtualData : [])
         }
       } catch (fallbackErr) {
         console.warn('[HOME] Fallback fetch failed:', fallbackErr?.message)
@@ -133,16 +80,7 @@ useEffect(() => {
     const handler = (event) => {
       const payload = getAdminDataChangedPayload(event)
       if (
-        payload?.type === 'portfolio-changed' ||
-        payload?.type === 'services-changed' ||
-        payload?.type === 'virtual-changed' ||
         payload?.type === 'hero-images-changed' ||
-        payload?.type === 'products-changed' ||
-        payload?.type === 'about-changed' ||
-        payload?.type === 'blog-changed' ||
-        payload?.type === 'socials-changed' ||
-        payload?.type === 'work-with-us-changed' ||
-        payload?.type === 'testimonials-changed' ||
         payload?.type === 'settings-changed'
       ) {
         clearApiCache('/homepage')
