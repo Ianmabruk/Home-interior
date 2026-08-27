@@ -71,6 +71,7 @@ export const AdminPage = () => {
   }, [])
 
   if (loading) {
+    console.log('[admin] loading state, token present:', !!localStorage.getItem('hok_access_token'))
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
@@ -79,6 +80,7 @@ export const AdminPage = () => {
   }
 
   if (!isAdmin) {
+    console.log('[admin] not admin, user:', user ? { id: user.id, email: user.email, role: user.role } : null)
     return <AdminLoginPage />
   }
 

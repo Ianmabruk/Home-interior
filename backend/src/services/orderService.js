@@ -118,22 +118,27 @@ async function createOrder(data) {
 }
 
 async function createOrderInternal(data, signature) {
+  const t0 = Date.now()
   const enrichedItems = Array.isArray(data.items) ? data.items : (() => { try { return JSON.parse(data.items || '[]') } catch { return [] } })()
   if (!enrichedItems.length) {
     throw failure(400, 'Order must contain at least one item')
   }
 
   const productIds = enrichedItems.map((i) => i.productId).filter(Boolean)
+  console.log(`[ORDER ${signature}] INTERNAL_START ${Date.now() - t0}ms items=${enrichedItems.length} products=${productIds.length}`)
 
   // Use transaction to batch all database operations
   // This reduces round trips from 4+ to 1
   try {
-    return await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
+      const txT0 = Date.now()
       // Fetch products within transaction
       const products = productIds.length > 0 ? await tx.product.findMany({
         where: { id: { in: productIds } },
         include: { variants: true },
       }) : []
+      console.log(`[ORDER ${signature}] TX_PRODUCTS_FETCHED ${Date.now() - txT0}ms count=${products.length}`)
+
       const productMap = new Map(products.map((p) => [p.id, p]))
 
       const finalItems = enrichedItems.map((item) => {
@@ -163,13 +168,14 @@ async function createOrderInternal(data, signature) {
 
       const missingProducts = enrichedItems.filter((i) => i.productId && !productMap.has(i.productId))
       if (missingProducts.length > 0) {
-        console.warn(`[orders] Missing products for IDs: ${missingProducts.map((i) => i.productId).join(', ')}`)
+        console.warn(`[ORDER ${signature}] Missing products for IDs: ${missingProducts.map((i) => i.productId).join(', ')}`)
       }
 
       const serverTotal = finalItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
 
       // Generate tracking number (no extra SELECT query needed)
       const trackingNumber = generateTrackingNumber()
+      console.log(`[ORDER ${signature}] TX_ORDER_CREATE_START ${Date.now() - txT0}ms`)
 
       // Create order within transaction
       const created = await tx.order.create({
@@ -180,8 +186,10 @@ async function createOrderInternal(data, signature) {
           trackingNumber,
         },
       })
+      console.log(`[ORDER ${signature}] TX_ORDER_CREATED ${Date.now() - txT0}ms id=${created.id}`)
 
       // Stock validation and updates within transaction
+      const stockT0 = Date.now()
       for (const item of finalItems) {
         if (!item.productId) continue
         const product = productMap.get(item.productId)
@@ -207,21 +215,26 @@ async function createOrderInternal(data, signature) {
           data: { stock: { decrement: qty } },
         })
       }
+      console.log(`[ORDER ${signature}] TX_STOCK_UPDATED ${Date.now() - stockT0}ms items=${finalItems.length}`)
 
-return parseOrder(created)
+      const order = parseOrder(created)
+      console.log(`[ORDER ${signature}] TX_COMMIT ${Date.now() - txT0}ms total=${Date.now() - t0}ms`)
+      return order
     }, {
-      isolationLevel: 'Serializable',
+      isolationLevel: 'ReadCommitted',
       maxWait: 5000,
       timeout: 10000,
     })
+    console.log(`[ORDER ${signature}] INTERNAL_COMPLETE ${Date.now() - t0}ms`)
+    return result
   } catch (err) {
+    console.error(`[ORDER ${signature}] INTERNAL_FAILED ${Date.now() - t0}ms`, err?.code, err?.message || err)
     if (err?.status) throw err
     // Handle unique constraint violation on tracking number
     if (err?.code === 'P2002') {
       // Retry with new tracking number
       return createOrderInternal(data, signature)
     }
-    console.error('[orders] order create failed:', err)
     throw failure(500, err?.message || 'Failed to create order')
   }
 }

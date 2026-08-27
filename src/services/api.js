@@ -3,9 +3,11 @@ import axios from 'axios'
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 // Timeout configuration:
-// - Regular requests: 30s (increased from 15s to handle database operations)
+// - Regular requests: 30s
+// - Order requests: 120s (order creation may involve database transactions, stock updates, and notifications)
 // - Upload requests: 120s (for large file uploads)
 const REGULAR_TIMEOUT = 30000
+const ORDER_TIMEOUT = 120000
 const UPLOAD_TIMEOUT = 120000
 
 export const api = axios.create({
@@ -210,8 +212,15 @@ function isUploadRequest(config) {
   )
 }
 
+function getRequestTimeout(config) {
+  if (isUploadRequest(config)) return UPLOAD_TIMEOUT
+  const url = config.url || ''
+  if (url.includes('/orders')) return ORDER_TIMEOUT
+  return REGULAR_TIMEOUT
+}
+
 api.get = function (url, config) {
-  const merged = { ...config, timeout: config?.timeout ?? REGULAR_TIMEOUT }
+  const merged = { ...config, timeout: config?.timeout ?? getRequestTimeout({ ...config, method: 'get', url }) }
   if (!shouldCache({ url, ...merged })) {
     return originals.get.call(api, url, merged)
   }
@@ -233,8 +242,7 @@ api.get = function (url, config) {
 }
 
 api.post = function (url, data, config) {
-  const timeout = isUploadRequest({ url, data, method: 'post', ...config }) ? UPLOAD_TIMEOUT : REGULAR_TIMEOUT
-  const merged = { ...config, timeout: config?.timeout ?? timeout }
+  const merged = { ...config, timeout: config?.timeout ?? getRequestTimeout({ ...config, method: 'post', url, data }) }
   return originals.post.call(api, url, data, merged).then((response) => {
     clearApiCache()
     return response
@@ -242,8 +250,7 @@ api.post = function (url, data, config) {
 }
 
 api.put = function (url, data, config) {
-  const timeout = isUploadRequest({ url, data, method: 'put', ...config }) ? UPLOAD_TIMEOUT : REGULAR_TIMEOUT
-  const merged = { ...config, timeout: config?.timeout ?? timeout }
+  const merged = { ...config, timeout: config?.timeout ?? getRequestTimeout({ ...config, method: 'put', url, data }) }
   return originals.put.call(api, url, data, merged).then((response) => {
     clearApiCache()
     return response
@@ -251,8 +258,7 @@ api.put = function (url, data, config) {
 }
 
 api.patch = function (url, data, config) {
-  const timeout = isUploadRequest({ url, data, method: 'patch', ...config }) ? UPLOAD_TIMEOUT : REGULAR_TIMEOUT
-  const merged = { ...config, timeout: config?.timeout ?? timeout }
+  const merged = { ...config, timeout: config?.timeout ?? getRequestTimeout({ ...config, method: 'patch', url, data }) }
   return originals.patch.call(api, url, data, merged).then((response) => {
     clearApiCache()
     return response
@@ -260,7 +266,7 @@ api.patch = function (url, data, config) {
 }
 
 api.delete = function (url, config) {
-  const merged = { ...config, timeout: config?.timeout ?? REGULAR_TIMEOUT }
+  const merged = { ...config, timeout: config?.timeout ?? getRequestTimeout({ ...config, method: 'delete', url }) }
   return originals.delete.call(api, url, merged).then((response) => {
     clearApiCache()
     return response

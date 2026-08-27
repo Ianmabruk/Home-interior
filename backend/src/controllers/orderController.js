@@ -18,12 +18,17 @@ const ALLOWED_STATUSES = [
 
 export const orderController = {
   create: asyncHandler(async (req, res) => {
+    const orderId = req.headers['x-request-id'] || `order-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const t0 = Date.now()
+    console.log(`[ORDER ${orderId}] START`)
+
     const shipping = req.body.shipping || req.body.shippingAddress || {}
     const name = String(shipping.fullName || shipping.name || req.body.name || '').trim()
     const email = String(shipping.email || req.body.email || '').trim()
     const phone = String(shipping.phone || req.body.phone || '').trim()
 
     if (!email || !name) {
+      console.log(`[ORDER ${orderId}] VALIDATION_FAILED ${Date.now() - t0}ms`)
       return res.status(400).json({ success: false, message: 'Name and email are required' })
     }
 
@@ -32,9 +37,11 @@ export const orderController = {
     try {
       parsedItems = JSON.parse(rawItems)
     } catch {
+      console.log(`[ORDER ${orderId}] VALIDATION_FAILED ${Date.now() - t0}ms`)
       return res.status(400).json({ success: false, message: 'Invalid items format' })
     }
     if (!Array.isArray(parsedItems) || parsedItems.length === 0) {
+      console.log(`[ORDER ${orderId}] VALIDATION_FAILED ${Date.now() - t0}ms`)
       return res.status(400).json({ success: false, message: 'Order must contain at least one item' })
     }
 
@@ -53,15 +60,26 @@ export const orderController = {
       paymentDetails: rawPayment,
       total: Number(req.body.total) || 0,
     }
-    const order = await orderService.createOrder(data)
+    console.log(`[ORDER ${orderId}] VALIDATION_COMPLETE ${Date.now() - t0}ms`)
+
+    let order
+    try {
+      order = await orderService.createOrder(data)
+    } catch (err) {
+      console.error(`[ORDER ${orderId}] CREATE_FAILED ${Date.now() - t0}ms`, err?.message || err)
+      throw err
+    }
+    console.log(`[ORDER ${orderId}] DB_TRANSACTION_COMPLETE ${Date.now() - t0}ms`)
 
     // Fire-and-forget admin push notification (new order). Never block the
     // customer response on push delivery; failure is logged but non-fatal.
     if (order) {
+      const pushT0 = Date.now()
       triggerNewOrderNotification(order).catch((e) =>
-        console.warn('[orders] new-order push notification failed:', e?.message)
+        console.warn(`[ORDER ${orderId}] PUSH_FAILED ${Date.now() - pushT0}ms`, e?.message)
       )
     }
+    console.log(`[ORDER ${orderId}] RESPONSE ${Date.now() - t0}ms`)
     res.status(201).json({ success: true, data: order })
   }),
 

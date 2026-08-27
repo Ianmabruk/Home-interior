@@ -24,6 +24,7 @@ export async function authenticate(req, res, next) {
         select: { id: true, email: true, fullName: true, role: true },
       }))
       if (!admin) {
+        console.warn(`[${SERVER_ID}] [auth] admin not found for token`, decoded.adminId)
         throw new ApiError(401, 'Admin not found')
       }
       req.admin = admin

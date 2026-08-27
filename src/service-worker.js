@@ -17,9 +17,7 @@ self.addEventListener('activate', (event) => {
 
 // Precache manifest injected by Workbox at build time (via VitePWA injectManifest).
 // This must remain; VitePWA replaces it with the generated asset manifest.
-/* eslint-disable no-undef */
 self.__WB_MANIFEST
-/* eslint-enable no-undef */
 
 function safeParse(text) {
   try {
@@ -78,22 +76,22 @@ self.addEventListener('notificationclick', (event) => {
           try {
             if (client.navigate) await client.navigate(targetUrl)
             return client.focus()
-          } catch (e) {
-            // fall through to opening a new window
-          }
+          } catch {
+             // fall through to opening a new window
+           }
         }
       }
 
       // No existing admin tab — open one.
       try {
         await self.clients.openWindow(targetUrl)
-      } catch (e) {
+      } catch {
         // no-op
       }
     })()
   )
 })
 
-self.addEventListener('notificationclose', (event) => {
+self.addEventListener('notificationclose', (_event) => {
   // Subscriptions are pruned server-side on send failure; nothing to do here.
 })
