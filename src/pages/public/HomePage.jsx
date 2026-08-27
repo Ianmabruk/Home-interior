@@ -87,6 +87,7 @@ useEffect(() => {
         loadData()
       }
       if (payload?.type === 'circular-tabs-changed') {
+        clearApiCache('/circular-tabs')
         loadCircularTabs()
       }
     }

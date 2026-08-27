@@ -1,7 +1,7 @@
 import { prisma, withRetry } from '../config/database.js'
 import { failure } from '../utils/response.js'
 import { VALID_CIRCULAR_KEYS } from '../constants/circularTabs.js'
-import { getCached, setCached, invalidateCache } from '../utils/cache.js'
+import { getCached, setCached, invalidateCachePattern } from '../utils/cache.js'
 
 const CIRCULAR_TABS_CACHE_TTL = 60000 // 1 minute
 
@@ -58,8 +58,8 @@ async function updateCircularTab(key, data) {
     data: updateData,
   }))
 
-  // Invalidate circular tabs cache after update
-  invalidateCache('circularTabs:')
+  // Invalidate circular tabs cache after update (prefix match clears all circular tab cache keys)
+  invalidateCachePattern('circularTabs:')
   return mapCircularTab(updated)
 }
 

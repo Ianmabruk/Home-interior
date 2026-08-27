@@ -56,11 +56,15 @@ function logoUrl() {
 }
 
 // Idempotency: record an email event attempt so the same logical event
-// can never be sent twice (Phase 11).
+// can never be sent twice (Phase 11). Only blocks retries when the status
+// is 'sent' — 'failed' or 'queued' allow a retry attempt.
 async function hasSent(eventId) {
   if (!eventId) return false
   try {
-    return !!(await prisma.emailLog.findUnique({ where: { eventId } }))
+    const entry = await prisma.emailLog.findUnique({ where: { eventId } })
+    if (!entry) return false
+    // Allow retry if the previous attempt failed or was queued
+    return entry.status === 'sent'
   } catch {
     return false
   }
