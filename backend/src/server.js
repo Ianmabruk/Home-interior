@@ -75,8 +75,10 @@ async function start() {
 
   try {
     const adminCount = await prisma.admin.count()
+    const adminEmail = env.adminEmail || 'info@hokinteriors.co.ke'
+
     if (adminCount === 0) {
-      const adminEmail = env.adminEmail || 'info@hokinteriors.co.ke'
+      // No admin exists — create one with the configured or fallback password.
       const adminPassword = env.adminPassword || 'admin123'
       const passwordHash = await bcrypt.hash(adminPassword, 12)
       await prisma.admin.create({
@@ -89,7 +91,7 @@ async function start() {
       })
       log.info('Default admin account created (email: ' + adminEmail + ')')
     } else if (process.env.RESET_ADMIN_PASSWORD) {
-      const adminEmail = env.adminEmail || 'info@hokinteriors.co.ke'
+      // Explicit reset requested via environment variable.
       const adminPassword = process.env.RESET_ADMIN_PASSWORD
       const passwordHash = await bcrypt.hash(adminPassword, 12)
       await prisma.admin.updateMany({
@@ -97,6 +99,16 @@ async function start() {
         data: { passwordHash },
       })
       log.info('Admin password reset for ' + adminEmail)
+    } else if (!env.adminPassword && process.env.NODE_ENV === 'production') {
+      // No ADMIN_PASSWORD configured in production — reset to fallback 'admin123'
+      // so the operator can always access the dashboard.
+      const adminPassword = 'admin123'
+      const passwordHash = await bcrypt.hash(adminPassword, 12)
+      await prisma.admin.updateMany({
+        where: { email: adminEmail },
+        data: { passwordHash },
+      })
+      log.info('Admin password set to default fallback for ' + adminEmail)
     } else {
       log.info('Admin accounts already exist — skipping auto-seed')
     }
