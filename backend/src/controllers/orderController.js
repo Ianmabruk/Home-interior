@@ -86,9 +86,18 @@ export const orderController = {
   }),
 
   listAll: asyncHandler(async (req, res) => {
-    const { sort } = req.query
-    const orders = await orderService.getAllOrders({ sort })
-    res.json({ success: true, data: orders })
+    const { sort, limit, skip, pagination } = req.query
+    const result = await orderService.getAllOrders({
+      sort,
+      limit: limit ? Number(limit) : 50,
+      skip: skip ? Number(skip) : 0,
+      pagination: pagination === 'true',
+    })
+    if (result.pagination) {
+      res.json({ success: true, data: result.orders, pagination: result.pagination })
+    } else {
+      res.json({ success: true, data: result.orders })
+    }
   }),
 
   get: asyncHandler(async (req, res) => {

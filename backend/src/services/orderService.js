@@ -272,13 +272,28 @@ async function getUserOrders(emailOrId) {
   return orders.map(parseOrder)
 }
 
-async function getAllOrders({ sort = '-createdAt', limit = 100 } = {}) {
+async function getAllOrders({ sort = '-createdAt', limit = 50, skip = 0, pagination = false } = {}) {
   const orderBy = sort?.startsWith('-') ? { [sort.slice(1)]: 'desc' } : { createdAt: 'asc' }
+  const take = pagination ? (Number(limit) || 50) : (Number(limit) || 100)
   const orders = await withRetry(() => prisma.order.findMany({
     orderBy,
-    take: Number(limit) || 100,
+    take,
+    skip: Number(skip) || 0,
   }))
-  return orders.map(parseOrder)
+  const result = {
+    orders: orders.map(parseOrder),
+  }
+  // Include pagination metadata when paginated queries are used
+  if (pagination) {
+    const total = await withRetry(() => prisma.order.count())
+    result.pagination = {
+      total,
+      limit: take,
+      skip: Number(skip) || 0,
+      pages: Math.ceil(total / take),
+    }
+  }
+  return result
 }
 
 async function updateOrderStatus(id, updateData) {

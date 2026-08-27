@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Package, Eye, X, Search, ChevronDown, Save, ExternalLink } from 'lucide-react'
@@ -81,6 +81,9 @@ export const OrderDashboard = () => {
   const [statusFilter, setStatusFilter] = useState('')
   const [viewOrder, setViewOrder] = useState(null)
   const [trackingInput, setTrackingInput] = useState('')
+  const [pagination, setPagination] = useState(null)
+  const [currentPage, setCurrentPage] = useState(0)
+  const PAGE_SIZE = 20
   const location = useLocation()
   const navigate = useNavigate()
   const { formatPrice } = useCurrency()
@@ -104,43 +107,34 @@ export const OrderDashboard = () => {
     }
   }, [urlOrderId, orders, viewOrder, location.search, navigate])
 
-  useEffect(() => {
-    let cancelled = false
-    const loadOrders = async () => {
-      setLoading(true)
-      try {
-        const res = await api.get('/orders', { params: { sort: '-createdAt', limit: 100 } })
-        if (!cancelled) setOrders(res.data?.data || res.data || [])
-      } catch {
-        if (!cancelled) setOrders([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
+  const fetchOrders = useCallback(async (page = 0) => {
+    setLoading(true)
+    try {
+      const res = await api.get('/orders', {
+        params: { sort: '-createdAt', limit: PAGE_SIZE, skip: page * PAGE_SIZE, pagination: 'true' },
+        timeout: 120000,
+      })
+      setOrders(res.data?.data || res.data || [])
+      setPagination(res.data?.pagination || null)
+    } catch {
+      setOrders([])
+      setPagination(null)
+    } finally {
+      setLoading(false)
     }
-    loadOrders()
-    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
+    fetchOrders(currentPage)
+  }, [currentPage, fetchOrders])
+
+  useEffect(() => {
     const handler = () => {
-      let cancelled = false
-      const loadOrders = async () => {
-        setLoading(true)
-        try {
-          const res = await api.get('/orders', { params: { sort: '-createdAt', limit: 100 } })
-          if (!cancelled) setOrders(res.data?.data || res.data || [])
-        } catch {
-          if (!cancelled) setOrders([])
-        } finally {
-          if (!cancelled) setLoading(false)
-        }
-      }
-      loadOrders()
-      return () => { cancelled = true }
+      fetchOrders(currentPage)
     }
     window.addEventListener('admin-data-changed', handler)
     return () => window.removeEventListener('admin-data-changed', handler)
-  }, [])
+  }, [currentPage, fetchOrders])
 
   const updateStatus = async (orderId, newStatus, extra = {}) => {
     try {
@@ -334,7 +328,31 @@ export const OrderDashboard = () => {
         </div>
       )}
 
-      {viewOrder && (
+      {pagination && pagination.pages > 1 && (
+        <div className="flex items-center justify-between mt-6 px-2">
+          <p className="text-2xs text-[var(--primary)]/50">
+            {pagination.total} orders • Page {currentPage + 1} of {pagination.pages}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+              disabled={currentPage === 0 || loading}
+              className="px-3 py-1 rounded-lg border border-[var(--border)] hover:bg-[var(--bg)] disabled:opacity-50 text-2xs"
+            >
+              Prev
+            </button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(pagination.pages - 1, p + 1))}
+              disabled={currentPage >= pagination.pages - 1 || loading}
+              className="px-3 py-1 rounded-lg border border-[var(--border)] hover:bg-[var(--bg)] disabled:opacity-50 text-2xs"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
+    {viewOrder && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -565,7 +583,7 @@ export const OrderDashboard = () => {
             </div>
           </motion.div>
         </motion.div>
-       )}
+        )}
     </div>
   )
 }
