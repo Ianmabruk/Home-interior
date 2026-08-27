@@ -20,19 +20,16 @@ function buildDatabaseUrl() {
   }
 
   if (usingPooler) {
-    // Neon's serverless pooler is a PgBouncer in transaction-pooling mode.
-    // Prisma must treat it as a single pooled connection: pgbouncer=true tells
-    // Prisma to use transaction pooling and connection_limit=1 prevents it from
-    // opening extra sockets on top of the pooler. Without these, Neon closes the
-    // idle spare connections and Prisma throws `Error { kind: Closed }`.
+    // When using Neon's serverless pooler (PgBouncer in transaction-pooling mode),
+    // pgbouncer=true tells Prisma to use transaction pooling.
+    // connection_limit controls how many concurrent connections Prisma opens to the pooler.
+    // Neon's pooler multiplexes connections, so we can use a higher limit without
+    // exhausting database resources. Using limit=1 causes severe pool starvation
+    // when multiple queries run concurrently (e.g., homepage's 13 parallel queries).
     url.searchParams.set('pgbouncer', 'true')
-    url.searchParams.set('connection_limit', '1')
-    // Increase pool_timeout for pooler to allow queuing without timeout
+    url.searchParams.set('connection_limit', process.env.NODE_ENV === 'production' ? '10' : '5')
     url.searchParams.set('pool_timeout', '10')
   } else if (isNeon) {
-    // Increased connection limit to prevent pool exhaustion under load.
-    // Neon supports up to 100 connections on paid plans; we use a conservative
-    // limit that handles concurrent requests without exhausting the pool.
     url.searchParams.set('connection_limit', process.env.NODE_ENV === 'production' ? '10' : '10')
   } else {
     url.searchParams.set('connection_limit', process.env.NODE_ENV === 'production' ? '10' : '10')
@@ -41,8 +38,8 @@ function buildDatabaseUrl() {
   // connect_timeout: max seconds to wait for a connection to establish
   url.searchParams.set('connect_timeout', '5')
   // pool_timeout: max seconds to wait for a connection from the pool.
-  // Reduced from 10s to fail fast when pool is exhausted rather than queueing requests.
-  url.searchParams.set('pool_timeout', '5')
+  // Set to 10s to allow queuing during burst traffic without premature timeout
+  url.searchParams.set('pool_timeout', '10')
   // idle_in_transaction_session_timeout: kill idle transactions after 30s
   url.searchParams.set('idle_in_transaction_session_timeout', '30000')
   // statement_timeout: kill queries running longer than 10s at the database level.

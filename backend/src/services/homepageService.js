@@ -169,29 +169,30 @@ async function getHomepage() {
         shopWithUsHomepageImage: shopWithUsImage?.value || null,
         circularTabs,
       }
-    } catch (err) {
-      console.error('[homepageService] Failed to load homepage data:', err)
-      return {
-        portfolio: [],
-        virtualDesigns: [],
-        virtualInteriorDesign: [],
-        services: [],
-        about: null,
-        aboutImages: [],
-        testimonials: [],
-        featuredPortfolio: [],
-        featuredVirtualDesigns: [],
-        heroImages: [],
-        heroMedia: [],
-        featuredProject: null,
-        products: [],
-        blog: [],
-        socialItems: [],
-        contact: null,
-        workWithUs: [],
-        shopWithUsHomepageImage: null,
-      }
+} catch (err) {
+    console.error('[homepageService] Failed to load homepage data:', err)
+    return {
+      portfolio: [],
+      virtualDesigns: [],
+      virtualInteriorDesign: [],
+      services: [],
+      about: null,
+      aboutImages: [],
+      testimonials: [],
+      featuredPortfolio: [],
+      featuredVirtualDesigns: [],
+      heroImages: [],
+      heroMedia: [],
+      featuredProject: null,
+      products: [],
+      blog: [],
+      socialItems: [],
+      contact: null,
+      workWithUs: [],
+      shopWithUsHomepageImage: null,
+      circularTabs: {},
     }
+  }
 }
 
 export const homepageService = {
