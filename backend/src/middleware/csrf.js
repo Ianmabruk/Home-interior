@@ -41,10 +41,9 @@ export function generateCsrfToken() {
   const token = crypto.randomBytes(32).toString('hex')
   inMemoryStore.set(token, Date.now())
 
-  const stored = redisSet(token)
-  if (!stored) {
-    console.warn(`[${SERVER_ID}] [csrf] Redis unavailable, using in-memory store`)
-  }
+  // Best-effort Redis storage — fire-and-forget. In-memory store
+  // always works as fallback for single-process deployments.
+  redisSet(token).catch(() => {})
 
   return token
 }

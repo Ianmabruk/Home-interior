@@ -24,29 +24,37 @@ export const uploadToCloudinary = async (buffer, mimetype, folder) => {
 
   try {
     const result = await new Promise((resolve, reject) => {
-       cloudinary.uploader.upload_stream(
-          {
-            resource_type: 'auto',
-            folder,
-            public_id: publicId,
-            overwrite: false,
-            quality: 'auto:good',
-            fetch_format: 'auto',
-          },
-         (error, result) => {
-           if (error) {
-             console.error('[Cloudinary] Upload stream error:', {
-               message: error.message,
-               http_code: error.http_code,
-               name: error.name,
-             })
-             reject(error)
-           } else {
-             resolve(result)
-           }
-         }
-       ).end(buffer)
-     })
+      let settled = false
+      const timer = setTimeout(() => {
+        if (settled) return
+        settled = true
+        reject(new Error('Cloudinary upload timed out after 30000ms'))
+      }, 30000)
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          resource_type: 'auto',
+          folder,
+          public_id: publicId,
+          overwrite: false,
+          quality: 'auto:good',
+          fetch_format: 'auto',
+        },
+        (error, result) => {
+          if (settled) return
+          clearTimeout(timer)
+          if (error) {
+            console.error('[Cloudinary] Upload stream error:', {
+              message: error.message,
+              http_code: error.http_code,
+              name: error.name,
+            })
+            reject(error)
+          } else {
+            resolve(result)
+          }
+        }
+      ).end(buffer)
+    })
 
     return {
       url: result.secure_url,

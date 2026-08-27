@@ -2,7 +2,6 @@ import { asyncHandler } from '../middleware/asyncHandler.js'
 import { orderService } from '../services/orderService.js'
 import { emailService } from '../services/emailService.js'
 import { triggerNewOrderNotification } from '../services/notificationService.js'
-import { failure } from '../utils/response.js'
 
 const ALLOWED_STATUSES = [
   'order placed',

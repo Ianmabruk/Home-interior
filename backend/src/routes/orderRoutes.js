@@ -19,7 +19,13 @@ const trackLimiter = createRateLimiter({
   keyPrefix: 'rl:track',
 })
 
-router.post('/', optionalAuth, orderController.create)
+const orderCreateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  limit: 20,
+  keyPrefix: 'rl:order-create',
+})
+
+router.post('/', orderCreateLimiter, optionalAuth, orderController.create)
 router.post('/track', trackLimiter, validateZod(trackSchema), orderController.trackOrder)
 router.get('/me', authenticate, orderController.listMine)
 router.get('/:id', authenticate, orderController.get)
