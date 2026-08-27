@@ -143,6 +143,12 @@ api.interceptors.response.use(
     }
 
     if (status === 403 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh') && !originalRequest.url?.includes('/auth/csrf')) {
+      // Only retry on CSRF token rejection, not on authorization failures.
+      // A 403 from authorize('ADMIN') or similar should not trigger token refresh.
+      const isCsrfError = error?.response?.data?.message?.includes('CSRF') || error?.response?.data?.message?.includes('csrf')
+      if (!isCsrfError) {
+        return Promise.reject(new Error('Access forbidden. You do not have permission to perform this action.'))
+      }
       console.info('[auth] CSRF token rejected — refreshing and retrying')
       originalRequest._retry = true
       try {
@@ -227,8 +233,16 @@ api.get = function (url, config) {
   const cacheKey = `get:${url}:${JSON.stringify(merged?.params || {})}`
   const cached = requestCache.get(cacheKey)
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    const cachedData = cached.data
+    // Apply the same response transformation as the interceptor
+    let resultData
+    if (cachedData && typeof cachedData === 'object' && 'success' in cachedData && cachedData.success === true) {
+      resultData = cachedData.data ?? null
+    } else {
+      resultData = cachedData ?? null
+    }
     return Promise.resolve({
-      data: cached.data,
+      data: resultData,
       status: 200,
       statusText: 'OK',
       headers: {},
