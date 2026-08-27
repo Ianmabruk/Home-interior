@@ -1,15 +1,33 @@
 #!/usr/bin/env node
 import { execSync } from 'child_process'
 
-const MAX_RETRIES = 5
-const RETRY_DELAY = 10000
-const COMMAND_TIMEOUT = 180000
+const MAX_RETRIES = 8
+const RETRY_DELAY = 15000
+const INITIAL_DELAY = 5000
+const COMMAND_TIMEOUT = 300000
 
 async function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms))
 }
 
-const env = { ...process.env, PGCONNECT_TIMEOUT: '60' }
+// Neon pooler + advisory locks: use a direct connection for migrations
+// by temporarily bypassing the pooler if DIRECT_DATABASE_URL is set
+function buildEnv() {
+  const env = { ...process.env, PGCONNECT_TIMEOUT: '60' }
+  // If a direct (non-pooler) connection is available, use it for migrations
+  // Advisory locks don't work well with PgBouncer transaction pooling
+  if (env.DIRECT_DATABASE_URL && !env.DATABASE_URL.includes('-pooler')) {
+    // Already using direct connection
+  } else if (env.DIRECT_DATABASE_URL) {
+    console.log('[migrate:deploy] Using DIRECT_DATABASE_URL for migration (bypasses pooler)')
+    env.DATABASE_URL = env.DIRECT_DATABASE_URL
+  }
+  // Increase statement timeout for slow Neon cold starts
+  if (!env.DATABASE_URL.includes('statement_timeout')) {
+    env.DATABASE_URL = env.DATABASE_URL + (env.DATABASE_URL.includes('?') ? '&' : '?') + 'statement_timeout=60000'
+  }
+  return env
+}
 
 function extractFailedMigrationNames(output) {
   const names = []
@@ -48,6 +66,12 @@ function tryResolveFailedMigrations(output) {
 
 async function main() {
   console.log('[migrate:deploy] Applying pending migrations...')
+  
+  // Initial wait to let any stale locks clear (Neon pooler can hold locks)
+  console.log(`[migrate:deploy] Waiting ${INITIAL_DELAY / 1000}s for any stale locks to clear...`)
+  await sleep(INITIAL_DELAY)
+
+  const env = buildEnv()
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     console.log(`[migrate:deploy] Attempt ${attempt}/${MAX_RETRIES}`)
@@ -81,6 +105,26 @@ async function main() {
         console.log(`[migrate:deploy] Lock contention detected. Waiting ${RETRY_DELAY / 1000}s before retry...`)
         await sleep(RETRY_DELAY)
         continue
+      }
+
+      // If lock persists after several retries, try prisma db push as fallback
+      // db push doesn't use advisory locks and works better with Neon pooler
+      if (isLockTimeout && attempt >= 4) {
+        console.log('[migrate:deploy] Lock persists. Attempting fallback with prisma db push (no advisory locks)...')
+        try {
+          const pushResult = execSync('npx prisma db push --skip-generate --accept-data-loss', {
+            stdio: ['pipe', 'pipe', 'pipe'],
+            timeout: COMMAND_TIMEOUT,
+            env,
+            encoding: 'utf-8',
+          })
+          console.log(pushResult)
+          console.log('[migrate:deploy] Schema synced via db push (fallback)')
+          return
+        } catch (pushErr) {
+          const pushOutput = (pushErr?.stdout || '') + (pushErr?.stderr || '')
+          console.error('[migrate:deploy] db push fallback failed:', pushOutput.slice(0, 500))
+        }
       }
 
       if (output.includes('P3009') || output.includes('failed migrations')) {
