@@ -5,6 +5,7 @@ const MAX_RETRIES = 8
 const RETRY_DELAY = 15000
 const INITIAL_DELAY = 5000
 const COMMAND_TIMEOUT = 300000
+const PRISMA_ADVISORY_LOCK_ID = 72707369
 
 async function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms))
@@ -14,12 +15,11 @@ async function sleep(ms) {
 // by temporarily bypassing the pooler if DIRECT_DATABASE_URL is set
 function buildEnv() {
   const env = { ...process.env, PGCONNECT_TIMEOUT: '60' }
-  // If a direct (non-pooler) connection is available, use it for migrations
-  // Advisory locks don't work well with PgBouncer transaction pooling
   if (env.DIRECT_DATABASE_URL && !env.DATABASE_URL.includes('-pooler')) {
     // Already using direct connection
   } else if (env.DIRECT_DATABASE_URL) {
     console.log('[migrate:deploy] Using DIRECT_DATABASE_URL for migration (bypasses pooler)')
+    env.DIRECT_DATABASE_URL = env.DIRECT_DATABASE_URL
     env.DATABASE_URL = env.DIRECT_DATABASE_URL
   } else if (env.DATABASE_URL && env.DATABASE_URL.includes('-pooler')) {
     // No explicit direct URL configured: Neon's direct endpoint is the same
@@ -35,6 +35,46 @@ function buildEnv() {
   return env
 }
 
+function run(cmd, env) {
+  try {
+    const out = execSync(cmd, {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: COMMAND_TIMEOUT,
+      env,
+      encoding: 'utf-8',
+    })
+    return { ok: true, stdout: out || '', stderr: '' }
+  } catch (err) {
+    return {
+      ok: false,
+      stdout: (err?.stdout || '') || '',
+      stderr: (err?.stderr || '') || '',
+      message: err?.message || '',
+    }
+  }
+}
+
+// Read-only check: are all migrations already applied?
+// prisma migrate status does NOT take the deploy advisory lock, so it
+// works even when the deploy lock is stuck.
+function checkStatusUpToDate(env) {
+  const result = run('npx prisma migrate status', env)
+  const combined = (result.stdout || '') + (result.stderr || '') + (result.message || '')
+  // Heuristics for "nothing to do":
+  //   - "Database is up to date"
+  //   - "No pending migrations"
+  //   - exit code 0 with no "following migration" pending lines
+  const upToDateMarkers = [
+    /Database is up to date/i,
+    /No pending migrations to apply/i,
+    /No pending migrations/i,
+  ]
+  if (upToDateMarkers.some((re) => re.test(combined))) {
+    return { upToDate: true, raw: combined }
+  }
+  return { upToDate: false, raw: combined }
+}
+
 function extractFailedMigrationNames(output) {
   const names = []
   const regex = /The `([^`]+)` migration.*failed/g
@@ -45,7 +85,7 @@ function extractFailedMigrationNames(output) {
   return names
 }
 
-function tryResolveFailedMigrations(output) {
+function tryResolveFailedMigrations(output, env) {
   const names = extractFailedMigrationNames(output)
   if (names.length === 0) return false
 
@@ -53,100 +93,127 @@ function tryResolveFailedMigrations(output) {
   let resolved = false
   for (const name of names) {
     console.log(`[migrate:deploy] Marking ${name} as rolled back...`)
-    try {
-      const resolveOutput = execSync(`npx prisma migrate resolve --rolled-back ${name}`, {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        timeout: 60000,
-        env,
-        encoding: 'utf-8',
-      })
+    const r = run(`npx prisma migrate resolve --rolled-back ${name}`, env)
+    if (r.ok) {
       console.log(`[migrate:deploy] Successfully marked ${name} as rolled back`)
       resolved = true
-    } catch (err) {
-      const errOutput = (err?.stdout || '') + (err?.stderr || '') + (err?.message || '')
+    } else {
+      const errOutput = r.stdout + r.stderr + r.message
       console.warn(`[migrate:deploy] Could not resolve ${name}:`, errOutput.slice(0, 300))
     }
   }
   return resolved
 }
 
+// Last-resort fallback: prisma db push WITHOUT --accept-data-loss so
+// that schema drift cannot silently drop columns/tables. The script will
+// only succeed if the database schema already matches schema.prisma (i.e.
+// the only reason migrate deploy failed was the stuck lock).
+function tryDbPushNoDataLoss(env) {
+  console.log('[migrate:deploy] Lock persists. Falling back to prisma db push (no data-loss flag)...')
+  // We intentionally do NOT pass --accept-data-loss. If there is real
+  // schema drift, db push will refuse to drop data and exit non-zero.
+  const r = run('npx prisma db push --skip-generate', env)
+  if (r.ok) {
+    console.log('[migrate:deploy] Schema synced via db push (fallback, no data loss)')
+    return true
+  }
+  const combined = r.stdout + r.stderr + r.message
+  // Detect the "would lose data" warning so we can be explicit
+  if (
+    combined.includes('Drift detected') ||
+    combined.includes('would result in data loss') ||
+    combined.includes('data loss') ||
+    combined.includes('accept-data-loss')
+  ) {
+    console.error(
+      '[migrate:deploy] db push detected schema drift that would cause data loss. Aborting to protect data.',
+    )
+  } else {
+    console.error('[migrate:deploy] db push fallback failed:', combined.slice(0, 500))
+  }
+  return false
+}
+
 async function main() {
-  console.log('[migrate:deploy] Applying pending migrations...')
-  
-  // Initial wait to let any stale locks clear (Neon pooler can hold locks)
+  console.log('[migrate:deploy] Starting migration step (data-safe)...')
+
+  // Short wait to let any stale locks clear (Neon pooler can hold locks briefly)
   console.log(`[migrate:deploy] Waiting ${INITIAL_DELAY / 1000}s for any stale locks to clear...`)
   await sleep(INITIAL_DELAY)
 
   const env = buildEnv()
 
+  // Pre-flight: if the DB is already up to date (read-only status check),
+  // there is nothing to do and we can exit cleanly even if the deploy
+  // advisory lock would otherwise be unavailable.
+  const pre = checkStatusUpToDate(env)
+  if (pre.upToDate) {
+    console.log('[migrate:deploy] Pre-check: database is already up to date. Nothing to apply.')
+    return
+  }
+  console.log('[migrate:deploy] Pre-check: pending migrations detected. Proceeding with deploy...')
+
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     console.log(`[migrate:deploy] Attempt ${attempt}/${MAX_RETRIES}`)
 
-    let stdout, stderr
-    try {
-      const result = execSync('npx prisma migrate deploy', {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        timeout: COMMAND_TIMEOUT,
-        env,
-        encoding: 'utf-8',
-      })
-      stdout = result || ''
-      console.log(stdout)
+    const result = run('npx prisma migrate deploy', env)
+    if (result.ok) {
+      console.log(result.stdout)
       console.log('[migrate:deploy] Migrations applied successfully')
       return
-    } catch (err) {
-      stdout = (err?.stdout || '') || ''
-      stderr = (err?.stderr || '') || ''
-      console.error(stdout)
-      console.error(stderr)
+    }
 
-      const output = stdout + stderr + (err?.message || '')
-      const isLockTimeout =
-        output.includes('advisory lock') ||
-        output.includes('P1002') ||
-        output.includes('ETIMEDOUT') ||
-        output.includes('timeout')
+    const output = result.stdout + result.stderr + result.message
+    console.error(result.stdout)
+    console.error(result.stderr)
 
-      if (isLockTimeout && attempt < MAX_RETRIES) {
-        console.log(`[migrate:deploy] Lock contention detected. Waiting ${RETRY_DELAY / 1000}s before retry...`)
-        await sleep(RETRY_DELAY)
+    const isLockTimeout =
+      output.includes('advisory lock') ||
+      output.includes('P1002') ||
+      output.includes('ETIMEDOUT') ||
+      /timeout/i.test(output)
+
+    // CRITICAL data-safety check: if the deploy failed because of a stuck
+    // lock but the database is already up to date, we are done. This
+    // prevents an infinite retry loop and avoids touching the data layer.
+    if (isLockTimeout) {
+      const status = checkStatusUpToDate(env)
+      if (status.upToDate) {
+        console.log(
+          `[migrate:deploy] Lock contention (Prisma advisory lock ${PRISMA_ADVISORY_LOCK_ID}) is blocking deploy, but the database is already up to date. Treating as success to protect data.`,
+        )
+        return
+      }
+    }
+
+    if (isLockTimeout && attempt < MAX_RETRIES) {
+      console.log(
+        `[migrate:deploy] Lock contention detected. Waiting ${RETRY_DELAY / 1000}s before retry...`,
+      )
+      await sleep(RETRY_DELAY)
+      continue
+    }
+
+    // Only as a last resort, after several retries with a persistent lock,
+    // try db push WITHOUT --accept-data-loss so we never silently drop data.
+    if (isLockTimeout && attempt >= 4) {
+      if (tryDbPushNoDataLoss(env)) return
+    }
+
+    if (output.includes('P3009') || output.includes('failed migrations')) {
+      console.log('[migrate:deploy] Detected failed migrations in target database')
+      const didResolve = tryResolveFailedMigrations(output, env)
+      if (didResolve && attempt < MAX_RETRIES) {
+        console.log('[migrate:deploy] Resolved failed migration(s). Retrying deploy...')
         continue
       }
+    }
 
-      // If lock persists after several retries, try prisma db push as fallback
-      // db push doesn't use advisory locks and works better with Neon pooler
-      if (isLockTimeout && attempt >= 4) {
-        console.log('[migrate:deploy] Lock persists. Attempting fallback with prisma db push (no advisory locks)...')
-        try {
-          const pushResult = execSync('npx prisma db push --skip-generate --accept-data-loss', {
-            stdio: ['pipe', 'pipe', 'pipe'],
-            timeout: COMMAND_TIMEOUT,
-            env,
-            encoding: 'utf-8',
-          })
-          console.log(pushResult)
-          console.log('[migrate:deploy] Schema synced via db push (fallback)')
-          return
-        } catch (pushErr) {
-          const pushOutput = (pushErr?.stdout || '') + (pushErr?.stderr || '')
-          console.error('[migrate:deploy] db push fallback failed:', pushOutput.slice(0, 500))
-        }
-      }
-
-      if (output.includes('P3009') || output.includes('failed migrations')) {
-        console.log('[migrate:deploy] Detected failed migrations in target database')
-        const didResolve = tryResolveFailedMigrations(output)
-        if (didResolve && attempt < MAX_RETRIES) {
-          console.log('[migrate:deploy] Resolved failed migration(s). Retrying deploy...')
-          continue
-        }
-      }
-
-      console.error(`[migrate:deploy] Attempt ${attempt} failed`)
-      if (attempt >= MAX_RETRIES) {
-        console.error('[migrate:deploy] Migration failed after all retries')
-        process.exit(1)
-      }
+    console.error(`[migrate:deploy] Attempt ${attempt} failed`)
+    if (attempt >= MAX_RETRIES) {
+      console.error('[migrate:deploy] Migration failed after all retries')
+      process.exit(1)
     }
   }
 
