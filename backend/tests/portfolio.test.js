@@ -284,4 +284,46 @@ describe('Portfolio', () => {
     expect(updateRes.body.details).toBeDefined()
     expect(updateRes.body.details.limit).toBe(21)
   })
+
+   const url = (i) => `https://example.com/img_${i}.png`
+
+   it('should accept 21 before AND 21 after images independently (42 total)', async () => {
+       const beforeImages = Array.from({ length: 21 }, (_, i) => url(i))
+       const afterImages = Array.from({ length: 21 }, (_, i) => url(100 + i))
+       const res = await createProject({ title: 'test_Independent21x21', beforeImages, afterImages })
+       expect(res.status).toBe(201)
+       expect(res.body.data.beforeImages).toHaveLength(21)
+       expect(res.body.data.afterImages).toHaveLength(21)
+   })
+
+   it('should allow updating a 21 before + 21 after project without errors (no changes)', async () => {
+       const beforeImages = Array.from({ length: 21 }, (_, i) => url(200 + i))
+       const afterImages = Array.from({ length: 21 }, (_, i) => url(300 + i))
+       const created = await createProject({ title: 'test_SaveNoChanges21', beforeImages, afterImages })
+       expect(created.status).toBe(201)
+
+       const projectId = created.body.data.id
+       let patchReq = request(app)
+         .patch(`${API}/admin/portfolio/${projectId}`)
+         .set(authHeaders())
+       beforeImages.forEach((u) => patchReq = patchReq.field('beforeImages', u))
+       afterImages.forEach((u) => patchReq = patchReq.field('afterImages', u))
+       const updateRes = await patchReq
+       expect(updateRes.status).toBe(200)
+       expect(updateRes.body.data.beforeImages).toHaveLength(21)
+       expect(updateRes.body.data.afterImages).toHaveLength(21)
+   })
+
+   it('should reject exceeding 21 images in the after section', async () => {
+       const afterImages = Array.from({ length: 22 }, (_, i) => url(400 + i))
+       const patchReq = request(app)
+         .patch(`${API}/admin/portfolio/${(await createProject({ title: 'test_AfterOverflow' })).body.data.id}`)
+         .set(authHeaders())
+       afterImages.forEach((u) => patchReq.field('afterImages', u))
+       const updateRes = await patchReq
+       expect(updateRes.status).toBe(400)
+       expect(updateRes.body.details).toBeDefined()
+       expect(updateRes.body.details.limit).toBe(21)
+       expect(updateRes.body.details.limitType).toBe('after')
+   })
 })

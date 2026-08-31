@@ -8,10 +8,11 @@ function enforceImageLimit(section, total, existingCount, requestedNew) {
   if (total > MAX_IMAGES_PER_SECTION) {
     const remaining = Math.max(0, MAX_IMAGES_PER_SECTION - existingCount)
     const err = new Error(
-      `Maximum ${MAX_IMAGES_PER_SECTION} ${section} images allowed. You have ${existingCount} and tried to add ${requestedNew} (total ${total}). You can add ${remaining} more.`,
+      `Maximum ${MAX_IMAGES_PER_SECTION} ${section} images allowed. The requested ${section} images total ${total} (currently ${existingCount}, ${requestedNew === undefined ? 0 : requestedNew} new). You can add ${remaining} more.`,
     )
     err.status = 400
     err.details = {
+      limitType: section,
       section,
       limit: MAX_IMAGES_PER_SECTION,
       existing: existingCount,
@@ -445,6 +446,16 @@ async function reorderPortfolioImages(projectId, orderList) {
   const project = await prisma.portfolioProject.findUnique({ where: { id: projectId } })
   if (!project) throw failure(404, 'Portfolio item not found')
 
+  // Newly added images are represented by blob: object URLs before they are
+  // uploaded, so they have no database row yet and cannot be reordered here
+  // (they are ordered during the normal project save). Drop them gracefully
+  // instead of rejecting the whole request.
+  const validList = Array.isArray(orderList)
+    ? orderList.filter(
+        (item) => !(item && typeof item.imageUrl === 'string' && item.imageUrl.startsWith('blob:')),
+      )
+    : []
+
   const existingImages = await prisma.portfolioImage.findMany({
     where: { portfolioProjectId: projectId },
     select: { id: true, imageUrl: true, imageType: true, sortOrder: true },
@@ -455,7 +466,7 @@ async function reorderPortfolioImages(projectId, orderList) {
   const seenIds = new Set()
   const seenUrls = new Set()
 
-  for (const item of orderList) {
+  for (const item of validList) {
     if (item.id !== undefined) {
       if (seenIds.has(item.id)) {
         throw failure(400, `Duplicate image ID: ${item.id}`)
@@ -484,7 +495,7 @@ async function reorderPortfolioImages(projectId, orderList) {
   }
 
   await prisma.$transaction(async (tx) => {
-    for (const item of orderList) {
+    for (const item of validList) {
       let where
       if (item.id !== undefined) {
         where = { id: item.id }
@@ -506,7 +517,7 @@ async function reorderPortfolioImages(projectId, orderList) {
         data: { sortOrder: item.sortOrder },
       })
     }
-  })
+  }, { timeout: 30000 })
 
   const projectAfter = await prisma.portfolioProject.findUnique({
     where: { id: projectId },

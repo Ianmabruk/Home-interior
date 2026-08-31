@@ -765,19 +765,33 @@ export const PortfolioDashboard = () => {
     if (isReorderSaving) return
     setIsReorderSaving(true)
     try {
+      // Only already-uploaded images (real http/https URLs) exist in the
+      // database and can be reordered. Newly added images are still blob:
+      // object URLs that haven't been uploaded yet — the backend correctly
+      // rejects those as unknown, so drop them here to avoid a false 400.
+      const stripUnuploaded = (list, imageType) =>
+        (list || [])
+          .filter(
+            (item) =>
+              item &&
+              typeof item?.imageUrl === 'string' &&
+              /^https?:\/\//i.test(item.imageUrl),
+          )
+          .map((item, idx) => ({
+            id: item?.id || undefined,
+            imageUrl: item.imageUrl,
+            imageType,
+            sortOrder: idx,
+          }))
+
       const payload = {
-        before: newBeforeOrder.map((item, idx) => ({
-          id: item?.id || undefined,
-          imageUrl: item?.imageUrl,
-          imageType: 'before',
-          sortOrder: idx,
-        })),
-        after: newAfterOrder.map((item, idx) => ({
-          id: item?.id || undefined,
-          imageUrl: item?.imageUrl,
-          imageType: 'after',
-          sortOrder: idx,
-        })),
+        before: stripUnuploaded(newBeforeOrder, 'before'),
+        after: stripUnuploaded(newAfterOrder, 'after'),
+      }
+
+      if (payload.before.length === 0 && payload.after.length === 0) {
+        setIsReorderSaving(false)
+        return
       }
       const res = await api.put(`/admin/portfolio/${editingId}/images/order`, payload)
       if (res.data?.success || res.data?.data) {
