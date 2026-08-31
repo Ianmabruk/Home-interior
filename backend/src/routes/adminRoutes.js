@@ -77,9 +77,10 @@ router.use('/socials', adminSocialRoutes)
 // Admin Portfolio
 router.get('/portfolio', portfolioController.list)
 router.get('/portfolio/:id', portfolioController.get)
-router.post('/portfolio', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'before', maxCount: 21 }, { name: 'after', maxCount: 21 }, { name: 'homepageCircularImage', maxCount: 1 }]), portfolioController.create)
-router.patch('/portfolio/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'before', maxCount: 21 }, { name: 'after', maxCount: 21 }, { name: 'homepageCircularImage', maxCount: 1 }]), portfolioController.update)
+router.post('/portfolio', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'before', maxCount: 25 }, { name: 'after', maxCount: 25 }, { name: 'homepageCircularImage', maxCount: 1 }]), portfolioController.create)
+router.patch('/portfolio/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'before', maxCount: 25 }, { name: 'after', maxCount: 25 }, { name: 'homepageCircularImage', maxCount: 1 }]), portfolioController.update)
 router.delete('/portfolio/:id', portfolioController.delete)
+router.put('/portfolio/reorder', portfolioController.reorder)
 router.put('/portfolio/:id/images/order', portfolioController.reorderImages)
 
 // Admin Virtual Designs

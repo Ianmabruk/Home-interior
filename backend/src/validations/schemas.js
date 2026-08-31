@@ -154,6 +154,18 @@ const stringArray = z
 const stringArrayMax21 = stringArray.refine((val) => val.length <= 21, 'Maximum 21 images allowed')
 
 export const portfolioSchemas = {
+    reorder: z.object({
+      projects: z
+        .array(z.object({ id: z.string().min(1), displayOrder: z.coerce.number().int().nonnegative() }))
+        .min(1)
+        .optional(),
+      order: z
+        .array(z.object({ id: z.string().min(1), displayOrder: z.coerce.number().int().nonnegative() }))
+        .min(1)
+        .optional(),
+    }).refine((val) => (val.projects && val.projects.length > 0) || (val.order && val.order.length > 0), {
+      message: 'A non-empty projects or order array is required',
+    }),
     create: z.object({
       title: z.string().min(1, 'Title is required'),
       description: z.string().optional(),

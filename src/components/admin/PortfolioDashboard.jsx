@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence, Reorder } from 'framer-motion'
-import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Loader2, Upload, Star, Check, RefreshCw, WifiOff } from 'lucide-react'
+import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion'
+import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Loader2, Upload, Star, Check, RefreshCw, WifiOff, GripVertical, ArrowUp, ArrowDown } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
@@ -40,7 +40,8 @@ export const PortfolioDashboard = () => {
    const [showForm, setShowForm] = useState(false)
    const [beforeOrderChanged, setBeforeOrderChanged] = useState(false)
    const [afterOrderChanged, setAfterOrderChanged] = useState(false)
-   const [isReorderSaving, setIsReorderSaving] = useState(false)
+    const [isReorderSaving, setIsReorderSaving] = useState(false)
+    const [reorderDirty, setReorderDirty] = useState(false)
    const [isOffline, setIsOffline] = useState(!navigator.onLine)
   const mainFileRef = useRef(null)
   const beforeFileRef = useRef(null)
@@ -79,6 +80,49 @@ export const PortfolioDashboard = () => {
       window.removeEventListener('offline', goOffline)
     }
   }, [load])
+
+  const handleReorder = useCallback((newOrder) => {
+    setPortfolio(newOrder)
+    setReorderDirty(true)
+  }, [])
+
+  const moveItem = useCallback((index, direction) => {
+    setPortfolio((prev) => {
+      const target = index + direction
+      if (target < 0 || target >= prev.length) return prev
+      const next = [...prev]
+      const [moved] = next.splice(index, 1)
+      next.splice(target, 0, moved)
+      return next
+    })
+    setReorderDirty(true)
+  }, [])
+
+  const saveOrder = useCallback(async () => {
+    if (isReorderSaving) return
+    const snapshot = portfolio
+    setIsReorderSaving(true)
+    try {
+      const payload = {
+        projects: portfolio.map((p, i) => ({ id: p._id || p.id, displayOrder: i })),
+      }
+      const res = await api.put('/admin/portfolio/reorder', payload)
+      if (res.data?.success || res.data) {
+        setReorderDirty(false)
+        toast.success('Order saved ✓')
+        dispatchAdminDataChanged('portfolio-changed')
+      }
+      await load()
+    } catch (err) {
+      console.error('[portfolio] reorder save error:', err)
+      toast.error(err?.message || 'Unable to save portfolio order. Your previous order has been restored.')
+      // Restore the previous order from the server.
+      setPortfolio(snapshot)
+      await load()
+    } finally {
+      setIsReorderSaving(false)
+    }
+  }, [portfolio, isReorderSaving, load])
 
   const resetPreviews = (previews) => {
     previews.forEach((p) => {
@@ -126,11 +170,16 @@ export const PortfolioDashboard = () => {
   }
 
   const handleBeforeFiles = (files) => {
-    handleImageFiles(files, setBeforeFiles, setBeforePreviews, beforeFiles.filter((f) => f instanceof File).length)
+    // Count the images that already exist for this project (they are stored as
+    // { id, url } objects, NOT File instances) so the remaining capacity is
+    // calculated against the true current total.
+    const existingCount = beforeFiles.filter((f) => !(f instanceof File)).length
+    handleImageFiles(files, setBeforeFiles, setBeforePreviews, existingCount)
   }
 
   const handleAfterFiles = (files) => {
-    handleImageFiles(files, setAfterFiles, setAfterPreviews, afterFiles.filter((f) => f instanceof File).length)
+    const existingCount = afterFiles.filter((f) => !(f instanceof File)).length
+    handleImageFiles(files, setAfterFiles, setAfterPreviews, existingCount)
   }
 
   const handleMainDrop = (e) => {
@@ -451,8 +500,10 @@ export const PortfolioDashboard = () => {
           payload.append('imageUrl', mainImageFile.url)
         }
 
-        finalBeforeUrls.forEach((url) => payload.append('beforeImages', url))
-        finalAfterUrls.forEach((url) => payload.append('afterImages', url))
+        if (finalBeforeUrls.length === 0) payload.append('beforeImages', '')
+        else finalBeforeUrls.forEach((url) => payload.append('beforeImages', url))
+        if (finalAfterUrls.length === 0) payload.append('afterImages', '')
+        else finalAfterUrls.forEach((url) => payload.append('afterImages', url))
 
         const portfolioRes = editingId
           ? await api.patch(`/admin/portfolio/${editingId}`, payload)
@@ -566,8 +617,10 @@ export const PortfolioDashboard = () => {
           .map((f) => (typeof f === 'string' ? f : f?.url))
           .filter(Boolean)
 
-        existingBeforeUrls.forEach((url) => payload.append('beforeImages', url))
-        existingAfterUrls.forEach((url) => payload.append('afterImages', url))
+        if (existingBeforeUrls.length === 0) payload.append('beforeImages', '')
+        else existingBeforeUrls.forEach((url) => payload.append('beforeImages', url))
+        if (existingAfterUrls.length === 0) payload.append('afterImages', '')
+        else existingAfterUrls.forEach((url) => payload.append('afterImages', url))
 
         const portfolioRes = editingId
           ? await api.patch(`/admin/portfolio/${editingId}`, payload)
@@ -771,6 +824,7 @@ export const PortfolioDashboard = () => {
       <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 flex items-center gap-2">
         <Images size={14} strokeWidth={1.5} />
         {title} (<span className="text-[var(--accent)]">{previews.length}</span>/{MAX_IMAGES})
+        <span className="text-[var(--primary)]/40">· {Math.max(0, MAX_IMAGES - previews.length)} slots remaining</span>
         {orderChanged && (
           <span className="text-[var(--accent)] text-[10px] font-medium">• Unsaved changes</span>
         )}
@@ -903,6 +957,42 @@ export const PortfolioDashboard = () => {
           Add Portfolio Project
         </motion.button>
       </motion.div>
+
+      {reorderDirty && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent)]/5 px-5 py-4"
+        >
+          <div className="flex items-center gap-2 text-sm text-[var(--primary)]">
+            <RefreshCw size={16} className={isReorderSaving ? 'animate-spin text-[var(--accent)]' : 'text-[var(--accent)]'} />
+            {isReorderSaving ? 'Saving order…' : 'Portfolio order changed. Save to apply everywhere.'}
+          </div>
+          <div className="flex items-center gap-2">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={() => { setReorderDirty(false); load() }}
+              disabled={isReorderSaving}
+              className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50"
+            >
+              Cancel
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={saveOrder}
+              disabled={isReorderSaving}
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] text-white px-5 py-2 text-[11px] font-semibold uppercase tracking-widest transition hover:bg-[var(--accent)]/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isReorderSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              {isReorderSaving ? 'Saving…' : 'Save Order'}
+            </motion.button>
+          </div>
+        </motion.div>
+      )}
 
       <AnimatePresence>
         {showForm && (
@@ -1214,123 +1304,26 @@ export const PortfolioDashboard = () => {
         )}
       </AnimatePresence>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+      <Reorder.Group
+        axis="y"
+        values={portfolio}
+        onReorder={handleReorder}
+        as="div"
         className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
-        {portfolio.map((item, i) => {
-          const previewUrl = item.imageUrl || item.beforeImages?.[0] || item.afterImages?.[0] || null
-          const imageCount = (item.beforeImages?.length || 0) + (item.afterImages?.length || 0)
-
-          return (
-            <motion.article
-              layout
-              key={item._id || item.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="group bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500"
-            >
-              <div className="relative aspect-[3/4] overflow-hidden">
-                {previewUrl ? (
-                  <img
-                    src={previewUrl}
-                    alt={item.title}
-                    className="h-full w-full object-contain transition duration-700 group-hover:scale-105 bg-[var(--secondary)]/10"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
-                    <Images size={40} />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/85 via-[var(--primary)]/40 to-transparent opacity-100" />
-
-                {item.featured && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="absolute top-3 left-3 z-10"
-                  >
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-white text-[10px] font-semibold uppercase tracking-widest rounded-full shadow-lg">
-                      <Star size={10} strokeWidth={2} />
-                      Featured
-                    </span>
-                  </motion.div>
-                )}
-
-                {imageCount > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="absolute top-3 right-3 z-10"
-                  >
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--primary)]/90 backdrop-blur-sm text-white text-[10px] font-semibold uppercase tracking-widest rounded-full shadow-lg">
-                      <Images size={10} strokeWidth={2} />
-                      {imageCount} photos
-                    </span>
-                  </motion.div>
-                )}
-
-                <Link
-                  to={`/portfolio/${item._id || item.id}`}
-                  className="absolute bottom-6 left-1/2 -translate-x-1/2 btn-luxury-primary group flex items-center gap-2 text-[10px] px-5 py-2.5 rounded-full opacity-0 translate-y-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0"
-                >
-                  View Project
-                  <Eye size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
-                </Link>
-
-                <div className="absolute top-3 left-3 flex gap-2 z-10">
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => startEdit(item)}
-                    className="p-2.5 bg-[var(--primary)] rounded-xl text-white shadow-lg hover:bg-[var(--primary)]/90 transition-colors"
-                    aria-label="Edit project"
-                    title="Edit project"
-                  >
-                    <Edit size={16} />
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setDeleteId(item._id || item.id)}
-                    className="p-2.5 bg-[var(--error)] rounded-xl text-white shadow-lg hover:bg-[var(--error)]/90 transition-colors"
-                    aria-label="Delete project"
-                    title="Delete project"
-                  >
-                    <Trash2 size={16} />
-                  </motion.button>
-                </div>
-              </div>
-
-              <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
-                <motion.h3
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.1 }}
-                  className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight"
-                >
-                  {item.title}
-                </motion.h3>
-                {imageCount > 0 && (
-                  <motion.p
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.15 }}
-                    className="mt-2 text-sm leading-relaxed text-[var(--primary)]/60"
-                  >
-                    {imageCount} image{imageCount > 1 ? 's' : ''}
-                  </motion.p>
-                )}
-              </div>
-            </motion.article>
-          )
-        })}
+        {portfolio.map((item, i) => (
+          <PortfolioCard
+            key={item._id || item.id}
+            item={item}
+            index={i}
+            total={portfolio.length}
+            onEdit={startEdit}
+            onDelete={(it) => setDeleteId(it._id || it.id)}
+            onMoveUp={(idx) => moveItem(idx, -1)}
+            onMoveDown={(idx) => moveItem(idx, 1)}
+          />
+        ))}
+      </Reorder.Group>
 
         {portfolio.length === 0 && (
           <motion.div
@@ -1345,7 +1338,6 @@ export const PortfolioDashboard = () => {
             <p className="text-sm text-[var(--primary)]/40 mt-2">Click "Add Portfolio Project" to get started</p>
           </motion.div>
         )}
-      </motion.div>
 
       <AnimatePresence>
         {deleteId && (
@@ -1397,3 +1389,168 @@ export const PortfolioDashboard = () => {
 }
 
 export default PortfolioDashboard
+
+const PortfolioCard = ({
+  item,
+  index,
+  total,
+  onEdit,
+  onDelete,
+  onMoveUp,
+  onMoveDown,
+}) => {
+  const controls = useDragControls()
+  const previewUrl = item.imageUrl || item.beforeImages?.[0] || item.afterImages?.[0] || null
+  const imageCount = (item.beforeImages?.length || 0) + (item.afterImages?.length || 0)
+  const isFirst = index === 0
+  const isLast = index === total - 1
+
+  return (
+    <Reorder.Item
+      value={item}
+      dragListener={false}
+      dragControls={controls}
+      as="article"
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      className="group bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500"
+    >
+      <div className="relative aspect-[3/4] overflow-hidden">
+        {previewUrl ? (
+          <img
+            src={previewUrl}
+            alt={item.title}
+            className="h-full w-full object-contain transition duration-700 group-hover:scale-105 bg-[var(--secondary)]/10"
+            loading="lazy"
+          />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/30">
+            <Images size={40} />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/85 via-[var(--primary)]/40 to-transparent opacity-100" />
+
+        {item.featured && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="absolute top-3 left-3 z-10"
+          >
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-white text-[10px] font-semibold uppercase tracking-widest rounded-full shadow-lg">
+              <Star size={10} strokeWidth={2} />
+              Featured
+            </span>
+          </motion.div>
+        )}
+
+        {imageCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="absolute top-3 right-3 z-10"
+          >
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--primary)]/90 backdrop-blur-sm text-white text-[10px] font-semibold uppercase tracking-widest rounded-full shadow-lg">
+              <Images size={10} strokeWidth={2} />
+              {imageCount} photos
+            </span>
+          </motion.div>
+        )}
+
+        <Link
+          to={`/portfolio/${item._id || item.id}`}
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 btn-luxury-primary group flex items-center gap-2 text-[10px] px-5 py-2.5 rounded-full opacity-0 translate-y-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0"
+        >
+          View Project
+          <Eye size={12} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
+        </Link>
+
+        {/* Position indicator + drag handle (always visible, mobile-friendly) */}
+        <div className="absolute top-12 left-3 z-20 flex items-center gap-2">
+          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[var(--primary)] text-white text-[11px] font-bold tabular-nums shadow">
+            {String(index + 1).padStart(2, '0')}
+          </span>
+          <button
+            type="button"
+            onPointerDown={(e) => controls.start(e)}
+            className="cursor-grab active:cursor-grabbing p-1.5 rounded-full bg-[var(--primary)]/90 backdrop-blur-sm text-white hover:bg-[var(--primary)] shadow"
+            aria-label="Drag to reorder"
+            title="Drag to reorder"
+          >
+            <GripVertical size={16} />
+          </button>
+        </div>
+
+        {/* Edit / Delete actions */}
+        <div className="absolute top-12 right-3 z-20 flex gap-2">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => onEdit(item)}
+            className="p-2.5 bg-[var(--primary)] rounded-xl text-white shadow-lg hover:bg-[var(--primary)]/90 transition-colors"
+            aria-label="Edit project"
+            title="Edit project"
+          >
+            <Edit size={16} />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => onDelete(item)}
+            className="p-2.5 bg-[var(--error)] rounded-xl text-white shadow-lg hover:bg-[var(--error)]/90 transition-colors"
+            aria-label="Delete project"
+            title="Delete project"
+          >
+            <Trash2 size={16} />
+          </motion.button>
+        </div>
+      </div>
+
+      <div className="p-5 md:p-6 border-t border-[var(--border)]/40 bg-white">
+        <motion.h3
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.1 }}
+          className="font-display text-xl md:text-2xl font-normal text-[var(--primary)] leading-tight"
+        >
+          {item.title}
+        </motion.h3>
+        {imageCount > 0 && (
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.15 }}
+            className="mt-2 text-sm leading-relaxed text-[var(--primary)]/60"
+          >
+            {imageCount} image{imageCount > 1 ? 's' : ''}
+          </motion.p>
+        )}
+
+        <div className="mt-4 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onMoveUp(index)}
+            disabled={isFirst}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Move up"
+          >
+            <ArrowUp size={14} /> Up
+          </button>
+          <button
+            type="button"
+            onClick={() => onMoveDown(index)}
+            disabled={isLast}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Move down"
+          >
+            <ArrowDown size={14} /> Down
+          </button>
+        </div>
+      </div>
+    </Reorder.Item>
+  )
+}
+

@@ -212,4 +212,76 @@ describe('Portfolio', () => {
     expect(updateRes.body.data.beforeImages).toHaveLength(2)
     expect(updateRes.body.data.afterImages).toHaveLength(2)
   })
+
+  it('should reorder portfolio projects and persist the new order', async () => {
+    const a = await createProject({ title: 'test_ReorderA', displayOrder: 0 })
+    const b = await createProject({ title: 'test_ReorderB', displayOrder: 1 })
+    const c = await createProject({ title: 'test_ReorderC', displayOrder: 2 })
+
+    const reorderRes = await request(app)
+      .put(`${API}/admin/portfolio/reorder`)
+      .set(authHeaders())
+      .send({ projects: [
+        { id: c.body.data.id, displayOrder: 0 },
+        { id: a.body.data.id, displayOrder: 1 },
+        { id: b.body.data.id, displayOrder: 2 },
+      ] })
+
+    expect(reorderRes.status).toBe(200)
+    expect(reorderRes.body.success).toBe(true)
+
+    const listRes = await request(app).get(`${API}/portfolio`)
+    const orderedIds = listRes.body.data.map((p) => p.id)
+    expect(orderedIds.indexOf(c.body.data.id)).toBeLessThan(orderedIds.indexOf(a.body.data.id))
+    expect(orderedIds.indexOf(a.body.data.id)).toBeLessThan(orderedIds.indexOf(b.body.data.id))
+  })
+
+  it('should reject reorder with duplicate project ids', async () => {
+    const a = await createProject({ title: 'test_DupA' })
+    const b = await createProject({ title: 'test_DupB' })
+    const res = await request(app)
+      .put(`${API}/admin/portfolio/reorder`)
+      .set(authHeaders())
+      .send({ projects: [
+        { id: a.body.data.id, displayOrder: 0 },
+        { id: a.body.data.id, displayOrder: 1 },
+      ] })
+    expect(res.status).toBe(400)
+  })
+
+  it('should reject reorder with unknown project ids', async () => {
+    const res = await request(app)
+      .put(`${API}/admin/portfolio/reorder`)
+      .set(authHeaders())
+      .send({ projects: [{ id: 'does-not-exist', displayOrder: 0 }] })
+    expect(res.status).toBe(400)
+  })
+
+  it('should reject update that would exceed 21 before images', async () => {
+    // Build a project with 21 existing before images, then patch with 22 total
+    const createReq = request(app)
+      .post(`${API}/admin/portfolio`)
+      .set(authHeaders())
+      .field('title', 'test_ExceedLimit')
+      .field('category', 'Test')
+    for (let i = 0; i < 21; i++) {
+      const img = makeFakeImage(`existing_${i}.png`)
+      createReq.attach('before', img.buffer, img.name)
+    }
+    const created = await createReq
+    expect(created.status).toBe(201)
+    expect(created.body.data.beforeImages).toHaveLength(21)
+
+    const projectId = created.body.data.id
+    const existing = created.body.data.beforeImages
+    const patchReq = request(app)
+      .patch(`${API}/admin/portfolio/${projectId}`)
+      .set(authHeaders())
+    existing.forEach((url) => patchReq.field('beforeImages', url))
+    patchReq.field('beforeImages', 'https://example.com/extra.png')
+    const updateRes = await patchReq
+    expect(updateRes.status).toBe(400)
+    expect(updateRes.body.details).toBeDefined()
+    expect(updateRes.body.details.limit).toBe(21)
+  })
 })

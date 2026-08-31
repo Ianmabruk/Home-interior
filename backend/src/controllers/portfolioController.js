@@ -83,6 +83,17 @@ export const portfolioController = {
     res.json({ success: true, data: { message: 'Deleted' } })
   }),
 
+  reorder: asyncHandler(async (req, res) => {
+    // Accept either { projects: [...] } or { order: [...] } for flexibility.
+    const projects = req.body?.projects || req.body?.order
+    if (!Array.isArray(projects) || projects.length === 0) {
+      return res.status(400).json({ success: false, message: 'A non-empty projects array is required' })
+    }
+    const items = projects.map((p) => ({ id: p?.id, displayOrder: Number(p?.displayOrder) }))
+    const updated = await portfolioService.reorderPortfolioProjects(items)
+    res.json({ success: true, data: updated })
+  }),
+
   reorderImages: asyncHandler(async (req, res) => {
     const { before, after } = req.body
     const orderList = []

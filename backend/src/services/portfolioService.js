@@ -4,6 +4,25 @@ import { failure } from '../utils/response.js'
 
 const MAX_IMAGES_PER_SECTION = 21
 
+function enforceImageLimit(section, total, existingCount, requestedNew) {
+  if (total > MAX_IMAGES_PER_SECTION) {
+    const remaining = Math.max(0, MAX_IMAGES_PER_SECTION - existingCount)
+    const err = new Error(
+      `Maximum ${MAX_IMAGES_PER_SECTION} ${section} images allowed. You have ${existingCount} and tried to add ${requestedNew} (total ${total}). You can add ${remaining} more.`,
+    )
+    err.status = 400
+    err.details = {
+      section,
+      limit: MAX_IMAGES_PER_SECTION,
+      existing: existingCount,
+      requested: requestedNew,
+      total,
+      remaining,
+    }
+    throw err
+  }
+}
+
 async function syncPortfolioImages(projectId, beforeImages, afterImages) {
   const before = beforeImages.map((url, idx) => ({
     portfolioProjectId: projectId,
@@ -21,6 +40,9 @@ async function syncPortfolioImages(projectId, beforeImages, afterImages) {
 
   if (all.length === 0) return
 
+  // Use a generous timeout and a single bulk insert. Syncing many images with
+  // one create() per row previously blew past Prisma's default 5s interactive
+  // transaction timeout and returned a 500 on valid requests.
   await prisma.$transaction(async (tx) => {
     const existing = await tx.portfolioImage.findMany({
       where: { portfolioProjectId: projectId },
@@ -28,7 +50,6 @@ async function syncPortfolioImages(projectId, beforeImages, afterImages) {
     })
     const existingKeys = new Set(existing.map((img) => `${img.imageType}:${img.imageUrl}`))
     const existingIdsToDelete = existing.filter((img) => {
-      const key = `${img.imageType}:${img.imageUrl}`
       return !all.some((newImg) => newImg.imageType === img.imageType && newImg.imageUrl === img.imageUrl)
     }).map((img) => img.id)
 
@@ -36,13 +57,11 @@ async function syncPortfolioImages(projectId, beforeImages, afterImages) {
       await tx.portfolioImage.deleteMany({ where: { id: { in: existingIdsToDelete } } })
     }
 
-    for (const newImg of all) {
-      const key = `${newImg.imageType}:${newImg.imageUrl}`
-      if (!existingKeys.has(key)) {
-        await tx.portfolioImage.create({ data: newImg })
-      }
+    const toCreate = all.filter((newImg) => !existingKeys.has(`${newImg.imageType}:${newImg.imageUrl}`))
+    if (toCreate.length > 0) {
+      await tx.portfolioImage.createMany({ data: toCreate })
     }
-  })
+  }, { timeout: 30000 })
 }
 
 function mapPortfolio(item, portfolioImages = []) {
@@ -94,12 +113,23 @@ export const portfolioService = {
   createPortfolio,
   updatePortfolio,
   deletePortfolio,
+  reorderPortfolioProjects,
   reorderPortfolioImages,
 }
 
-async function listPortfolio({ sort = '-createdAt', limit = 100 } = {}) {
+async function listPortfolio({ sort, limit = 100 } = {}) {
   try {
-    const orderBy = sort?.startsWith('-') ? { [sort.slice(1)]: 'desc' } : { createdAt: 'asc' }
+    // Default ordering is deterministic and respects the persisted displayOrder.
+    // Existing projects that share the same displayOrder (e.g. the default 0)
+    // fall back to createdAt so the order is never random/insertion-based.
+    let orderBy
+    if (sort) {
+      const field = sort.startsWith('-') ? sort.slice(1) : sort
+      const dir = sort.startsWith('-') ? 'desc' : 'asc'
+      orderBy = { [field]: dir }
+    } else {
+      orderBy = [{ displayOrder: 'asc' }, { createdAt: 'desc' }]
+    }
     // Fetch portfolio projects AND their images in a single query using include.
     // This avoids the N+1 query problem where we previously made a separate
     // database query for each project's images.
@@ -218,6 +248,9 @@ async function createPortfolio(data, file, beforeFiles = [], afterFiles = [], ci
   beforeImages.push(...beforeUrls)
   afterImages.push(...afterUrls)
 
+  enforceImageLimit('before', beforeImages.length, data.beforeImages?.length || 0, beforeFiles.length)
+  enforceImageLimit('after', afterImages.length, data.afterImages?.length || 0, afterFiles.length)
+
   if (beforeImages.length > 0) createData.beforeImages = beforeImages
   if (afterImages.length > 0) createData.afterImages = afterImages
 
@@ -255,8 +288,16 @@ async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []
 
   const updateData = { ...data }
 
-  const beforeImages = updateData.beforeImages || [...(existing.beforeImages || [])]
-  const afterImages = updateData.afterImages || [...(existing.afterImages || [])]
+  // Use the explicitly provided list when present (even if empty, which means
+  // the client intentionally cleared this section). Otherwise keep existing.
+  const beforeImages =
+    updateData.beforeImages !== undefined
+      ? [...(updateData.beforeImages || [])]
+      : [...(existing.beforeImages || [])]
+  const afterImages =
+    updateData.afterImages !== undefined
+      ? [...(updateData.afterImages || [])]
+      : [...(existing.afterImages || [])]
 
   const uploadPromises = []
   const uploadStart = Date.now()
@@ -330,14 +371,9 @@ async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []
     throw failure(500, `Upload failed: ${reasons}`)
   }
 
-  if (beforeImages.length > MAX_IMAGES_PER_SECTION) {
-    beforeImages.splice(MAX_IMAGES_PER_SECTION)
-  }
+  enforceImageLimit('before', beforeImages.length, existing.beforeImages?.length || 0, beforeFiles.length)
+  enforceImageLimit('after', afterImages.length, existing.afterImages?.length || 0, afterFiles.length)
   updateData.beforeImages = beforeImages
-
-  if (afterImages.length > MAX_IMAGES_PER_SECTION) {
-    afterImages.splice(MAX_IMAGES_PER_SECTION)
-  }
   updateData.afterImages = afterImages
 
    const item = await prisma.portfolioProject.update({ where: { id }, data: updateData })
@@ -363,6 +399,46 @@ async function deletePortfolio(id) {
   await deleteFiles([...(existing.beforeImages || []), ...(existing.afterImages || [])])
   await prisma.portfolioImage.deleteMany({ where: { portfolioProjectId: id } })
   await prisma.portfolioProject.delete({ where: { id } })
+}
+
+async function reorderPortfolioProjects(orderList) {
+  if (!Array.isArray(orderList) || orderList.length === 0) {
+    throw failure(400, 'Reorder list is required')
+  }
+
+  const normalized = orderList.map((item) => {
+    const id = typeof item === 'string' ? item : item?.id
+    if (!id) throw failure(400, 'Each reorder entry must contain a valid project id')
+    return { id: String(id) }
+  })
+
+  const ids = normalized.map((x) => x.id)
+  if (new Set(ids).size !== ids.length) {
+    throw failure(400, 'Duplicate project IDs in reorder request')
+  }
+
+  const existing = await prisma.portfolioProject.findMany({
+    where: { id: { in: ids } },
+    select: { id: true },
+  })
+  const foundIds = new Set(existing.map((e) => e.id))
+  const missing = ids.filter((id) => !foundIds.has(id))
+  if (missing.length > 0) {
+    throw failure(400, `Unknown project IDs in reorder request: ${missing.join(', ')}`)
+  }
+
+  // Assign sequential displayOrder based on the provided sequence. This also
+  // normalizes any gaps (e.g. 0,1,7,20 -> 0,1,2,3) and guarantees uniqueness.
+  await prisma.$transaction(async (tx) => {
+    for (let i = 0; i < ids.length; i++) {
+      await tx.portfolioProject.update({
+        where: { id: ids[i] },
+        data: { displayOrder: i },
+      })
+    }
+  }, { timeout: 30000 })
+
+  return listPortfolio({ limit: 1000 })
 }
 
 async function reorderPortfolioImages(projectId, orderList) {
