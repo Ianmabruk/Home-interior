@@ -21,6 +21,12 @@ function buildEnv() {
   } else if (env.DIRECT_DATABASE_URL) {
     console.log('[migrate:deploy] Using DIRECT_DATABASE_URL for migration (bypasses pooler)')
     env.DATABASE_URL = env.DIRECT_DATABASE_URL
+  } else if (env.DATABASE_URL && env.DATABASE_URL.includes('-pooler')) {
+    // No explicit direct URL configured: Neon's direct endpoint is the same
+    // host without the "-pooler" segment. Advisory locks require a direct
+    // (non-transaction-pooled) connection, so strip it for migrations.
+    env.DATABASE_URL = env.DATABASE_URL.replace('-pooler', '')
+    console.log('[migrate:deploy] Stripped "-pooler" from DATABASE_URL for migration (direct connection)')
   }
   // Increase statement timeout for slow Neon cold starts
   if (!env.DATABASE_URL.includes('statement_timeout')) {
