@@ -46,15 +46,13 @@ export const virtualDesignController = {
     if (req.body.featured !== undefined) data.featured = req.body.featured === 'true' || req.body.featured === true
     if (req.body.displayOrder !== undefined) data.displayOrder = Number(req.body.displayOrder) || 0
     if (req.body.published !== undefined) data.published = req.body.published !== 'false' && req.body.published !== false
-    if (req.body.mediaUrls) data.mediaUrls = Array.isArray(req.body.mediaUrls) ? req.body.mediaUrls : []
-    // Handle existing media URL preservation when no new file is uploaded
-    if (req.body.mediaUrl) data.imageUrl = req.body.mediaUrl
-    // Handle existing gallery URLs preservation
+    if (req.body.imageUrl) data.imageUrl = req.body.imageUrl
+    // Parse the list of existing media URLs the client wants to keep
     if (req.body.existingMediaUrls) {
       try {
-        const existingUrls = JSON.parse(req.body.existingMediaUrls)
-        if (Array.isArray(existingUrls)) {
-          data.mediaUrls = [...existingUrls, ...(data.mediaUrls || [])]
+        const parsed = JSON.parse(req.body.existingMediaUrls)
+        if (Array.isArray(parsed)) {
+          data._keptMediaUrls = parsed
         }
       } catch {
         // Ignore parse errors

@@ -101,20 +101,37 @@ async function updateVirtualDesign(id, data, file, galleryFiles, circularFile = 
     updateData.homepageCircularImageId = uploaded.path
   }
 
+  // Build the final mediaUrls: existing URLs the client wants to keep + newly uploaded files.
+  // The client sends existingMediaUrls as a JSON array of URLs to retain.
+  // This replaces the old mediaUrls entirely (no orphaned/stale URLs).
+  const keptUrls = Array.isArray(data._keptMediaUrls) ? data._keptMediaUrls : []
+
+  // Clean up gallery files that were removed during update
+  if (data._keptMediaUrls !== undefined) {
+    const removedUrls = (existing.mediaUrls || []).filter(url => !keptUrls.includes(url))
+    if (removedUrls.length > 0) {
+      await deleteFiles(removedUrls)
+    }
+  }
+
   if (galleryFiles.length > 0) {
-    const mediaUrls = [...(existing.mediaUrls || [])]
     const uploadPromises = []
     for (const f of galleryFiles) {
       uploadPromises.push(uploadFile(f.buffer, f.mimetype, 'virtual-designs'))
     }
     const uploadedUrls = await Promise.allSettled(uploadPromises)
+    const newUrls = []
     uploadedUrls.forEach((result) => {
       if (result.status === 'fulfilled') {
-        mediaUrls.push(result.value.url)
+        newUrls.push(result.value.url)
       }
     })
-    updateData.mediaUrls = mediaUrls
+    updateData.mediaUrls = [...keptUrls, ...newUrls]
+  } else if (data._keptMediaUrls !== undefined) {
+    // No new files, but the client explicitly sent the list of URLs to keep
+    updateData.mediaUrls = keptUrls
   }
+
   const item = await prisma.virtualDesign.update({ where: { id }, data: updateData })
   return mapVD(item)
 }
@@ -124,6 +141,10 @@ async function deleteVirtualDesign(id) {
     const existing = await prisma.virtualDesign.findUnique({ where: { id } })
     if (!existing) throw failure(404, 'Virtual design not found')
     if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
+    // Clean up gallery files
+    if (existing.mediaUrls && existing.mediaUrls.length > 0) {
+      await deleteFiles(existing.mediaUrls)
+    }
     await prisma.virtualDesign.delete({ where: { id } })
   } catch (err) {
     if (err?.status === 404) throw err

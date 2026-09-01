@@ -2,7 +2,7 @@ import { prisma } from '../config/database.js'
 import { uploadFile, deleteFile, deleteFiles } from '../uploads/uploadService.js'
 import { failure } from '../utils/response.js'
 
-const MAX_IMAGES_PER_SECTION = 21
+const MAX_IMAGES_PER_SECTION = 30
 
 function enforceImageLimit(section, total, existingCount, requestedNew) {
   if (total > MAX_IMAGES_PER_SECTION) {

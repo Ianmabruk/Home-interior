@@ -179,10 +179,13 @@ export const VirtualDesignDashboard = () => {
             existingGalleryUrls.push(file.url)
           }
         })
-        // Preserve existing gallery URLs when editing
-        if (editingId && existingGalleryUrls.length > 0) {
+        // Send existing gallery URLs to keep (even if empty, to allow clearing)
+        if (editingId) {
           payload.append('existingMediaUrls', JSON.stringify(existingGalleryUrls))
         }
+      } else if (editingId) {
+        // No gallery files at all — explicitly clear the gallery
+        payload.append('existingMediaUrls', JSON.stringify([]))
       }
 
       if (editingId) {

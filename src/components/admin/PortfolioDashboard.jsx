@@ -17,7 +17,7 @@ const INITIAL_FORM = {
   published: true,
 }
 
-const MAX_IMAGES = 21
+const MAX_IMAGES = 30
 
 export const PortfolioDashboard = () => {
    const [portfolio, setPortfolio] = useState([])
