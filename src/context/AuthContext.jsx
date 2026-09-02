@@ -25,6 +25,7 @@ export function AuthProvider({ children }) {
       const status = err?.response?.status
       if (status === 401) {
         localStorage.removeItem('hok_access_token')
+        setUser(null)
       }
     } finally {
       if (!cancelledRef.current) setLoading(false)
@@ -35,6 +36,15 @@ export function AuthProvider({ children }) {
     fetchUser()
     return () => { cancelledRef.current = true }
   }, [fetchUser])
+
+  useEffect(() => {
+    const handler = () => {
+      setUser(null)
+      setLoading(false)
+    }
+    window.addEventListener('hok-auth-failed', handler)
+    return () => window.removeEventListener('hok-auth-failed', handler)
+  }, [])
 
   const login = useCallback(async (email, password) => {
     const res = await api.post('/auth/login', { email, password })

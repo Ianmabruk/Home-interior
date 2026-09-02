@@ -104,18 +104,25 @@ export const authController = {
   }),
 
   refresh: asyncHandler(async (req, res) => {
-    const token = req.cookies?.refreshToken || req.headers['x-refresh-token']
+    const cookieToken = req.cookies?.refreshToken
+    const headerToken = req.headers['x-refresh-token']
+    const authHeaderToken = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null
+    const token = cookieToken || headerToken || authHeaderToken
+
     if (!token) {
+      console.warn(`[auth] refresh rejected: no token (cookies=${!!cookieToken}, header=${!!headerToken}, bearer=${!!authHeaderToken}) from ${req.ip}`)
       return res.status(401).json({ success: false, message: 'Refresh token required' })
     }
 
     let result
     try {
       result = await authService.refresh(token)
-    } catch {
+    } catch (err) {
+      console.warn(`[auth] refresh rejected for admin: ${err?.message || err}`)
       try {
         result = await customerAuthService.refresh(token)
-      } catch {
+      } catch (custErr) {
+        console.warn(`[auth] refresh rejected for customer: ${custErr?.message || custErr}`)
         return res.status(401).json({ success: false, message: 'Invalid refresh token' })
       }
     }

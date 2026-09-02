@@ -103,7 +103,6 @@ api.interceptors.response.use(
 
     if (status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh') && !originalRequest.url?.includes('/auth/csrf')) {
       if (refreshFailed) {
-        refreshFailed = false
         const message = error?.response?.data?.message || error?.message || 'Session expired'
         return Promise.reject(new Error(message))
       }
@@ -124,6 +123,11 @@ api.interceptors.response.use(
             console.warn('[auth] refresh failed:', refreshErr?.response?.status, refreshErr?.message)
             localStorage.removeItem('hok_access_token')
             refreshFailed = true
+            try {
+              window.dispatchEvent(new CustomEvent('hok-auth-failed'))
+            } catch {
+              // ignore event dispatch errors
+            }
             return Promise.reject(refreshErr)
           })
           .finally(() => {
