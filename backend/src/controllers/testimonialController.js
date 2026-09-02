@@ -50,4 +50,10 @@ export const testimonialController = {
     await testimonialService.deleteTestimonial(req.params.id)
     res.json({ success: true, data: { message: 'Deleted' } })
   }),
+
+  reorder: asyncHandler(async (req, res) => {
+    const orderedIds = Array.isArray(req.body.orderedIds) ? req.body.orderedIds : []
+    const items = await testimonialService.reorderTestimonials(orderedIds)
+    res.json({ success: true, data: items })
+  }),
 }

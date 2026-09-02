@@ -27,6 +27,7 @@ export const testimonialService = {
   createTestimonial,
   updateTestimonial,
   deleteTestimonial,
+  reorderTestimonials,
 }
 
 async function listTestimonials() {
@@ -97,4 +98,16 @@ async function deleteTestimonial(id) {
   if (!existing) throw failure(404, 'Testimonial not found')
   if (existing.publicId) await deleteFile(existing.publicId)
   await prisma.testimonial.delete({ where: { id } })
+}
+
+async function reorderTestimonials(orderedIds) {
+  if (!Array.isArray(orderedIds)) throw failure(400, 'Invalid reorder payload')
+  const updates = orderedIds.map((id, index) =>
+    prisma.testimonial.update({
+      where: { id },
+      data: { displayOrder: index },
+    }),
+  )
+  await prisma.$transaction(updates)
+  return listTestimonials()
 }

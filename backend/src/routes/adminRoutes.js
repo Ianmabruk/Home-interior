@@ -132,6 +132,7 @@ router.get('/testimonials/:id', testimonialController.get)
 router.post('/testimonials', uploadFields([{ name: 'photo', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), testimonialController.create)
 router.patch('/testimonials/:id', uploadFields([{ name: 'photo', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), testimonialController.update)
 router.delete('/testimonials/:id', testimonialController.delete)
+router.put('/testimonials/reorder', testimonialController.reorder)
 
 // Admin Consultations
 router.get('/consultations', consultationController.list)

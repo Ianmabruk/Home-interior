@@ -7,10 +7,10 @@ import {
   Plus,
   X,
   Image,
-  Star,
   Eye,
   EyeOff,
-  GripVertical,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
@@ -26,16 +26,14 @@ export const TestimonialDashboard = () => {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({
     clientName: '',
-    position: '',
-    company: '',
     testimonial: '',
     project: '',
-    rating: 5,
     displayOrder: 0,
     isActive: true,
     photo: null,
     photoPreview: null,
     initial: '',
+    removePhoto: false,
   })
 
   const load = async () => {
@@ -48,7 +46,6 @@ export const TestimonialDashboard = () => {
   }
 
   useEffect(() => {
-    // Data fetching on mount - intentional setState in effect
     const fetchData = async () => {
       try {
         const res = await api.get('/admin/testimonials')
@@ -71,18 +68,17 @@ export const TestimonialDashboard = () => {
   }, [])
 
   const resetForm = () => {
+    setEditing(null)
     setForm({
       clientName: '',
-      position: '',
-      company: '',
       testimonial: '',
       project: '',
-      rating: 5,
-      displayOrder: 0,
+      displayOrder: testimonials.length,
       isActive: true,
       photo: null,
       photoPreview: null,
       initial: '',
+      removePhoto: false,
     })
   }
 
@@ -92,28 +88,35 @@ export const TestimonialDashboard = () => {
     setStatus('')
     try {
       const formData = new FormData()
-      Object.entries(form).forEach(([key, value]) => {
-        if (value !== null && value !== undefined && key !== 'photoPreview') {
-          if (key === 'photo' && value instanceof File) {
-            formData.append(key, value)
-          } else {
-            formData.append(key, String(value))
-          }
-        }
-      })
+      formData.append('clientName', form.clientName)
+      formData.append('testimonial', form.testimonial)
+      formData.append('content', form.testimonial)
+      formData.append('project', form.project || '')
+      formData.append('displayOrder', String(form.displayOrder))
+      formData.append('isActive', String(form.isActive))
+      formData.append('initial', form.initial || '')
+
+      if (form.photo instanceof File) {
+        formData.append('photo', form.photo)
+      }
 
       if (editing) {
+        if (form.removePhoto) {
+          formData.append('removePhoto', 'true')
+        }
         await api.patch(`/admin/testimonials/${editing}`, formData)
+        setStatus('Testimonial updated successfully')
       } else {
         await api.post('/admin/testimonials', formData)
+        setStatus('Testimonial created successfully')
       }
-      setStatus(editing ? 'Testimonial updated successfully' : 'Testimonial created successfully')
       resetForm()
       load()
       dispatchAdminDataChanged('testimonials-changed')
-    } catch {
+      toast.success(editing ? 'Testimonial updated successfully.' : 'Testimonial created successfully.')
+    } catch (err) {
       setStatus('Failed to save testimonial. Please try again.')
-      toast.error('Failed to save testimonial.')
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to save testimonial.')
     } finally {
       setLoading(false)
     }
@@ -123,16 +126,14 @@ export const TestimonialDashboard = () => {
     setEditing(item._id || item.id)
     setForm({
       clientName: item.clientName || '',
-      position: item.position || '',
-      company: item.company || '',
-      testimonial: item.testimonial || '',
+      testimonial: item.content || '',
       project: item.project || '',
-      rating: item.rating || 5,
-      displayOrder: item.displayOrder || 0,
+      displayOrder: item.displayOrder ?? 0,
       isActive: item.isActive !== false,
       photo: null,
       photoPreview: item.photoUrl || null,
       initial: item.initial || '',
+      removePhoto: false,
     })
     setShowForm(true)
   }
@@ -150,23 +151,30 @@ export const TestimonialDashboard = () => {
     }
   }
 
+  const moveTestimonial = (index, direction) => {
+    const newIndex = index + direction
+    if (newIndex < 0 || newIndex >= testimonials.length) return
+    const newTestimonials = [...testimonials]
+    const [moved] = newTestimonials.splice(index, 1)
+    newTestimonials.splice(newIndex, 0, moved)
+    const reordered = newTestimonials.map((t, i) => ({ ...t, displayOrder: i }))
+    setTestimonials(reordered)
+    const ids = reordered.map((t) => t._id || t.id)
+    api.put('/admin/testimonials/reorder', { orderedIds: ids })
+      .then(() => {
+        load()
+        dispatchAdminDataChanged('testimonials-changed')
+      })
+      .catch(() => {
+        toast.error('Failed to reorder testimonials.')
+        load()
+      })
+  }
+
   const filtered = testimonials.filter((t) =>
     t.clientName?.toLowerCase().includes(search.toLowerCase()) ||
-    t.testimonial?.toLowerCase().includes(search.toLowerCase()) ||
+    t.content?.toLowerCase().includes(search.toLowerCase()) ||
     t.project?.toLowerCase().includes(search.toLowerCase())
-  )
-
-  const renderStars = (rating, size = 14) => (
-    <div className="flex items-center gap-0.5" aria-label={`${rating} out of 5 stars`}>
-      {[...Array(5)].map((_, i) => (
-        <Star
-          key={i}
-          size={size}
-          strokeWidth={1.5}
-          className={i < rating ? 'text-accentOrange fill-accentOrange' : 'text-[var(--border)]'}
-        />
-      ))}
-    </div>
   )
 
   return (
@@ -231,7 +239,7 @@ export const TestimonialDashboard = () => {
             <p className="font-display text-xl text-[var(--primary)]/30">
               {search ? 'No testimonials found' : 'No testimonials yet'}
             </p>
-            <p className="mt-2 text-sm text-[var(--primary)]/50">Click \"Add Testimonial\" to create your first one</p>
+            <p className="mt-2 text-sm text-[var(--primary)]/50">Click "Add Testimonial" to create your first one</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -241,7 +249,6 @@ export const TestimonialDashboard = () => {
                   <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Photo</th>
                   <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Client</th>
                   <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Testimonial</th>
-                  <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Rating</th>
                   <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Order</th>
                   <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Status</th>
                   <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Actions</th>
@@ -271,16 +278,32 @@ export const TestimonialDashboard = () => {
                       <div className="font-medium">{t.clientName}</div>
                     </td>
                     <td className="px-4 py-3.5 text-[var(--primary)]/70 max-w-md">
-                      <p className="line-clamp-2 text-sm leading-relaxed">\"{t.testimonial}\"</p>
+                      <p className="line-clamp-2 text-sm leading-relaxed">"{t.content}"</p>
                     </td>
                     <td className="px-4 py-3.5">
-                      {renderStars(t.rating)}
-                    </td>
-                    <td className="px-4 py-3.5 text-[var(--primary)]/60">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-2xs font-medium bg-[var(--secondary)]/30">
-                        <GripVertical size={10} strokeWidth={1.5} className="text-[var(--primary)]/30" />
-                        {t.displayOrder ?? 0}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => moveTestimonial(i, -1)}
+                          disabled={i === 0}
+                          className="p-1.5 rounded-lg text-[var(--primary)]/50 hover:text-[var(--primary)] hover:bg-[var(--secondary)]/30 transition disabled:opacity-30"
+                          title="Move up"
+                        >
+                          <ArrowUp size={14} />
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => moveTestimonial(i, 1)}
+                          disabled={i === filtered.length - 1}
+                          className="p-1.5 rounded-lg text-[var(--primary)]/50 hover:text-[var(--primary)] hover:bg-[var(--secondary)]/30 transition disabled:opacity-30"
+                          title="Move down"
+                        >
+                          <ArrowDown size={14} />
+                        </motion.button>
+                        <span className="text-xs text-[var(--primary)]/40 ml-1">{t.displayOrder ?? i}</span>
+                      </div>
                     </td>
                     <td className="px-4 py-3.5">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium ${t.isActive ? 'bg-[var(--success)]/10 text-[var(--success)]' : 'bg-[var(--primary)]/5 text-[var(--primary)]/50'}`}>
@@ -372,32 +395,6 @@ export const TestimonialDashboard = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Display Order</label>
-                  <input
-                    type="number"
-                    value={form.displayOrder}
-                    onChange={(e) => setForm((f) => ({ ...f, displayOrder: Number(e.target.value) }))}
-                    className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Rating *</label>
-                  <div className="flex items-center gap-2">
-                    {renderStars(form.rating, 24)}
-                    <select
-                      value={form.rating}
-                      onChange={(e) => setForm((f) => ({ ...f, rating: Number(e.target.value) }))}
-                      className="w-24 rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                    >
-                      {[1, 2, 3, 4, 5].map((r) => (
-                        <option key={r} value={r}>{r} star{r !== 1 ? 's' : ''}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
                   <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Testimonial *</label>
                   <textarea
                     value={form.testimonial}
@@ -440,7 +437,7 @@ export const TestimonialDashboard = () => {
                       onChange={(e) => {
                         const file = e.target.files[0]
                         if (file) {
-                          setForm((f) => ({ ...f, photo: file, photoPreview: URL.createObjectURL(file) }))
+                          setForm((f) => ({ ...f, photo: file, photoPreview: URL.createObjectURL(file), removePhoto: false }))
                         }
                       }}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -451,7 +448,7 @@ export const TestimonialDashboard = () => {
                           <img src={form.photoPreview} alt="Preview" className="w-24 h-24 rounded-2xl object-cover mx-auto mb-2" />
                           <button
                             type="button"
-                            onClick={() => setForm((f) => ({ ...f, photo: null, photoPreview: null }))}
+                            onClick={() => setForm((f) => ({ ...f, photo: null, photoPreview: null, removePhoto: true }))}
                             className="absolute top-2 right-2 p-1 rounded-full bg-[var(--primary)]/80 text-white hover:bg-[var(--primary)] transition-colors"
                           >
                             <X size={14} />
@@ -463,7 +460,7 @@ export const TestimonialDashboard = () => {
                             <Image size={28} />
                           </div>
                           <p className="text-sm text-[var(--primary)]/60">Click to upload client photo</p>
-                          <p className="text-[10px] text-[var(--primary)]/40 mt-1">JPG, PNG up to 10MB</p>
+                          <p className="text-[10px] text-[var(--primary)]/40 mt-1">JPG, PNG, WebP up to 10MB</p>
                         </>
                       )}
                     </div>
