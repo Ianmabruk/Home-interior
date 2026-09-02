@@ -135,12 +135,12 @@ export default defineConfig({
     // (optional chaining, nullish coalescing), shrinking the JS and cutting
     // main-thread parse/exec time (TBT) on mobile.
     target: 'es2020',
-    cssCodeSplit: false,
-    reportCompressedSize: false,
+    cssCodeSplit: true,
+    reportCompressedSize: true,
     minCollapseIdenticalImports: true,
     allowCompressionPolyfill: false,
     assetsInlineLimit: 4096,
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 200,
     minify: 'esbuild',
     modulePreload: {
       polyfill: false,

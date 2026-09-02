@@ -95,25 +95,12 @@ useEffect(() => {
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
   }, [loadData, loadCircularTabs])
 
-  if (loading) {
-    return (
-      <main>
-        <SectionErrorBoundary sectionName="Hero" fallback={<SkeletonHero />}>
-          <HeroSection heroImages={[]} />
-        </SectionErrorBoundary>
-        <SectionErrorBoundary sectionName="CircularNavigation" fallback={<EmptySection />}>
-          <CircularNavigationGrid />
-        </SectionErrorBoundary>
-      </main>
-    )
-  }
-
   return (
     <main>
       <PageMeta
         title="HOK INTERIOR DESIGNS — Timeless Interiors, Designed for a Life Well Lived"
         description="Luxury interior design, curated furniture, and premium virtual design services."
-        image={heroImages?.[0]?.imageUrl || heroImages?.[0] || undefined}
+        image={heroImages?.[0]?.imageUrl || heroImages?.[0]?.url || undefined}
       />
 
       {/* HERO - Full Width */}
