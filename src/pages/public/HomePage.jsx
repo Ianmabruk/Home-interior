@@ -25,7 +25,6 @@ const EmptySection = memo(() => (
 EmptySection.displayName = 'EmptySection'
 
 export const HomePage = memo(() => {
-    const [loading, setLoading] = useState(true)
     const [heroImages, setHeroImages] = useState([])
     const [circularTabs, setCircularTabs] = useState({})
 
@@ -67,7 +66,7 @@ export const HomePage = memo(() => {
         console.warn('[HOME] Fallback fetch failed:', fallbackErr?.message)
       }
     } finally {
-      setLoading(false)
+      // loading state removed — hero renders immediately
     }
   }, [])
 
