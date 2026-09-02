@@ -4,7 +4,10 @@ import { failure } from '../utils/response.js'
 
 export const virtualDesignController = {
   list: asyncHandler(async (req, res) => {
-    const items = await virtualDesignService.listVirtualDesigns()
+    const filters = {}
+    if (req.query.packageType) filters.packageType = req.query.packageType
+    if (req.query.published !== undefined) filters.published = req.query.published !== 'false'
+    const items = await virtualDesignService.listVirtualDesigns(filters)
     res.json({ success: true, data: items })
   }),
 
@@ -29,6 +32,14 @@ export const virtualDesignController = {
       displayOrder: Number(req.body.displayOrder) || 0,
       published: req.body.published !== 'false' && req.body.published !== false,
       mediaUrls: req.body.mediaUrls || [],
+      price: req.body.price ? Number(req.body.price) : null,
+      priceMax: req.body.priceMax ? Number(req.body.priceMax) : null,
+      currency: req.body.currency || 'KES',
+      priceSuffix: req.body.priceSuffix || '',
+      features: req.body.features || [],
+      ctaText: req.body.ctaText || 'Book',
+      tagline: req.body.tagline || '',
+      packageType: req.body.packageType || null,
     }
     const item = await virtualDesignService.createVirtualDesign(data, file, galleryFiles, circularFile)
     res.status(201).json({ success: true, data: item })
@@ -47,6 +58,14 @@ export const virtualDesignController = {
     if (req.body.displayOrder !== undefined) data.displayOrder = Number(req.body.displayOrder) || 0
     if (req.body.published !== undefined) data.published = req.body.published !== 'false' && req.body.published !== false
     if (req.body.imageUrl) data.imageUrl = req.body.imageUrl
+    if (req.body.price !== undefined) data.price = req.body.price ? Number(req.body.price) : null
+    if (req.body.priceMax !== undefined) data.priceMax = req.body.priceMax ? Number(req.body.priceMax) : null
+    if (req.body.currency !== undefined) data.currency = req.body.currency
+    if (req.body.priceSuffix !== undefined) data.priceSuffix = req.body.priceSuffix
+    if (req.body.features !== undefined) data.features = Array.isArray(req.body.features) ? req.body.features : []
+    if (req.body.ctaText !== undefined) data.ctaText = req.body.ctaText
+    if (req.body.tagline !== undefined) data.tagline = req.body.tagline
+    if (req.body.packageType !== undefined) data.packageType = req.body.packageType || null
     // Parse the list of existing media URLs the client wants to keep
     if (req.body.existingMediaUrls) {
       try {

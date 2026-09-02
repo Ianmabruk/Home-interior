@@ -81,6 +81,8 @@ function ContactViewModal({ viewItem, onClose }) {
             { icon: Clock, label: 'Time', value: viewItem.preferredTime || '—' },
             { icon: CheckCircle2, label: 'Status', value: viewItem.status || 'new' },
             { icon: Tag, label: 'Type', value: viewItem.type || 'consultation' },
+            ...(viewItem.packageName ? [{ icon: Tag, label: 'Package', value: viewItem.packageName }] : []),
+            ...(viewItem.packagePrice ? [{ icon: Tag, label: 'Package Price', value: viewItem.packagePrice }] : []),
           ].map((field, i) => (
             <div
               key={i}

@@ -1,65 +1,19 @@
-import { useState, memo } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Loader2, Send, Check, ChevronDown, ChevronUp, Sparkles, Shield, Wifi } from 'lucide-react'
+import {
+  X,
+  Loader2,
+  Send,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
+  Shield,
+  Wifi,
+} from 'lucide-react'
 import { api } from '@services/api'
 import { toast } from 'react-hot-toast'
 import { dispatchAdminDataChanged } from '@utils/adminEvents'
-
-const packages = [
-  {
-    id: 'mini',
-    name: 'Mini Refresh',
-    tagline: 'Renter-friendly glow up in 7 days',
-    price: '12,000',
-    priceMax: '18,000',
-    features: [
-      'Moodboard and renter-safe color palette',
-      '2D furniture layout',
-      'Budget shopping list',
-      'Renter-friendly decor tips',
-      'One revision',
-      'Delivery in 7 days',
-    ],
-    buttonText: 'Book Mini Refresh',
-    popular: false,
-  },
-  {
-    id: 'signature',
-    name: 'Signature Rental Design',
-    tagline: 'See your dream rental before you buy anything',
-    price: '28,000',
-    priceMax: '35,000',
-    features: [
-      'Everything in Mini Refresh',
-      'Two design concepts',
-      'Photorealistic 3D render',
-      'Budget and Elevated shopping lists',
-      'Renter-friendly styling recommendations',
-      'Two revisions',
-      'Delivery in 14 days',
-    ],
-    buttonText: 'Book Signature Design',
-    popular: true,
-  },
-  {
-    id: 'whole-home',
-    name: 'Whole Home Bundle',
-    tagline: 'Cohesive design for your whole apartment',
-    price: '55,000',
-    priceMax: '70,000',
-    features: [
-      'Signature Design for up to 3 rooms',
-      'Cohesive interior styling',
-      'Multifunctional furniture recommendations',
-      'Lighting and rug sizing guide',
-      'Move-in and move-out styling tips',
-      'Three revisions',
-      'Delivery in 21 days',
-    ],
-    buttonText: 'Book Whole Home',
-    popular: false,
-  },
-]
 
 const addOns = [
   { name: 'Virtual Styling Call (30 min)', price: '3,500' },
@@ -101,9 +55,33 @@ const trustIndicators = [
   { icon: Check, label: 'Secure Booking' },
 ]
 
-export const EDesignPackages = memo(() => {
+function mapPackage(item) {
+  const price = item.price || 0
+  const priceMax = item.priceMax || price
+  const currency = item.currency || 'KES'
+  const features = Array.isArray(item.features) ? item.features : []
+  return {
+    id: item.id,
+    name: item.title || 'Untitled Package',
+    tagline: item.tagline || '',
+    price: String(Number(price).toLocaleString()),
+    priceMax: String(Number(priceMax).toLocaleString()),
+    currency,
+    features,
+    buttonText: item.ctaText || 'Book',
+    popular: Boolean(item.featured),
+    rawPrice: price,
+    rawPriceMax: priceMax,
+    rawName: item.title,
+  }
+}
+
+export const EDesignPackages = memo(({ packages: propPackages }) => {
+  const [packages, setPackages] = useState([])
+  const [loading, setLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState('')
+  const [selectedPackagePrice, setSelectedPackagePrice] = useState('')
   const [showComparison, setShowComparison] = useState(false)
   const [openFaq, setOpenFaq] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -117,9 +95,34 @@ export const EDesignPackages = memo(() => {
     preferredTime: '',
   })
 
-  const openBooking = (packageId, packageName) => {
-    setSelectedPackage(packageName)
-    setFormData(prev => ({ ...prev, service: packageName }))
+  useEffect(() => {
+    if (propPackages && propPackages.length > 0) {
+      const mapped = propPackages.map(mapPackage)
+      setPackages(mapped)
+      return
+    }
+    let cancelled = false
+    const load = async () => {
+      setLoading(true)
+      try {
+        const res = await api.get('/virtual-design')
+        const items = Array.isArray(res.data) ? res.data : []
+        const mapped = items.map(mapPackage)
+        if (!cancelled) setPackages(mapped)
+      } catch {
+        if (!cancelled) setPackages([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [propPackages])
+
+  const openBooking = (pkg) => {
+    setSelectedPackage(pkg.rawName || pkg.name)
+    setSelectedPackagePrice(`${pkg.currency} ${pkg.price}${pkg.priceMax !== pkg.price ? ' - ' + pkg.priceMax : ''}`)
+    setFormData((prev) => ({ ...prev, service: pkg.rawName || pkg.name }))
     setModalOpen(true)
   }
 
@@ -135,7 +138,7 @@ export const EDesignPackages = memo(() => {
       payload.append('projectType', formData.service || 'e-design')
       payload.append('type', 'e-design')
       payload.append('packageName', selectedPackage)
-      payload.append('packagePrice', '0')
+      payload.append('packagePrice', selectedPackagePrice || '0')
       payload.append('paymentStatus', 'pending')
       payload.append('preferredDate', formData.preferredDate || '')
       payload.append('preferredTime', formData.preferredTime || '')
@@ -154,6 +157,40 @@ export const EDesignPackages = memo(() => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  if (loading) {
+    return (
+      <section className="bg-[var(--bg)] px-6 md:px-12 lg:px-20 py-20 md:py-32" id="e-design">
+        <div className="container-wide">
+          <div className="mb-16 md:mb-24 text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">
+              E-Design Packages
+            </p>
+            <h2 className="font-display text-4xl font-medium leading-tight text-[var(--primary)] md:text-5xl lg:text-6xl">
+              Design Without Drilling
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-3xl border border-[var(--border)] bg-white p-6 md:p-8">
+                <div className="skeleton h-6 w-32 mx-auto mb-4" />
+                <div className="skeleton h-4 w-48 mx-auto mb-6" />
+                <div className="skeleton h-10 w-24 mx-auto mb-8" />
+                <div className="skeleton h-3 w-full mb-2" />
+                <div className="skeleton h-3 w-full mb-2" />
+                <div className="skeleton h-3 w-3/4 mb-8" />
+                <div className="skeleton h-12 w-full rounded-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (packages.length === 0) {
+    return null
   }
 
   return (
@@ -213,22 +250,28 @@ export const EDesignPackages = memo(() => {
                   <h3 className="font-display text-2xl font-medium text-[var(--primary)] mb-2">
                     {pkg.name}
                   </h3>
-                  <p className="text-sm text-[var(--primary)]/60 leading-relaxed">
-                    {pkg.tagline}
-                  </p>
+                  {pkg.tagline && (
+                    <p className="text-sm text-[var(--primary)]/60 leading-relaxed">
+                      {pkg.tagline}
+                    </p>
+                  )}
                 </div>
 
                 {/* Price */}
                 <div className="text-center mb-8">
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-sm font-medium text-[var(--primary)]/50">KES</span>
+                    <span className="text-sm font-medium text-[var(--primary)]/50">{pkg.currency}</span>
                     <span className="font-display text-4xl font-medium text-[var(--primary)]">
                       {pkg.price}
                     </span>
-                    <span className="text-sm text-[var(--primary)]/40">-</span>
-                    <span className="font-display text-2xl text-[var(--primary)]/60">
-                      {pkg.priceMax}
-                    </span>
+                    {pkg.priceMax !== pkg.price && (
+                      <>
+                        <span className="text-sm text-[var(--primary)]/40">-</span>
+                        <span className="font-display text-2xl text-[var(--primary)]/60">
+                          {pkg.priceMax}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -247,7 +290,7 @@ export const EDesignPackages = memo(() => {
 
                 {/* CTA */}
                 <button
-                  onClick={() => openBooking(pkg.id, pkg.name)}
+                  onClick={() => openBooking(pkg)}
                   className={`w-full btn-luxury-primary ${
                     pkg.popular ? '' : 'bg-[var(--primary)] hover:bg-[var(--primary)]/90'
                   }`}
@@ -511,8 +554,9 @@ export const EDesignPackages = memo(() => {
                     >
                       <option value="">Select a package</option>
                       {packages.map((pkg) => (
-                        <option key={pkg.id} value={pkg.name}>
-                          {pkg.name} - KES {pkg.price} to {pkg.priceMax}
+                        <option key={pkg.id} value={pkg.rawName || pkg.name}>
+                          {pkg.name} - {pkg.currency} {pkg.price}
+                          {pkg.priceMax !== pkg.price ? ` to ${pkg.priceMax}` : ''}
                         </option>
                       ))}
                     </select>

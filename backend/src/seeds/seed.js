@@ -126,6 +126,90 @@ async function seed() {
     console.warn('Seeding: circular tabs seed skipped:', err?.message || err)
   }
 
+  try {
+    const packageCount = await prisma.virtualDesign.count()
+    if (packageCount === 0) {
+      await prisma.virtualDesign.createMany({
+        data: [
+          {
+            title: 'Mini Refresh',
+            description: 'A renter-friendly glow up in 7 days. Perfect for quick transformations.',
+            tagline: 'Renter-friendly glow up in 7 days',
+            category: 'E-Design',
+            price: 12000,
+            priceMax: 18000,
+            currency: 'KES',
+            features: [
+              'Moodboard and renter-safe color palette',
+              '2D furniture layout',
+              'Budget shopping list',
+              'Renter-friendly decor tips',
+              'One revision',
+              'Delivery in 7 days',
+            ],
+            ctaText: 'Book Mini Refresh',
+            packageType: 'mini-refresh',
+            displayOrder: 0,
+            published: true,
+            featured: false,
+            mediaType: 'image',
+          },
+          {
+            title: 'Signature Rental Design',
+            description: 'See your dream rental before you buy anything. Two design concepts with photorealistic 3D render.',
+            tagline: 'See your dream rental before you buy anything',
+            category: 'E-Design',
+            price: 28000,
+            priceMax: 35000,
+            currency: 'KES',
+            features: [
+              'Everything in Mini Refresh',
+              'Two design concepts',
+              'Photorealistic 3D render',
+              'Budget and Elevated shopping lists',
+              'Renter-friendly styling recommendations',
+              'Two revisions',
+              'Delivery in 14 days',
+            ],
+            ctaText: 'Book Signature Design',
+            packageType: 'signature',
+            displayOrder: 1,
+            published: true,
+            featured: true,
+            mediaType: 'image',
+          },
+          {
+            title: 'Whole Home Bundles',
+            description: 'Cohesive design for your whole apartment. Up to 3 rooms with comprehensive styling.',
+            tagline: 'Cohesive design for your whole apartment',
+            category: 'E-Design',
+            price: 55000,
+            priceMax: 70000,
+            currency: 'KES',
+            features: [
+              'Signature Design for up to 3 rooms',
+              'Cohesive interior styling',
+              'Multifunctional furniture recommendations',
+              'Lighting and rug sizing guide',
+              'Move-in and move-out styling tips',
+              'Three revisions',
+              'Delivery in 21 days',
+            ],
+            ctaText: 'Book Whole Home',
+            packageType: 'whole-home',
+            displayOrder: 2,
+            published: true,
+            featured: false,
+            mediaType: 'image',
+          },
+        ],
+      })
+      console.log('Default e-design packages created')
+    }
+  } catch (err) {
+    console.warn('Seeding: e-design packages seed skipped:', err?.message || err)
+  }
+
   console.log('Seeding complete')
   await prisma.$disconnect()
   if (!critical) process.exit(1)

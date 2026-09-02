@@ -83,7 +83,7 @@ export const consultationController = {
       preferredDate,
       preferredTime,
       packageName: type === 'e-design' ? (req.body.packageName || null) : null,
-      packagePrice: type === 'e-design' ? null : null,
+      packagePrice: type === 'e-design' ? (req.body.packagePrice || null) : null,
       paymentStatus: type === 'e-design' ? 'pending' : null,
       orderId: type === 'e-design' ? null : null,
       purchaseDate: type === 'e-design' ? null : null,

@@ -201,6 +201,14 @@ export const virtualDesignSchemas = {
     displayOrder: z.coerce.number().int().nonnegative().optional(),
     published: z.union([z.boolean(), z.string()]).optional(),
     mediaUrls: z.array(z.string()).optional(),
+    price: z.coerce.number().positive('Price must be positive').optional(),
+    priceMax: z.coerce.number().positive('Max price must be positive').optional(),
+    currency: z.string().optional(),
+    priceSuffix: z.string().optional(),
+    features: z.array(z.string()).optional(),
+    ctaText: z.string().optional(),
+    tagline: z.string().optional(),
+    packageType: z.string().optional(),
   }),
   update: z.object({
     title: z.string().optional(),
@@ -211,6 +219,13 @@ export const virtualDesignSchemas = {
     displayOrder: z.coerce.number().int().nonnegative().optional(),
     published: z.union([z.boolean(), z.string()]).optional(),
     mediaUrls: z.array(z.string()).optional(),
+    price: z.coerce.number().positive('Price must be positive').optional().nullable(),
+    currency: z.string().optional(),
+    priceSuffix: z.string().optional(),
+    features: z.array(z.string()).optional(),
+    ctaText: z.string().optional(),
+    tagline: z.string().optional(),
+    packageType: z.string().optional().nullable(),
   }),
 }
 

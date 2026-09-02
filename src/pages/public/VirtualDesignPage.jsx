@@ -140,7 +140,7 @@ export const VirtualDesignPage = () => {
 
       {/* E-DESIGN PACKAGES */}
       <SectionErrorBoundary sectionName="EDesignPackages" fallback={<EmptySection />}>
-        <EDesignPackages />
+        <EDesignPackages packages={designs} />
       </SectionErrorBoundary>
     </main>
   )

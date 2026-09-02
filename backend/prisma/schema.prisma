@@ -128,6 +128,14 @@ model VirtualDesign {
   homepageCircularImageId String? @db.Text @map("homepage_circular_image_id")
   mediaType    String   @default("image") @map("media_type") @db.Text
   mediaUrls    String[] @default([]) @map("media_urls") @db.Text
+  price        Float?
+  priceMax     Float?   @map("price_max")
+  currency     String?  @default("KES") @db.Text
+  priceSuffix  String?  @default("") @db.Text @map("price_suffix")
+  features     String[] @default([]) @db.Text
+  ctaText      String?  @default("Book") @db.Text @map("cta_text")
+  tagline      String?  @db.Text
+  packageType  String?  @db.Text @map("package_type")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -135,6 +143,7 @@ model VirtualDesign {
    @@index([published, featured, createdAt(desc)])
    @@index([featured])
    @@index([published, displayOrder(asc)])
+   @@index([packageType])
  }
 
 model Product {

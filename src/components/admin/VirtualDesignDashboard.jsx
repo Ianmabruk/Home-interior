@@ -22,6 +22,14 @@ const INITIAL_FORM = {
   category: 'General',
   mediaType: 'image',
   featured: false,
+  price: '',
+  priceMax: '',
+  currency: 'KES',
+  priceSuffix: '',
+  tagline: '',
+  ctaText: 'Book',
+  packageType: '',
+  features: [],
 }
 
 export const VirtualDesignDashboard = () => {
@@ -39,6 +47,7 @@ export const VirtualDesignDashboard = () => {
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
   const [optimisticDeletes, setOptimisticDeletes] = useState(new Set())
+  const [featureInput, setFeatureInput] = useState('')
   const mainFileRef = useRef(null)
   const videoRef = useRef(null)
   const galleryFileRef = useRef(null)
@@ -100,6 +109,14 @@ export const VirtualDesignDashboard = () => {
       category: item.category || 'General',
       mediaType: item.mediaType || 'image',
       featured: item.featured || false,
+      price: item.price || '',
+      priceMax: item.priceMax || '',
+      currency: item.currency || 'KES',
+      priceSuffix: item.priceSuffix || '',
+      tagline: item.tagline || '',
+      ctaText: item.ctaText || 'Book',
+      packageType: item.packageType || '',
+      features: item.features || [],
     })
     setMainMediaFiles(item.mediaUrl ? [{ url: item.mediaUrl, type: item.mediaType }] : [])
     setMainMediaPreviews(item.mediaUrl ? [item.mediaUrl] : [])
@@ -107,6 +124,7 @@ export const VirtualDesignDashboard = () => {
     setGalleryPreviews(item.galleryMedia ? item.galleryMedia.map(m => m.url) : [])
     setShowForm(true)
     setError('')
+    setFeatureInput('')
   }, [])
 
   const resetForm = useCallback(() => {
@@ -118,6 +136,7 @@ export const VirtualDesignDashboard = () => {
     setGalleryPreviews([])
     setShowForm(false)
     setError('')
+    setFeatureInput('')
   }, [])
 
   const handleMainDragOver = useCallback((e) => {
@@ -150,6 +169,27 @@ export const VirtualDesignDashboard = () => {
     handleGalleryFiles(e.dataTransfer.files)
   }, [handleGalleryFiles])
 
+  const addFeature = useCallback(() => {
+    const text = featureInput.trim()
+    if (!text) return
+    setForm((f) => ({ ...f, features: [...f.features, text] }))
+    setFeatureInput('')
+  }, [featureInput])
+
+  const removeFeature = useCallback((index) => {
+    setForm((f) => ({ ...f, features: f.features.filter((_, i) => i !== index) }))
+  }, [])
+
+  const moveFeature = useCallback((index, direction) => {
+    setForm((f) => {
+      const features = [...f.features]
+      const target = index + direction
+      if (target < 0 || target >= features.length) return f
+      ;[features[index], features[target]] = [features[target], features[index]]
+      return { ...f, features }
+    })
+  }, [])
+
   const submit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -161,6 +201,14 @@ export const VirtualDesignDashboard = () => {
       if (form.category) payload.append('category', form.category)
       payload.append('mediaType', form.mediaType)
       payload.append('featured', String(form.featured))
+      if (form.price) payload.append('price', String(form.price))
+      if (form.priceMax) payload.append('priceMax', String(form.priceMax))
+      if (form.currency) payload.append('currency', form.currency)
+      if (form.priceSuffix) payload.append('priceSuffix', form.priceSuffix)
+      if (form.tagline) payload.append('tagline', form.tagline)
+      if (form.ctaText) payload.append('ctaText', form.ctaText)
+      if (form.packageType) payload.append('packageType', form.packageType)
+      if (form.features.length > 0) payload.append('features', JSON.stringify(form.features))
 
       const file = mainMediaFiles[0]
       if (file && file instanceof File) {
@@ -265,7 +313,7 @@ export const VirtualDesignDashboard = () => {
       >
         <div>
           <h2 className="font-display text-3xl text-[var(--primary)]">Virtual Designs</h2>
-          <p className="text-sm text-[var(--primary)]/50 mt-1">{items.length} projects</p>
+          <p className="text-sm text-[var(--primary)]/50 mt-1">Manage your eDesign packages, pricing, features, images and booking options.</p>
         </div>
         <motion.button
           whileHover={{ scale: 1.02 }}
@@ -349,6 +397,145 @@ export const VirtualDesignDashboard = () => {
                 placeholder="e.g. Residential, Commercial"
                 required
               />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Tagline</label>
+              <input
+                value={form.tagline}
+                onChange={(e) => setForm((f) => ({ ...f, tagline: e.target.value }))}
+                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                placeholder="Short tagline for this package"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Price</label>
+                <input
+                  type="number"
+                  value={form.price}
+                  onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                  placeholder="15000"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Max Price</label>
+                <input
+                  type="number"
+                  value={form.priceMax}
+                  onChange={(e) => setForm((f) => ({ ...f, priceMax: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                  placeholder="18000"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Currency</label>
+                <input
+                  value={form.currency}
+                  onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                  placeholder="KES"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Price Suffix</label>
+                <input
+                  value={form.priceSuffix}
+                  onChange={(e) => setForm((f) => ({ ...f, priceSuffix: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                  placeholder="starting from"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Package Type</label>
+                <input
+                  value={form.packageType}
+                  onChange={(e) => setForm((f) => ({ ...f, packageType: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                  placeholder="e.g. mini-refresh"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">CTA Text</label>
+              <input
+                value={form.ctaText}
+                onChange={(e) => setForm((f) => ({ ...f, ctaText: e.target.value }))}
+                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                placeholder="Book Mini Refresh"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Features</label>
+              <div className="flex gap-2">
+                <input
+                  value={featureInput}
+                  onChange={(e) => setFeatureInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addFeature()
+                    }
+                  }}
+                  className="flex-1 rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                  placeholder="Add a feature"
+                />
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={addFeature}
+                  className="rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm font-medium text-[var(--accent)] hover:border-[var(--accent)] transition h-12"
+                >
+                  Add
+                </motion.button>
+              </div>
+              {form.features.length > 0 && (
+                <div className="space-y-2 mt-3">
+                  {form.features.map((feature, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="flex-1 text-sm text-[var(--primary)] bg-[var(--bg)]/50 rounded-lg px-3 py-2">
+                        {feature}
+                      </span>
+                      <div className="flex gap-1">
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          type="button"
+                          onClick={() => moveFeature(i, -1)}
+                          disabled={i === 0}
+                          className="p-2 rounded-lg text-[var(--primary)]/50 hover:text-[var(--primary)] hover:bg-[var(--secondary)]/30 transition disabled:opacity-30"
+                        >
+                          ↑
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          type="button"
+                          onClick={() => moveFeature(i, 1)}
+                          disabled={i === form.features.length - 1}
+                          className="p-2 rounded-lg text-[var(--primary)]/50 hover:text-[var(--primary)] hover:bg-[var(--secondary)]/30 transition disabled:opacity-30"
+                        >
+                          ↓
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          type="button"
+                          onClick={() => removeFeature(i)}
+                          className="p-2 rounded-lg text-[var(--error)] hover:bg-[var(--error)]/10 transition"
+                        >
+                          <X size={14} />
+                        </motion.button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -642,9 +829,23 @@ export const VirtualDesignDashboard = () => {
                     {item.category}
                   </span>
                 )}
+                {item.packageType && (
+                  <span className="inline-block mt-1.5 ml-2 px-2.5 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-semibold uppercase tracking-wider">
+                    {item.packageType}
+                  </span>
+                )}
                 <p className="text-xs text-[var(--primary)]/50 mt-1.5 line-clamp-2 leading-relaxed">
                   {item.description}
                 </p>
+                {item.price && (
+                  <p className="text-sm font-medium text-[var(--accent)] mt-2">
+                    {item.currency || 'KES'} {Number(item.price).toLocaleString()}
+                    {item.priceSuffix && <span className="text-[var(--primary)]/50 ml-1">{item.priceSuffix}</span>}
+                  </p>
+                )}
+                {item.features && item.features.length > 0 && (
+                  <p className="text-[10px] text-[var(--primary)]/40 mt-1">{item.features.length} features</p>
+                )}
                 {item.featured && (
                   <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-white text-[10px] font-semibold uppercase tracking-widest rounded-full shadow-lg">
                     <Star size={10} strokeWidth={2} />

@@ -14,6 +14,14 @@ function mapVD(item) {
     mediaUrls: item.mediaUrls,
     homepageCircularImage: item.homepageCircularImage,
     homepageCircularImageId: item.homepageCircularImageId,
+    price: item.price,
+    currency: item.currency,
+    priceMax: item.priceMax,
+    priceSuffix: item.priceSuffix,
+    features: item.features || [],
+    ctaText: item.ctaText,
+    tagline: item.tagline,
+    packageType: item.packageType,
   }
 }
 
@@ -25,10 +33,14 @@ export const virtualDesignService = {
   deleteVirtualDesign,
 }
 
-async function listVirtualDesigns() {
+async function listVirtualDesigns(filters = {}) {
   try {
+    const where = {}
+    if (filters.packageType) where.packageType = filters.packageType
+    if (filters.published !== undefined) where.published = filters.published
     const items = await prisma.virtualDesign.findMany({
-      orderBy: { createdAt: 'desc' },
+      where: Object.keys(where).length > 0 ? where : undefined,
+      orderBy: { displayOrder: 'asc' },
     })
     return items.map(mapVD)
   } catch {
