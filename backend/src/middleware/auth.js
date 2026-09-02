@@ -12,6 +12,7 @@ export async function authenticate(req, res, next) {
 
     const authHeader = req.headers.authorization
     if (!authHeader?.startsWith('Bearer ')) {
+      console.warn(`[${SERVER_ID}] [auth] missing/invalid auth header on ${req.method} ${req.originalUrl}`)
       throw new ApiError(401, 'Missing or invalid authorization header')
     }
 

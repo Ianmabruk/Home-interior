@@ -8,9 +8,7 @@ export const mediaService = {
     if (Object.keys(transformation).length > 0) {
       formData.append('transformation', JSON.stringify(transformation))
     }
-    const res = await api.post('/media/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    const res = await api.post('/media/upload', formData)
     return res.data
   },
 
@@ -18,9 +16,7 @@ export const mediaService = {
     const formData = new FormData()
     files.forEach((file) => formData.append('files', file))
     formData.append('folder', folder)
-    const res = await api.post('/media/upload-multiple', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    const res = await api.post('/media/upload-multiple', formData)
     return res.data
   },
 

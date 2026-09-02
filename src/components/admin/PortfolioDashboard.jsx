@@ -311,7 +311,6 @@ export const PortfolioDashboard = () => {
 
     try {
       const res = await api.post('/media/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 120000,
         onUploadProgress: (e) => {
           if (e.total > 0) {

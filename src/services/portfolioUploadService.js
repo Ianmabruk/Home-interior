@@ -95,7 +95,6 @@ export async function uploadSingleImage(file, folder = 'portfolio/before', optio
 
       const res = await api.post('/media/upload', formData, {
         ...config,
-        headers: { 'Content-Type': 'multipart/form-data' },
       })
 
       onStateChange?.('uploaded')
