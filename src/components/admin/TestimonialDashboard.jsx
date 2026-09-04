@@ -439,25 +439,24 @@ export const TestimonialDashboard = () => {
                 <div className="space-y-1">
                   <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Client Photo</label>
                   <div className="relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files[0]
-                        if (file) {
-                          setForm((f) => ({ ...f, photo: file, photoPreview: URL.createObjectURL(file), removePhoto: false }))
-                        }
-                      }}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    <div className={`upload-zone ${form.photo ? 'drag-active' : ''}`}>
+                    <div
+                      className={`upload-zone ${form.photo ? 'drag-active' : ''}`}
+                      onClick={() => document.getElementById('testimonial-photo-input')?.click()}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') document.getElementById('testimonial-photo-input')?.click() }}
+                    >
                       {form.photoPreview ? (
                         <div className="relative">
                           <img src={form.photoPreview} alt="Preview" className="w-24 h-24 rounded-2xl object-cover mx-auto mb-2" />
                           <button
                             type="button"
-                            onClick={() => setForm((f) => ({ ...f, photo: null, photoPreview: null, removePhoto: true }))}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setForm((f) => ({ ...f, photo: null, photoPreview: null, removePhoto: true }))
+                            }}
                             className="absolute top-2 right-2 p-1 rounded-full bg-[var(--primary)]/80 text-white hover:bg-[var(--primary)] transition-colors"
+                            aria-label="Remove photo"
                           >
                             <X size={14} />
                           </button>
@@ -472,6 +471,19 @@ export const TestimonialDashboard = () => {
                         </>
                       )}
                     </div>
+                    <input
+                      id="testimonial-photo-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0]
+                        if (file) {
+                          setForm((f) => ({ ...f, photo: file, photoPreview: URL.createObjectURL(file), removePhoto: false }))
+                        }
+                        e.target.value = ''
+                      }}
+                      className="hidden"
+                    />
                   </div>
                 </div>
 
