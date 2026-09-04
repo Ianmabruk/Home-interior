@@ -9,9 +9,9 @@ const SkeletonVirtualDesign = () => (
   <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--secondary)]/20 via-[var(--bg)] to-[var(--accent)]/5 px-6 md:px-12 lg:px-20 py-20 md:py-32">
     <div className="container-wide">
       <div className="mb-16 text-center">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">Virtual Designs</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">E-Design Packages</p>
         <h2 className="font-display text-4xl font-semibold leading-tight text-[var(--accent)] md:text-5xl lg:text-6xl">
-          Virtual Interior Designs
+          E-Design Packages
         </h2>
       </div>
       <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -71,10 +71,10 @@ export const VirtualDesignPage = () => {
 
   return (
     <main>
-      <PageMeta
-        title="E-Design Packages — HOK Interior Designs"
-        description="Choose from our eDesign packages: One-Bedroom Design, Budget-Friendly Packages, and Master Bedroom."
-      />
+         <PageMeta
+          title="E-Design Packages — HOK Interior Designs"
+          description="Browse our E-Design packages for renters and homeowners. Renter-friendly online interior design delivered in days with shopping lists and 3D renders."
+        />
 
       {/* E-DESIGN PACKAGES */}
       <SectionErrorBoundary sectionName="EDesignPackages" fallback={<EmptySection />}>

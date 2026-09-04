@@ -101,7 +101,8 @@ async function updateTestimonial(id, data, file, circularFile, removeHomepageCir
 async function deleteTestimonial(id) {
   const existing = await prisma.testimonial.findUnique({ where: { id } })
   if (!existing) throw failure(404, 'Testimonial not found')
-  if (existing.publicId) await deleteFile(existing.publicId)
+  if (existing.publicId) await deleteFile(existing.publicId).catch(() => {})
+  if (existing.homepageCircularImageId) await deleteFile(existing.homepageCircularImageId).catch(() => {})
   await prisma.testimonial.delete({ where: { id } })
 }
 

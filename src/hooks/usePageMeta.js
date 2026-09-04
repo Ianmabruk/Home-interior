@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
 const DEFAULT_TITLE = 'HOK INTERIOR DESIGNS'
-const DEFAULT_DESCRIPTION = 'Timeless luxury interior design, curated furniture, and premium virtual design services.'
+const DEFAULT_DESCRIPTION = 'Timeless luxury interior design, curated furniture, and premium e-design packages.'
 const SITE_URL = 'https://hokinteriors.com'
 const SITE_NAME = 'HOK Interiors'
 const DEFAULT_OG_IMAGE = `${SITE_URL}/images/og-default.jpg`
@@ -29,8 +29,8 @@ const pageMeta = {
     description: 'Comprehensive interior design services from concept to completion.',
   },
   '/virtual-design': {
-    title: 'Virtual Design — HOK Interior Designs',
-    description: 'Experience your dream space with immersive 3D virtual design services.',
+    title: 'E-Design Packages — HOK Interior Designs',
+    description: 'Browse our eDesign packages: Mini Refresh, Signature, Whole Home, and more. Renter-friendly online interior design delivered in days.',
   },
   '/contact': {
     title: 'Contact Us — HOK Interior Designs',

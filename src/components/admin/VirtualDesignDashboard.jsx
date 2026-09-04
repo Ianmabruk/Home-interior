@@ -312,7 +312,7 @@ export const VirtualDesignDashboard = () => {
         className="flex flex-col md:flex-row md:items-end justify-between gap-4"
       >
         <div>
-          <h2 className="font-display text-3xl text-[var(--primary)]">Virtual Designs</h2>
+          <h2 className="font-display text-3xl text-[var(--primary)]">E-Design Packages</h2>
           <p className="text-sm text-[var(--primary)]/50 mt-1">Manage your eDesign packages, pricing, features, images and booking options.</p>
         </div>
         <motion.button
@@ -322,7 +322,7 @@ export const VirtualDesignDashboard = () => {
           className="btn-luxury-primary flex items-center gap-2 whitespace-nowrap"
         >
           <Plus size={18} strokeWidth={2} />
-          Add Virtual Design
+          Add Package
         </motion.button>
       </motion.div>
 
@@ -349,10 +349,10 @@ export const VirtualDesignDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-display text-xl text-[var(--primary)]">
-                  {editingId ? 'Edit' : 'Add'} Virtual Design Project
+                  {editingId ? 'Edit' : 'Add'} E-Design Package
                 </h3>
                 <p className="text-[10px] text-[var(--primary)]/50 mt-1">
-                  {editingId ? 'Update project details' : 'Create a new virtual design project'}
+                  {editingId ? 'Update package details' : 'Create a new eDesign package'}
                 </p>
               </div>
               <motion.button
@@ -461,12 +461,12 @@ export const VirtualDesignDashboard = () => {
 
             <div className="space-y-1">
               <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">CTA Text</label>
-              <input
-                value={form.ctaText}
-                onChange={(e) => setForm((f) => ({ ...f, ctaText: e.target.value }))}
-                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                placeholder="Book Mini Refresh"
-              />
+                <input
+                  value={form.buttonText}
+                  onChange={(e) => setForm((f) => ({ ...f, buttonText: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                  placeholder="e.g. View More"
+                />
             </div>
 
             <div className="space-y-2">

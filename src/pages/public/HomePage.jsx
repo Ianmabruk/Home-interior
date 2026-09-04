@@ -98,7 +98,7 @@ useEffect(() => {
     <main>
       <PageMeta
         title="HOK INTERIOR DESIGNS — Timeless Interiors, Designed for a Life Well Lived"
-        description="Luxury interior design, curated furniture, and premium virtual design services."
+        description="Luxury interior design, curated furniture, and premium e-design packages."
         image={heroImages?.[0]?.imageUrl || heroImages?.[0]?.url || undefined}
       />
 
@@ -125,7 +125,7 @@ useEffect(() => {
             <Link to="/services" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Services</Link>
             <Link to="/shop" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Shop</Link>
             <Link to="/blog" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Blog</Link>
-            <Link to="/virtual-design" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Virtual Design</Link>
+            <Link to="/virtual-design" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">E-Design Packages</Link>
             <Link to="/about" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">About</Link>
             <Link to="/signup" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Sign Up</Link>
             <Link to="/login" className="text-[var(--primary)]/60 hover:text-[var(--accent)] transition-colors">Login</Link>

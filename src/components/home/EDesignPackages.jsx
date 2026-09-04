@@ -231,7 +231,7 @@ export const EDesignPackages = memo(({ packages: propPackages }) => {
                     pkg.popular ? '' : 'bg-[var(--primary)] hover:bg-[var(--primary)]/90'
                   }`}
                 >
-                  {pkg.buttonText || 'View Package'}
+                  View More
                   <ArrowRight size={14} strokeWidth={1.5} />
                 </Link>
               </div>

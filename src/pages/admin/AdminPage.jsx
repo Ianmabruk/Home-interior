@@ -30,7 +30,7 @@ const ADMIN_NAV = [
   { id: 'about', label: 'About', icon: Users, to: '/admin/about' },
   { id: 'hero-images', label: 'Hero Images', icon: Image, to: '/admin/hero-images' },
   { id: 'portfolio', label: 'Portfolio', icon: Image, to: '/admin/portfolio' },
-  { id: 'virtual-design', label: 'Virtual Designs', icon: Video, to: '/admin/virtual-designs' },
+  { id: 'virtual-design', label: 'E-Design Packages', icon: Video, to: '/admin/virtual-designs' },
   { id: 'services', label: 'Services', icon: Sparkles, to: '/admin/services' },
   { id: 'socials', label: 'Socials', icon: Globe, to: '/admin/socials' },
   { id: 'shop', label: 'Shop', icon: ShoppingBag, to: '/admin/shop' },
@@ -169,7 +169,7 @@ export const AdminPage = () => {
           </div>
         </header>
 
-        <main className="flex-1 pt-16 lg:pt-20 lg:ml-0 px-4 md:px-8 py-8">
+        <main className="flex-1 pt-16 lg:pt-20 lg:ml-0 px-4 md:px-8 py-8 overflow-y-auto min-h-[calc(100vh-4rem)]">
           <Outlet />
         </main>
 

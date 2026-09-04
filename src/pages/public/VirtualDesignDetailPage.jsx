@@ -16,6 +16,7 @@ export const VirtualDesignDetailPage = () => {
   const [loading, setLoading] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxSwipeStart, setLightboxSwipeStart] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
@@ -98,8 +99,9 @@ export const VirtualDesignDetailPage = () => {
     if (!design) return []
     const imgArray = []
     if (design.imageUrl || design.mediaUrl) imgArray.push(design.imageUrl || design.mediaUrl)
-    if (design.galleryImages && design.galleryImages.length > 0) {
-      design.galleryImages.forEach((img) => imgArray.push(typeof img === 'string' ? img : img.url))
+    const gallery = design.galleryImages || design.galleryMedia || []
+    if (Array.isArray(gallery) && gallery.length > 0) {
+      gallery.forEach((img) => imgArray.push(typeof img === 'string' ? img : img.url))
     }
     return [...new Set(imgArray.filter(Boolean))]
   }, [design])
@@ -111,6 +113,17 @@ export const VirtualDesignDetailPage = () => {
   const handleLightboxPrev = () => {
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
   }
+
+  useEffect(() => {
+    if (!lightboxOpen) return
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') { setLightboxOpen(false) }
+      if (e.key === 'ArrowRight') { setCurrentImageIndex((prev) => (prev + 1) % images.length) }
+      if (e.key === 'ArrowLeft') { setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length) }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [lightboxOpen, images.length])
 
   if (loading) {
     return (
@@ -124,10 +137,10 @@ export const VirtualDesignDetailPage = () => {
     return (
       <main className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">
         <div className="text-center max-w-md">
-          <h1 className="font-display text-3xl font-semibold text-[var(--primary)] mb-3">Project Not Found</h1>
-          <p className="text-[var(--primary)]/60 mb-6">The virtual design project you&apos;re looking for doesn&apos;t exist or has been removed.</p>
+          <h1 className="font-display text-3xl font-semibold text-[var(--primary)] mb-3">Package Not Found</h1>
+          <p className="text-[var(--primary)]/60 mb-6">The E-Design package you&apos;re looking for doesn&apos;t exist or has been removed.</p>
           <Link to="/virtual-design" className="btn-luxury-primary inline-flex items-center gap-2">
-            Back to Virtual Designs
+            Back to E-Design Packages
             <ArrowRight size={14} strokeWidth={1.5} />
           </Link>
         </div>
@@ -306,7 +319,7 @@ export const VirtualDesignDetailPage = () => {
                     onClick={openBooking}
                     className="btn-luxury-primary w-full inline-flex items-center justify-center gap-2"
                   >
-                    Book
+                    Book This Package
                     <ArrowRight size={14} strokeWidth={1.5} />
                   </button>
                 </div>
@@ -411,7 +424,7 @@ export const VirtualDesignDetailPage = () => {
                   </div>
                   <div>
                     <label htmlFor="phone" className="block text-sm font-medium text-[var(--primary)] mb-1">
-                      Phone
+                      Phone Number *
                     </label>
                     <input
                       type="tel"
@@ -419,6 +432,7 @@ export const VirtualDesignDetailPage = () => {
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
+                      required
                       className="input-luxury"
                     />
                   </div>
@@ -431,12 +445,11 @@ export const VirtualDesignDetailPage = () => {
                   <select
                     id="service"
                     name="service"
-                    value={formData.service}
+                    value={formData.service || design?.title || ''}
                     onChange={handleChange}
                     className="input-luxury"
                   >
-                    <option value="">Select a package</option>
-                    <option value={design?.title || ''}>{design?.title}</option>
+                    <option value={design?.title || ''}>{design?.title || 'Select a package'}</option>
                   </select>
                 </div>
 
@@ -520,9 +533,9 @@ export const VirtualDesignDetailPage = () => {
             aria-modal="true"
             aria-label="Fullscreen gallery"
           >
-            <button
+             <button
               onClick={() => setLightboxOpen(false)}
-              className="absolute top-6 right-6 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+              className="absolute top-6 left-6 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
               aria-label="Close gallery"
             >
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
@@ -531,9 +544,9 @@ export const VirtualDesignDetailPage = () => {
               </svg>
             </button>
 
-            <button
+             <button
               onClick={(e) => { e.stopPropagation(); handleLightboxPrev() }}
-              className="absolute left-6 z-10 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors hidden md:block"
+              className="absolute left-6 z-10 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
               aria-label="Previous image"
             >
               <ChevronLeft size={28} strokeWidth={1.5} />
@@ -541,7 +554,7 @@ export const VirtualDesignDetailPage = () => {
 
             <button
               onClick={(e) => { e.stopPropagation(); handleLightboxNext() }}
-              className="absolute right-6 z-10 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors hidden md:block"
+              className="absolute right-6 z-10 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
               aria-label="Next image"
             >
               <ChevronRight size={28} strokeWidth={1.5} />
@@ -551,9 +564,19 @@ export const VirtualDesignDetailPage = () => {
               style={zoomStyle}
               onWheel={handleWheel}
               onMouseDown={handleMouseDown}
-              onTouchStart={handleTouchStart}
-               onTouchMove={(e) => { try { e.preventDefault() } catch { /* noop */ } }}
-              onTouchEnd={handleTouchEnd}
+              onTouchStart={(e) => {
+                setLightboxSwipeStart(e.touches[0]?.clientX || 0)
+                handleTouchStart(e)
+              }}
+              onTouchMove={(e) => { try { e.preventDefault() } catch { /* noop */ } }}
+              onTouchEnd={(e) => {
+                handleTouchEnd(e)
+                const delta = (e.changedTouches[0]?.clientX || 0) - lightboxSwipeStart
+                if (Math.abs(delta) > 50 && images.length > 1) {
+                  if (delta > 0) { handleLightboxPrev() }
+                  else { handleLightboxNext() }
+                }
+              }}
               onMouseUp={handleTouchEnd}
               onMouseLeave={handleTouchEnd}
               className="relative max-h-[90vh] max-w-[90vw]"

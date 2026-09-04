@@ -9,6 +9,7 @@ import {
   Image,
   Eye,
   EyeOff,
+  Loader2,
   ArrowUp,
   ArrowDown,
 } from 'lucide-react'
@@ -20,6 +21,8 @@ export const TestimonialDashboard = () => {
   const [testimonials, setTestimonials] = useState([])
   const [search, setSearch] = useState('')
   const [deleteId, setDeleteId] = useState(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -80,10 +83,13 @@ export const TestimonialDashboard = () => {
       initial: '',
       removePhoto: false,
     })
+    setShowForm(false)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (submitting) return
+    setSubmitting(true)
     setLoading(true)
     setStatus('')
     try {
@@ -119,6 +125,7 @@ export const TestimonialDashboard = () => {
       toast.error(err?.response?.data?.message || err?.message || 'Failed to save testimonial.')
     } finally {
       setLoading(false)
+      setSubmitting(false)
     }
   }
 
@@ -139,7 +146,8 @@ export const TestimonialDashboard = () => {
   }
 
   const handleDelete = async () => {
-    if (!deleteId) return
+    if (!deleteId || deleteLoading) return
+    setDeleteLoading(true)
     try {
       await api.delete(`/admin/testimonials/${deleteId}`)
       setDeleteId(null)
@@ -148,6 +156,8 @@ export const TestimonialDashboard = () => {
       toast.success('Testimonial deleted successfully.')
     } catch {
       toast.error('Failed to delete testimonial.')
+    } finally {
+      setDeleteLoading(false)
     }
   }
 
@@ -379,30 +389,28 @@ export const TestimonialDashboard = () => {
 
               <div className="mb-6">
                 <h3 className="font-display text-xl text-[var(--primary)]">{editing ? 'Edit Testimonial' : 'Add Testimonial'}</h3>
-                <p className="text-xs text-[var(--primary)]/50 mt-1">Fill in the client details and testimonial content</p>
+                <p className="text-xs text-[var(--primary)]/50 mt-1">Upload a testimonial image. Text fields are optional.</p>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Client Name *</label>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Client Name (Optional)</label>
                   <input
                     value={form.clientName}
                     onChange={(e) => setForm((f) => ({ ...f, clientName: e.target.value }))}
                     className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
                     placeholder="Client name"
-                    required
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Testimonial *</label>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Testimonial Text (Optional)</label>
                   <textarea
                     value={form.testimonial}
                     onChange={(e) => setForm((f) => ({ ...f, testimonial: e.target.value }))}
                     className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
-                    placeholder="Client testimonial text..."
+                    placeholder="Client testimonial text (optional)…"
                     rows={4}
-                    required
                   />
                 </div>
 
@@ -493,10 +501,17 @@ export const TestimonialDashboard = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || submitting}
                     className="rounded-full bg-[var(--primary)] text-white px-6 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--primary)]/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {loading ? 'Saving…' : (editing ? 'Update Testimonial' : 'Create Testimonial')}
+                    {loading || submitting ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        Saving…
+                      </>
+                    ) : (
+                      <>{editing ? 'Update Testimonial' : 'Create Testimonial'}</>
+                    )}
                   </motion.button>
                 </div>
               </div>
@@ -538,7 +553,8 @@ export const TestimonialDashboard = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleDelete}
-                  className="rounded-full bg-[var(--error)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-white transition hover:bg-[var(--error)] hover:shadow-lg"
+                  disabled={deleteLoading}
+                  className="rounded-full bg-[var(--error)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-white transition hover:bg-[var(--error)] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Delete
                 </motion.button>
