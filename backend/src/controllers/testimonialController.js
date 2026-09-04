@@ -42,7 +42,8 @@ export const testimonialController = {
     if (req.body.displayOrder !== undefined) data.displayOrder = Number(req.body.displayOrder) || 0
     if (req.body.isActive !== undefined) data.isActive = req.body.isActive === 'true' || req.body.isActive === true
     if (req.body.initial !== undefined) data.initial = req.body.initial
-    const item = await testimonialService.updateTestimonial(req.params.id, data, photoFile, circularFile, removeHomepageCircularImage)
+    const removePhoto = req.body.removePhoto === 'true'
+    const item = await testimonialService.updateTestimonial(req.params.id, data, photoFile, circularFile, removeHomepageCircularImage, removePhoto)
     res.json({ success: true, data: item })
   }),
 

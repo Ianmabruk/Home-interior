@@ -23,6 +23,15 @@ export const virtualDesignController = {
     if (!file && galleryFiles.length === 0) {
       return res.status(400).json({ success: false, message: 'Media file is required' })
     }
+    let parsedFeatures = []
+    if (req.body.features) {
+      try {
+        const parsed = JSON.parse(req.body.features)
+        parsedFeatures = Array.isArray(parsed) ? parsed : []
+      } catch {
+        parsedFeatures = []
+      }
+    }
     const data = {
       title: req.body.title || 'Untitled',
       description: req.body.description || '',
@@ -31,12 +40,12 @@ export const virtualDesignController = {
       featured: req.body.featured === 'true' || req.body.featured === true,
       displayOrder: Number(req.body.displayOrder) || 0,
       published: req.body.published !== 'false' && req.body.published !== false,
-      mediaUrls: req.body.mediaUrls || [],
+      mediaUrls: Array.isArray(req.body.mediaUrls) ? req.body.mediaUrls : [],
       price: req.body.price ? Number(req.body.price) : null,
       priceMax: req.body.priceMax ? Number(req.body.priceMax) : null,
       currency: req.body.currency || 'KES',
       priceSuffix: req.body.priceSuffix || '',
-      features: req.body.features || [],
+      features: parsedFeatures,
       ctaText: req.body.ctaText || 'Book',
       tagline: req.body.tagline || '',
       packageType: req.body.packageType || null,
@@ -62,7 +71,14 @@ export const virtualDesignController = {
     if (req.body.priceMax !== undefined) data.priceMax = req.body.priceMax ? Number(req.body.priceMax) : null
     if (req.body.currency !== undefined) data.currency = req.body.currency
     if (req.body.priceSuffix !== undefined) data.priceSuffix = req.body.priceSuffix
-    if (req.body.features !== undefined) data.features = Array.isArray(req.body.features) ? req.body.features : []
+    if (req.body.features !== undefined) {
+      try {
+        const parsed = JSON.parse(req.body.features)
+        data.features = Array.isArray(parsed) ? parsed : []
+      } catch {
+        data.features = []
+      }
+    }
     if (req.body.ctaText !== undefined) data.ctaText = req.body.ctaText
     if (req.body.tagline !== undefined) data.tagline = req.body.tagline
     if (req.body.packageType !== undefined) data.packageType = req.body.packageType || null

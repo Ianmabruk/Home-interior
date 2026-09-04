@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, ArrowUpRight, ArrowRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowUpRight, ArrowRight, X, Loader2, Send } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '@services/api'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 import { useZoom } from '@hooks/useZoom'
+import { toast } from 'react-hot-toast'
+import { dispatchAdminDataChanged } from '@utils/adminEvents'
 
 export const VirtualDesignDetailPage = () => {
   const { id } = useParams()
@@ -14,6 +16,17 @@ export const VirtualDesignDetailPage = () => {
   const [loading, setLoading] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    service: '',
+    message: '',
+    preferredDate: '',
+    preferredTime: '',
+  })
 
   const { style: zoomStyle, handleWheel, handleMouseDown, handleTouchStart, handleTouchEnd } = useZoom()
 
@@ -29,6 +42,44 @@ export const VirtualDesignDetailPage = () => {
       setLoading(false)
     }
   }, [id])
+
+  const openBooking = () => {
+    setFormData((prev) => ({ ...prev, service: design?.title || '' }))
+    setModalOpen(true)
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    try {
+      const payload = new FormData()
+      payload.append('name', formData.name)
+      payload.append('email', formData.email)
+      payload.append('phone', formData.phone)
+      payload.append('message', formData.message)
+      payload.append('projectType', formData.service || 'e-design')
+      payload.append('type', 'e-design')
+      payload.append('packageName', design?.title || '')
+      payload.append('packagePrice', design?.price || '0')
+      payload.append('paymentStatus', 'pending')
+      payload.append('preferredDate', formData.preferredDate || '')
+      payload.append('preferredTime', formData.preferredTime || '')
+
+      await api.post('/consultations', payload)
+      toast.success('E-design package request submitted successfully!')
+      setModalOpen(false)
+      setFormData({ name: '', email: '', phone: '', service: '', message: '', preferredDate: '', preferredTime: '' })
+      dispatchAdminDataChanged('consultations-changed')
+    } catch (err) {
+      toast.error(err?.message || 'Failed to submit. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
 
   useEffect(() => {
     loadDesign()
@@ -249,15 +300,15 @@ export const VirtualDesignDetailPage = () => {
 
               <div className="space-y-6">
                 <div className="sticky top-24 bg-white rounded-3xl border border-[var(--border)]/40 p-6 md:p-8 shadow-[0_10px_40px_rgba(42,36,31,0.06)]">
-                  <h3 className="font-display text-xl font-medium text-[var(--primary)] mb-6">Project Inquiry</h3>
-                  <p className="text-[var(--primary)]/60 mb-6">Interested in this virtual design? Get in touch to discuss your project.</p>
-                  <Link
-                    to="/contact"
+                  <h3 className="font-display text-xl font-medium text-[var(--primary)] mb-6">Book This Package</h3>
+                  <p className="text-[var(--primary)]/60 mb-6">Interested in this package? Book a consultation and we will get back to you within 24 hours.</p>
+                  <button
+                    onClick={openBooking}
                     className="btn-luxury-primary w-full inline-flex items-center justify-center gap-2"
                   >
-                    Contact Us
+                    Book
                     <ArrowRight size={14} strokeWidth={1.5} />
-                  </Link>
+                  </button>
                 </div>
 
                 {design.relatedProjects && design.relatedProjects.length > 0 && (
@@ -292,6 +343,169 @@ export const VirtualDesignDetailPage = () => {
           </div>
         </section>
       </div>
+
+      {/* Booking Modal */}
+      <AnimatePresence>
+        {modalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--primary)]/40 backdrop-blur-sm"
+            onClick={() => setModalOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-3xl p-8 md:p-12 shadow-[0_30px_80px_rgba(0,0,0,0.15)] max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setModalOpen(false)}
+                className="absolute top-4 right-4 p-2 rounded-full text-[var(--primary)]/40 hover:text-[var(--primary)] hover:bg-[var(--secondary)]/30 transition-colors"
+                aria-label="Close modal"
+              >
+                <X size={24} strokeWidth={1.5} />
+              </button>
+
+              <div className="text-center mb-8">
+                <h3 className="font-display text-2xl md:text-3xl font-medium text-[var(--primary)] mb-2">
+                  Book a Consultation
+                </h3>
+                <p className="text-[var(--primary)]/60">
+                  {design?.title ? `Interested in ${design.title}? Tell us about your project.` : 'Tell us about your project and we will get back to you within 24 hours.'}
+                </p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-[var(--primary)] mb-1">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    className="input-luxury"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-[var(--primary)] mb-1">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      className="input-luxury"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-[var(--primary)] mb-1">
+                      Phone
+                    </label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className="input-luxury"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="service" className="block text-sm font-medium text-[var(--primary)] mb-1">
+                    Package of Interest
+                  </label>
+                  <select
+                    id="service"
+                    name="service"
+                    value={formData.service}
+                    onChange={handleChange}
+                    className="input-luxury"
+                  >
+                    <option value="">Select a package</option>
+                    <option value={design?.title || ''}>{design?.title}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="message" className="block text-sm font-medium text-[var(--primary)] mb-1">
+                    Project Details
+                  </label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
+                    rows={4}
+                    className="input-luxury resize-none min-h-[120px]"
+                    placeholder="Tell us about your space, timeline, and budget..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="preferredDate" className="block text-sm font-medium text-[var(--primary)] mb-1">
+                      Preferred Date
+                    </label>
+                    <input
+                      type="date"
+                      id="preferredDate"
+                      name="preferredDate"
+                      value={formData.preferredDate}
+                      onChange={handleChange}
+                      className="input-luxury"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="preferredTime" className="block text-sm font-medium text-[var(--primary)] mb-1">
+                      Preferred Time
+                    </label>
+                    <input
+                      type="time"
+                      id="preferredTime"
+                      name="preferredTime"
+                      value={formData.preferredTime}
+                      onChange={handleChange}
+                      className="input-luxury"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full btn-luxury-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      Request Consultation
+                      <Send size={14} strokeWidth={1.5} />
+                    </>
+                  )}
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Fullscreen Lightbox */}
       <AnimatePresence>

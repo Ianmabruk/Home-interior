@@ -1,19 +1,8 @@
 import { useState, useEffect, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  X,
-  Loader2,
-  Send,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Sparkles,
-  Shield,
-  Wifi,
-} from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, Sparkles, Shield, Wifi, ArrowRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { api } from '@services/api'
-import { toast } from 'react-hot-toast'
-import { dispatchAdminDataChanged } from '@utils/adminEvents'
 
 const addOns = [
   { name: 'Virtual Styling Call (30 min)', price: '3,500' },
@@ -79,21 +68,8 @@ function mapPackage(item) {
 export const EDesignPackages = memo(({ packages: propPackages }) => {
   const [packages, setPackages] = useState([])
   const [loading, setLoading] = useState(false)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [selectedPackage, setSelectedPackage] = useState('')
-  const [selectedPackagePrice, setSelectedPackagePrice] = useState('')
   const [showComparison, setShowComparison] = useState(false)
   const [openFaq, setOpenFaq] = useState(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    service: '',
-    message: '',
-    preferredDate: '',
-    preferredTime: '',
-  })
 
   useEffect(() => {
     if (propPackages && propPackages.length > 0) {
@@ -118,46 +94,6 @@ export const EDesignPackages = memo(({ packages: propPackages }) => {
     load()
     return () => { cancelled = true }
   }, [propPackages])
-
-  const openBooking = (pkg) => {
-    setSelectedPackage(pkg.rawName || pkg.name)
-    setSelectedPackagePrice(`${pkg.currency} ${pkg.price}${pkg.priceMax !== pkg.price ? ' - ' + pkg.priceMax : ''}`)
-    setFormData((prev) => ({ ...prev, service: pkg.rawName || pkg.name }))
-    setModalOpen(true)
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setSubmitting(true)
-    try {
-      const payload = new FormData()
-      payload.append('name', formData.name)
-      payload.append('email', formData.email)
-      payload.append('phone', formData.phone)
-      payload.append('message', formData.message)
-      payload.append('projectType', formData.service || 'e-design')
-      payload.append('type', 'e-design')
-      payload.append('packageName', selectedPackage)
-      payload.append('packagePrice', selectedPackagePrice || '0')
-      payload.append('paymentStatus', 'pending')
-      payload.append('preferredDate', formData.preferredDate || '')
-      payload.append('preferredTime', formData.preferredTime || '')
-
-      await api.post('/consultations', payload)
-      toast.success('E-design package request submitted successfully!')
-      setModalOpen(false)
-      setFormData({ name: '', email: '', phone: '', service: '', message: '', preferredDate: '', preferredTime: '' })
-      dispatchAdminDataChanged('consultations-changed')
-    } catch (err) {
-      toast.error(err?.message || 'Failed to submit. Please try again.')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
-  }
 
   if (loading) {
     return (
@@ -289,15 +225,15 @@ export const EDesignPackages = memo(({ packages: propPackages }) => {
                 </ul>
 
                 {/* CTA */}
-                <button
-                  onClick={() => openBooking(pkg)}
-                  className={`w-full btn-luxury-primary ${
+                <Link
+                  to={`/virtual-design/${pkg.id}`}
+                  className={`w-full btn-luxury-primary inline-flex items-center justify-center gap-2 ${
                     pkg.popular ? '' : 'bg-[var(--primary)] hover:bg-[var(--primary)]/90'
                   }`}
                 >
-                  {pkg.buttonText}
-                  <Send size={14} strokeWidth={1.5} />
-                </button>
+                  {pkg.buttonText || 'View Package'}
+                  <ArrowRight size={14} strokeWidth={1.5} />
+                </Link>
               </div>
             </motion.div>
           ))}
@@ -460,177 +396,10 @@ export const EDesignPackages = memo(({ packages: propPackages }) => {
             ))}
           </div>
         </div>
-
-        {/* Booking Modal */}
-        <AnimatePresence>
-          {modalOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--primary)]/40 backdrop-blur-sm"
-              onClick={() => setModalOpen(false)}
-            >
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative w-full max-w-md bg-white rounded-3xl p-8 md:p-12 shadow-[0_30px_80px_rgba(0,0,0,0.15)] max-h-[90vh] overflow-y-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  onClick={() => setModalOpen(false)}
-                  className="absolute top-4 right-4 p-2 rounded-full text-[var(--primary)]/40 hover:text-[var(--primary)] hover:bg-[var(--secondary)]/30 transition-colors"
-                  aria-label="Close modal"
-                >
-                  <X size={24} strokeWidth={1.5} />
-                </button>
-
-                <div className="text-center mb-8">
-                  <h3 className="font-display text-2xl md:text-3xl font-medium text-[var(--primary)] mb-2">
-                    Book a Consultation
-                  </h3>
-                  <p className="text-[var(--primary)]/60">
-                    {selectedPackage ? `Interested in ${selectedPackage}? Tell us about your project.` : 'Tell us about your project and we will get back to you within 24 hours.'}
-                  </p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-[var(--primary)] mb-1">
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      required
-                      className="input-luxury"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-[var(--primary)] mb-1">
-                        Email *
-                      </label>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        required
-                        className="input-luxury"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="phone" className="block text-sm font-medium text-[var(--primary)] mb-1">
-                        Phone
-                      </label>
-                      <input
-                        type="tel"
-                        id="phone"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        className="input-luxury"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="service" className="block text-sm font-medium text-[var(--primary)] mb-1">
-                      Package of Interest
-                    </label>
-                    <select
-                      id="service"
-                      name="service"
-                      value={formData.service}
-                      onChange={handleChange}
-                      className="input-luxury"
-                    >
-                      <option value="">Select a package</option>
-                      {packages.map((pkg) => (
-                        <option key={pkg.id} value={pkg.rawName || pkg.name}>
-                          {pkg.name} - {pkg.currency} {pkg.price}
-                          {pkg.priceMax !== pkg.price ? ` to ${pkg.priceMax}` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-[var(--primary)] mb-1">
-                      Project Details
-                    </label>
-                    <textarea
-                      id="message"
-                      name="message"
-                      value={formData.message}
-                      onChange={handleChange}
-                      rows={4}
-                      className="input-luxury resize-none min-h-[120px]"
-                      placeholder="Tell us about your space, timeline, and budget..."
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="preferredDate" className="block text-sm font-medium text-[var(--primary)] mb-1">
-                        Preferred Date
-                      </label>
-                      <input
-                        type="date"
-                        id="preferredDate"
-                        name="preferredDate"
-                        value={formData.preferredDate}
-                        onChange={handleChange}
-                        className="input-luxury"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="preferredTime" className="block text-sm font-medium text-[var(--primary)] mb-1">
-                        Preferred Time
-                      </label>
-                      <input
-                        type="time"
-                        id="preferredTime"
-                        name="preferredTime"
-                        value={formData.preferredTime}
-                        onChange={handleChange}
-                        className="input-luxury"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full btn-luxury-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        Request Consultation
-                        <Send size={14} strokeWidth={1.5} />
-                      </>
-                    )}
-                  </button>
-                </form>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </section>
-  )
-})
+        </div>
+      </section>
+    )
+  }
+)
 
 export default EDesignPackages

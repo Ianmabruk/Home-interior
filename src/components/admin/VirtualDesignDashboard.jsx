@@ -215,7 +215,7 @@ export const VirtualDesignDashboard = () => {
         payload.append('media', file)
       } else if (editingId && file && file.url) {
         // Preserve existing media URL when editing without uploading a new file
-        payload.append('mediaUrl', file.url)
+        payload.append('imageUrl', file.url)
       }
 
       if (galleryFiles.length > 0) {
