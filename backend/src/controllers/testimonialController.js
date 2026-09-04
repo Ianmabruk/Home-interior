@@ -13,9 +13,8 @@ export const testimonialController = {
   }),
 
   create: asyncHandler(async (req, res) => {
-    const files = req.files || []
-    const photoFile = files.find((f) => f.fieldname === 'photo')
-    const circularFile = files.find((f) => f.fieldname === 'homepageCircularImage')
+    const photoFile = req.files?.photo?.[0] || null
+    const circularFile = req.files?.homepageCircularImage?.[0] || null
     const data = {
       clientName: req.body.clientName || '',
       content: req.body.testimonial || req.body.content || '',
@@ -29,9 +28,8 @@ export const testimonialController = {
   }),
 
   update: asyncHandler(async (req, res) => {
-    const files = req.files || []
-    const photoFile = files.find((f) => f.fieldname === 'photo')
-    const circularFile = files.find((f) => f.fieldname === 'homepageCircularImage')
+    const photoFile = req.files?.photo?.[0] || null
+    const circularFile = req.files?.homepageCircularImage?.[0] || null
     const removeHomepageCircularImage = req.body.removeHomepageCircularImage === 'true'
     const data = {}
     if (req.body.clientName !== undefined) data.clientName = req.body.clientName
