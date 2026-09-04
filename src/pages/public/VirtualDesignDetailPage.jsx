@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, ArrowUpRight, ArrowRight, X, Loader2, Send } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowRight, X, Loader2, Send } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '@services/api'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
@@ -156,99 +156,30 @@ export const VirtualDesignDetailPage = () => {
         image={images[0]}
       />
       <div className="min-h-screen bg-[var(--bg)]">
-        {/* Hero Gallery */}
-        <section className="relative">
-          <div className="relative aspect-[16/10] md:aspect-[3/2] overflow-hidden">
-            <div
-              className="absolute inset-0"
-              style={zoomStyle}
-              onWheel={handleWheel}
-              onMouseDown={handleMouseDown}
-              onTouchStart={handleTouchStart}
-               onTouchMove={(e) => { try { e.preventDefault() } catch { /* noop */ } }}
-              onTouchEnd={handleTouchEnd}
-              onMouseUp={handleTouchEnd}
-              onMouseLeave={handleTouchEnd}
-            >
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={currentImageIndex}
-                  src={getOptimizedUrl(images[currentImageIndex], { width: 1920, crop: 'limit' })}
-                  alt={`${design.title} - Image ${currentImageIndex + 1}`}
-                  className="h-full w-full object-cover"
-                  initial={{ opacity: 0, scale: 1.05 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                />
-              </AnimatePresence>
+        {/* Gallery Grid */}
+        <section className="px-6 md:px-12 lg:px-20 py-12 md:py-20">
+          <div className="container-wide">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {images.map((img, index) => (
+                <motion.button
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  onClick={() => { setCurrentImageIndex(index); setLightboxOpen(true) }}
+                  className="relative aspect-[4/3] group rounded-2xl overflow-hidden bg-[var(--secondary)]/40 border border-[var(--border)]/20 transition-all duration-300 hover:border-[var(--accent)]/30"
+                  aria-label={`View image ${index + 1}`}
+                >
+                  <img
+                    src={getOptimizedUrl(img, { width: 600, crop: 'fill' })}
+                    alt={`${design.title} - Image ${index + 1}`}
+                    className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                    loading={index < 6 ? 'lazy' : 'lazy'}
+                  />
+                </motion.button>
+              ))}
             </div>
-
-            {images.length > 1 && (
-              <>
-                <button
-                  onClick={handleLightboxPrev}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-[var(--primary)] shadow-lg hover:bg-white transition-colors md:left-8"
-                  aria-label="Previous image"
-                >
-                  <ChevronLeft size={24} strokeWidth={1.5} />
-                </button>
-                <button
-                  onClick={handleLightboxNext}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-[var(--primary)] shadow-lg hover:bg-white transition-colors md:right-8"
-                  aria-label="Next image"
-                >
-                  <ChevronRight size={24} strokeWidth={1.5} />
-                </button>
-
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 md:bottom-8">
-                  {images.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentImageIndex(index)}
-                      className={`h-2 w-2 rounded-full transition-all duration-300 ${
-                        index === currentImageIndex ? 'bg-white w-8' : 'bg-white/50 hover:bg-white/75'
-                      }`}
-                      aria-label={`Go to image ${index + 1}`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-
-            <button
-              onClick={() => { setLightboxOpen(true); setCurrentImageIndex(0) }}
-              className="absolute bottom-4 right-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-[var(--primary)] shadow-lg hover:bg-white transition-colors md:bottom-8 md:right-8"
-              aria-label="Open fullscreen gallery"
-            >
-              <ArrowUpRight size={24} strokeWidth={1.5} />
-            </button>
           </div>
-
-          {images.length > 1 && (
-            <div className="mt-6 px-6 md:px-12 lg:px-20">
-              <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
-                {images.map((img, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentImageIndex(index)}
-                    className={`flex-shrink-0 h-20 w-28 md:h-24 md:w-32 rounded-xl overflow-hidden border-2 transition-all duration-300 ${
-                      index === currentImageIndex ? 'border-[var(--accent)] shadow-[0_0_0_2px_rgba(232,154,67,0.3)]' : 'border-transparent hover:border-[var(--accent)]/40'
-                    }`}
-                    aria-label={`View image ${index + 1}`}
-                    aria-current={index === currentImageIndex ? 'true' : 'false'}
-                  >
-                    <img
-                      src={getOptimizedUrl(img, { width: 200, crop: 'fill' })}
-                      alt={`${design.title} - Image ${index + 1}`}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </section>
 
         {/* Project Details */}

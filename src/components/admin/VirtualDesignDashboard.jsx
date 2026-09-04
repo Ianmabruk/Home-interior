@@ -799,13 +799,13 @@ export const VirtualDesignDashboard = () => {
                   </div>
                 )}
 
-                {/* Quick Actions */}
-                <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                {/* Quick Actions - always visible */}
+                <div className="absolute bottom-3 right-3 flex gap-2 opacity-100 transition-opacity duration-300">
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => startEdit(item)}
-                    className="p-2 bg-white/90 backdrop-blur-sm rounded-xl text-[var(--primary)] hover:bg-white shadow-lg"
+                    className="p-2 bg-white/95 backdrop-blur-sm rounded-xl text-[var(--primary)] hover:bg-white shadow-lg border border-[var(--border)]/30"
                     aria-label="Edit project"
                   >
                     <Edit size={14} />
@@ -814,7 +814,7 @@ export const VirtualDesignDashboard = () => {
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setDeleteId(item._id || item.id)}
-                    className="p-2 bg-[var(--error)]/90 backdrop-blur-sm rounded-xl text-white hover:bg-[var(--error)] shadow-lg"
+                    className="p-2 bg-white/95 backdrop-blur-sm rounded-xl text-[var(--error)] hover:bg-white shadow-lg border border-[var(--border)]/30"
                     aria-label="Delete project"
                   >
                     <Trash2 size={14} />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -7,11 +7,7 @@ import {
   Plus,
   X,
   Image,
-  Eye,
-  EyeOff,
   Loader2,
-  ArrowUp,
-  ArrowDown,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
@@ -23,21 +19,14 @@ export const TestimonialDashboard = () => {
   const [deleteId, setDeleteId] = useState(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [status, setStatus] = useState('')
-  const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({
-    clientName: '',
-    testimonial: '',
-    project: '',
-    displayOrder: 0,
-    isActive: true,
     photo: null,
     photoPreview: null,
-    initial: '',
     removePhoto: false,
   })
+  const fileInputRef = useRef(null)
 
   const load = async () => {
     try {
@@ -48,24 +37,10 @@ export const TestimonialDashboard = () => {
     }
   }
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await api.get('/admin/testimonials')
-        setTestimonials(res.data || [])
-      } catch {
-        setTestimonials([])
-      }
-    }
-    fetchData()
-  }, [])
+  useEffect(() => { load() }, [])
 
   useEffect(() => {
-    const handler = () => {
-      api.get('/admin/testimonials')
-        .then((res) => setTestimonials(res.data || []))
-        .catch(() => {})
-    }
+    const handler = () => { load() }
     window.addEventListener('admin-data-changed', handler)
     return () => window.removeEventListener('admin-data-changed', handler)
   }, [])
@@ -73,34 +48,42 @@ export const TestimonialDashboard = () => {
   const resetForm = () => {
     setEditing(null)
     setForm({
-      clientName: '',
-      testimonial: '',
-      project: '',
-      displayOrder: testimonials.length,
-      isActive: true,
       photo: null,
       photoPreview: null,
-      initial: '',
       removePhoto: false,
     })
     setShowForm(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const openFilePicker = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setForm((f) => ({
+        ...f,
+        photo: file,
+        photoPreview: URL.createObjectURL(file),
+        removePhoto: false,
+      }))
+    }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (submitting) return
     setSubmitting(true)
-    setLoading(true)
-    setStatus('')
     try {
       const formData = new FormData()
-      formData.append('clientName', form.clientName)
-      formData.append('testimonial', form.testimonial)
-      formData.append('content', form.testimonial)
-      formData.append('project', form.project || '')
-      formData.append('displayOrder', String(form.displayOrder))
-      formData.append('isActive', String(form.isActive))
-      formData.append('initial', form.initial || '')
+      formData.append('clientName', '')
+      formData.append('content', '')
+      formData.append('project', '')
+      formData.append('displayOrder', '0')
+      formData.append('isActive', 'true')
+      formData.append('initial', '')
 
       if (form.photo instanceof File) {
         formData.append('photo', form.photo)
@@ -111,20 +94,17 @@ export const TestimonialDashboard = () => {
           formData.append('removePhoto', 'true')
         }
         await api.patch(`/admin/testimonials/${editing}`, formData)
-        setStatus('Testimonial updated successfully')
+        toast.success('Testimonial updated successfully.')
       } else {
         await api.post('/admin/testimonials', formData)
-        setStatus('Testimonial created successfully')
+        toast.success('Testimonial created successfully.')
       }
       resetForm()
       load()
       dispatchAdminDataChanged('testimonials-changed')
-      toast.success(editing ? 'Testimonial updated successfully.' : 'Testimonial created successfully.')
     } catch (err) {
-      setStatus('Failed to save testimonial. Please try again.')
       toast.error(err?.response?.data?.message || err?.message || 'Failed to save testimonial.')
     } finally {
-      setLoading(false)
       setSubmitting(false)
     }
   }
@@ -132,17 +112,12 @@ export const TestimonialDashboard = () => {
   const handleEdit = (item) => {
     setEditing(item._id || item.id)
     setForm({
-      clientName: item.clientName || '',
-      testimonial: item.content || '',
-      project: item.project || '',
-      displayOrder: item.displayOrder ?? 0,
-      isActive: item.isActive !== false,
       photo: null,
       photoPreview: item.photoUrl || null,
-      initial: item.initial || '',
       removePhoto: false,
     })
     setShowForm(true)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const handleDelete = async () => {
@@ -161,32 +136,6 @@ export const TestimonialDashboard = () => {
     }
   }
 
-  const moveTestimonial = (index, direction) => {
-    const newIndex = index + direction
-    if (newIndex < 0 || newIndex >= testimonials.length) return
-    const newTestimonials = [...testimonials]
-    const [moved] = newTestimonials.splice(index, 1)
-    newTestimonials.splice(newIndex, 0, moved)
-    const reordered = newTestimonials.map((t, i) => ({ ...t, displayOrder: i }))
-    setTestimonials(reordered)
-    const ids = reordered.map((t) => t._id || t.id)
-    api.put('/admin/testimonials/reorder', { orderedIds: ids })
-      .then(() => {
-        load()
-        dispatchAdminDataChanged('testimonials-changed')
-      })
-      .catch(() => {
-        toast.error('Failed to reorder testimonials.')
-        load()
-      })
-  }
-
-  const filtered = testimonials.filter((t) =>
-    t.clientName?.toLowerCase().includes(search.toLowerCase()) ||
-    t.content?.toLowerCase().includes(search.toLowerCase()) ||
-    t.project?.toLowerCase().includes(search.toLowerCase())
-  )
-
   return (
     <div className="space-y-6">
       <motion.div
@@ -201,7 +150,7 @@ export const TestimonialDashboard = () => {
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => { resetForm(); setShowForm(true); }}
+          onClick={() => { resetForm(); setShowForm(true) }}
           className="rounded-full bg-[var(--primary)] text-white px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--primary)]/90 hover:shadow-lg flex items-center gap-1.5"
         >
           <Plus size={12} /> Add Testimonial
@@ -225,141 +174,78 @@ export const TestimonialDashboard = () => {
         </motion.div>
       </motion.div>
 
-      {status && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`rounded-xl px-5 py-3 text-sm border ${status.includes('Failed') ? 'bg-[var(--error)]/10 text-[var(--error)] border-[var(--error)]/20' : 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20'}`}
-        >
-          {status}
-        </motion.div>
-      )}
-
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
         className="bg-white/80 backdrop-blur-xl border border-[var(--border)]/60 rounded-2xl p-5 shadow-[0_10px_40px_rgba(42,36,31,0.06)] overflow-hidden"
       >
-        {filtered.length === 0 ? (
+        {testimonials.length === 0 ? (
           <div className="py-20 text-center">
             <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-[var(--secondary)]/40 to-[var(--accent)]/10 flex items-center justify-center mb-4 text-[var(--primary)]/20">
               <Image size={32} />
             </div>
             <p className="font-display text-xl text-[var(--primary)]/30">
-              {search ? 'No testimonials found' : 'No testimonials yet'}
+              No testimonials yet
             </p>
             <p className="mt-2 text-sm text-[var(--primary)]/50">Click "Add Testimonial" to create your first one</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr>
-                  <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Photo</th>
-                  <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Client</th>
-                  <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Testimonial</th>
-                  <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Order</th>
-                  <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Status</th>
-                  <th className="text-left px-4 py-3 text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((t, i) => (
-                  <motion.tr
-                    key={t._id || t.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.03 }}
-                    className="group border-b border-[var(--border)]/30 transition-all duration-150 hover:bg-[var(--bg)]/40"
-                  >
-                    <td className="px-4 py-3.5 text-[var(--primary)]">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent)]/10 to-[var(--secondary)]/40 flex items-center justify-center overflow-hidden">
-                        {t.photoUrl ? (
-                          <img src={t.photoUrl} alt={t.clientName} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[var(--accent)] text-xs font-semibold">
-                            {(t.initial || t.clientName || 'U').charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5 text-[var(--primary)]">
-                      <div className="font-medium">{t.clientName}</div>
-                    </td>
-                    <td className="px-4 py-3.5 text-[var(--primary)]/70 max-w-md">
-                      <p className="line-clamp-2 text-sm leading-relaxed">"{t.content}"</p>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-1">
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => moveTestimonial(i, -1)}
-                          disabled={i === 0}
-                          className="p-1.5 rounded-lg text-[var(--primary)]/50 hover:text-[var(--primary)] hover:bg-[var(--secondary)]/30 transition disabled:opacity-30"
-                          title="Move up"
-                        >
-                          <ArrowUp size={14} />
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => moveTestimonial(i, 1)}
-                          disabled={i === filtered.length - 1}
-                          className="p-1.5 rounded-lg text-[var(--primary)]/50 hover:text-[var(--primary)] hover:bg-[var(--secondary)]/30 transition disabled:opacity-30"
-                          title="Move down"
-                        >
-                          <ArrowDown size={14} />
-                        </motion.button>
-                        <span className="text-xs text-[var(--primary)]/40 ml-1">{t.displayOrder ?? i}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium ${t.isActive ? 'bg-[var(--success)]/10 text-[var(--success)]' : 'bg-[var(--primary)]/5 text-[var(--primary)]/50'}`}>
-                        {t.isActive ? (
-                          <>
-                            <Eye size={10} strokeWidth={2} />
-                            Active
-                          </>
-                        ) : (
-                          <>
-                            <EyeOff size={10} strokeWidth={2} />
-                            Inactive
-                          </>
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2">
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleEdit(t)}
-                          className="p-2 rounded-lg text-[var(--primary)]/70 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-all"
-                          title="Edit"
-                        >
-                          <Edit2 size={14} />
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setDeleteId(t._id || t.id)}
-                          className="p-2 rounded-lg text-[var(--error)]/70 hover:text-[var(--error)] hover:bg-[var(--error)]/10 transition-all"
-                          title="Delete"
-                        >
-                          <Trash2 size={14} />
-                        </motion.button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {testimonials.map((t, i) => (
+              <motion.div
+                key={t._id || t.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="group relative bg-[var(--bg)]/40 rounded-2xl overflow-hidden border border-[var(--border)]/40"
+              >
+                <div className="relative aspect-[4/3]">
+                  {t.photoUrl ? (
+                    <img
+                      src={t.photoUrl}
+                      alt="Testimonial"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[var(--primary)]/30">
+                      <Image size={40} />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-[var(--primary)]/0 group-hover:bg-[var(--primary)]/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 gap-3">
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => handleEdit(t)}
+                      className="p-2.5 bg-white rounded-xl text-[var(--primary)] shadow-lg"
+                      aria-label="Edit testimonial"
+                    >
+                      <Edit2 size={16} />
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setDeleteId(t._id || t.id)}
+                      className="p-2.5 bg-white rounded-xl text-[var(--error)] shadow-lg"
+                      aria-label="Delete testimonial"
+                    >
+                      <Trash2 size={16} />
+                    </motion.button>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <p className={`text-xs font-medium ${t.isActive ? 'text-[var(--success)]' : 'text-[var(--primary)]/40'}`}>
+                    {t.isActive ? 'Active' : 'Inactive'}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
           </div>
         )}
       </motion.div>
 
+      {/* Add/Edit Form Modal */}
       <AnimatePresence>
         {showForm && (
           <motion.div
@@ -367,7 +253,7 @@ export const TestimonialDashboard = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            onClick={() => { resetForm(); }}
+            onClick={() => { resetForm() }}
           >
             <div className="absolute inset-0 bg-[var(--primary)]/40 backdrop-blur-sm" onClick={() => {}} />
             <motion.form
@@ -375,7 +261,7 @@ export const TestimonialDashboard = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               onSubmit={handleSubmit}
-              className="relative bg-white rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-[0_30px_80px_rgba(0,0,0,0.2)]"
+              className="relative bg-white rounded-3xl p-8 max-w-md w-full shadow-[0_30px_80px_rgba(0,0,0,0.2)]"
               onClick={(e) => e.stopPropagation()}
             >
               <button
@@ -388,150 +274,106 @@ export const TestimonialDashboard = () => {
               </button>
 
               <div className="mb-6">
-                <h3 className="font-display text-xl text-[var(--primary)]">{editing ? 'Edit Testimonial' : 'Add Testimonial'}</h3>
-                <p className="text-xs text-[var(--primary)]/50 mt-1">Upload a testimonial image. Text fields are optional.</p>
+                <h3 className="font-display text-xl text-[var(--primary)]">
+                  {editing ? 'Replace Testimonial Image' : 'Add Testimonial'}
+                </h3>
+                <p className="text-xs text-[var(--primary)]/50 mt-1">
+                  Upload an image-only testimonial. The image contains the testimonial.
+                </p>
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Client Name (Optional)</label>
-                  <input
-                    value={form.clientName}
-                    onChange={(e) => setForm((f) => ({ ...f, clientName: e.target.value }))}
-                    className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                    placeholder="Client name"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Testimonial Text (Optional)</label>
-                  <textarea
-                    value={form.testimonial}
-                    onChange={(e) => setForm((f) => ({ ...f, testimonial: e.target.value }))}
-                    className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition resize-none"
-                    placeholder="Client testimonial text (optional)…"
-                    rows={4}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Project</label>
-                  <input
-                    value={form.project}
-                    onChange={(e) => setForm((f) => ({ ...f, project: e.target.value }))}
-                    className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                    placeholder="Project name (optional)"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Initial</label>
-                  <input
-                    value={form.initial}
-                    onChange={(e) => setForm((f) => ({ ...f, initial: e.target.value.slice(0, 2).toUpperCase() }))}
-                    className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                    placeholder="e.g. I or JM"
-                    maxLength={2}
-                  />
-                  <p className="text-[10px] text-[var(--primary)]/40">Used as the avatar when no photo is uploaded.</p>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Client Photo</label>
+              <div
+                className={`upload-zone ${form.photoPreview ? 'drag-active' : ''} cursor-pointer`}
+                onClick={() => !form.photoPreview ? openFilePicker() : null}
+              >
+                {form.photoPreview ? (
                   <div className="relative">
-                    <div
-                      className={`upload-zone ${form.photo ? 'drag-active' : ''}`}
-                      onClick={() => document.getElementById('testimonial-photo-input')?.click()}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') document.getElementById('testimonial-photo-input')?.click() }}
-                    >
-                      {form.photoPreview ? (
-                        <div className="relative">
-                          <img src={form.photoPreview} alt="Preview" className="w-24 h-24 rounded-2xl object-cover mx-auto mb-2" />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setForm((f) => ({ ...f, photo: null, photoPreview: null, removePhoto: true }))
-                            }}
-                            className="absolute top-2 right-2 p-1 rounded-full bg-[var(--primary)]/80 text-white hover:bg-[var(--primary)] transition-colors"
-                            aria-label="Remove photo"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-[var(--accent)]/10 to-[var(--secondary)]/40 flex items-center justify-center mb-3 text-[var(--accent)]">
-                            <Image size={28} />
-                          </div>
-                          <p className="text-sm text-[var(--primary)]/60">Click to upload client photo</p>
-                          <p className="text-[10px] text-[var(--primary)]/40 mt-1">JPG, PNG, WebP up to 10MB</p>
-                        </>
-                      )}
+                    <img
+                      src={form.photoPreview}
+                      alt="Preview"
+                      className="w-full max-h-64 mx-auto object-contain rounded-xl"
+                    />
+                    <div className="absolute top-2 right-2 flex gap-1">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openFilePicker()
+                        }}
+                        className="p-1.5 rounded-full bg-white/90 text-[var(--primary)] hover:bg-white shadow-lg"
+                        aria-label="Replace image"
+                      >
+                        <Edit2 size={12} />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setForm((f) => ({ ...f, photo: null, photoPreview: null, removePhoto: true }))
+                        }}
+                        className="p-1.5 rounded-full bg-white/90 text-[var(--error)] hover:bg-white shadow-lg"
+                        aria-label="Remove image"
+                      >
+                        <X size={12} />
+                      </motion.button>
                     </div>
-                    <input
-                      id="testimonial-photo-input"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files[0]
-                        if (file) {
-                          setForm((f) => ({ ...f, photo: file, photoPreview: URL.createObjectURL(file), removePhoto: false }))
-                        }
-                        e.target.value = ''
-                      }}
-                      className="hidden"
-                    />
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-[var(--accent)]/10 to-[var(--secondary)]/40 flex items-center justify-center mb-3 text-[var(--accent)]">
+                      <Image size={28} />
+                    </div>
+                    <p className="text-sm text-[var(--primary)]/60">Click to upload testimonial image</p>
+                    <p className="text-[10px] text-[var(--primary)]/40 mt-1">JPG, JPEG, PNG, WebP — up to 10MB</p>
+                  </>
+                )}
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-sm text-[var(--primary)]/70 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.isActive}
-                      onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-                      className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-2"
-                    />
-                    Active (visible on website)
-                  </label>
-                </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={handleFileChange}
+                className="hidden"
+              />
 
-                <div className="flex gap-3 justify-end pt-4 border-t border-[var(--border)]/50">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="button"
-                    onClick={resetForm}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                  >
-                    Cancel
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="submit"
-                    disabled={loading || submitting}
-                    className="rounded-full bg-[var(--primary)] text-white px-6 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--primary)]/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading || submitting ? (
-                      <>
-                        <Loader2 size={14} className="animate-spin" />
-                        Saving…
-                      </>
-                    ) : (
-                      <>{editing ? 'Update Testimonial' : 'Create Testimonial'}</>
-                    )}
-                  </motion.button>
-                </div>
+              <div className="flex gap-3 justify-end pt-6 border-t border-[var(--border)]/50 mt-6">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={resetForm}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={submitting || (!form.photo && !form.photoPreview)}
+                  className="rounded-full bg-[var(--primary)] text-white px-6 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:bg-[var(--primary)]/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Saving…
+                    </>
+                  ) : (
+                    <>{editing ? 'Update Testimonial' : 'Create Testimonial'}</>
+                  )}
+                </motion.button>
               </div>
             </motion.form>
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {deleteId && (
           <motion.div
@@ -551,13 +393,14 @@ export const TestimonialDashboard = () => {
                 <Trash2 size={24} />
               </div>
               <h3 className="font-display text-xl text-[var(--primary)] text-center mb-2">Delete this testimonial?</h3>
-              <p className="text-sm text-[var(--primary)]/50 text-center mb-6">This action cannot be undone.</p>
+              <p className="text-sm text-[var(--primary)]/50 text-center mb-6">This action cannot be undone. The image will be removed from storage.</p>
               <div className="flex gap-3 justify-end">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setDeleteId(null)}
                   className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                  disabled={deleteLoading}
                 >
                   Cancel
                 </motion.button>
@@ -566,9 +409,16 @@ export const TestimonialDashboard = () => {
                   whileTap={{ scale: 0.98 }}
                   onClick={handleDelete}
                   disabled={deleteLoading}
-                  className="rounded-full bg-[var(--error)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-white transition hover:bg-[var(--error)] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-full bg-[var(--error)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-white transition hover:bg-[var(--error)] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  Delete
+                  {deleteLoading ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Deleting…
+                    </>
+                  ) : (
+                    'Delete'
+                  )}
                 </motion.button>
               </div>
             </motion.div>
