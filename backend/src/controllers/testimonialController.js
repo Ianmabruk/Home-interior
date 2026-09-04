@@ -1,6 +1,5 @@
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import { testimonialService } from '../services/testimonialService.js'
-import { failure } from '../utils/response.js'
 
 export const testimonialController = {
   list: asyncHandler(async (req, res) => {

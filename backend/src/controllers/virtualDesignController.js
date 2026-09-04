@@ -1,6 +1,5 @@
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import { virtualDesignService } from '../services/virtualDesignService.js'
-import { failure } from '../utils/response.js'
 
 export const virtualDesignController = {
   list: asyncHandler(async (req, res) => {
