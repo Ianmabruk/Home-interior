@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from 'react'
-import { api } from '../services/api'
+import { api, clearApiCache } from '../services/api'
 import { useAppLifecycle } from '../hooks/useAppLifecycle'
 
 const AuthContext = createContext(null)
@@ -42,12 +42,28 @@ export function AuthProvider({ children }) {
     return () => { cancelledRef.current = true }
   }, [validateSession])
 
+  // Track when the tab was last visible so we only re-validate after meaningful
+  // idle periods (>= 10 minutes) rather than on every focus/tab-switch.
+  const lastVisibleRef = useRef(Date.now())
+
   useAppLifecycle({
     onVisible: () => {
       const token = localStorage.getItem('hok_access_token')
-      if (token) {
+      const idleMs = Date.now() - lastVisibleRef.current
+      lastVisibleRef.current = Date.now()
+
+      if (token && idleMs >= 10 * 60 * 1000) {
+        // After 10+ minutes of inactivity: re-validate session AND clear the
+        // in-memory API cache so all pages refetch fresh data from the backend.
+        clearApiCache()
+        validateSession()
+      } else if (token && idleMs >= 60 * 1000) {
+        // After 1+ minute: just re-validate the session token silently.
         validateSession()
       }
+    },
+    onHidden: () => {
+      lastVisibleRef.current = Date.now()
     },
   })
 

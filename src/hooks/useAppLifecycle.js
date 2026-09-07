@@ -1,68 +1,41 @@
-import { useEffect } from 'react'
-
-const EVENT_NAMES = ['visibilitychange', 'pageshow', 'focus', 'online', 'offline']
+import { useEffect, useRef } from 'react'
 
 export function useAppLifecycle(callbacks) {
-  const onVisible = callbacks.onVisible
-  const onHidden = callbacks.onHidden
-  const onOnline = callbacks.onOnline
-  const onOffline = callbacks.onOffline
+  // Keep callbacks in a ref so the effect never needs to re-run when they change.
+  const callbacksRef = useRef(callbacks)
+  callbacksRef.current = callbacks
 
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        onVisible && onVisible()
+        callbacksRef.current.onVisible?.()
       } else {
-        onHidden && onHidden()
+        callbacksRef.current.onHidden?.()
       }
     }
 
+    // pageshow fires when the page is restored from the browser's back/forward
+    // cache (bfcache). event.persisted === true means it was a bfcache restore,
+    // which means the JS state is stale and we must treat it as a fresh visit.
     const handlePageShow = (event) => {
       if (event.persisted) {
-        onVisible && onVisible()
+        callbacksRef.current.onVisible?.()
       }
     }
 
-    const handleOnline = () => {
-      onOnline && onOnline()
-    }
+    const handleOnline = () => callbacksRef.current.onOnline?.()
+    const handleOffline = () => callbacksRef.current.onOffline?.()
 
-    const handleOffline = () => {
-      onOffline && onOffline()
-    }
-
-    const handleFocus = () => {
-      onVisible && onVisible()
-    }
-
-    EVENT_NAMES.forEach((name) => {
-      const handler =
-        name === 'focus'
-          ? handleFocus
-          : name === 'online'
-            ? handleOnline
-            : name === 'offline'
-              ? handleOffline
-              : name === 'pageshow'
-                ? handlePageShow
-                : handleVisibilityChange
-      window.addEventListener(name, handler)
-    })
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('pageshow', handlePageShow)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
 
     return () => {
-      EVENT_NAMES.forEach((name) => {
-        const handler =
-          name === 'focus'
-            ? handleFocus
-            : name === 'online'
-              ? handleOnline
-              : name === 'offline'
-                ? handleOffline
-                : name === 'pageshow'
-                  ? handlePageShow
-                  : handleVisibilityChange
-        window.removeEventListener(name, handler)
-      })
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('pageshow', handlePageShow)
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
     }
-  }, [onVisible, onHidden, onOnline, onOffline])
+  }, []) // Empty deps — callbacks are accessed via ref
 }

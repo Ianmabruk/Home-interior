@@ -75,6 +75,12 @@ export const PortfolioPage = memo(() => {
   }, [error, loadPortfolio])
 
   useEffect(() => {
+    const handleResumed = () => loadPortfolio()
+    window.addEventListener('hok-app-resumed', handleResumed)
+    return () => window.removeEventListener('hok-app-resumed', handleResumed)
+  }, [loadPortfolio])
+
+  useEffect(() => {
     setVisibleCount(INITIAL_VISIBLE)
   }, [portfolio])
 

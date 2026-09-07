@@ -91,6 +91,17 @@ export const ShopPage = memo(({ category }) => {
     return () => window.removeEventListener('online', handleOnline)
   }, [error, retry])
 
+  useEffect(() => {
+    const handleResumed = () => {
+      // App returned from long inactivity — reload products
+      const controller = new AbortController()
+      loadProducts(controller.signal)
+      return () => controller.abort()
+    }
+    window.addEventListener('hok-app-resumed', handleResumed)
+    return () => window.removeEventListener('hok-app-resumed', handleResumed)
+  }, [loadProducts])
+
   const categories = useMemo(() => {
     const present = new Set(products.map((p) => p.category).filter(Boolean))
     return ['all', ...ALLOWED_CATEGORIES.filter((c) => present.has(c))]

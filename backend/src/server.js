@@ -100,15 +100,9 @@ async function start() {
       })
       log.info('Admin password reset for ' + adminEmail)
     } else if (!env.adminPassword && process.env.NODE_ENV === 'production') {
-      // No ADMIN_PASSWORD configured in production — reset to fallback 'admin123'
-      // so the operator can always access the dashboard.
-      const adminPassword = 'admin123'
-      const passwordHash = await bcrypt.hash(adminPassword, 12)
-      await prisma.admin.updateMany({
-        where: { email: adminEmail },
-        data: { passwordHash },
-      })
-      log.info('Admin password set to default fallback for ' + adminEmail)
+      // No ADMIN_PASSWORD configured in production — log a warning but do NOT
+      // reset the existing password. The admin may have set it via the dashboard.
+      log.warn('ADMIN_PASSWORD is not set in production. The existing admin password is unchanged. Set ADMIN_PASSWORD in your environment to manage it explicitly.')
     } else {
       log.info('Admin accounts already exist — skipping auto-seed')
     }
@@ -137,10 +131,35 @@ async function start() {
     log.error('Failed to start HTTP server: ' + (err?.message || err))
   }
 
-  server.on('error', (err) => {
-    log.error('Server error: ' + (err?.message || err))
-  })
- }
+  if (server) {
+    server.on('error', (err) => {
+      log.error('Server error: ' + (err?.message || err))
+    })
+  }
+
+  // Self-ping keepalive: prevents Render free-tier from spinning down the
+  // backend after 15 minutes of inactivity. Without this, the first request
+  // after a cold start takes 30-60 seconds, causing frontend timeouts and
+  // making the website appear to have lost all its data.
+  if (process.env.NODE_ENV === 'production' && process.env.BASE_URL) {
+    const KEEPALIVE_INTERVAL_MS = 10 * 60 * 1000 // 10 minutes
+    setInterval(async () => {
+      try {
+        const url = `${process.env.BASE_URL}/api/health`
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000)
+        const res = await fetch(url, { signal: controller.signal })
+        clearTimeout(timeoutId)
+        if (!res.ok) {
+          log.warn(`[keepalive] health check returned ${res.status}`)
+        }
+      } catch (err) {
+        log.warn('[keepalive] self-ping failed: ' + (err?.message || err))
+      }
+    }, KEEPALIVE_INTERVAL_MS)
+    log.info(`Self-ping keepalive started (interval: ${KEEPALIVE_INTERVAL_MS / 60000} min)`)
+  }
+}
 
 async function gracefulShutdown(signal) {
   if (isShuttingDown) return

@@ -115,6 +115,16 @@ export const HomePage = memo(() => {
     return () => window.removeEventListener('online', handleOnline)
   }, [error, loadData])
 
+  useEffect(() => {
+    const handleResumed = () => {
+      const controller = new AbortController()
+      loadData(controller.signal)
+      return () => controller.abort()
+    }
+    window.addEventListener('hok-app-resumed', handleResumed)
+    return () => window.removeEventListener('hok-app-resumed', handleResumed)
+  }, [loadData])
+
   return (
     <main>
       <PageMeta
