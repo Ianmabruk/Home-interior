@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, memo } from 'react'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Search, Tag, Grid3X3 } from 'lucide-react'
 import { api, clearApiCache } from '@services/api'

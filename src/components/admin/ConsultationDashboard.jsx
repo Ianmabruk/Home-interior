@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from '@components/common/DynamicMotion'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Search,

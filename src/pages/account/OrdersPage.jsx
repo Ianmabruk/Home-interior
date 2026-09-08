@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { Package, Eye, Loader2, AlertTriangle, ClipboardList, Home, ShoppingBag, Copy } from 'lucide-react'
 import { api, clearApiCache } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'

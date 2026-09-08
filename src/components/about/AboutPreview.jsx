@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { api } from '../../services/api'
 import { getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 import { Link } from 'react-router-dom'

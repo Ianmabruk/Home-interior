@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from '@components/common/DynamicMotion'
 import { UploadCloud, X, Trash2, Images, Eye, Plus, Image as ImageIcon } from 'lucide-react'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'

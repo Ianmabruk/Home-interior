@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { Search, Package, CheckCircle2 } from 'lucide-react'
 import { api } from '@services/api'
 import { PageMeta } from '@hooks/usePageMeta'

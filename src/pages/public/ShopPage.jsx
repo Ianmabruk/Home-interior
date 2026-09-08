@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { api } from '@services/api'
 import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
 import OptimizedImage from '@components/common/OptimizedImage'

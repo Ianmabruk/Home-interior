@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
 
 export const FullscreenImageViewer = ({

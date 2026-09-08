@@ -19,7 +19,7 @@ import {
   Heart,
   CircleDot,
 } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { useAuth } from '@context/AuthContext'
 import { usePushNotifications } from '@hooks/usePushNotifications'
 import { Sidebar } from '@components/admin/Sidebar'

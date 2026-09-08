@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
+import { useMotionValue, useTransform, animate } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
   Images,

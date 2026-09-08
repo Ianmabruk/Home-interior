@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { UploadCloud, X, Save, Shield, Globe, Image as ImageIcon, Mail, Building2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'

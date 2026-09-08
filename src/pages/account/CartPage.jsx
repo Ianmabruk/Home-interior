@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from '@components/common/DynamicMotion'
 import { Trash2, Plus, Minus, ArrowLeft, ChevronRight, CheckCircle } from 'lucide-react'
 import { useShop } from '@context/ShopContext'
 import { useCurrency } from '@context/CurrencyContext'

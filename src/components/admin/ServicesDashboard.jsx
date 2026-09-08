@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from '@components/common/DynamicMotion'
 import { UploadCloud, X, Edit, Trash2, Eye, Plus, Sparkles, Star, ArrowUp, ArrowDown, ToggleLeft, LayoutGrid, Brush, MonitorSmartphone, Armchair, Search } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'

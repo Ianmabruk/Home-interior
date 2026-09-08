@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { Heart, ShoppingBag, ChevronLeft, ChevronRight, Minus, Plus, AlertTriangle, ArrowLeft, Loader2, CheckCircle } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from '@components/common/DynamicMotion'
 import { api } from '@services/api'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
 import OptimizedImage from '@components/common/OptimizedImage'

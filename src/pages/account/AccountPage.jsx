@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { User, Heart, Package, CreditCard, Settings, LogOut, Loader2, ChevronRight, ShoppingBag } from 'lucide-react'
 import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'

@@ -1,5 +1,5 @@
 import { useState, useMemo, memo } from 'react'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { Link } from 'react-router-dom'
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 import { useIsMobile } from '../../hooks/useIsMobile'

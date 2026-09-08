@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { Send, Loader2, User, Bot } from 'lucide-react'
 import { api } from '@services/api'
 import { PageMeta } from '@hooks/usePageMeta'

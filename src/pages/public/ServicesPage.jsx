@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { Loader2, X, Send } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { api } from '@services/api'

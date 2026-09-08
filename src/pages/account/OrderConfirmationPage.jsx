@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { CheckCircle, Package, ChevronRight, Copy, Search, Mail, Phone, AlertCircle } from 'lucide-react'
 import { api } from '../../services/api'
 import { PageMeta } from '../../hooks/usePageMeta'

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Images } from 'lucide-react'
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence } from '@components/common/DynamicMotion'
 import { api } from '@services/api'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
 import OptimizedImage from '@components/common/OptimizedImage'

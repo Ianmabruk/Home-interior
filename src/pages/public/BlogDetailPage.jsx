@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { ArrowLeft, Share2, Facebook, Twitter, Linkedin, Copy, Calendar, User, Clock, Eye, Tag } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '@services/api'

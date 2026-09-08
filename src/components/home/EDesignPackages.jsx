@@ -1,5 +1,5 @@
 import { useState, useEffect, memo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from '@components/common/DynamicMotion'
 import { Check, ChevronDown, ChevronUp, Sparkles, Shield, Wifi, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { api } from '@services/api'

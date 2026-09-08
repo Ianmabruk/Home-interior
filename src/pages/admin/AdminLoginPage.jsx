@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { Eye, EyeOff, Loader2, AlertCircle, Shield } from 'lucide-react'
 import { useAuth } from '@context/AuthContext'
 import { PageMeta } from '@hooks/usePageMeta'

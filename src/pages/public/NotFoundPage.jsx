@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Home, Search } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { PageMeta } from '../../hooks/usePageMeta'
 
 export const NotFoundPage = () => {

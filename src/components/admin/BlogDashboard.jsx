@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from '@components/common/DynamicMotion'
 import { Plus } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'

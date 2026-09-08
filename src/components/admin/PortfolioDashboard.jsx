@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion'
+import { motion, AnimatePresence } from '@components/common/DynamicMotion'
+import { Reorder, useDragControls } from 'framer-motion'
 import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Loader2, Upload, Star, Check, RefreshCw, WifiOff, GripVertical, ArrowUp, ArrowDown } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'

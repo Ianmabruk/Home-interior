@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Package, Eye, X, Search, ChevronDown, Save, ExternalLink } from 'lucide-react'
 import { toast } from 'react-hot-toast'

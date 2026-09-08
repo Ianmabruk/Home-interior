@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 
 const AuthLoader = () => (
   <div className="flex min-h-[60vh] items-center justify-center">

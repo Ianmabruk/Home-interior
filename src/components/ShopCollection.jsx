@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { api } from '../services/api'
 import { ProductCard } from './shop/ProductCard'
 import { ADMIN_DATA_CHANGED_EVENT } from '../utils/adminEvents'

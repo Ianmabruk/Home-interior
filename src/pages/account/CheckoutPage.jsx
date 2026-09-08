@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { Loader2, AlertCircle, CheckCircle, ChevronRight, MapPin, ShoppingBag, Truck, Search, Mail, Copy } from 'lucide-react'
 import { api } from '../../services/api'
 import { useShop } from '../../context/ShopContext'

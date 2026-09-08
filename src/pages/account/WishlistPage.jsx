@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { Heart, Trash2, ShoppingBag } from 'lucide-react'
 import { useShop } from '@context/ShopContext'
 import { useCurrency } from '@context/CurrencyContext'
