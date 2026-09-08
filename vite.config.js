@@ -172,8 +172,12 @@ export default defineConfig({
             if (id.includes('react') || id.includes('react-dom')) {
               return 'react-vendor'
             }
+            // Bundle framer-motion together with React to avoid runtime
+            // circular dependency where framer executes before React has
+            // initialized (causes `useEffect` null errors). Putting framer
+            // into the `react-vendor` chunk ensures execution order.
             if (id.includes('framer-motion')) {
-              return 'framer-motion'
+              return 'react-vendor'
             }
             if (id.includes('lucide-react')) {
               return 'lucide-icons'
