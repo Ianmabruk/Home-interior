@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Images } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
 import { api } from '@services/api'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
+import OptimizedImage from '@components/common/OptimizedImage'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 import { FullscreenImageViewer } from '@components/portfolio/FullscreenImageViewer'
@@ -158,14 +159,15 @@ export const PortfolioDetailPage = () => {
               {/* Main Image */}
               <div className="relative rounded-2xl md:rounded-3xl overflow-hidden bg-[var(--secondary)]/10 aspect-[4/3] lg:aspect-auto lg:h-full min-h-[300px]">
                 {heroImage ? (
-                  <img
-                    src={getOptimizedUrl(heroImage, { width: 1200, crop: 'limit' })}
-                    alt={project.title}
-                    className="h-full w-full object-contain"
-                    loading="eager"
-                    decoding="async"
-                  />
-                ) : (
+                    <OptimizedImage
+                      src={heroImage}
+                      alt={project.title}
+                      className="h-full w-full object-contain"
+                      width={1200}
+                      height={900}
+                      priority={true}
+                    />
+                  ) : (
                   <div className="h-full w-full flex items-center justify-center text-[var(--primary)]/30">
                     <Images size={48} />
                   </div>
@@ -236,12 +238,12 @@ export const PortfolioDetailPage = () => {
                     className="relative rounded-xl overflow-hidden border border-[var(--border)]/40 bg-[var(--secondary)]/10 aspect-[4/3] hover:border-[var(--accent)]/60 active:scale-[0.98] transition-all"
                     aria-label={`View before image ${index + 1}`}
                   >
-                    <img
-                      src={getOptimizedUrl(img.src, { width: 600, crop: 'limit' })}
+                    <OptimizedImage
+                      src={img.src}
                       alt={`Before ${index + 1}`}
                       className="h-full w-full object-cover"
-                      loading="lazy"
-                      decoding="async"
+                      width={600}
+                      height={450}
                     />
                   </button>
                 ))}
@@ -273,12 +275,12 @@ export const PortfolioDetailPage = () => {
                   className="relative rounded-xl overflow-hidden border border-[var(--border)]/40 bg-[var(--secondary)]/10 aspect-[4/3] hover:border-[var(--accent)]/60 active:scale-[0.98] transition-all"
                   aria-label={`View after image ${index + 1}`}
                 >
-                  <img
-                    src={getOptimizedUrl(img.src, { width: 600, crop: 'limit' })}
+                  <OptimizedImage
+                    src={img.src}
                     alt={`After ${index + 1}`}
                     className="h-full w-full object-cover"
-                    loading="lazy"
-                    decoding="async"
+                    width={600}
+                    height={450}
                   />
                 </button>
               ))}

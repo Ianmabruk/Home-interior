@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
+import OptimizedImage from '@components/common/OptimizedImage'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 
 const INITIAL_FORM = {
@@ -600,7 +601,7 @@ export const AboutDashboard = () => {
             <h4 className="font-display text-lg text-[var(--primary)]">Upload New Image</h4>
             {imagePreview && (
               <div className="relative rounded-xl overflow-hidden max-w-xs">
-                <img src={imagePreview} alt="Preview" className="h-48 w-full object-cover" />
+                <OptimizedImage src={imagePreview} alt="Preview" className="h-48 w-full object-cover" width={600} height={300} />
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">
@@ -661,7 +662,7 @@ export const AboutDashboard = () => {
             <h4 className="font-display text-lg text-[var(--primary)]">Edit Image</h4>
             {imagePreview && (
               <div className="relative rounded-xl overflow-hidden max-w-xs">
-                <img src={imagePreview} alt="Preview" className="h-48 w-full object-cover" />
+                <OptimizedImage src={imagePreview} alt="Preview" className="h-48 w-full object-cover" width={600} height={300} />
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">

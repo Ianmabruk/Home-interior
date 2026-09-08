@@ -4,6 +4,7 @@ import { ArrowLeft, Share2, Facebook, Twitter, Linkedin, Copy, Calendar, User, C
 import { Link, useParams } from 'react-router-dom'
 import { api } from '@services/api'
 import { getOptimizedUrl, buildSrcSet, getOptimizedVideoUrl, getVideoPosterUrl } from '@utils/cloudinaryHelpers'
+import OptimizedImage from '@components/common/OptimizedImage'
 import { getReadingTime, formatDate, extractTags } from '@utils/blogHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
@@ -273,14 +274,13 @@ export const BlogDetailPage = () => {
       >
         {imageUrl ? (
           <div className="relative aspect-[2/1] w-full overflow-hidden bg-[var(--secondary)]/10">
-            <img
-              src={getOptimizedUrl(imageUrl, { width: 1600, crop: 'limit' }) || imageUrl}
-              srcSet={buildSrcSet(imageUrl) || undefined}
-              sizes="100vw"
+            <OptimizedImage
+              src={imageUrl}
               alt={blog.title}
               className="h-full w-full object-cover"
-              loading="eager"
-              decoding="async"
+              width={1600}
+              height={800}
+              priority={true}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
           </div>
@@ -383,13 +383,12 @@ export const BlogDetailPage = () => {
             >
               {mediaUrls.map((url, i) => (
                 <div key={i} className="overflow-hidden rounded-2xl bg-[var(--secondary)]/10">
-                  <img
-                    src={getOptimizedUrl(url, { width: 800, crop: 'limit' }) || url}
+                  <OptimizedImage
+                    src={url}
                     alt={`${blog.title} — gallery ${i + 1}`}
                     className="h-full w-full object-cover"
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => { e.target.style.display = 'none' }}
+                    width={800}
+                    height={600}
                   />
                 </div>
               ))}

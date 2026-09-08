@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, ArrowRight, X, Loader2, Send } from 'lucide-
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '@services/api'
 import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
+import OptimizedImage from '@components/common/OptimizedImage'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 import { useZoom } from '@hooks/useZoom'
@@ -170,15 +171,14 @@ export const VirtualDesignDetailPage = () => {
                   className="relative aspect-[4/3] group rounded-2xl overflow-hidden bg-[var(--secondary)]/40 border border-[var(--border)]/20 transition-all duration-300 hover:border-[var(--accent)]/30"
                   aria-label={`View image ${index + 1}`}
                 >
-                  <img
-                    src={getOptimizedUrl(img, { width: 600, crop: 'fill' })}
-                    srcSet={buildSrcSet(img) || undefined}
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  <OptimizedImage
+                    src={img}
                     alt={`${design.title} - Image ${index + 1}`}
                     className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                    loading="lazy"
-                    decoding="async"
-                    fetchPriority={index === 0 ? 'high' : 'low'}
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                    width={600}
+                    height={450}
+                    priority={index === 0}
                   />
                 </motion.button>
               ))}
@@ -270,10 +270,12 @@ export const VirtualDesignDetailPage = () => {
                           className="group relative aspect-[4/3] rounded-2xl overflow-hidden bg-[var(--secondary)]/30"
                         >
                           {related.imageUrl && (
-                            <img
-                              src={getOptimizedUrl(related.imageUrl, { width: 400, crop: 'limit' })}
+                            <OptimizedImage
+                              src={related.imageUrl}
                               alt={related.title}
                               className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                              width={400}
+                              height={300}
                             />
                           )}
                           <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/70 via-transparent to-transparent flex items-end p-4">
