@@ -1,6 +1,6 @@
 import { memo, useState } from 'react'
 import { normalizeMediaSettings, positionToObjectPosition } from '../../utils/mediaSettings'
-import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
+import { getOptimizedUrl, buildSrcSet, getOptimizedUrlAutoDpr, getPlaceholderUrl } from '../../utils/cloudinaryHelpers'
 
 function PositionedImage({
   src,
@@ -27,16 +27,14 @@ function PositionedImage({
   const objectPosition = positionToObjectPosition(s.position)
   const zoom = s.zoom / 100
 
-  const optimizedSrc = responsive ? getOptimizedUrl(src, { width: 960, crop: 'limit' }) : src
+  const optimizedSrc = responsive ? getOptimizedUrlAutoDpr(src, { width: 960, crop: 'limit' }) : src
   const srcSet = responsive ? buildSrcSet(src) : ''
 
   return (
     <div className="relative overflow-hidden" style={{ width: '100%', height: '100%', ...style }}>
       {blurPlaceholder && !loaded && (
         <img
-          src={src.includes('cloudinary.com')
-            ? src.replace('/image/upload/', '/image/upload/w_20,f_auto,q_10/')
-            : src}
+          src={src.includes('cloudinary.com') ? getPlaceholderUrl(src, { width: 40 }) : src}
           alt=""
           aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover blur-[20px] scale-110 transition-opacity duration-700 opacity-100"

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
 import { motion } from 'framer-motion'
-import { getOptimizedUrl, buildSrcSet, getVideoPosterUrl, getOptimizedVideoUrl } from '../../utils/cloudinaryHelpers'
+import { getOptimizedUrl, buildSrcSet, getVideoPosterUrl, getOptimizedVideoUrl, getOptimizedUrlAutoDpr, getPlaceholderUrl } from '../../utils/cloudinaryHelpers'
 
 const HOK_LINE = (
   <>
@@ -84,7 +84,9 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
     const link = document.createElement('link')
     link.rel = 'preload'
     link.as = 'image'
-    link.href = getVideoPosterUrl(firstMediaUrl) || getOptimizedUrl(firstMediaUrl, { width: 1920, crop: 'limit' })
+    // Preload DPR-aware URL for the hero LCP image so high-DPI devices get
+    // an appropriately sized resource as early as possible.
+    link.href = getVideoPosterUrl(firstMediaUrl) || getOptimizedUrlAutoDpr(firstMediaUrl, { width: 1920, crop: 'limit' })
     link.fetchPriority = 'high'
     document.head.appendChild(link)
     return () => {
@@ -162,13 +164,13 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
     return (
       <img
         key={media.url}
-        src={getOptimizedUrl(media.url, { width: 1920, crop: 'limit' })}
+        src={getOptimizedUrlAutoDpr(media.url, { width: 1920, crop: 'limit' })}
         srcSet={buildSrcSet(media.url) || undefined}
         sizes={buildSrcSet(media.url) ? '100vw' : undefined}
         fetchPriority={isNext ? 'low' : 'high'}
         alt={media.alt}
         className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-out"
-        style={{ opacity, background: 'var(--primary)' }}
+        style={{ opacity, background: 'var(--primary)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundImage: `url(${getPlaceholderUrl(media.url, { width: 40 })})` }}
         loading={isNext ? 'lazy' : 'eager'}
         decoding="async"
         onLoad={handleImageLoad}

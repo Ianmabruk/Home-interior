@@ -33,7 +33,9 @@ router.use('/auth', authRoutes)
 router.use('/admin', adminRoutes)
 
 router.use('/content', contentRoutes)
-router.get('/homepage', cacheHeaders(5, 30), contentController.homepage)
+// Increase homepage cache TTL to reduce repeated backend work and allow
+// CDNs to cache the response briefly for faster repeat loads.
+router.get('/homepage', cacheHeaders(300, 60), contentController.homepage)
 router.use('/content/portfolio', contentPortfolioRoutes)
 router.use('/content/virtual-design', contentVDRoutes)
 router.use('/content/services', serviceRoutes)

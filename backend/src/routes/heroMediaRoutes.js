@@ -9,8 +9,10 @@ import { heroMediaSchemas } from '../validations/schemas.js'
 
 const router = Router()
 
-router.get('/', optionalAuth, cacheHeaders(5, 30), heroMediaController.list)
-router.get('/:id', optionalAuth, cacheHeaders(5, 30), heroMediaController.get)
+// Cache hero media for a longer TTL — these are static assets referenced
+// by the public site and change infrequently.
+router.get('/', optionalAuth, cacheHeaders(300, 60), heroMediaController.list)
+router.get('/:id', optionalAuth, cacheHeaders(300, 60), heroMediaController.get)
 router.post('/', authenticate, validateCsrfToken, uploadFields([{ name: 'media', maxCount: 10 }]), validateZod(heroMediaSchemas.create), heroMediaController.create)
 router.patch('/:id', authenticate, validateCsrfToken, uploadFields([{ name: 'media', maxCount: 10 }]), validateZod(heroMediaSchemas.update), heroMediaController.update)
 router.delete('/:id', authenticate, validateCsrfToken, heroMediaController.delete)
