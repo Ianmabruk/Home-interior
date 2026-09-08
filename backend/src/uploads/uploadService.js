@@ -96,6 +96,26 @@ async function uploadToLocal(buffer, mimetype, folder) {
   }
 }
 
+function ensureBackupsDir() {
+  const backupsDir = path.join(process.cwd(), 'backups')
+  try {
+    fs.mkdirSync(backupsDir, { recursive: true })
+  } catch {
+    // ignore
+  }
+  return backupsDir
+}
+
+function recordFailedUpload(entry) {
+  try {
+    const backupsDir = ensureBackupsDir()
+    const logfile = path.join(backupsDir, 'upload-failures.jsonl')
+    fs.appendFileSync(logfile, JSON.stringify(entry) + '\n')
+  } catch (err) {
+    console.error('[uploadService] Failed to record failed upload:', err?.message || err)
+  }
+}
+
 export async function uploadFile(buffer, mimetype, folder) {
   if (!buffer) {
     throw failure(400, 'No file buffer provided for upload')
@@ -109,11 +129,26 @@ export async function uploadFile(buffer, mimetype, folder) {
       const uploaded = await uploadToCloudinary(optimizedBuffer, optimizedMimetype, folder)
       return { url: uploaded.url, path: uploaded.publicId, mimeType: optimizedMimetype, isLocal: false }
     } catch (cloudErr) {
-      if (process.env.NODE_ENV === 'production') {
-        console.error('[uploadService] Cloudinary upload failed in production:', cloudErr?.message || cloudErr)
+      console.error('[uploadService] Cloudinary upload failed:', cloudErr?.message || cloudErr)
+      // Persist locally as a safe fallback so data isn't lost, and record the failure for retry.
+      try {
+        const local = await uploadToLocal(optimizedBuffer, optimizedMimetype, folder)
+        recordFailedUpload({
+          time: new Date().toISOString(),
+          reason: cloudErr?.message || String(cloudErr),
+          intended: { provider: 'cloudinary', folder },
+          localPath: local.path,
+          mimeType: optimizedMimetype,
+        })
+        console.warn('[uploadService] Saved failed upload locally and recorded for retry:', local.path)
+        return local
+      } catch (localErr) {
+        console.error('[uploadService] Saving failed upload locally also failed:', localErr?.message || localErr)
+        if (process.env.NODE_ENV === 'production') {
+          throw failure(500, 'File upload failed and could not be saved locally. Contact support.')
+        }
         throw failure(500, 'File upload failed. Please try again later.')
       }
-      console.warn(`[uploadService] Cloudinary upload failed, falling back to local storage: ${cloudErr?.message || cloudErr}`)
     }
   }
 
@@ -121,11 +156,25 @@ export async function uploadFile(buffer, mimetype, folder) {
     try {
       return await uploadToSupabase(optimizedBuffer, optimizedMimetype, folder)
     } catch (supErr) {
-      if (process.env.NODE_ENV === 'production') {
-        console.error('[uploadService] Supabase upload failed in production:', supErr?.message || supErr)
+      console.error('[uploadService] Supabase upload failed:', supErr?.message || supErr)
+      try {
+        const local = await uploadToLocal(optimizedBuffer, optimizedMimetype, folder)
+        recordFailedUpload({
+          time: new Date().toISOString(),
+          reason: supErr?.message || String(supErr),
+          intended: { provider: 'supabase', folder },
+          localPath: local.path,
+          mimeType: optimizedMimetype,
+        })
+        console.warn('[uploadService] Saved failed Supabase upload locally and recorded for retry:', local.path)
+        return local
+      } catch (localErr) {
+        console.error('[uploadService] Saving failed upload locally also failed:', localErr?.message || localErr)
+        if (process.env.NODE_ENV === 'production') {
+          throw failure(500, 'File upload failed and could not be saved locally. Contact support.')
+        }
         throw failure(500, 'File upload failed. Please try again later.')
       }
-      console.warn(`[uploadService] Supabase upload failed, falling back to local storage: ${supErr?.message || supErr}`)
     }
   }
 
