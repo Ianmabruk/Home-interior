@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
+import OptimizedImage from '@components/common/OptimizedImage'
 import { formatDateShort, extractTags, getReadingTime, getBlogImageUrl } from '@utils/blogHelpers'
 
 export const BlogCard = ({ blog, priority = false }) => {
@@ -12,16 +13,14 @@ export const BlogCard = ({ blog, priority = false }) => {
       <Link to={`/blog/${blog.slug || blog.id}`} className="block">
         <div className="relative aspect-[4/3] w-full overflow-hidden">
           {imageUrl ? (
-            <img
-              src={getOptimizedUrl(imageUrl, { width: 800, crop: 'limit' }) || imageUrl}
-              srcSet={buildSrcSet(imageUrl) || undefined}
-              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            <OptimizedImage
+              src={imageUrl}
               alt={blog.title}
-              className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-              loading={priority ? 'eager' : 'lazy'}
-              decoding="async"
+              className="h-full w-full transition duration-700 group-hover:scale-105"
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
               width={800}
               height={600}
+              priority={priority}
             />
           ) : (
             <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/20">
