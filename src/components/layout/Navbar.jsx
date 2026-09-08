@@ -14,7 +14,7 @@ import {
   Lock,
   Receipt,
 } from 'lucide-react'
-import { motion, AnimatePresence } from '@components/common/DynamicMotion'
+import { motion, AnimatePresence, preloadFramer } from '@components/common/DynamicMotion'
 import { useAuth } from '@context/AuthContext'
 import { useShop } from '@context/ShopContext'
 import { prefetchMap } from '@app/prefetchMap'
@@ -206,6 +206,22 @@ const CartMenu = memo(({ isOpen, onClose, isAuthenticated, cartItems, totalItems
   </AnimatePresence>
 ))
 CartMenu.displayName = 'CartMenu'
+
+// Defer loading framer-motion until the user interacts with the UI (hover/touch).
+// This avoids fetching the large framer bundle during the initial page load.
+useEffect(() => {
+  const onFirst = () => {
+    try { preloadFramer() } catch (e) {}
+    window.removeEventListener('pointerover', onFirst)
+    window.removeEventListener('touchstart', onFirst)
+  }
+  window.addEventListener('pointerover', onFirst, { once: true })
+  window.addEventListener('touchstart', onFirst, { once: true })
+  return () => {
+    window.removeEventListener('pointerover', onFirst)
+    window.removeEventListener('touchstart', onFirst)
+  }
+}, [])
 
 const UserMenu = memo(({ isOpen, onClose, isAuthenticated, isAdmin, onLogout }) => (
   <AnimatePresence>
