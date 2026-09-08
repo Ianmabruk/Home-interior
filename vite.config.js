@@ -25,6 +25,14 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    // Remove automatic modulepreload for framer-motion chunk so the library
+    // is only fetched when explicitly requested by `DynamicMotion`.
+    {
+      name: 'remove-framer-modulepreload',
+      transformIndexHtml(html) {
+        return html.replace(/<link rel="modulepreload"[^>]*framer-motion[^>]*>/g, '')
+      },
+    },
     VitePWA({
       registerType: 'autoUpdate',
       // IMPORTANT: do NOT precache the app shell (index.html) and do NOT use a
