@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
-import { motion } from 'framer-motion'
+import { motion } from '@components/common/DynamicMotion'
 import { getOptimizedUrl, buildSrcSet, getVideoPosterUrl, getOptimizedVideoUrl, getOptimizedUrlAutoDpr, getPlaceholderUrl } from '../../utils/cloudinaryHelpers'
 import OptimizedImage from '@components/common/OptimizedImage'
 

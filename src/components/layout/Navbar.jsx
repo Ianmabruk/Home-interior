@@ -14,7 +14,7 @@ import {
   Lock,
   Receipt,
 } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from '@components/common/DynamicMotion'
 import { useAuth } from '@context/AuthContext'
 import { useShop } from '@context/ShopContext'
 import { prefetchMap } from '@app/prefetchMap'
