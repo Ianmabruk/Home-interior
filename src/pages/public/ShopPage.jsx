@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { api } from '@services/api'
 import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
+import OptimizedImage from '@components/common/OptimizedImage'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { clearApiCache } from '@services/api'
 import { PageMeta } from '@hooks/usePageMeta'
@@ -215,17 +216,14 @@ export const ShopPage = memo(({ category }) => {
                   <Link to={`/shop/${product._id || product.id}`} className="block w-full">
                     <div className="relative aspect-[4/3] overflow-hidden bg-[var(--secondary)]/30">
                       {product.images?.[0] ? (
-                        <img
-                          src={getOptimizedUrl(typeof product.images[0] === 'string' ? product.images[0] : product.images[0]?.url, { width: 600, crop: 'limit' })}
-                          srcSet={buildSrcSet(typeof product.images[0] === 'string' ? product.images[0] : product.images[0]?.url) || undefined}
-                          sizes={buildSrcSet(typeof product.images[0] === 'string' ? product.images[0] : product.images[0]?.url) ? '(max-width: 1280px) 50vw, (max-width: 1024px) 33vw, 25vw' : undefined}
+                        <OptimizedImage
+                          src={typeof product.images[0] === 'string' ? product.images[0] : product.images[0]?.url}
                           alt={product.name}
                           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                          loading="lazy"
-                          decoding="async"
-                          fetchPriority={index === 0 ? 'high' : undefined}
+                          sizes="(max-width: 1280px) 50vw, (max-width: 1024px) 33vw, 25vw"
                           width={600}
                           height={450}
+                          priority={index === 0}
                         />
                       ) : (
                         <div className="h-full w-full flex items-center justify-center text-[var(--primary)]/30">

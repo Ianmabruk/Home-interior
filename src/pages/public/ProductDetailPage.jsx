@@ -4,6 +4,7 @@ import { Heart, ShoppingBag, ChevronLeft, ChevronRight, Minus, Plus, AlertTriang
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '@services/api'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
+import OptimizedImage from '@components/common/OptimizedImage'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 import { useShop } from '@context/ShopContext'
@@ -227,14 +228,15 @@ export const ProductDetailPage = () => {
 
           <div className="grid gap-12 lg:grid-cols-2">
             <div className="relative">
-              <div className="aspect-[4/3] rounded-3xl overflow-hidden bg-[var(--secondary)]/30">
+                <div className="aspect-[4/3] rounded-3xl overflow-hidden bg-[var(--secondary)]/30">
                 {images.length > 0 ? (
-                  <img
-                    src={getOptimizedUrl(currentImage, { width: 1200, crop: 'limit' })}
+                  <OptimizedImage
+                    src={currentImage}
                     alt={`${product.name} - Image ${currentImageIndex + 1}`}
                     className="h-full w-full object-cover"
-                    loading="eager"
-                    decoding="async"
+                    width={1200}
+                    height={900}
+                    priority={true}
                   />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center text-[var(--primary)]/30">
@@ -256,11 +258,13 @@ export const ProductDetailPage = () => {
                       className={`flex-shrink-0 h-20 w-24 md:h-24 md:w-28 rounded-xl overflow-hidden border-2 transition-all duration-300 ${
                         index === currentImageIndex ? 'border-[var(--accent)] shadow-[0_0_0_2px_rgba(232,154,67,0.3)]' : 'border-transparent hover:border-[var(--accent)]/40'
                       }`}>
-                      <img
-                        src={getOptimizedUrl(img, { width: 150, crop: 'fill' })}
+                      <OptimizedImage
+                        src={img}
                         alt={`${product.name} - Thumbnail ${index + 1}`}
                         className="h-full w-full object-cover"
-                        loading="lazy"
+                        width={150}
+                        height={112}
+                        priority={false}
                       />
                     </button>
                   ))}
@@ -558,11 +562,12 @@ export const ProductDetailPage = () => {
                   <Link to={`/shop/${related._id || related.id}`} className="block">
                     <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-[var(--secondary)]/30">
                       {related.images?.[0] ? (
-                        <img
-                          src={getOptimizedUrl(typeof related.images[0] === 'string' ? related.images[0] : related.images[0]?.url, { width: 600, crop: 'limit' })}
+                        <OptimizedImage
+                          src={typeof related.images[0] === 'string' ? related.images[0] : related.images[0]?.url}
                           alt={related.name}
                           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                          loading="lazy"
+                          width={600}
+                          height={450}
                         />
                       ) : (
                         <div className="h-full w-full flex items-center justify-center text-[var(--primary)]/30">

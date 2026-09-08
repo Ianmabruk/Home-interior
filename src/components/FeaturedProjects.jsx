@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { api } from '../services/api'
 import { getOptimizedUrl } from '../utils/cloudinaryHelpers'
+import OptimizedImage from '@components/common/OptimizedImage'
 import { ADMIN_DATA_CHANGED_EVENT } from '../utils/adminEvents'
 
 const containerVariants = {
@@ -156,12 +157,13 @@ export const FeaturedProjects = () => {
             >
               <Link to={`/portfolio/${item._id || item.id}`} className="block" aria-label={`View ${item.title} project`}>
                 <div className="relative aspect-[3/4] overflow-hidden">
-                  <img
-                    src={getOptimizedUrl(item.imageUrl, { width: 800, crop: 'limit' })}
+                  <OptimizedImage
+                    src={item.imageUrl}
                     alt={item.title}
                     className="h-full w-full object-contain bg-[var(--secondary)]/10 transition duration-[1.2s] ease-out group-hover:scale-105"
-                    loading="lazy"
-                    decoding="async"
+                    width={800}
+                    height={1066}
+                    sizes="(max-width: 768px) 100vw, 33vw"
                   />
                 </div>
               </Link>

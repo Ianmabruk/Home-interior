@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
 import { motion } from 'framer-motion'
 import { getOptimizedUrl, buildSrcSet, getVideoPosterUrl, getOptimizedVideoUrl, getOptimizedUrlAutoDpr, getPlaceholderUrl } from '../../utils/cloudinaryHelpers'
+import OptimizedImage from '@components/common/OptimizedImage'
 
 const HOK_LINE = (
   <>
@@ -162,20 +163,16 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
       )
     }
     return (
-      <img
+      <OptimizedImage
         key={media.url}
-        src={getOptimizedUrlAutoDpr(media.url, { width: 1920, crop: 'limit' })}
-        srcSet={buildSrcSet(media.url) || undefined}
-        sizes={buildSrcSet(media.url) ? '100vw' : undefined}
-        fetchPriority={isNext ? 'low' : 'high'}
+        src={media.url}
         alt={media.alt}
-        className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-out"
-        style={{ opacity, background: 'var(--primary)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundImage: `url(${getPlaceholderUrl(media.url, { width: 40 })})` }}
-        loading={isNext ? 'lazy' : 'eager'}
-        decoding="async"
-        onLoad={handleImageLoad}
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-out`}
+        sizes="100vw"
         width={1920}
         height={1080}
+        priority={!isNext}
+        style={{ background: 'var(--primary)' }}
       />
     )
   }

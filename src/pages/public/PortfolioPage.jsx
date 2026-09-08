@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { api } from '@services/api'
 import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
+import OptimizedImage from '@components/common/OptimizedImage'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 import { getProjectImage } from '@utils/homepageHelpers'
@@ -200,17 +201,14 @@ export const PortfolioPage = memo(() => {
                       <Link to={`/portfolio/${item.id}`} className="block">
                         <div className="relative aspect-[3/4] overflow-hidden bg-[var(--secondary)]/10">
                           {heroImage ? (
-                            <img
-                              src={getOptimizedUrl(heroImage, { width: 600, crop: 'limit' })}
-                              srcSet={buildSrcSet(heroImage) || undefined}
-                              sizes={buildSrcSet(heroImage) ? '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw' : undefined}
+                            <OptimizedImage
+                              src={heroImage}
                               alt={item.title}
                               className="h-full w-full object-contain transition-transform duration-700 group-hover:scale-105"
-                               loading={index < 4 ? 'eager' : 'lazy'}
-                               decoding="async"
-                               fetchPriority={index === 0 ? 'high' : undefined}
-                               width={600}
-                               height={800}
+                              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                              width={600}
+                              height={800}
+                              priority={index < 4}
                             />
                           ) : (
                             <div className="h-full w-full flex items-center justify-center text-[var(--primary)]/20">
