@@ -167,7 +167,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
         key={media.url}
         src={media.url}
         alt={media.alt}
-        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-out`}
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-out object-top sm:object-center`}
         sizes="100vw"
         width={1920}
         height={1080}

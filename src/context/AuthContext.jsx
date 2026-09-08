@@ -20,21 +20,42 @@ export function AuthProvider({ children }) {
       return
     }
     cancelledRef.current = false
-    try {
-      const res = await api.get('/auth/me')
-      if (!cancelledRef.current) setUser(res.data || null)
-    } catch (err) {
-      if (!cancelledRef.current) {
+
+    // Perform a couple of transient retries for network/5xx errors so
+    // intermittent failures don't immediately clear a valid session.
+    const MAX_ATTEMPTS = 2
+    let attempt = 0
+    while (attempt <= MAX_ATTEMPTS && !cancelledRef.current) {
+      try {
+        const res = await api.get('/auth/me')
+        if (!cancelledRef.current) setUser(res.data || null)
+        break
+      } catch (err) {
+        if (cancelledRef.current) break
         const status = err?.response?.status
         if (status === 401) {
+          // Explicit unauthorized: remove token and clear user immediately
           localStorage.removeItem('hok_access_token')
-          setUser(null)
+          if (!cancelledRef.current) setUser(null)
+          break
         }
-        // On 5xx / network errors, keep existing user state and retry later
+
+        // Retry on network or server errors; otherwise stop retrying.
+        const shouldRetry = !status || status >= 500 || status === 429 || status === 408
+        attempt += 1
+        if (!shouldRetry || attempt > MAX_ATTEMPTS) {
+          // Preserve existing user state on transient failures; just stop.
+          break
+        }
+        // Exponential backoff with jitter
+        const delay = Math.min(1000 * 2 ** (attempt - 1), 3000) + Math.random() * 200
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((r) => setTimeout(r, delay))
+        continue
       }
-    } finally {
-      if (!cancelledRef.current) setLoading(false)
     }
+
+    if (!cancelledRef.current) setLoading(false)
   }, [])
 
   useEffect(() => {
