@@ -162,7 +162,8 @@ export const PortfolioDetailPage = () => {
                     <OptimizedImage
                       src={heroImage}
                       alt={project.title}
-                      className="h-full w-full object-contain"
+                      className="h-full w-full portfolio-project-image"
+                      objectFit="contain"
                       width={1200}
                       height={900}
                       priority={true}

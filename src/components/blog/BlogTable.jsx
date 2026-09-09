@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import {
-  Search, Edit, Trash2, Globe, FileText,
+  Search, Edit, Trash2, Globe, FileText, Play,
   CheckCircle, Loader2,
 } from 'lucide-react'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
-import { formatDateShort, getBlogImageUrl } from '../../utils/blogHelpers'
+import { formatDateShort, getBlogImageUrl, getBlogVideoUrl } from '../../utils/blogHelpers'
 import toast from 'react-hot-toast'
 
 export const BlogTable = ({
@@ -152,6 +152,7 @@ export const BlogTable = ({
             ) : (
               blogs.map((item) => {
                 const imageUrl = getBlogImageUrl(item)
+                const videoUrl = getBlogVideoUrl(item)
                 const isLoading = actionLoadingId === item.id + '-toggle' || actionLoadingId === item.id + '-delete'
                 return (
                   <tr key={item.id || item._id}>
@@ -167,6 +168,18 @@ export const BlogTable = ({
                           height={48}
                           onError={(e) => { e.target.style.display = 'none' }}
                         />
+                      ) : videoUrl ? (
+                        <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-[var(--secondary)]/20">
+                          <video
+                            src={videoUrl}
+                            className="h-full w-full object-cover"
+                            muted
+                            preload="metadata"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Play size={16} className="text-white drop-shadow" />
+                          </div>
+                        </div>
                       ) : (
                         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--secondary)]/20 text-[var(--primary)]/20">
                           <FileText size={20} />

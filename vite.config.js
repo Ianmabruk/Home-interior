@@ -25,12 +25,26 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    // Remove automatic modulepreload for framer-motion chunk so the library
-    // is only fetched when explicitly requested by `DynamicMotion`.
     {
-      name: 'remove-framer-modulepreload',
+      name: 'vendor-init-order',
       transformIndexHtml(html) {
-        return html.replace(/<link rel="modulepreload"[^>]*framer-motion[^>]*>/g, '')
+        let out = html.replace(/<link rel=\"modulepreload\"[^>]*framer-motion[^>]*>/g, '')
+        const m = out.match(/<link rel=\"modulepreload\"[^>]*href=\"([^\"]*react-vendor[^\"]*)\"[^>]*>/)
+        if (m && m[1]) {
+          const href = m[1]
+          const src = out.match(/<script type=\"module\"[^>]*src=\"([^\"]*index-[^\"]*\.js)\"[^>]*>\s*<\/script>/)?.[1]
+          if (src) {
+            out = out.replace(
+              new RegExp(`<script type=\"module\"[^>]*src=\\"${src.replace(/\./g, '\\.')}\\"[^>]*>\\s*<\\/script>`),
+              ''
+            )
+            out = out.replace(
+              /<\/head>/i,
+              `  <link rel="modulepreload" crossorigin href="${href}">\n  <script type="module" src="${src}"></script>\n</head>`
+            )
+          }
+        }
+        return out
       },
     },
     VitePWA({
@@ -172,12 +186,8 @@ export default defineConfig({
             if (id.includes('react') || id.includes('react-dom')) {
               return 'react-vendor'
             }
-            // Bundle framer-motion together with React to avoid runtime
-            // circular dependency where framer executes before React has
-            // initialized (causes `useEffect` null errors). Putting framer
-            // into the `react-vendor` chunk ensures execution order.
             if (id.includes('framer-motion')) {
-              return 'react-vendor'
+              return 'framer-motion'
             }
             if (id.includes('lucide-react')) {
               return 'lucide-icons'

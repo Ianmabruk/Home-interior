@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
-const CIRCLE_SIZE = 300
+const CIRCLE_SIZE = 280
 
 const NAV_ITEMS_MOBILE = [
   {
@@ -152,54 +152,48 @@ const CircleItemMobile = memo(({ item, data, reduceMotion }) => {
                boxShadow: '0 8px 25px rgba(42,36,31,0.1)',
                border: '2px solid #E89A43',
                background: '#F5EFE8',
-               animation: !reduceMotion ? 'float 6s ease-in-out infinite' : 'none',
              }}
              whileHover={reduceMotion ? {} : { scale: 1.03, y: -4 }}
              transition={reduceMotion ? { duration: 0.3 } : { type: 'spring', stiffness: 300, damping: 20 }}
            >
-            {imageUrl && !hasError ? (
-              <img
-                src={getOptimizedUrl(imageUrl, { width: 600, crop: 'limit' })}
-                srcSet={buildSrcSet(imageUrl) || undefined}
-                sizes={buildSrcSet(imageUrl) ? '(max-width: 768px) 80vw, 300px' : undefined}
-                alt={item.label}
-                className="h-full w-full object-cover"
-                loading={item.key === 'portfolio' ? 'eager' : 'lazy'}
-                decoding="async"
-                fetchPriority={item.key === 'portfolio' ? 'high' : undefined}
-                width={CIRCLE_SIZE}
-                height={CIRCLE_SIZE}
-                onError={() => setHasError(true)}
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-[var(--primary)]/20">
-                {placeholder}
-              </div>
-            )}
-            <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-              style={{
-                boxShadow: 'inset 0 0 30px rgba(232,154,67,0.15)',
-              }}
-            />
-          </motion.div>
+             {imageUrl && !hasError ? (
+               <img
+                 src={getOptimizedUrl(imageUrl, { width: 600, crop: 'limit' })}
+                 srcSet={buildSrcSet(imageUrl) || undefined}
+                 sizes={buildSrcSet(imageUrl) ? '(max-width: 768px) 80vw, 280px' : undefined}
+                 alt={item.label}
+                 className="h-full w-full object-cover"
+                 loading={item.key === 'portfolio' ? 'eager' : 'lazy'}
+                 decoding="async"
+                 fetchPriority={item.key === 'portfolio' ? 'high' : undefined}
+                 width={CIRCLE_SIZE}
+                 height={CIRCLE_SIZE}
+                 onError={() => setHasError(true)}
+               />
+             ) : (
+               <div className="flex h-full w-full items-center justify-center text-[var(--primary)]/20">
+                 {placeholder}
+               </div>
+             )}
+             <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+               style={{
+                 boxShadow: 'inset 0 0 30px rgba(232,154,67,0.15)',
+               }}
+             />
+           </motion.div>
 
-          <div
-            className="mt-6 w-full max-w-xs px-4"
-            style={{ zIndex: 10 }}
-          >
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                window.location.href = item.path
-              }}
-              className="block w-full py-3 px-6 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-              aria-label={`View ${item.label}`}
-            >
-              {item.label}
-            </button>
-          </div>
+           <div
+             className="mt-6 w-full max-w-xs px-4"
+             style={{ zIndex: 10 }}
+           >
+             <button
+               type="button"
+               className="block w-full py-3 px-6 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+               aria-label={`View ${item.label}`}
+             >
+               {item.label}
+             </button>
+           </div>
         </Link>
       </div>
     </section>

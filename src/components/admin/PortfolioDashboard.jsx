@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from '@components/common/DynamicMotion'
-import { Reorder, useDragControls } from 'framer-motion'
+import { motion, AnimatePresence, Reorder, useDragControls } from '@components/common/DynamicMotion'
 import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Loader2, Upload, Star, Check, RefreshCw, WifiOff, GripVertical, ArrowUp, ArrowDown } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
@@ -725,13 +724,14 @@ export const PortfolioDashboard = () => {
                 Replace
               </motion.button>
             </div>
-              <div className="relative rounded-xl overflow-hidden group">
-                      <OptimizedImage
+               <div className="relative rounded-xl overflow-hidden group">
+                       <OptimizedImage
                         src={mainImagePreview}
                         alt="Preview"
-                        className="h-40 w-full object-contain bg-[var(--secondary)]/10"
+                        className="h-40 w-full bg-[var(--secondary)]/10"
                         width={600}
                         height={400}
+                        objectFit="contain"
                       />
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -903,12 +903,13 @@ export const PortfolioDashboard = () => {
                     as="div"
                   >
                     <div className="relative rounded-xl overflow-hidden group">
-                      <OptimizedImage
-                        src={src}
-                        alt={`Preview ${i + 1}`}
-                        className="h-20 w-full object-contain bg-[var(--secondary)]/10"
-                        width={240}
-                        height={160}
+                       <OptimizedImage
+                        src={mainImagePreview}
+                        alt="Preview"
+                        className="h-40 w-full bg-[var(--secondary)]/10"
+                        width={600}
+                        height={400}
+                        objectFit="contain"
                       />
                       <div className="absolute top-1 left-1 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
                         <div className="flex flex-col gap-0.5">

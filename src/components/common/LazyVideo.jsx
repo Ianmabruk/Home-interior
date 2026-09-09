@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useReducedMotion } from 'framer-motion'
+import { useReducedMotion } from '@components/common/DynamicMotion'
 
 // Lazily loads and autoplays a video only once it scrolls into (or near) the
 // viewport, and pauses it when it leaves — so below-the-fold videos never

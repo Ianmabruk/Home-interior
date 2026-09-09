@@ -207,22 +207,6 @@ const CartMenu = memo(({ isOpen, onClose, isAuthenticated, cartItems, totalItems
 ))
 CartMenu.displayName = 'CartMenu'
 
-// Defer loading framer-motion until the user interacts with the UI (hover/touch).
-// This avoids fetching the large framer bundle during the initial page load.
-useEffect(() => {
-  const onFirst = () => {
-    try { preloadFramer() } catch (e) {}
-    window.removeEventListener('pointerover', onFirst)
-    window.removeEventListener('touchstart', onFirst)
-  }
-  window.addEventListener('pointerover', onFirst, { once: true })
-  window.addEventListener('touchstart', onFirst, { once: true })
-  return () => {
-    window.removeEventListener('pointerover', onFirst)
-    window.removeEventListener('touchstart', onFirst)
-  }
-}, [])
-
 const UserMenu = memo(({ isOpen, onClose, isAuthenticated, isAdmin, onLogout }) => (
   <AnimatePresence>
     {isOpen && (
@@ -332,11 +316,19 @@ export const Navbar = memo(() => {
   )
 
   useEffect(() => {
+    let raf = null
     const onScroll = () => {
-      setScrolled(window.scrollY > 20)
+      if (raf) return
+      raf = requestAnimationFrame(() => {
+        setScrolled(window.scrollY > 20)
+        raf = null
+      })
     }
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (raf) cancelAnimationFrame(raf)
+    }
   }, [])
 
   useEffect(() => {
@@ -393,6 +385,20 @@ export const Navbar = memo(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
+
+  useEffect(() => {
+    const onFirst = () => {
+      try { preloadFramer() } catch { /* ignore */ }
+      window.removeEventListener('pointerover', onFirst)
+      window.removeEventListener('touchstart', onFirst)
+    }
+    window.addEventListener('pointerover', onFirst, { once: true })
+    window.addEventListener('touchstart', onFirst, { once: true })
+    return () => {
+      window.removeEventListener('pointerover', onFirst)
+      window.removeEventListener('touchstart', onFirst)
+    }
+  }, [])
 
   const handleLogout = async () => {
     await logout()

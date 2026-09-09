@@ -160,7 +160,8 @@ export const FeaturedProjects = () => {
                   <OptimizedImage
                     src={item.imageUrl}
                     alt={item.title}
-                    className="h-full w-full object-contain bg-[var(--secondary)]/10 transition duration-[1.2s] ease-out group-hover:scale-105"
+                    className="h-full w-full portfolio-project-image transition duration-[1.2s] ease-out group-hover:scale-105"
+                    objectFit="contain"
                     width={800}
                     height={1066}
                     sizes="(max-width: 768px) 100vw, 33vw"

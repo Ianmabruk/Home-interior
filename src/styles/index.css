@@ -791,8 +791,34 @@ section > .container-wide {
 
 @keyframes ken-burns {
   0% { transform: scale(1) translate3d(0, 0, 0); }
-  50% { transform: scale(1.08) translate3d(-1.5%, -1%, 0); }
-  100% { transform: scale(1.12) translate3d(1.5%, 1%, 0); }
+  50% { transform: scale(1.04) translate3d(-1%, -0.5%, 0); }
+  100% { transform: scale(1.06) translate3d(1%, 0.5%, 0); }
+}
+
+@media (min-width: 768px) {
+  @keyframes ken-burns-desktop {
+    0% { transform: scale(1) translate3d(0, 0, 0); }
+    50% { transform: scale(1.06) translate3d(-1.5%, -1%, 0); }
+    100% { transform: scale(1.1) translate3d(1.5%, 1%, 0); }
+  }
+  .ken-burns {
+    animation-name: ken-burns-desktop;
+  }
+}
+
+@media (max-width: 767px) {
+  .hero-media {
+    object-fit: contain !important;
+  }
+
+  .ken-burns {
+    animation: none !important;
+  }
+
+  .portfolio-project-image,
+  .portfolio-project-image img {
+    object-fit: contain !important;
+  }
 }
 
 @keyframes fadeInUp {
@@ -967,5 +993,54 @@ section > .container-wide {
 
   img {
     background-color: var(--secondary);
+  }
+
+  /* Fallback responsive utilities when Tailwind responsive variants are missing */
+  @media (min-width: 768px) {
+    .md\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .md\:block {
+      display: block;
+    }
+    .md\:hidden {
+      display: none;
+    }
+    .md\:flex {
+      display: flex;
+    }
+    .md\:px-8 {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+    .md\:py-24 {
+      padding-top: 6rem;
+      padding-bottom: 6rem;
+    }
+    .md\:gap-12 {
+      gap: 3rem;
+    }
+    .md\:text-5xl {
+      font-size: 3rem;
+      line-height: 1;
+    }
+    .md\:text-6xl {
+      font-size: 3.75rem;
+      line-height: 1;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .lg\:grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .lg\:px-12 {
+      padding-left: 3rem;
+      padding-right: 3rem;
+    }
+    .lg\:text-6xl {
+      font-size: 3.75rem;
+      line-height: 1;
+    }
   }
 }

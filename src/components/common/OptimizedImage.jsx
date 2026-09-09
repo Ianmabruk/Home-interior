@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { getOptimizedUrlAutoDpr, buildSrcSet, getPlaceholderUrl } from '../../utils/cloudinaryHelpers'
 
-export default function OptimizedImage({ src, alt = '', className = '', sizes, width, height, loading = 'lazy', priority = false, style = {} }) {
+export default function OptimizedImage({ src, alt = '', className = '', sizes, width, height, loading = 'lazy', priority = false, style = {}, objectPosition = 'center', objectFit = 'cover' }) {
   const [loaded, setLoaded] = useState(false)
 
   if (!src) return <div className={className} style={{ width, height, background: 'var(--secondary)', ...style }} />
@@ -27,7 +27,7 @@ export default function OptimizedImage({ src, alt = '', className = '', sizes, w
         alt={alt}
         loading={priority ? 'eager' : loading}
         decoding="async"
-        style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: loaded ? 1 : 0, transition: 'opacity 600ms ease' }}
+        style={{ width: '100%', height: '100%', objectFit, objectPosition, opacity: loaded ? 1 : 0, transition: 'opacity 600ms ease' }}
         onLoad={() => setLoaded(true)}
       />
     </div>

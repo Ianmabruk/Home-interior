@@ -204,7 +204,8 @@ export const PortfolioPage = memo(() => {
                             <OptimizedImage
                               src={heroImage}
                               alt={item.title}
-                              className="h-full w-full object-contain transition-transform duration-700 group-hover:scale-105"
+                              className="h-full w-full portfolio-project-image transition-transform duration-700 group-hover:scale-105"
+                              objectFit="contain"
                               sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
                               width={600}
                               height={800}

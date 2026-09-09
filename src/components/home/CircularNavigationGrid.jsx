@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { getOptimizedUrl, buildSrcSet } from '../../utils/cloudinaryHelpers'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
-const CIRCLE_SIZE = 300
+const CIRCLE_SIZE = 280
 
 const NAV_ITEMS = [
   {
@@ -152,16 +152,15 @@ const CircleItem = memo(({ item, data, reduceMotion }) => {
           border: '3px solid #E89A43',
           background: '#F5EFE8',
           flexShrink: 0,
-          animation: !reduceMotion ? 'float 6s ease-in-out infinite' : 'none',
         }}
         whileHover={reduceMotion ? {} : { scale: 1.03, y: -4 }}
         transition={reduceMotion ? { duration: 0.4 } : { type: 'spring', stiffness: 300, damping: 20 }}
       >
         {imageUrl && !hasError ? (
           <img
-            src={getOptimizedUrl(imageUrl, { width: 800, crop: 'limit' })}
+            src={getOptimizedUrl(imageUrl, { width: 600, crop: 'limit' })}
             srcSet={buildSrcSet(imageUrl) || undefined}
-            sizes={buildSrcSet(imageUrl) ? '(max-width: 768px) 80vw, 300px' : undefined}
+            sizes={buildSrcSet(imageUrl) ? '(max-width: 768px) 80vw, 280px' : undefined}
             alt={item.label}
             className="h-full w-full object-cover"
             loading="lazy"
@@ -188,11 +187,6 @@ const CircleItem = memo(({ item, data, reduceMotion }) => {
       >
         <button
           type="button"
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            window.location.href = item.path
-          }}
           className="block w-full py-3 px-6 bg-[#E89A43] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(232,154,67,0.4)] hover:shadow-[0_8px_24px_rgba(232,154,67,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
           aria-label={`View ${item.label}`}
         >
@@ -213,9 +207,9 @@ export const CircularNavigationGrid = memo(({ circularTabs = {} }) => {
 
   return (
     <section className="hidden md:block bg-[var(--secondary)]/30 py-12 md:py-16 lg:py-20">
-      <div className="container-wide md:px-12 lg:px-20">
+      <div className="container-wide px-4 md:px-8 lg:px-12">
         <div
-          className="grid gap-8 md:gap-10 lg:gap-12 justify-items-center grid-cols-1 md:grid-cols-3"
+          className="grid gap-6 md:gap-8 lg:gap-10 justify-items-center grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
           role="list"
           aria-label="Navigation"
         >

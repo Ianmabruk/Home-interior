@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { motion } from '@components/common/DynamicMotion'
-import { useMotionValue, useTransform, animate } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
   Images,
@@ -24,20 +23,45 @@ import {
 import { api } from '../../services/api'
 
 const AnimatedCounter = ({ value, delay = 0, prefix = '', suffix = '' }) => {
-  const count = useMotionValue(0)
-  const rounded = useTransform(count, (latest) => Math.round(latest))
+  const [display, setDisplay] = useState(0)
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      animate(count, value || 0, { duration: 1.5, ease: [0.4, 0, 0.2, 1] })
-    }, delay)
-    return () => clearTimeout(timer)
-  }, [value, delay, count])
+    let cancelled = false
+    let rafId = null
+    let lastFrame = 0
+    const frameInterval = 1000 / 30
+    const start = Date.now() + delay
+    const duration = 1500
+    const from = 0
+    const to = Number(value || 0)
+
+    const step = (timestamp) => {
+      if (cancelled) return
+      if (timestamp - lastFrame < frameInterval) {
+        rafId = requestAnimationFrame(step)
+        return
+      }
+      lastFrame = timestamp
+      const now = Date.now()
+      const t = Math.min(1, Math.max(0, (now - start) / duration))
+      const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
+      const current = Math.round(from + (to - from) * eased)
+      setDisplay(current)
+      if (t < 1) rafId = requestAnimationFrame(step)
+    }
+
+    const timer = setTimeout(() => { rafId = requestAnimationFrame(step) }, delay)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
+  }, [value, delay])
 
   return (
     <span className="flex items-baseline gap-1">
       {prefix && <span className="text-[var(--primary)]/40 text-xl font-medium">{prefix}</span>}
-      <motion.span className="font-display text-3xl font-semibold text-[var(--primary)]">{rounded}</motion.span>
+      <motion.span className="font-display text-3xl font-semibold text-[var(--primary)]">{display}</motion.span>
       {suffix && <span className="text-[var(--primary)]/40 text-xl font-medium">{suffix}</span>}
     </span>
   )
