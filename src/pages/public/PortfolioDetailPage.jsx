@@ -163,7 +163,7 @@ export const PortfolioDetailPage = () => {
                       src={heroImage}
                       alt={project.title}
                       className="h-full w-full portfolio-project-image"
-                      objectFit="contain"
+                      objectFit="cover"
                       width={1200}
                       height={900}
                       priority={true}

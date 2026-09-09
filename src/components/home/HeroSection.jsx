@@ -155,8 +155,8 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
           playsInline
           autoPlay={!isNext}
           preload={isNext ? 'none' : 'metadata'}
-          className="absolute inset-0 w-full h-full object-contain transition-opacity duration-[1200ms] ease-out hero-media"
-          style={{ opacity, background: 'var(--primary)' }}
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1200ms] ease-out hero-media"
+          style={{ opacity }}
           onLoadedData={handleImageLoad}
         />
       )
@@ -167,7 +167,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
         key={media.url}
         src={optimizedSrc}
         alt={media.alt}
-        className="absolute inset-0 w-full h-full object-contain transition-opacity duration-[1200ms] ease-out hero-media"
+        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1200ms] ease-out hero-media"
         style={{ opacity, objectPosition: 'center' }}
         loading={!isNext ? 'eager' : 'lazy'}
         decoding="async"
