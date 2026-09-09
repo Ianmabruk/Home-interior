@@ -242,7 +242,8 @@ export const PortfolioDetailPage = () => {
                     <OptimizedImage
                       src={img.src}
                       alt={`Before ${index + 1}`}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full"
+                      objectFit="contain"
                       width={600}
                       height={450}
                     />
@@ -279,7 +280,8 @@ export const PortfolioDetailPage = () => {
                   <OptimizedImage
                     src={img.src}
                     alt={`After ${index + 1}`}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full"
+                    objectFit="contain"
                     width={600}
                     height={450}
                   />

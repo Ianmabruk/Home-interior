@@ -155,8 +155,8 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
           playsInline
           autoPlay={!isNext}
           preload={isNext ? 'none' : 'metadata'}
-          className="w-full h-auto block transition-opacity duration-[1200ms] ease-out"
-          style={{ opacity, background: 'var(--primary)', display: 'block' }}
+          className="absolute inset-0 w-full h-full object-contain transition-opacity duration-[1200ms] ease-out hero-media"
+          style={{ opacity, background: 'var(--primary)' }}
           onLoadedData={handleImageLoad}
         />
       )
@@ -167,8 +167,8 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
         key={media.url}
         src={optimizedSrc}
         alt={media.alt}
-        className="w-full h-auto block transition-opacity duration-[1200ms] ease-out"
-        style={{ opacity, display: 'block', objectFit: 'contain', objectPosition: 'center' }}
+        className="absolute inset-0 w-full h-full object-contain transition-opacity duration-[1200ms] ease-out hero-media"
+        style={{ opacity, objectPosition: 'center' }}
         loading={!isNext ? 'eager' : 'lazy'}
         decoding="async"
         onLoad={handleImageLoad}
@@ -182,7 +182,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
         className={`relative w-full bg-[var(--primary)] ${className}`}
         role="region"
         aria-label="Hero image"
-        style={{ minHeight: '60vw' }}
+        style={{ height: 'clamp(56vw, 85vh, 100vh)', minHeight: '300px' }}
       >
         <div className="absolute inset-0 bg-[var(--primary)]" />
       </section>
@@ -191,20 +191,15 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
 
   return (
     <section
-      className={`relative w-full ${className}`}
+      className={`relative w-full overflow-hidden ${className}`}
       role="region"
       aria-label="Hero image"
+      style={{ height: 'clamp(56vw, 85vh, 100vh)', minHeight: '300px' }}
     >
-      <div
-        className="relative w-full"
-        style={{ animationDuration: '12s' }}
-      >
+      {/* Stable image layer — all slides are absolute inset-0, never affect section height */}
+      <div className="absolute inset-0">
         {renderMedia(currentMedia, opacityA)}
-        {nextMedia && (
-          <div className="absolute inset-0">
-            {renderMedia(nextMedia, opacityB, true)}
-          </div>
-        )}
+        {nextMedia && renderMedia(nextMedia, opacityB, true)}
       </div>
 
        <motion.div
