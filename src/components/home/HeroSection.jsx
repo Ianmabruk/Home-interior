@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
 import { motion } from '@components/common/DynamicMotion'
 import { getOptimizedUrlAutoDpr, getVideoPosterUrl, getOptimizedVideoUrl } from '../../utils/cloudinaryHelpers'
-import OptimizedImage from '@components/common/OptimizedImage'
 
 const HOK_LINE = (
   <>
@@ -156,25 +155,23 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
           playsInline
           autoPlay={!isNext}
           preload={isNext ? 'none' : 'metadata'}
-          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-out hero-media"
-          style={{ opacity, background: 'var(--primary)' }}
+          className="w-full h-auto block transition-opacity duration-[1200ms] ease-out"
+          style={{ opacity, background: 'var(--primary)', display: 'block' }}
           onLoadedData={handleImageLoad}
         />
       )
     }
+    const optimizedSrc = getOptimizedUrlAutoDpr(media.url, { width: 1920, crop: 'limit' })
     return (
-      <OptimizedImage
+      <img
         key={media.url}
-        src={media.url}
+        src={optimizedSrc}
         alt={media.alt}
-        className="absolute inset-0 h-full w-full transition-opacity duration-[1200ms] ease-out hero-media"
-        sizes="100vw"
-        width={1920}
-        height={1080}
-        priority={!isNext}
-        objectFit="cover"
-        objectPosition="center"
-        style={{ background: 'var(--primary)' }}
+        className="w-full h-auto block transition-opacity duration-[1200ms] ease-out"
+        style={{ opacity, display: 'block', objectFit: 'contain', objectPosition: 'center' }}
+        loading={!isNext ? 'eager' : 'lazy'}
+        decoding="async"
+        onLoad={handleImageLoad}
       />
     )
   }
@@ -182,10 +179,10 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
   if (!mediaItems.length) {
     return (
       <section
-        className={`relative w-full h-[85vh] lg:h-screen min-h-[500px] overflow-hidden bg-[var(--primary)] ${className}`}
+        className={`relative w-full bg-[var(--primary)] ${className}`}
         role="region"
         aria-label="Hero image"
-        style={{ contain: 'layout paint' }}
+        style={{ minHeight: '60vw' }}
       >
         <div className="absolute inset-0 bg-[var(--primary)]" />
       </section>
@@ -194,17 +191,20 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
 
   return (
     <section
-      className={`relative w-full h-[85vh] lg:h-screen min-h-[500px] overflow-hidden ${className}`}
+      className={`relative w-full ${className}`}
       role="region"
       aria-label="Hero image"
-      style={{ contain: 'layout paint' }}
     >
       <div
-        className={`absolute inset-0 will-change-transform ${!prefersReducedMotion ? 'ken-burns' : ''}`}
+        className="relative w-full"
         style={{ animationDuration: '12s' }}
       >
         {renderMedia(currentMedia, opacityA)}
-        {nextMedia && renderMedia(nextMedia, opacityB, true)}
+        {nextMedia && (
+          <div className="absolute inset-0">
+            {renderMedia(nextMedia, opacityB, true)}
+          </div>
+        )}
       </div>
 
        <motion.div
