@@ -807,17 +807,8 @@ section > .container-wide {
 }
 
 @media (max-width: 767px) {
-  .hero-media {
-    object-fit: contain !important;
-  }
-
   .ken-burns {
     animation: none !important;
-  }
-
-  .portfolio-project-image,
-  .portfolio-project-image img {
-    object-fit: contain !important;
   }
 }
 

@@ -17,7 +17,7 @@ export default function OptimizedImage({ src, alt = '', className = '', sizes, w
           src={placeholder}
           alt=""
           aria-hidden="true"
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(16px)', transform: 'scale(1.05)' }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit, filter: 'blur(16px)', transform: 'scale(1.05)' }}
         />
       )}
       <img

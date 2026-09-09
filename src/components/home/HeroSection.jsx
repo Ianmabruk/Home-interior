@@ -167,11 +167,12 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
         key={media.url}
         src={media.url}
         alt={media.alt}
-        className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-out hero-media"
+        className="absolute inset-0 h-full w-full transition-opacity duration-[1200ms] ease-out hero-media"
         sizes="100vw"
         width={1920}
         height={1080}
         priority={!isNext}
+        objectFit="cover"
         objectPosition="center"
         style={{ background: 'var(--primary)' }}
       />
@@ -181,7 +182,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
   if (!mediaItems.length) {
     return (
       <section
-        className={`relative w-full aspect-video sm:h-[85vh] sm:aspect-auto lg:h-screen min-h-[200px] sm:min-h-[500px] overflow-hidden bg-[var(--primary)] ${className}`}
+        className={`relative w-full h-[85vh] lg:h-screen min-h-[500px] overflow-hidden bg-[var(--primary)] ${className}`}
         role="region"
         aria-label="Hero image"
         style={{ contain: 'layout paint' }}
@@ -193,7 +194,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
 
   return (
     <section
-      className={`relative w-full aspect-video sm:h-[85vh] sm:aspect-auto lg:h-screen min-h-[200px] sm:min-h-[500px] overflow-hidden ${className}`}
+      className={`relative w-full h-[85vh] lg:h-screen min-h-[500px] overflow-hidden ${className}`}
       role="region"
       aria-label="Hero image"
       style={{ contain: 'layout paint' }}

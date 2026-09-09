@@ -233,7 +233,8 @@ export const ProductDetailPage = () => {
                   <OptimizedImage
                     src={currentImage}
                     alt={`${product.name} - Image ${currentImageIndex + 1}`}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full"
+                    objectFit="contain"
                     width={1200}
                     height={900}
                     priority={true}
