@@ -70,7 +70,14 @@ function combineSignals(a, b) {
 // ─── Token refresh ────────────────────────────────────────────────────────────
 // Single in-flight refresh promise so concurrent 401s only trigger one refresh.
 let refreshPromise = null
-let refreshFailed = false
+// Track last refresh failure time — only block retries for 10s after a failure
+// so a transient network error doesn't permanently block the session.
+let refreshFailedAt = 0
+const REFRESH_FAILURE_COOLDOWN = 10000 // 10 seconds
+
+function isRefreshBlocked() {
+  return refreshFailedAt > 0 && Date.now() - refreshFailedAt < REFRESH_FAILURE_COOLDOWN
+}
 
 async function attemptTokenRefresh() {
   if (refreshPromise) return refreshPromise
@@ -87,7 +94,7 @@ async function attemptTokenRefresh() {
       clearTimeout(timeoutId)
 
       if (!response.ok) {
-        refreshFailed = true
+        refreshFailedAt = Date.now()
         localStorage.removeItem('hok_access_token')
         try { localStorage.removeItem('hok_csrf_token') } catch { /* ignore */ }
         csrfToken = null
@@ -98,7 +105,7 @@ async function attemptTokenRefresh() {
       const data = await response.json()
       const accessToken = data?.data?.accessToken
       if (!accessToken) {
-        refreshFailed = true
+        refreshFailedAt = Date.now()
         localStorage.removeItem('hok_access_token')
         window.dispatchEvent(new CustomEvent('hok-auth-failed'))
         throw new Error('No access token in refresh response')
@@ -108,7 +115,8 @@ async function attemptTokenRefresh() {
       if (data?.data?.csrfToken) {
         setStoredCsrfToken(data.data.csrfToken)
       }
-      refreshFailed = false
+      // Reset failure tracking on success
+      refreshFailedAt = 0
       return accessToken
     } finally {
       refreshPromise = null
@@ -291,7 +299,7 @@ async function authenticatedRequest(method, url, { headers = {}, body, signal } 
   let response = await doFetch(method, url, { headers: authHeaders, body, signal })
 
   // If 401 and we have a token, attempt refresh and retry once
-  if (response.status === 401 && localStorage.getItem('hok_access_token') && !refreshFailed) {
+  if (response.status === 401 && localStorage.getItem('hok_access_token') && !isRefreshBlocked()) {
     try {
       const newToken = await attemptTokenRefresh()
       const retryHeaders = {
@@ -347,7 +355,7 @@ const api = {
         return doFetch('GET', fullUrl, { headers, signal: config.signal })
           .then(async (response) => {
             // 401 with token → refresh and retry
-            if (response.status === 401 && localStorage.getItem('hok_access_token') && !refreshFailed) {
+            if (response.status === 401 && localStorage.getItem('hok_access_token') && !isRefreshBlocked()) {
               try {
                 const newToken = await attemptTokenRefresh()
                 const retryHeaders = { Authorization: `Bearer ${newToken}`, ...getCsrfHeader(), ...(config.headers || {}) }

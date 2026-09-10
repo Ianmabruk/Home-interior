@@ -28,9 +28,19 @@ function jitter(base) {
 
 export async function refreshCsrf() {
   try {
-    const res = await api.post('/auth/refresh')
-    const token = res.data?.csrfToken
-    return token
+    // Use fetch directly with credentials so the httpOnly refresh-token cookie
+    // is sent — api.post would require a valid access token which may be the
+    // reason we're here in the first place.
+    const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+    if (!response.ok) throw new Error('Refresh failed')
+    const data = await response.json()
+    const accessToken = data?.data?.accessToken
+    if (accessToken) localStorage.setItem('hok_access_token', accessToken)
+    return data?.data?.csrfToken
   } catch (refreshErr) {
     throw new Error('Failed to refresh CSRF token', { cause: refreshErr })
   }
