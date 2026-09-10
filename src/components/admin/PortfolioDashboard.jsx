@@ -904,7 +904,7 @@ export const PortfolioDashboard = () => {
                   >
                     <div className="relative rounded-xl overflow-hidden group">
                        <OptimizedImage
-                        src={mainImagePreview}
+                        src={typeof src === 'string' ? src : src?.url}
                         alt="Preview"
                         className="h-40 w-full bg-[var(--secondary)]/10"
                         width={600}
