@@ -18,7 +18,7 @@ const INITIAL_FORM = {
   published: true,
 }
 
-const MAX_IMAGES = 30
+const MAX_IMAGES = 35
 
 export const PortfolioDashboard = () => {
    const [portfolio, setPortfolio] = useState([])
@@ -146,13 +146,12 @@ export const PortfolioDashboard = () => {
     }
   }
 
-  const handleImageFiles = async (files, setFiles, setPreviews, existingCount) => {
+  const handleImageFiles = async (files, setFiles, setPreviews, currentCount) => {
     const validFiles = Array.from(files).filter((f) => f.type.startsWith('image/'))
-    const totalAfter = existingCount + validFiles.length
-    if (totalAfter > MAX_IMAGES) {
-      const allowed = Math.max(0, MAX_IMAGES - existingCount)
-      toast.error(`Maximum ${MAX_IMAGES} images allowed per section. You can add ${allowed} more.`)
-      validFiles.splice(allowed)
+    const remaining = Math.max(0, MAX_IMAGES - currentCount)
+    if (validFiles.length > remaining) {
+      toast.error(`You currently have ${currentCount} image${currentCount !== 1 ? 's' : ''} in this section. You can add ${remaining} more (maximum ${MAX_IMAGES}).`)
+      validFiles.splice(remaining)
     }
     if (validFiles.length === 0) return
 
@@ -171,16 +170,11 @@ export const PortfolioDashboard = () => {
   }
 
   const handleBeforeFiles = (files) => {
-    // Count the images that already exist for this project (they are stored as
-    // { id, url } objects, NOT File instances) so the remaining capacity is
-    // calculated against the true current total.
-    const existingCount = beforeFiles.filter((f) => !(f instanceof File)).length
-    handleImageFiles(files, setBeforeFiles, setBeforePreviews, existingCount)
+    handleImageFiles(files, setBeforeFiles, setBeforePreviews, beforePreviews.length)
   }
 
   const handleAfterFiles = (files) => {
-    const existingCount = afterFiles.filter((f) => !(f instanceof File)).length
-    handleImageFiles(files, setAfterFiles, setAfterPreviews, existingCount)
+    handleImageFiles(files, setAfterFiles, setAfterPreviews, afterPreviews.length)
   }
 
   const handleMainDrop = (e) => {

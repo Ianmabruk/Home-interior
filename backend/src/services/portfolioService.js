@@ -2,13 +2,13 @@ import { prisma } from '../config/database.js'
 import { uploadFile, deleteFile, deleteFiles } from '../uploads/uploadService.js'
 import { failure } from '../utils/response.js'
 
-const MAX_IMAGES_PER_SECTION = 21
+const MAX_IMAGES_PER_SECTION = 35
 
 function enforceImageLimit(section, total, existingCount, requestedNew) {
   if (total > MAX_IMAGES_PER_SECTION) {
     const remaining = Math.max(0, MAX_IMAGES_PER_SECTION - existingCount)
     const err = new Error(
-      `Maximum ${MAX_IMAGES_PER_SECTION} ${section} images allowed. The requested ${section} images total ${total} (currently ${existingCount}, ${requestedNew === undefined ? 0 : requestedNew} new). You can add ${remaining} more.`,
+      `You can upload a maximum of ${MAX_IMAGES_PER_SECTION} ${section.charAt(0).toUpperCase() + section.slice(1)} images. You currently have ${existingCount}, so you can add ${remaining} more.`,
     )
     err.status = 400
     err.details = {
@@ -186,10 +186,10 @@ async function createPortfolio(data, file, beforeFiles = [], afterFiles = [], ci
   const createData = { ...data }
 
   if (beforeFiles.length > MAX_IMAGES_PER_SECTION) {
-    throw failure(400, `Before: Maximum ${MAX_IMAGES_PER_SECTION} images allowed`)
+    throw failure(400, `You can upload a maximum of ${MAX_IMAGES_PER_SECTION} Before images.`)
   }
   if (afterFiles.length > MAX_IMAGES_PER_SECTION) {
-    throw failure(400, `After: Maximum ${MAX_IMAGES_PER_SECTION} images allowed`)
+    throw failure(400, `You can upload a maximum of ${MAX_IMAGES_PER_SECTION} After images.`)
   }
 
   const beforeImages = [...(data.beforeImages || [])]
@@ -314,7 +314,7 @@ async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []
 
   if (beforeFiles.length > 0) {
     if (beforeFiles.length > MAX_IMAGES_PER_SECTION) {
-      throw failure(400, `Before: Maximum ${MAX_IMAGES_PER_SECTION} images allowed`)
+      throw failure(400, `You can upload a maximum of ${MAX_IMAGES_PER_SECTION} Before images.`)
     }
     uploadPromises.push(
       uploadImageFiles(beforeFiles, 'portfolio/before').then(({ urls, errors }) => {
@@ -332,7 +332,7 @@ async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []
 
   if (afterFiles.length > 0) {
     if (afterFiles.length > MAX_IMAGES_PER_SECTION) {
-      throw failure(400, `After: Maximum ${MAX_IMAGES_PER_SECTION} images allowed`)
+      throw failure(400, `You can upload a maximum of ${MAX_IMAGES_PER_SECTION} After images.`)
     }
     uploadPromises.push(
       uploadImageFiles(afterFiles, 'portfolio/after').then(({ urls, errors }) => {
