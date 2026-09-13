@@ -1,5 +1,5 @@
 import { prisma } from '../config/database.js'
-import { uploadFile, deleteFile, deleteFiles } from '../uploads/uploadService.js'
+import { uploadFile, deleteFiles } from '../uploads/uploadService.js'
 import { failure } from '../utils/response.js'
 
 function mapBlog(item) {
@@ -344,7 +344,7 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
   return mapBlog(item)
 }
 
-async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], removeMediaUrls = [], homepageCircularImageFile = null, removeHomepageCircularImage = false) {
+async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], removeMediaUrls = [], homepageCircularImageFile = null, removeHomepageCircularImage = false, removeVideo = false) {
   const existing = await prisma.blog.findUnique({ where: { id } })
   if (!existing) throw failure(404, 'Blog not found')
 
@@ -384,6 +384,13 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
       console.error('[blogService.updateBlog] Video upload failed:', err?.message)
       throw failure(500, `Video upload failed: ${err?.message || 'Unknown error'}`)
     }
+  } else if (removeVideo) {
+    // Explicitly remove the video when requested
+    if (existing.video) {
+      const videoPublicId = extractPublicId(existing.video)
+      if (videoPublicId) pathsToDelete.push(videoPublicId)
+    }
+    updateData.video = null
   }
 
   if (homepageCircularImageFile) {

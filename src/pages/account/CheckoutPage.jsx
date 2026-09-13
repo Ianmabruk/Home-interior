@@ -112,7 +112,7 @@ export const CheckoutPage = () => {
         // ignore localStorage errors
       }
       if (newTrackingNumber) {
-        setTimeout(() => navigate(`/track-order?tracking=${newTrackingNumber}`), 2000)
+        setTimeout(() => navigate(`/order-confirmation/${newOrderId}`), 2000)
       } else if (newOrderId) {
         setTimeout(() => navigate(`/order-confirmation/${newOrderId}`), 2000)
       } else {

@@ -66,7 +66,9 @@ export function extractTags(tags) {
 
 export function getBlogImageUrl(blog) {
   if (!blog) return null
-  return blog.imageUrl || blog.mediaUrl || blog.mediaUrls?.[0] || blog.image || null
+  const url = blog.imageUrl || blog.image || null
+  if (!url) return null
+  return url
 }
 
 export function getBlogVideoUrl(blog) {

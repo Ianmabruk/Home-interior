@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { motion } from '@components/common/DynamicMotion'
-import { CheckCircle, Package, ChevronRight, Copy, Search, Mail, Phone, AlertCircle } from 'lucide-react'
+import { CheckCircle, Package, ChevronRight, Copy, Search, Mail, Phone, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { api } from '../../services/api'
 import { PageMeta } from '../../hooks/usePageMeta'
 import { useCurrency } from '../../context/CurrencyContext'
+import { toast } from 'react-hot-toast'
 
 const MPESA_NUMBER = '0723 05 74 87'
 
@@ -111,17 +112,29 @@ export const OrderConfirmationPage = () => {
             </div>
             <h1 className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-2">Order Confirmed!</h1>
             <p className="text-[var(--primary)]/60">Thank you for your purchase. Your order has been received.</p>
-            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-[var(--border)]/40">
-              <span className="text-xs font-medium text-[var(--primary)]/60">Order Number:</span>
-              <span className="text-sm font-semibold text-[var(--primary)]">{order.trackingNumber || '#' + String(order._id || order.id || '').slice(-8).toUpperCase()}</span>
-              <button
-                onClick={() => navigator.clipboard.writeText(order.trackingNumber || String(order._id || order.id || ''))}
-                className="p-1 rounded hover:bg-[var(--secondary)]/20 transition-colors"
-                aria-label="Copy order number"
-              >
-                <Copy size={12} strokeWidth={1.5} />
-              </button>
-            </div>
+            
+            {order.trackingNumber && (
+              <div className="mt-6 p-6 bg-[var(--accent)]/10 border border-[var(--accent)]/20 rounded-2xl">
+                <p className="text-xs font-semibold uppercase tracking-widest text-[var(--accent)] mb-2">Your Tracking Number</p>
+                <div className="flex items-center justify-center gap-3 flex-wrap">
+                  <span className="font-display text-xl md:text-2xl font-semibold text-[var(--primary)] font-mono bg-white px-4 py-2 rounded-lg border border-[var(--border)]/40 select-all">
+                    {order.trackingNumber}
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(order.trackingNumber)
+                      toast.success('Tracking number copied!')
+                    }}
+                    className="p-2 rounded-lg bg-white border border-[var(--border)]/40 text-[var(--primary)]/60 hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] hover:border-[var(--accent)]/30 transition-colors"
+                    aria-label="Copy tracking number"
+                  >
+                    <Copy size={16} strokeWidth={1.5} />
+                  </button>
+                </div>
+                <p className="mt-3 text-sm text-[var(--primary)]/60">Save this number to track your order</p>
+              </div>
+            )}
+            
             <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-sm">
               <Mail size={14} strokeWidth={1.5} />
               <span>Please check your email for order confirmation and payment details.</span>
@@ -211,7 +224,7 @@ export const OrderConfirmationPage = () => {
 
             {paymentConfirmed ? (
               <div className="flex items-center gap-3 p-4 rounded-xl bg-[var(--success)]/10 text-[var(--success)]">
-                <CheckCircle size={20} strokeWidth={2} />
+                <CheckCircle2 size={20} strokeWidth={2} />
                 <span className="text-sm">Payment confirmation submitted. We will verify your payment shortly.</span>
               </div>
             ) : (
@@ -234,7 +247,7 @@ export const OrderConfirmationPage = () => {
                     </>
                   ) : (
                     <>
-                      <CheckCircle size={14} strokeWidth={1.5} />
+                      <CheckCircle2 size={14} strokeWidth={1.5} />
                       I Have Made Payment — Confirm Payment
                     </>
                   )}

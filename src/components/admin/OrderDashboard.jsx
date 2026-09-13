@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion } from '@components/common/DynamicMotion'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Package, Eye, X, Search, ChevronDown, Save, ExternalLink } from 'lucide-react'
+import { Package, Eye, X, Search, ChevronDown, Save, ExternalLink, Copy } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
@@ -288,14 +288,27 @@ export const OrderDashboard = () => {
                   {order.trackingNumber && (
                     <div className="flex items-center justify-between">
                       <span className="text-2xs text-[var(--primary)]/40">Tracking</span>
-                      <button
-                        onClick={() => openTracking(order.trackingNumber)}
-                        className="text-2xs font-semibold text-[var(--accent)] hover:underline inline-flex items-center gap-1"
-                        title="Open tracking page"
-                      >
-                        {order.trackingNumber}
-                        <ExternalLink size={10} strokeWidth={2} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <span className="text-2xs font-semibold text-[var(--accent)] hover:underline">{order.trackingNumber}</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(order.trackingNumber)
+                            toast.success('Tracking number copied!')
+                          }}
+                          className="p-1 rounded hover:bg-[var(--accent)]/10 text-[var(--accent)] transition-colors"
+                          title="Copy tracking number"
+                          aria-label="Copy tracking number"
+                        >
+                          <Copy size={10} strokeWidth={2} />
+                        </button>
+                        <button
+                          onClick={() => openTracking(order.trackingNumber)}
+                          className="text-2xs font-semibold text-[var(--accent)] hover:underline inline-flex items-center gap-1"
+                          title="Open tracking page"
+                        >
+                          <ExternalLink size={10} strokeWidth={2} />
+                        </button>
+                      </div>
                     </div>
                   )}
                   <div className="flex items-center justify-between">
@@ -390,14 +403,25 @@ export const OrderDashboard = () => {
                 </div>
               </div>
 
-              {viewOrder.trackingNumber && (
+{viewOrder.trackingNumber && (
                 <div>
                   <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Tracking Number</p>
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20">
-                       <span className="text-sm font-semibold text-[var(--accent)]">{viewOrder.trackingNumber}</span>
-                     </div>
-                   </div>
-                 )}
+                    <span className="text-sm font-semibold text-[var(--accent)] select-all">{viewOrder.trackingNumber}</span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(viewOrder.trackingNumber)
+                        toast.success('Tracking number copied!')
+                      }}
+                      className="p-1 rounded hover:bg-[var(--accent)]/20 text-[var(--accent)] transition-colors"
+                      title="Copy tracking number"
+                      aria-label="Copy tracking number"
+                    >
+                      <Copy size={12} strokeWidth={1.5} />
+                    </button>
+                  </div>
+                </div>
+              )}
 
                  <div className="border-t border-[var(--border)]/40 pt-4">
                    <p className="text-2xs font-semibold uppercase tracking-widest text-[var(--primary)]/50 mb-2">Update Tracking Number</p>

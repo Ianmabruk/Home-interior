@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom'
-import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
+import { getVideoPosterUrl } from '@utils/cloudinaryHelpers'
 import OptimizedImage from '@components/common/OptimizedImage'
 import { formatDateShort, extractTags, getReadingTime, getBlogImageUrl } from '@utils/blogHelpers'
 
 export const BlogCard = ({ blog, priority = false }) => {
   const imageUrl = getBlogImageUrl(blog)
+  const videoUrl = blog?.videoUrl || blog?.video || null
   const readingTime = getReadingTime(blog?.content || blog?.description || '')
   const tags = extractTags(blog?.tags)
+  const isVideo = !imageUrl && videoUrl
 
   return (
     <article className="group relative flex flex-col bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
@@ -21,6 +23,16 @@ export const BlogCard = ({ blog, priority = false }) => {
               width={800}
               height={600}
               priority={priority}
+            />
+          ) : isVideo ? (
+            <video
+              src={videoUrl}
+              poster={getVideoPosterUrl(videoUrl)}
+              className="h-full w-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
             />
           ) : (
             <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/20">

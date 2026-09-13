@@ -1,10 +1,11 @@
 import { useState, useCallback } from 'react'
 import { motion } from '@components/common/DynamicMotion'
-import { Search, Package, CheckCircle2 } from 'lucide-react'
+import { Search, Package, CheckCircle2, Copy } from 'lucide-react'
 import { api } from '@services/api'
 import { PageMeta } from '@hooks/usePageMeta'
 import { Link } from 'react-router-dom'
 import { useCurrency } from '@context/CurrencyContext'
+import { toast } from 'react-hot-toast'
 
 const STATUS_FLOW = [
   { key: 'pending', label: 'Order Placed' },
@@ -35,7 +36,7 @@ function formatStatusDate(dateStr) {
 }
 
 export const TrackOrderPage = () => {
-  const [orderNumber, setOrderNumber] = useState('')
+  const [trackingNumber, setTrackingNumber] = useState('')
   const [contact, setContact] = useState('')
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
@@ -49,12 +50,12 @@ export const TrackOrderPage = () => {
     setError('')
     setResult(null)
     try {
-      const res = await api.post('/orders/track', { trackingNumber: orderNumber.trim().toUpperCase(), contact: contact.trim() })
+      const res = await api.post('/orders/track', { trackingNumber: trackingNumber.trim().toUpperCase(), contact: contact.trim() })
       setResult(res.data?.data || res.data)
     } catch (err) {
       const status = err?.response?.status
       if (status === 404) {
-        setError('We couldn\'t find an order with that order number and mobile number. Please double-check and try again.')
+        setError('We couldn\'t find an order with that tracking number and mobile number. Please double-check and try again.')
       } else if (status === 429) {
         setError('Too many attempts. Please wait a moment and try again.')
       } else {
@@ -63,7 +64,7 @@ export const TrackOrderPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [orderNumber, contact, loading])
+  }, [trackingNumber, contact, loading])
 
   if (result) {
     const items = Array.isArray(result.items) ? result.items : []
@@ -78,8 +79,23 @@ export const TrackOrderPage = () => {
               <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)]/10 text-[var(--accent)] mb-4">
                 <Package size={32} strokeWidth={1.5} />
               </div>
-              <h1 className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-2">Order {result.trackingNumber}</h1>
+              <h1 className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-2">Tracking Number: {result.trackingNumber}</h1>
               <p className="text-[var(--primary)]/60">Current Status: <span className="font-semibold capitalize">{result.status || 'Pending'}</span></p>
+              {result.trackingNumber && (
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(result.trackingNumber)
+                      toast.success('Tracking number copied!')
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-[var(--border)]/40 text-sm font-medium text-[var(--primary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+                    aria-label="Copy tracking number"
+                  >
+                    <Copy size={14} strokeWidth={1.5} />
+                    Copy Tracking Number
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-3xl border border-[var(--border)]/40 p-6 md:p-8 shadow-[0_10px_40px_rgba(42,36,31,0.06)] mb-6">
@@ -198,8 +214,8 @@ export const TrackOrderPage = () => {
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button onClick={() => { setResult(null); setOrderNumber(''); setContact('') }} className="btn-luxury-primary inline-flex items-center gap-2">
+<div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button onClick={() => { setResult(null); setTrackingNumber(''); setContact('') }} className="btn-luxury-primary inline-flex items-center gap-2">
                 <Search size={14} strokeWidth={1.5} />
                 Track Another Order
               </button>
@@ -223,19 +239,19 @@ export const TrackOrderPage = () => {
               <Package size={32} strokeWidth={1.5} />
             </div>
             <h1 className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-2">Track Your Order</h1>
-            <p className="text-[var(--primary)]/60">Enter your order number and mobile number to view your order status.</p>
+            <p className="text-[var(--primary)]/60">Enter your tracking number and mobile number to view your order status.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-[var(--border)]/40 p-6 md:p-8 shadow-[0_10px_40px_rgba(42,36,31,0.06)]">
             <div className="space-y-4">
               <div>
-                <label htmlFor="orderNumber" className="block text-sm font-medium text-[var(--primary)] mb-1.5">Order Number</label>
+                <label htmlFor="trackingNumber" className="block text-sm font-medium text-[var(--primary)] mb-1.5">Tracking Number</label>
                 <input
-                  id="orderNumber"
+                  id="trackingNumber"
                   type="text"
                   required
-                  value={orderNumber}
-                  onChange={(e) => setOrderNumber(e.target.value)}
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value)}
                   placeholder="HOK-2026-8F42K9"
                   className="w-full rounded-xl border border-[var(--border)]/60 bg-white px-4 py-3 text-sm text-[var(--primary)] placeholder:text-[var(--primary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40 focus:border-[var(--accent)] transition"
                 />
@@ -278,5 +294,4 @@ export const TrackOrderPage = () => {
     </main>
   )
 }
-
 export default TrackOrderPage

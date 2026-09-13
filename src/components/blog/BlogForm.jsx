@@ -63,6 +63,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const [imagePreview, setImagePreview] = useState(blog?.image || null)
   const [videoFile, setVideoFile] = useState(null)
   const [videoPreview, setVideoPreview] = useState(blog?.video || null)
+  const [removeVideo, setRemoveVideo] = useState(false)
   const [contentFiles, setContentFiles] = useState([])
   const [contentPreviews, setContentPreviews] = useState([])
   const [existingContentImages, setExistingContentImages] = useState(blog?.mediaUrls ? [...blog.mediaUrls] : [])
@@ -134,6 +135,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       setVideoFile(null)
       if (videoPreview && videoPreview.startsWith('blob:')) URL.revokeObjectURL(videoPreview)
       setVideoPreview(null)
+      setRemoveVideo(true)
     }
   }
 
@@ -192,6 +194,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
 
     if (imageFile) payload.append('image', imageFile)
     if (videoFile) payload.append('video', videoFile)
+    if (removeVideo) payload.append('removeVideo', 'true')
     contentFiles.forEach((file) => payload.append('contentImages', file))
     if (removeMediaUrls.length > 0) payload.append('removeMediaUrls', JSON.stringify(removeMediaUrls))
 

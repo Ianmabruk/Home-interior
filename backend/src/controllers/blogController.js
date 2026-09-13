@@ -109,6 +109,7 @@ export const blogController = {
     const contentFiles = Array.isArray(req.files?.contentImages) ? req.files.contentImages : []
     const homepageCircularImageFile = req.files?.homepageCircularImage?.[0] || null
     const removeHomepageCircularImage = req.body.removeHomepageCircularImage === 'true'
+    const removeVideo = req.body.removeVideo === 'true'
 
     const data = {}
     if (req.body.title !== undefined) data.title = req.body.title
@@ -134,7 +135,7 @@ export const blogController = {
       }
     }
 
-    const item = await blogService.updateBlog(req.params.id, data, imageFile, videoFile, contentFiles, removeMediaUrls, homepageCircularImageFile, removeHomepageCircularImage)
+    const item = await blogService.updateBlog(req.params.id, data, imageFile, videoFile, contentFiles, removeMediaUrls, homepageCircularImageFile, removeHomepageCircularImage, removeVideo)
     invalidateCachePattern('blog')
     invalidateCachePattern('homepage')
     res.json({ success: true, data: item })
