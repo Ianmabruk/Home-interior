@@ -32,9 +32,11 @@ function buildDatabaseUrl() {
   url.searchParams.set('pool_timeout', '10')
   // idle_in_transaction_session_timeout: kill idle transactions after 30s
   url.searchParams.set('idle_in_transaction_session_timeout', '30000')
-  // statement_timeout: kill queries running longer than 10s at the database level.
-  // This prevents a single slow query from hogging a connection indefinitely.
-  url.searchParams.set('statement_timeout', '10000')
+  // statement_timeout: kill queries running longer than 30s at the database level.
+  // Previously 10s — too aggressive for cold-start reconnection after idle periods
+  // (e.g. Render free tier sleeping). 30s gives enough headroom without blocking
+  // indefinitely.
+  url.searchParams.set('statement_timeout', '30000')
   // keepalives keep direct (non-pooled) TCP connections alive; ignored by the pooler.
   url.searchParams.set('keepalives', '1')
   url.searchParams.set('keepalives_idle', '30')
@@ -56,7 +58,7 @@ function createPrismaClient() {
 
 const RETRYABLE_CODES = new Set(['P2024', 'P1001', 'P1008', 'P1009'])
 
-export function withTimeout(promise, timeoutMs = 10000) {
+export function withTimeout(promise, timeoutMs = 30000) {
   let timer
   const timeout = new Promise((_, reject) => {
     timer = setTimeout(() => {

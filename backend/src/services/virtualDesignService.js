@@ -2,6 +2,8 @@ import { prisma } from '../config/database.js'
 import { uploadFile, deleteFile, deleteFiles } from '../uploads/uploadService.js'
 import { failure } from '../utils/response.js'
 
+const MAX_GALLERY_MEDIA = 10
+
 function mapVD(item) {
   return {
     ...item,
@@ -57,6 +59,11 @@ async function getVirtualDesign(id) {
 
 async function createVirtualDesign(data, file, galleryFiles, circularFile = null) {
   const createData = { ...data }
+
+  if (galleryFiles.length > MAX_GALLERY_MEDIA) {
+    throw failure(400, `You can upload a maximum of ${MAX_GALLERY_MEDIA} gallery media files.`)
+  }
+
   const mediaUrls = []
   let uploadedPaths = []
 
@@ -126,7 +133,15 @@ async function updateVirtualDesign(id, data, file, galleryFiles, circularFile = 
   // Build the final mediaUrls: existing URLs the client wants to keep + newly uploaded files.
   // The client sends existingMediaUrls as a JSON array of URLs to retain.
   // This replaces the old mediaUrls entirely (no orphaned/stale URLs).
-  const keptUrls = Array.isArray(data._keptMediaUrls) ? data._keptMediaUrls : []
+   const keptUrls = Array.isArray(data._keptMediaUrls) ? data._keptMediaUrls : []
+
+   if (galleryFiles.length > MAX_GALLERY_MEDIA) {
+     throw failure(400, `You can upload a maximum of ${MAX_GALLERY_MEDIA} gallery media files.`)
+   }
+
+   if (keptUrls.length + galleryFiles.length > MAX_GALLERY_MEDIA) {
+     throw failure(400, `A virtual design package can have a maximum of ${MAX_GALLERY_MEDIA} gallery media items. You currently have ${keptUrls.length}, so you can add ${Math.max(0, MAX_GALLERY_MEDIA - keptUrls.length)} more.`)
+   }
 
   // Clean up gallery files that were removed during update
   if (data._keptMediaUrls !== undefined) {

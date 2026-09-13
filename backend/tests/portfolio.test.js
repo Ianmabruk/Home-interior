@@ -112,45 +112,45 @@ describe('Portfolio', () => {
     expect(detailRes.body.data.afterImages).toEqual([])
   })
 
-  it('should accept up to 21 before images', async () => {
-    const req = request(app)
-      .post(`${API}/admin/portfolio`)
-      .set(authHeaders())
-      .field('title', 'test_21BeforeImages')
-      .field('description', 'Testing 21 image limit')
-      .field('category', 'Test')
-      .field('featured', 'false')
-      .field('displayOrder', '0')
+   it('should accept up to 35 before images', async () => {
+     const req = request(app)
+       .post(`${API}/admin/portfolio`)
+       .set(authHeaders())
+       .field('title', 'test_35BeforeImages')
+       .field('description', 'Testing 35 image limit')
+       .field('category', 'Test')
+       .field('featured', 'false')
+       .field('displayOrder', '0')
 
-    for (let i = 0; i < 21; i++) {
-      const img = makeFakeImage(`image_${i + 1}.png`)
-      req.attach('before', img.buffer, img.name)
-    }
+     for (let i = 0; i < 35; i++) {
+       const img = makeFakeImage(`image_${i + 1}.png`)
+       req.attach('before', img.buffer, img.name)
+     }
 
-    const res = await req
-    expect(res.status).toBe(201)
-    expect(res.body.success).toBe(true)
-    expect(res.body.data.beforeImages).toHaveLength(21)
-  })
+     const res = await req
+     expect(res.status).toBe(201)
+     expect(res.body.success).toBe(true)
+     expect(res.body.data.beforeImages).toHaveLength(35)
+   })
 
-  it('should reject more than 21 before images', async () => {
-    const req = request(app)
-      .post(`${API}/admin/portfolio`)
-      .set(authHeaders())
-      .field('title', 'test_TooManyBefore')
-      .field('description', 'Testing 22 image limit')
-      .field('category', 'Test')
-      .field('featured', 'false')
-      .field('displayOrder', '0')
+   it('should reject more than 35 before images', async () => {
+     const req = request(app)
+       .post(`${API}/admin/portfolio`)
+       .set(authHeaders())
+       .field('title', 'test_TooManyBefore')
+       .field('description', 'Testing 36 image limit')
+       .field('category', 'Test')
+       .field('featured', 'false')
+       .field('displayOrder', '0')
 
-    for (let i = 0; i < 22; i++) {
-      const img = makeFakeImage(`image_${i + 1}.png`)
-      req.attach('before', img.buffer, img.name)
-    }
+     for (let i = 0; i < 36; i++) {
+       const img = makeFakeImage(`image_${i + 1}.png`)
+       req.attach('before', img.buffer, img.name)
+     }
 
-    const res = await req
-    expect(res.status).toBe(400)
-  })
+     const res = await req
+     expect(res.status).toBe(400)
+   })
 
   it('should accept before and after images', async () => {
     const beforeImg1 = makeFakeImage('before_1.png')
@@ -257,49 +257,49 @@ describe('Portfolio', () => {
     expect(res.status).toBe(400)
   })
 
-  it('should reject update that would exceed 21 before images', async () => {
-    // Build a project with 21 existing before images, then patch with 22 total
-    const createReq = request(app)
-      .post(`${API}/admin/portfolio`)
-      .set(authHeaders())
-      .field('title', 'test_ExceedLimit')
-      .field('category', 'Test')
-    for (let i = 0; i < 21; i++) {
-      const img = makeFakeImage(`existing_${i}.png`)
-      createReq.attach('before', img.buffer, img.name)
-    }
-    const created = await createReq
-    expect(created.status).toBe(201)
-    expect(created.body.data.beforeImages).toHaveLength(21)
+   it('should reject update that would exceed 35 before images', async () => {
+     // Build a project with 35 existing before images, then patch with 36 total
+     const createReq = request(app)
+       .post(`${API}/admin/portfolio`)
+       .set(authHeaders())
+       .field('title', 'test_ExceedLimit')
+       .field('category', 'Test')
+     for (let i = 0; i < 35; i++) {
+       const img = makeFakeImage(`existing_${i}.png`)
+       createReq.attach('before', img.buffer, img.name)
+     }
+     const created = await createReq
+     expect(created.status).toBe(201)
+     expect(created.body.data.beforeImages).toHaveLength(35)
 
-    const projectId = created.body.data.id
-    const existing = created.body.data.beforeImages
-    const patchReq = request(app)
-      .patch(`${API}/admin/portfolio/${projectId}`)
-      .set(authHeaders())
-    existing.forEach((url) => patchReq.field('beforeImages', url))
-    patchReq.field('beforeImages', 'https://example.com/extra.png')
-    const updateRes = await patchReq
-    expect(updateRes.status).toBe(400)
-    expect(updateRes.body.details).toBeDefined()
-    expect(updateRes.body.details.limit).toBe(21)
-  })
+     const projectId = created.body.data.id
+     const existing = created.body.data.beforeImages
+     const patchReq = request(app)
+       .patch(`${API}/admin/portfolio/${projectId}`)
+       .set(authHeaders())
+     existing.forEach((url) => patchReq.field('beforeImages', url))
+     patchReq.field('beforeImages', 'https://example.com/extra.png')
+     const updateRes = await patchReq
+     expect(updateRes.status).toBe(400)
+     expect(updateRes.body.details).toBeDefined()
+     expect(updateRes.body.details.limit).toBe(35)
+   })
 
    const url = (i) => `https://example.com/img_${i}.png`
 
-   it('should accept 21 before AND 21 after images independently (42 total)', async () => {
-       const beforeImages = Array.from({ length: 21 }, (_, i) => url(i))
-       const afterImages = Array.from({ length: 21 }, (_, i) => url(100 + i))
-       const res = await createProject({ title: 'test_Independent21x21', beforeImages, afterImages })
+   it('should accept 35 before AND 35 after images independently (70 total)', async () => {
+       const beforeImages = Array.from({ length: 35 }, (_, i) => url(i))
+       const afterImages = Array.from({ length: 35 }, (_, i) => url(100 + i))
+       const res = await createProject({ title: 'test_Independent35x35', beforeImages, afterImages })
        expect(res.status).toBe(201)
-       expect(res.body.data.beforeImages).toHaveLength(21)
-       expect(res.body.data.afterImages).toHaveLength(21)
+       expect(res.body.data.beforeImages).toHaveLength(35)
+       expect(res.body.data.afterImages).toHaveLength(35)
    })
 
-   it('should allow updating a 21 before + 21 after project without errors (no changes)', async () => {
-       const beforeImages = Array.from({ length: 21 }, (_, i) => url(200 + i))
-       const afterImages = Array.from({ length: 21 }, (_, i) => url(300 + i))
-       const created = await createProject({ title: 'test_SaveNoChanges21', beforeImages, afterImages })
+   it('should allow updating a 35 before + 35 after project without errors (no changes)', async () => {
+       const beforeImages = Array.from({ length: 35 }, (_, i) => url(200 + i))
+       const afterImages = Array.from({ length: 35 }, (_, i) => url(300 + i))
+       const created = await createProject({ title: 'test_SaveNoChanges35', beforeImages, afterImages })
        expect(created.status).toBe(201)
 
        const projectId = created.body.data.id
@@ -310,12 +310,12 @@ describe('Portfolio', () => {
        afterImages.forEach((u) => patchReq = patchReq.field('afterImages', u))
        const updateRes = await patchReq
        expect(updateRes.status).toBe(200)
-       expect(updateRes.body.data.beforeImages).toHaveLength(21)
-       expect(updateRes.body.data.afterImages).toHaveLength(21)
+       expect(updateRes.body.data.beforeImages).toHaveLength(35)
+       expect(updateRes.body.data.afterImages).toHaveLength(35)
    })
 
-   it('should reject exceeding 21 images in the after section', async () => {
-       const afterImages = Array.from({ length: 22 }, (_, i) => url(400 + i))
+   it('should reject exceeding 35 images in the after section', async () => {
+       const afterImages = Array.from({ length: 36 }, (_, i) => url(400 + i))
        const patchReq = request(app)
          .patch(`${API}/admin/portfolio/${(await createProject({ title: 'test_AfterOverflow' })).body.data.id}`)
          .set(authHeaders())
@@ -323,7 +323,42 @@ describe('Portfolio', () => {
        const updateRes = await patchReq
        expect(updateRes.status).toBe(400)
        expect(updateRes.body.details).toBeDefined()
-       expect(updateRes.body.details.limit).toBe(21)
+       expect(updateRes.body.details.limit).toBe(35)
+       expect(updateRes.body.details.limitType).toBe('after')
+   })
+
+   it('should accept exactly 35 before and 35 after (boundary - no upload)', async () => {
+       const beforeImages = Array.from({ length: 35 }, (_, i) => url(500 + i))
+       const afterImages = Array.from({ length: 35 }, (_, i) => url(600 + i))
+       const res = await createProject({ title: 'test_Boundary35x35', beforeImages, afterImages })
+       expect(res.status).toBe(201)
+       expect(res.body.data.beforeImages).toHaveLength(35)
+       expect(res.body.data.afterImages).toHaveLength(35)
+   })
+
+   it('should reject 36 before images via update (boundary - no upload)', async () => {
+       const beforeImages = Array.from({ length: 36 }, (_, i) => url(700 + i))
+       const patchReq = request(app)
+         .patch(`${API}/admin/portfolio/${(await createProject({ title: 'test_BeforeBoundary' })).body.data.id}`)
+         .set(authHeaders())
+       beforeImages.forEach((u) => patchReq.field('beforeImages', u))
+       const updateRes = await patchReq
+       expect(updateRes.status).toBe(400)
+       expect(updateRes.body.details).toBeDefined()
+       expect(updateRes.body.details.limit).toBe(35)
+       expect(updateRes.body.details.limitType).toBe('before')
+   })
+
+   it('should reject 36 after images via update (boundary - no upload)', async () => {
+       const afterImages = Array.from({ length: 36 }, (_, i) => url(800 + i))
+       const patchReq = request(app)
+         .patch(`${API}/admin/portfolio/${(await createProject({ title: 'test_AfterBoundary' })).body.data.id}`)
+         .set(authHeaders())
+       afterImages.forEach((u) => patchReq.field('afterImages', u))
+       const updateRes = await patchReq
+       expect(updateRes.status).toBe(400)
+       expect(updateRes.body.details).toBeDefined()
+       expect(updateRes.body.details.limit).toBe(35)
        expect(updateRes.body.details.limitType).toBe('after')
    })
 })

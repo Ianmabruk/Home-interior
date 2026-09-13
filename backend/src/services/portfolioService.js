@@ -37,9 +37,7 @@ async function syncPortfolioImages(projectId, beforeImages, afterImages) {
     imageType: 'after',
     sortOrder: idx,
   }))
-  const all = [...before, ...after]
-
-  if (all.length === 0) return
+   const all = [...before, ...after]
 
   // Use a generous timeout and a single bulk insert. Syncing many images with
   // one create() per row previously blew past Prisma's default 5s interactive
@@ -185,12 +183,13 @@ async function createPortfolio(data, file, beforeFiles = [], afterFiles = [], ci
   const tStart = Date.now()
   const createData = { ...data }
 
-  if (beforeFiles.length > MAX_IMAGES_PER_SECTION) {
-    throw failure(400, `You can upload a maximum of ${MAX_IMAGES_PER_SECTION} Before images.`)
-  }
-  if (afterFiles.length > MAX_IMAGES_PER_SECTION) {
-    throw failure(400, `You can upload a maximum of ${MAX_IMAGES_PER_SECTION} After images.`)
-  }
+  const existingBeforeCount = data.beforeImages?.length || 0
+  const existingAfterCount = data.afterImages?.length || 0
+
+  // Check limits BEFORE uploading to prevent orphaned Cloudinary files when
+  // the total (existing + new) exceeds the maximum allowed per section.
+  enforceImageLimit('before', existingBeforeCount + beforeFiles.length, existingBeforeCount, beforeFiles.length)
+  enforceImageLimit('after', existingAfterCount + afterFiles.length, existingAfterCount, afterFiles.length)
 
   const beforeImages = [...(data.beforeImages || [])]
   const afterImages = [...(data.afterImages || [])]
@@ -237,9 +236,6 @@ async function createPortfolio(data, file, beforeFiles = [], afterFiles = [], ci
 
   beforeImages.push(...beforeUrls)
   afterImages.push(...afterUrls)
-
-  enforceImageLimit('before', beforeImages.length, data.beforeImages?.length || 0, beforeFiles.length)
-  enforceImageLimit('after', afterImages.length, data.afterImages?.length || 0, afterFiles.length)
 
   if (beforeImages.length > 0) createData.beforeImages = beforeImages
   if (afterImages.length > 0) createData.afterImages = afterImages
@@ -292,6 +288,10 @@ async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []
   const uploadPromises = []
   const uploadStart = Date.now()
 
+   // Check limits BEFORE uploading to prevent orphaned Cloudinary files.
+   enforceImageLimit('before', beforeImages.length + beforeFiles.length, beforeImages.length, beforeFiles.length)
+   enforceImageLimit('after', afterImages.length + afterFiles.length, afterImages.length, afterFiles.length)
+
   if (file) {
     if (existing.cloudinaryId) uploadPromises.push(deleteFile(existing.cloudinaryId))
     uploadPromises.push(
@@ -313,9 +313,6 @@ async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []
   }
 
   if (beforeFiles.length > 0) {
-    if (beforeFiles.length > MAX_IMAGES_PER_SECTION) {
-      throw failure(400, `You can upload a maximum of ${MAX_IMAGES_PER_SECTION} Before images.`)
-    }
     uploadPromises.push(
       uploadImageFiles(beforeFiles, 'portfolio/before').then(({ urls, errors }) => {
         if (errors.length > 0) {
@@ -331,9 +328,6 @@ async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []
   }
 
   if (afterFiles.length > 0) {
-    if (afterFiles.length > MAX_IMAGES_PER_SECTION) {
-      throw failure(400, `You can upload a maximum of ${MAX_IMAGES_PER_SECTION} After images.`)
-    }
     uploadPromises.push(
       uploadImageFiles(afterFiles, 'portfolio/after').then(({ urls, errors }) => {
         if (errors.length > 0) {
@@ -361,12 +355,10 @@ async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []
     throw failure(500, `Upload failed: ${reasons}`)
   }
 
-  enforceImageLimit('before', beforeImages.length, existing.beforeImages?.length || 0, beforeFiles.length)
-  enforceImageLimit('after', afterImages.length, existing.afterImages?.length || 0, afterFiles.length)
   updateData.beforeImages = beforeImages
   updateData.afterImages = afterImages
 
-   const item = await prisma.portfolioProject.update({ where: { id }, data: updateData })
+  const item = await prisma.portfolioProject.update({ where: { id }, data: updateData })
 
   await syncPortfolioImages(id, beforeImages, afterImages)
 
