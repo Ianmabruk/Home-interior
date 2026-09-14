@@ -3,7 +3,7 @@ import { motion } from '@components/common/DynamicMotion'
 import { ArrowLeft, Share2, Facebook, Twitter, Linkedin, Copy, Calendar, User, Clock, Eye, Tag } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '@services/api'
-import { getOptimizedUrl, buildSrcSet, getOptimizedVideoUrl, getVideoPosterUrl } from '@utils/cloudinaryHelpers'
+import { getOptimizedVideoUrl, getVideoPosterUrl } from '@utils/cloudinaryHelpers'
 import OptimizedImage from '@components/common/OptimizedImage'
 import { getReadingTime, formatDate, extractTags } from '@utils/blogHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
@@ -401,7 +401,7 @@ export const BlogDetailPage = () => {
               initial={reduceMotion ? false : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="my-12 rounded-2xl overflow-hidden bg-[var(--secondary)]/30"
+              className="my-12 rounded-2xl overflow-hidden bg-[var(--secondary)]/30 aspect-video"
             >
               <video
                 src={getOptimizedVideoUrl(videoUrl) || videoUrl}
@@ -409,8 +409,10 @@ export const BlogDetailPage = () => {
                 controls
                 playsInline
                 preload="metadata"
-                className="w-full h-auto"
-                onError={(e) => { e.target.style.display = 'none' }}
+                className="w-full h-full"
+                onError={(e) => {
+                  console.warn('[BlogDetailPage] Video load error:', e.target.error?.message)
+                }}
               />
             </motion.div>
           )}
