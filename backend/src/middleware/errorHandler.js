@@ -1,6 +1,8 @@
 import { ApiError } from '../utils/ApiError.js'
 
 const SERVER_ID = process.env.SERVER_ID || 'hok-api-01'
+// Must match MAX_FILE_SIZE in middleware/upload.js (50MB)
+const MAX_UPLOAD_SIZE_MB = 50
 
 export function notFoundHandler(req, res) {
   res.setHeader('X-Server-ID', SERVER_ID)
@@ -15,7 +17,10 @@ export function errorHandler(err, req, res, next) {
 
   if (err?.code === 'LIMIT_FILE_SIZE' || err?.code === 'LIMIT_FILE_COUNT' || err?.code === 'LIMIT_FIELD_COUNT') {
     res.setHeader('X-Server-ID', SERVER_ID)
-    return res.status(413).json({ success: false, message: 'Uploaded file is too large' })
+    const message = err?.code === 'LIMIT_FILE_SIZE'
+      ? `Uploaded file is too large. Maximum allowed size is ${MAX_UPLOAD_SIZE_MB}MB.`
+      : 'Uploaded file is too large'
+    return res.status(413).json({ success: false, message })
   }
 
   if (err?.name === 'MulterError' && err?.code === 'LIMIT_UNEXPECTED_FILE') {

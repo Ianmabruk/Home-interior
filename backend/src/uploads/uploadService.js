@@ -15,6 +15,12 @@ const IMAGE_QUALITY = 80
 // Timeout for image processing to prevent blocking on large/corrupt images
 const IMAGE_PROCESSING_TIMEOUT_MS = 15000
 
+// Pre-upload size check: warn if the optimized buffer is large enough to risk
+// hitting Cloudinary's 120s timeout on slower connections. This is a soft
+// threshold — uploads above it still proceed, but the error message will
+// include guidance to reduce file size.
+const LARGE_UPLOAD_WARN_THRESHOLD = 15 * 1024 * 1024 // 15MB
+
 function ensureDir(dir) {
   try {
     fs.mkdirSync(dir, { recursive: true })
@@ -124,31 +130,29 @@ export async function uploadFile(buffer, mimetype, folder) {
   const optimizedBuffer = await optimizeImageBuffer(buffer, mimetype)
   const optimizedMimetype = optimizedBuffer !== buffer ? 'image/webp' : mimetype
 
+  // Pre-upload size check: warn if the optimized buffer is large enough to
+  // risk hitting Cloudinary's 120s timeout on slower connections. This is a
+  // soft threshold — uploads above it still proceed, but the error message
+  // will include guidance to reduce file size.
+  const bufferSizeMB = (optimizedBuffer.length / (1024 * 1024)).toFixed(1)
+  if (optimizedBuffer.length > LARGE_UPLOAD_WARN_THRESHOLD) {
+    console.warn(`[uploadService] Large upload (${bufferSizeMB}MB) — may approach Cloudinary timeout on slow connections`)
+  }
+
   if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
     try {
       const uploaded = await uploadToCloudinary(optimizedBuffer, optimizedMimetype, folder)
       return { url: uploaded.url, path: uploaded.publicId, mimeType: optimizedMimetype, isLocal: false }
     } catch (cloudErr) {
       console.error('[uploadService] Cloudinary upload failed:', cloudErr?.message || cloudErr)
-      // Persist locally as a safe fallback so data isn't lost, and record the failure for retry.
-      try {
-        const local = await uploadToLocal(optimizedBuffer, optimizedMimetype, folder)
-        recordFailedUpload({
-          time: new Date().toISOString(),
-          reason: cloudErr?.message || String(cloudErr),
-          intended: { provider: 'cloudinary', folder },
-          localPath: local.path,
-          mimeType: optimizedMimetype,
-        })
-        console.warn('[uploadService] Saved failed upload locally and recorded for retry:', local.path)
-        return local
-      } catch (localErr) {
-        console.error('[uploadService] Saving failed upload locally also failed:', localErr?.message || localErr)
-        if (process.env.NODE_ENV === 'production') {
-          throw failure(500, 'File upload failed and could not be saved locally. Contact support.')
-        }
-        throw failure(500, 'File upload failed. Please try again later.')
-      }
+      // Provide a clearer error message for timeout failures.
+      // Use 408 (Request Timeout) so the error handler preserves the message
+      // in production (it only hides messages for status >= 500).
+      const isTimeout = cloudErr?.message?.includes('timed out') || cloudErr?.http_code === 408 || cloudErr?.http_code === 504
+      const guidance = isTimeout
+        ? ` Upload timed out. The file (${bufferSizeMB}MB) may be too large for the current connection. Try reducing the file size or using a smaller image.`
+        : ''
+      throw failure(408, `${cloudErr?.message || 'Cloudinary upload failed'}${guidance}`)
     }
   }
 

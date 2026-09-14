@@ -94,6 +94,7 @@ export const blogService = {
   getBlog,
   getBlogBySlug,
   getPublishedBlog,
+  getPublishedBlogSilent,
   getBlogStats,
   getRelatedBlogs,
   getCategoriesAndTags,
@@ -187,6 +188,15 @@ async function getPublishedBlog(idOrSlug) {
 
   if (!item) throw failure(404, 'Blog not found')
   return mapBlog(item)
+}
+
+async function getPublishedBlogSilent(idOrSlug) {
+  if (!idOrSlug) return null
+  try {
+    return await getPublishedBlog(idOrSlug)
+  } catch {
+    return null
+  }
 }
 
 async function getBlogStats() {

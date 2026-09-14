@@ -45,10 +45,14 @@ export const blogController = {
 
   getPublished: asyncHandler(async (req, res) => {
     const item = await blogService.getPublishedBlog(req.params.id)
-    if (item) {
-      await blogService.incrementViews(req.params.id)
-    }
     res.json({ success: true, data: item })
+  }),
+
+  recordView: asyncHandler(async (req, res) => {
+    // Only increment for published posts; silently ignore invalid IDs
+    const item = await blogService.getPublishedBlogSilent(req.params.id)
+    if (item) await blogService.incrementViews(item.id)
+    res.json({ success: true })
   }),
 
    related: asyncHandler(async (req, res) => {
