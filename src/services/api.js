@@ -3,7 +3,76 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 // Timeouts — generous for cold-start recovery on Render free tier
 const REGULAR_TIMEOUT = 45000   // 45s (was 30s) — covers Render cold-start (~30s)
 const ORDER_TIMEOUT = 120000
-const UPLOAD_TIMEOUT = 180000   // 3 min for large uploads
+const UPLOAD_TIMEOUT = 300000   // 5 min for large uploads
+
+// Token expiry window — refresh if the access token expires within this window
+const TOKEN_EXPIRY_WINDOW_MS = 2 * 60 * 1000
+
+function decodeJwt(token) {
+  if (!token) return null
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return null
+    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+    return decoded
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Returns true if the stored access token is valid and not expiring soon.
+ */
+function isTokenValid() {
+  const token = localStorage.getItem('hok_access_token')
+  if (!token) return false
+  const decoded = decodeJwt(token)
+  if (!decoded || !decoded.exp) return false
+  const nowSec = Date.now() / 1000
+  return decoded.exp > nowSec + TOKEN_EXPIRY_WINDOW_MS / 1000
+}
+
+/**
+ * Ensures a valid access token exists before an upload. If the token is
+ * missing or about to expire, attempts a refresh using the httpOnly refresh
+ * cookie. Throws if no valid session can be obtained.
+ */
+async function ensureValidToken() {
+  if (isTokenValid()) return localStorage.getItem('hok_access_token')
+
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      signal: controller.signal,
+    })
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      throw new Error('Token refresh failed')
+    }
+
+    const data = await response.json()
+    const accessToken = data?.data?.accessToken
+    if (!accessToken) {
+      throw new Error('No access token in refresh response')
+    }
+
+    localStorage.setItem('hok_access_token', accessToken)
+    if (data?.data?.csrfToken) {
+      setStoredCsrfToken(data.data.csrfToken)
+    }
+    return accessToken
+  } catch (err) {
+    localStorage.removeItem('hok_access_token')
+    localStorage.removeItem('hok_csrf_token')
+    csrfToken = null
+    window.dispatchEvent(new CustomEvent('hok-auth-failed'))
+    throw new Error('Session expired. Please log in again.', { cause: err })
+  }
+}
 
 function getRequestTimeout(url) {
   if (url.includes('/orders')) return ORDER_TIMEOUT
@@ -480,4 +549,4 @@ function getCancelable(url, config = {}) {
 // Load any stored CSRF token on module init
 loadStoredCsrfToken()
 
-export { api, getCacheStats, clearApiCache, getCancelable }
+export { api, getCacheStats, clearApiCache, getCancelable, ensureValidToken, isTokenValid }

@@ -1,4 +1,5 @@
 import { api } from './api'
+import { ensureValidToken } from './api'
 
 export const UPLOAD_CONCURRENCY = 3
 export const MAX_RETRIES = 3
@@ -24,6 +25,28 @@ function sleep(ms) {
 
 function jitter(base) {
   return base + Math.random() * base * 0.3
+}
+
+/**
+ * Pre-warm the backend before starting uploads. On Render free-tier, the
+ * server spins down after 15 minutes of inactivity, making the first request
+ * take 30-60 seconds. A lightweight health-check request wakes the instance
+ * so the subsequent upload doesn't pay the cold-start penalty.
+ */
+export async function warmServer() {
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
+    const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+    await fetch(`${API_BASE_URL}/health`, {
+      method: 'GET',
+      credentials: 'include',
+      signal: controller.signal,
+    })
+    clearTimeout(timeoutId)
+  } catch {
+    // Non-fatal — the upload will still work, just possibly slower.
+  }
 }
 
 export async function refreshCsrf() {
@@ -76,6 +99,20 @@ export async function uploadSingleImage(file, folder = 'portfolio/before', optio
 
   onStateChange?.('compressing')
 
+  // Warm the backend before starting. On Render free-tier, the server spins
+  // down after 15 minutes of inactivity; a lightweight health-check wakes it
+  // so the subsequent upload doesn't pay the cold-start penalty.
+  await warmServer()
+
+  // Ensure we have a valid token before starting the upload.
+  // This prevents uploads from being sent with an already-expired token.
+  try {
+    await ensureValidToken()
+  } catch (tokenErr) {
+    onStateChange?.('failed')
+    throw new Error(`Authentication required: ${tokenErr.message}`, { cause: tokenErr })
+  }
+
   const formData = new FormData()
   formData.append('media', file)
   formData.append('folder', folder)
@@ -93,18 +130,22 @@ export async function uploadSingleImage(file, folder = 'portfolio/before', optio
     onStateChange?.('uploading')
 
     try {
-      const config = {
+      // Re-check token validity before each attempt — long uploads may
+      // cross the token expiry boundary.
+      try {
+        await ensureValidToken()
+      } catch (tokenErr) {
+        onStateChange?.('failed')
+        throw new Error(`Authentication required: ${tokenErr.message}`, { cause: tokenErr })
+      }
+
+      const res = await api.post('/media/upload', formData, {
         signal,
-        timeout: 60000,
         onUploadProgress: (e) => {
           if (onProgress && e.total > 0) {
             onProgress((e.loaded / e.total) * 100)
           }
         },
-      }
-
-      const res = await api.post('/media/upload', formData, {
-        ...config,
       })
 
       onStateChange?.('uploaded')
@@ -118,7 +159,7 @@ export async function uploadSingleImage(file, folder = 'portfolio/before', optio
 
       const shouldRetry = attempt < maxRetries && isRetryableError(err)
 
-       if (shouldRetry && (err?.response?.status === 401 || err?.response?.status === 403)) {
+      if (shouldRetry && (err?.response?.status === 401 || err?.response?.status === 403)) {
         try {
           await refreshCsrf()
         } catch (csrfErr) {

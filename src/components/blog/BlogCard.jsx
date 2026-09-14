@@ -25,15 +25,26 @@ export const BlogCard = ({ blog, priority = false }) => {
               priority={priority}
             />
           ) : isVideo ? (
-            <video
-              src={videoUrl}
-              poster={getVideoPosterUrl(videoUrl)}
-              className="h-full w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
-            />
+            <div className="h-full w-full bg-black flex items-center justify-center relative">
+              {getVideoPosterUrl(videoUrl) ? (
+                <img
+                  src={getVideoPosterUrl(videoUrl)}
+                  alt={blog.title}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="white" opacity="0.4">
+                  <polygon points="5,3 19,12 5,21" />
+                </svg>
+              )}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-full bg-black/40 flex items-center justify-center">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                    <polygon points="8,5 19,12 8,19" />
+                  </svg>
+                </div>
+              </div>
+            </div>
           ) : (
             <div className="h-full w-full bg-gradient-to-br from-[var(--bg)] to-[var(--secondary)]/30 flex items-center justify-center text-[var(--primary)]/20">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1}>

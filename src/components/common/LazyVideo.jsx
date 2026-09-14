@@ -94,6 +94,7 @@ export default function LazyVideo({
       playsInline={playsInline}
       controls={controls}
       preload={showVideo ? 'metadata' : 'none'}
+      type="video/mp4"
       src={showVideo ? src : undefined}
       autoPlay={showVideo && shouldAutoPlay}
     />

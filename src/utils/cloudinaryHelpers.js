@@ -55,11 +55,22 @@ export const buildSrcSet = (url, widths = RESPONSIVE_WIDTHS) => {
 }
 
 export const getOptimizedVideoUrl = (url, options = {}) => {
+  if (isCloudinaryVideo(url) && typeof url === 'string') {
+    // Strip any existing f_auto / f_webp / f_avif / f_mp4 from the URL — iOS
+    // Safari requires mp4/h.264, and f_auto can serve incompatible formats
+    // (webm, av1) causing a black screen on iPhone. Cloudinary bakes f_auto
+    // into the stored URL when the upload preset uses fetch_format: 'auto'.
+    url = url.replace(/(?:,?)(f_auto|f_webp|f_avif|f_mp4)(?:,?)/g, '')
+    url = url.replace(/\/\//g, '/')
+  }
   if (!isCloudinaryVideo(url) || typeof url !== 'string') return typeof url === 'string' ? url : null
-  const { width, quality = 'auto', format = 'auto' } = options
+  const { width, quality = 'auto' } = options
   const parts = []
   if (width) parts.push(`w_${width}`, 'c_limit')
-  parts.push(`q_${quality}`, `f_${format}`)
+  parts.push(`q_${quality}`)
+  // Always force f_mp4 so Cloudinary delivers an H.264/AAC MP4 that works on
+  // iPhone Safari, iPhone Chrome, Android Chrome, and desktop browsers.
+  parts.push('f_mp4')
   return url.replace(CLOUDINARY_VIDEO_SEGMENT, `${CLOUDINARY_VIDEO_SEGMENT}${parts.join(',')}/`)
 }
 

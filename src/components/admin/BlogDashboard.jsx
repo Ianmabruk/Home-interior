@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from '@components/common/DynamicMotion'
 import { Plus } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { api } from '../../services/api'
+import { api, clearApiCache } from '../../services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload, dispatchAdminDataChanged } from '../../utils/adminEvents'
 import BlogStatsBar from '../blog/BlogStatsBar'
 import BlogTable from '../blog/BlogTable'
@@ -58,6 +58,7 @@ const BlogDashboard = () => {
 
   const loadStats = useCallback(async () => {
     try {
+      clearApiCache('/admin/blog/stats')
       const res = await api.get('/admin/blog/stats')
       setStats(res.data || {})
     } catch (err) {

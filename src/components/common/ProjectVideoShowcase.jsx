@@ -157,6 +157,7 @@ export default function ProjectVideoShowcase({ videos, className = '' }) {
             loop={list.length === 1}
             playsInline
             preload="metadata"
+            type="video/mp4"
             fetchPriority="high"
             crossOrigin="anonymous"
             onEnded={() => {

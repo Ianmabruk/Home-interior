@@ -5,7 +5,8 @@ import {
 } from 'lucide-react'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
-import { formatDateShort, getBlogImageUrl, getBlogVideoUrl } from '../../utils/blogHelpers'
+import { formatDateShort, getBlogImageUrl } from '../../utils/blogHelpers'
+import { getOptimizedVideoUrl } from '../../utils/cloudinaryHelpers'
 import toast from 'react-hot-toast'
 
 export const BlogTable = ({
@@ -152,7 +153,7 @@ export const BlogTable = ({
             ) : (
               blogs.map((item) => {
                 const imageUrl = getBlogImageUrl(item)
-                const videoUrl = getBlogVideoUrl(item)
+                const videoUrl = item.videoUrl || item.video || null
                 const isLoading = actionLoadingId === item.id + '-toggle' || actionLoadingId === item.id + '-delete'
                 return (
                   <tr key={item.id || item._id}>
@@ -171,7 +172,7 @@ export const BlogTable = ({
                       ) : videoUrl ? (
                         <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-[var(--secondary)]/20">
                           <video
-                            src={videoUrl}
+                            src={getOptimizedVideoUrl(videoUrl) || videoUrl}
                             className="h-full w-full object-cover"
                             muted
                             preload="metadata"

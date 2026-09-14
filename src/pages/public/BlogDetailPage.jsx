@@ -142,6 +142,16 @@ export const BlogDetailPage = () => {
   }, [blog])
 
   useEffect(() => {
+    if (!blog?.id) return
+    // Deduplicate: one view per blog per 24h per browser
+    const key = `hok_bv_${blog.id}`
+    const last = Number(localStorage.getItem(key) || 0)
+    if (Date.now() - last < 86400000) return
+    localStorage.setItem(key, String(Date.now()))
+    api.post(`/blog/${blog.id}/view`).catch(() => {})
+  }, [blog?.id])
+
+  useEffect(() => {
     const handler = (event) => {
       const payload = getAdminDataChangedPayload(event)
       if (payload?.type === 'blog-changed') {
@@ -409,6 +419,7 @@ export const BlogDetailPage = () => {
                 controls
                 playsInline
                 preload="metadata"
+                type="video/mp4"
                 className="w-full h-full"
                 onError={(e) => {
                   console.warn('[BlogDetailPage] Video load error:', e.target.error?.message)

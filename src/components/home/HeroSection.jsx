@@ -153,6 +153,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
           muted
           loop
           playsInline
+          type="video/mp4"
           autoPlay={!isNext}
           preload={isNext ? 'none' : 'metadata'}
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1200ms] ease-out hero-media"

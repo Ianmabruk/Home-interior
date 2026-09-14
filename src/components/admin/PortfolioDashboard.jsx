@@ -3,10 +3,11 @@ import { motion, AnimatePresence, Reorder, useDragControls } from '@components/c
 import { UploadCloud, X, Edit, Trash2, Images, Eye, Plus, Loader2, Upload, Star, Check, RefreshCw, WifiOff, GripVertical, ArrowUp, ArrowDown } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
+import { ensureValidToken } from '../../services/api'
 import OptimizedImage from '@components/common/OptimizedImage'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { compressImages } from '../../utils/imageCompression'
-import { uploadPortfolioImages, uploadSingleImage, validateImageFile } from '../../services/portfolioUploadService'
+import { uploadPortfolioImages, uploadSingleImage, validateImageFile, warmServer } from '../../services/portfolioUploadService'
 import { Link } from 'react-router-dom'
 
 const INITIAL_FORM = {
@@ -304,6 +305,15 @@ export const PortfolioDashboard = () => {
 
     updateUploadImageState(id, { status: 'retrying', error: null, retries: (imageState.retries || 0) + 1 })
 
+    // Ensure we have a valid token before retrying.
+    try {
+      await ensureValidToken()
+    } catch (tokenErr) {
+      updateUploadImageState(id, { status: 'failed', error: tokenErr.message })
+      toast.error(`Image "${file?.name}" failed: ${tokenErr.message}`)
+      return null
+    }
+
     try {
       const res = await api.post('/media/upload', formData, {
         timeout: 120000,
@@ -380,6 +390,21 @@ export const PortfolioDashboard = () => {
     setLoading(true)
     setUploadOverallProgress(0)
     setUploadImageStates([])
+
+    // Ensure a valid token exists before starting any upload.
+    try {
+      await ensureValidToken()
+    } catch (tokenErr) {
+      toast.error(tokenErr.message || 'Session expired. Please log in again.')
+      setLoading(false)
+      return
+    }
+
+    // Warm the backend before starting uploads. On Render free-tier, the
+    // server spins down after 15 minutes of inactivity; a lightweight
+    // health-check wakes it so the subsequent upload doesn't pay the
+    // cold-start penalty.
+    await warmServer()
 
     try {
       const newBeforeFiles = beforeFiles.filter((f) => f instanceof File)
