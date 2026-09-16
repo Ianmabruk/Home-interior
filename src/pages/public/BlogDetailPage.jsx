@@ -89,6 +89,7 @@ export const BlogDetailPage = () => {
   const [blog, setBlog] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [videoError, setVideoError] = useState(false)
   const [related, setRelated] = useState([])
   const [navigation, setNavigation] = useState({ previous: null, next: null })
   const [copied, setCopied] = useState(false)
@@ -406,7 +407,7 @@ export const BlogDetailPage = () => {
           )}
 
           {/* Video */}
-          {videoUrl && (
+          {videoUrl && !videoError && (
             <motion.div
               initial={reduceMotion ? false : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -414,17 +415,31 @@ export const BlogDetailPage = () => {
               className="my-12 rounded-2xl overflow-hidden bg-[var(--secondary)]/30 aspect-video"
             >
               <video
+                key={getOptimizedVideoUrl(videoUrl) || videoUrl}
                 src={getOptimizedVideoUrl(videoUrl) || videoUrl}
                 poster={getVideoPosterUrl(videoUrl)}
                 controls
                 playsInline
                 preload="metadata"
                 type="video/mp4"
-                className="w-full h-full"
+                className="w-full h-full object-contain"
                 onError={(e) => {
                   console.warn('[BlogDetailPage] Video load error:', e.target.error?.message)
+                  setVideoError(true)
                 }}
               />
+            </motion.div>
+          )}
+
+          {videoUrl && videoError && (
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="my-12 flex flex-col items-center justify-center rounded-2xl bg-[var(--secondary)]/20 aspect-video text-center p-6"
+            >
+              <p className="text-sm text-[var(--primary)]/60 mb-2">Video could not be loaded</p>
+              <p className="text-xs text-[var(--primary)]/40">The video file may be unavailable or in an unsupported format.</p>
             </motion.div>
           )}
 

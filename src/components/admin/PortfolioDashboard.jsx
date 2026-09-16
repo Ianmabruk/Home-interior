@@ -159,14 +159,11 @@ export const PortfolioDashboard = () => {
     const compressed = await compressImages(validFiles, { maxWidth: 1600, maxHeight: 1600 })
     if (compressed.length === 0) return
 
-    setFiles((prev) => {
-      const newFiles = [...prev, ...compressed]
-      setPreviews((prevPreviews) => {
-        const newPreviews = [...prevPreviews]
-        compressed.forEach((f) => newPreviews.push(URL.createObjectURL(f)))
-        return newPreviews
-      })
-      return newFiles
+    setFiles((prev) => [...prev, ...compressed])
+    setPreviews((prevPreviews) => {
+      const newPreviews = [...prevPreviews]
+      compressed.forEach((f) => newPreviews.push(URL.createObjectURL(f)))
+      return newPreviews
     })
   }
 
