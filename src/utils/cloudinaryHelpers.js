@@ -61,7 +61,7 @@ export const getOptimizedVideoUrl = (url, options = {}) => {
     // (webm, av1) causing a black screen on iPhone. Cloudinary bakes f_auto
     // into the stored URL when the upload preset uses fetch_format: 'auto'.
     url = url.replace(/(?:,?)(f_auto|f_webp|f_avif|f_mp4)(?:,?)/g, '')
-    url = url.replace(/\/\//g, '/')
+    url = url.replace(/(?<!:)\/\/+/g, '/')
   }
   if (!isCloudinaryVideo(url) || typeof url !== 'string') return typeof url === 'string' ? url : null
   const { width, quality = 'auto' } = options
