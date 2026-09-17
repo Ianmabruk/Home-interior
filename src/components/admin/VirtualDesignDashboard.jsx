@@ -297,7 +297,7 @@ export const VirtualDesignDashboard = () => {
     const file = mainMediaFiles[0]
     if (file && isVideoType(file)) {
       return (
-        <video src={src} className="h-40 w-full object-cover" autoPlay muted loop controls />
+        <video src={src} className="h-40 w-full object-cover" autoPlay muted loop playsInline controls />
       )
     }
     return <img src={src} alt="Main media preview" className="h-40 w-full object-cover" />
@@ -749,6 +749,7 @@ export const VirtualDesignDashboard = () => {
                     autoPlay
                     muted
                     loop
+                    playsInline
                   />
                 ) : item.mediaUrl && item.mediaType === 'image' ? (
                   <img
@@ -765,6 +766,7 @@ export const VirtualDesignDashboard = () => {
                       autoPlay
                       muted
                       loop
+                      playsInline
                     />
                   ) : (
                     <img

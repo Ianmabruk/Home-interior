@@ -1,6 +1,6 @@
 import { memo, useState } from 'react'
 import { normalizeMediaSettings, positionToObjectPosition } from '../../utils/mediaSettings'
-import { getOptimizedUrl, buildSrcSet, getOptimizedUrlAutoDpr, getPlaceholderUrl } from '../../utils/cloudinaryHelpers'
+import { buildSrcSet, getOptimizedUrlAutoDpr, getPlaceholderUrl } from '../../utils/cloudinaryHelpers'
 
 function PositionedImage({
   src,

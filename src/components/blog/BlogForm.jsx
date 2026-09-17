@@ -405,7 +405,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           </label>
           {videoPreview ? (
             <div className="relative inline-block">
-              <video src={videoPreview} className="h-32 w-48 rounded-xl object-cover" controls muted preload="metadata" />
+              <video src={videoPreview} className="h-32 w-48 rounded-xl object-cover" controls muted playsInline preload="metadata" />
               <button
                 type="button"
                 onClick={() => handleRemovePreview('video')}

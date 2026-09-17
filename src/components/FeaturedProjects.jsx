@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { motion } from '@components/common/DynamicMotion'
 import { api } from '../services/api'
-import { getOptimizedUrl } from '../utils/cloudinaryHelpers'
 import OptimizedImage from '@components/common/OptimizedImage'
 import { ADMIN_DATA_CHANGED_EVENT } from '../utils/adminEvents'
 

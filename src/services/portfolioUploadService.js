@@ -1,11 +1,12 @@
 import { api } from './api'
-import { ensureValidToken } from './api'
+import { ensureValidToken, attemptTokenRefresh } from './api'
 
 export const UPLOAD_CONCURRENCY = 3
 export const MAX_RETRIES = 3
 export const RETRY_BASE_DELAY = 1000
 
 const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504])
+const AUTH_STATUSES = new Set([401, 403])
 
 function getErrorMessage(err) {
   if (err?.response?.data?.message) return err.response.data.message
@@ -14,8 +15,10 @@ function getErrorMessage(err) {
 }
 
 function isRetryableError(err) {
+  if (err?.message && err.message.startsWith('Authentication required')) return false
   const status = err?.response?.status
   if (!status) return true
+  if (AUTH_STATUSES.has(status)) return false
   return RETRYABLE_STATUSES.has(status)
 }
 
@@ -38,7 +41,7 @@ export async function warmServer() {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 15000)
     const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
-    await fetch(`${API_BASE_URL}/health`, {
+    await fetch(joinUrl(API_BASE_URL, '/health'), {
       method: 'GET',
       credentials: 'include',
       signal: controller.signal,
@@ -49,21 +52,16 @@ export async function warmServer() {
   }
 }
 
+function joinUrl(base, path) {
+  if (!path) return base
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  if (path.startsWith('/')) return base + path
+  return `${base}/${path}`
+}
+
 export async function refreshCsrf() {
   try {
-    // Use fetch directly with credentials so the httpOnly refresh-token cookie
-    // is sent — api.post would require a valid access token which may be the
-    // reason we're here in the first place.
-    const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
-    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
-    })
-    if (!response.ok) throw new Error('Refresh failed')
-    const data = await response.json()
-    const accessToken = data?.data?.accessToken
-    if (accessToken) localStorage.setItem('hok_access_token', accessToken)
-    return data?.data?.csrfToken
+    return await attemptTokenRefresh()
   } catch (refreshErr) {
     throw new Error('Failed to refresh CSRF token', { cause: refreshErr })
   }
@@ -99,24 +97,6 @@ export async function uploadSingleImage(file, folder = 'portfolio/before', optio
 
   onStateChange?.('compressing')
 
-  // Warm the backend before starting. On Render free-tier, the server spins
-  // down after 15 minutes of inactivity; a lightweight health-check wakes it
-  // so the subsequent upload doesn't pay the cold-start penalty.
-  await warmServer()
-
-  // Ensure we have a valid token before starting the upload.
-  // This prevents uploads from being sent with an already-expired token.
-  try {
-    await ensureValidToken()
-  } catch (tokenErr) {
-    onStateChange?.('failed')
-    throw new Error(`Authentication required: ${tokenErr.message}`, { cause: tokenErr })
-  }
-
-  const formData = new FormData()
-  formData.append('media', file)
-  formData.append('folder', folder)
-
   let attempt = 0
   let lastError = null
 
@@ -130,14 +110,30 @@ export async function uploadSingleImage(file, folder = 'portfolio/before', optio
     onStateChange?.('uploading')
 
     try {
-      // Re-check token validity before each attempt — long uploads may
-      // cross the token expiry boundary.
+      // Ensure we have a valid token before each attempt — long uploads may
+      // cross the token expiry boundary. Retry on transient network errors
+      // (cold starts) but bail on genuine auth failures.
       try {
         await ensureValidToken()
       } catch (tokenErr) {
+        const isNetworkError =
+          tokenErr?.message?.includes('Could not refresh') ||
+          tokenErr?.message?.includes('Network error') ||
+          tokenErr?.cause?.name === 'AbortError' ||
+          tokenErr?.cause?.name === 'TypeError'
+
+        if (isNetworkError && attempt < maxRetries) {
+          attempt++
+          continue
+        }
+
         onStateChange?.('failed')
         throw new Error(`Authentication required: ${tokenErr.message}`, { cause: tokenErr })
       }
+
+      const formData = new FormData()
+      formData.append('media', file)
+      formData.append('folder', folder)
 
       const res = await api.post('/media/upload', formData, {
         signal,
@@ -157,17 +153,34 @@ export async function uploadSingleImage(file, folder = 'portfolio/before', optio
         throw err
       }
 
-      const shouldRetry = attempt < maxRetries && isRetryableError(err)
+      const status = err?.response?.status
+      const isAuthError = AUTH_STATUSES.has(status)
 
-      if (shouldRetry && (err?.response?.status === 401 || err?.response?.status === 403)) {
+      // Auth errors — try refreshing once, then retry if the request itself is retryable
+      if (isAuthError && attempt < maxRetries) {
         try {
-          await refreshCsrf()
-        } catch (csrfErr) {
-          console.warn('[upload] CSRF refresh failed during retry:', csrfErr?.message || csrfErr)
+          await attemptTokenRefresh()
+          attempt++
+          continue
+        } catch (refreshErr) {
+          const refreshIsNetworkError =
+            refreshErr?.message?.includes('Could not refresh') ||
+            refreshErr?.message?.includes('Network error') ||
+            refreshErr?.cause?.name === 'AbortError' ||
+            refreshErr?.cause?.name === 'TypeError'
+
+          if (refreshIsNetworkError) {
+            attempt++
+            continue
+          }
+
+          // Genuine auth failure — don't retry
+          onStateChange?.('failed')
+          throw new Error(`Authentication required: ${refreshErr.message}`, { cause: refreshErr })
         }
       }
 
-      if (shouldRetry) {
+      if (!isAuthError && attempt < maxRetries && isRetryableError(err)) {
         attempt++
         continue
       }
@@ -263,11 +276,18 @@ export async function uploadImageBatch(files, folder = 'portfolio/before', optio
 }
 
 export async function uploadPortfolioImages(files, imageType, options = {}) {
-  const { onImageProgress, onOverallProgress } = options
+  const { onImageProgress, onOverallProgress, signal } = options
   const folder = `portfolio/${imageType}`
+
+  // Warm the backend before starting any uploads. On Render free-tier, the
+  // server spins down after 15 minutes of inactivity; a lightweight
+  // health-check wakes the instance so uploads don't pay the cold-start penalty.
+  await warmServer()
+
   const results = await uploadImageBatch(files, folder, {
     onImageProgress,
     onOverallProgress,
+    signal,
   })
 
   const successful = []

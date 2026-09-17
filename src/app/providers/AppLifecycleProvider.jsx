@@ -30,9 +30,13 @@ export function AppLifecycleProvider({ children }) {
       window.dispatchEvent(new CustomEvent('hok-app-resumed', { detail: { idleMs } }))
     }
 
-    // Always re-validate the auth session when the tab becomes visible.
+    // Only re-validate the auth session when the tab becomes visible after
+    // a meaningful idle period. The access token (2h TTL) is validated
+    // pro-actively by api.js before each request, so we don't need to ping
+    // /auth/me on every tab switch — that was causing spurious "Session
+    // expired" messages during Render cold starts.
     const token = localStorage.getItem('hok_access_token')
-    if (token) {
+    if (token && idleMs >= STALE_THRESHOLD_MS) {
       validateSession()
     }
   }, [validateSession])

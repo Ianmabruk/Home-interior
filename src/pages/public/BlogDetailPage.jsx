@@ -93,6 +93,7 @@ export const BlogDetailPage = () => {
   const [related, setRelated] = useState([])
   const [navigation, setNavigation] = useState({ previous: null, next: null })
   const [copied, setCopied] = useState(false)
+  const [videoPlayed, setVideoPlayed] = useState(false)
   const reduceMotion = useIsMobile()
 
   const loadBlog = useCallback(async () => {
@@ -142,15 +143,39 @@ export const BlogDetailPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blog])
 
-  useEffect(() => {
+  const tags = extractTags(blog?.tags)
+  const readingTime = blog?.content ? getReadingTime(blog.content) : 1
+  const imageUrl = blog?.imageUrl || blog?.image || null
+  const videoUrl = blog?.videoUrl || blog?.video || null
+  const mediaUrls = blog?.mediaUrls || []
+
+  const incrementView = () => {
     if (!blog?.id) return
-    // Deduplicate: one view per blog per 24h per browser
     const key = `hok_bv_${blog.id}`
     const last = Number(localStorage.getItem(key) || 0)
     if (Date.now() - last < 86400000) return
     localStorage.setItem(key, String(Date.now()))
     api.post(`/blog/${blog.id}/view`).catch(() => {})
-  }, [blog?.id])
+  }
+
+  useEffect(() => {
+    if (!blog?.id) return
+    // For video blogs, only count a view when the video actually plays.
+    // For text-only blogs, count on page load (current behaviour).
+    if (videoUrl) {
+      // Wait for the video to play before incrementing the view count.
+      return
+    }
+    incrementView()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blog?.id, videoUrl])
+
+  const handleVideoPlay = () => {
+    if (videoUrl && !videoPlayed) {
+      setVideoPlayed(true)
+      incrementView()
+    }
+  }
 
   useEffect(() => {
     const handler = (event) => {
@@ -191,12 +216,6 @@ export const BlogDetailPage = () => {
     linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`,
     pinterest: `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(window.location.href)}&description=${encodeURIComponent(blog.title)}`,
   } : null
-
-  const tags = extractTags(blog?.tags)
-  const readingTime = blog?.content ? getReadingTime(blog.content) : 1
-  const imageUrl = blog?.imageUrl || blog?.image || null
-  const videoUrl = blog?.videoUrl || blog?.video || null
-  const mediaUrls = blog?.mediaUrls || []
 
   useEffect(() => {
     if (!blog) return
@@ -407,7 +426,7 @@ export const BlogDetailPage = () => {
           )}
 
           {/* Video */}
-          {videoUrl && !videoError && (
+           {videoUrl && !videoError && (
             <motion.div
               initial={reduceMotion ? false : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -420,9 +439,12 @@ export const BlogDetailPage = () => {
                 poster={getVideoPosterUrl(videoUrl)}
                 controls
                 playsInline
+                muted
+                autoPlay={reduceMotion ? false : undefined}
                 preload="metadata"
                 type="video/mp4"
                 className="w-full h-full object-contain"
+                onPlay={handleVideoPlay}
                 onError={(e) => {
                   console.warn('[BlogDetailPage] Video load error:', e.target.error?.message)
                   setVideoError(true)

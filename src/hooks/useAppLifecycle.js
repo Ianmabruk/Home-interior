@@ -2,8 +2,12 @@ import { useEffect, useRef } from 'react'
 
 export function useAppLifecycle(callbacks) {
   // Keep callbacks in a ref so the effect never needs to re-run when they change.
+  // We update the ref in an effect (not during render) to satisfy React's
+  // "no ref mutation during render" rule.
   const callbacksRef = useRef(callbacks)
-  callbacksRef.current = callbacks
+  useEffect(() => {
+    callbacksRef.current = callbacks
+  }, [callbacks])
 
   useEffect(() => {
     const handleVisibilityChange = () => {

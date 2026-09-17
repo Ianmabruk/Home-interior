@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from 'react'
-import { api, clearApiCache } from '../services/api'
-import { useAppLifecycle } from '../hooks/useAppLifecycle'
+import { api, attemptTokenRefresh } from '../services/api'
 
 const AuthContext = createContext(null)
 
@@ -21,8 +20,6 @@ export function AuthProvider({ children }) {
     }
     cancelledRef.current = false
 
-    // Perform a couple of transient retries for network/5xx errors so
-    // intermittent failures don't immediately clear a valid session.
     const MAX_ATTEMPTS = 2
     let attempt = 0
     while (attempt <= MAX_ATTEMPTS && !cancelledRef.current) {
@@ -33,25 +30,38 @@ export function AuthProvider({ children }) {
       } catch (err) {
         if (cancelledRef.current) break
         const status = err?.response?.status
-        if (status === 401) {
-          // Explicit unauthorized: remove token and clear user immediately
-          localStorage.removeItem('hok_access_token')
-          if (!cancelledRef.current) setUser(null)
-          break
+
+        // Network/5xx errors — retry with backoff (could be cold-start, temporary outage)
+        const shouldRetry = !status || status >= 500 || status === 429 || status === 408 || status === 503
+        if (shouldRetry) {
+          attempt += 1
+          if (attempt > MAX_ATTEMPTS) {
+            // Preserve existing user state on transient failures; just stop.
+            break
+          }
+          const delay = Math.min(1000 * 2 ** (attempt - 1), 3000) + Math.random() * 200
+          await new Promise((r) => setTimeout(r, delay))
+          continue
         }
 
-        // Retry on network or server errors; otherwise stop retrying.
-        const shouldRetry = !status || status >= 500 || status === 429 || status === 408
-        attempt += 1
-        if (!shouldRetry || attempt > MAX_ATTEMPTS) {
-          // Preserve existing user state on transient failures; just stop.
-          break
+        // 401 — the access token is expired or invalid. Try a refresh
+        // using the httpOnly refresh cookie BEFORE clearing the session.
+        if (status === 401) {
+          try {
+            await attemptTokenRefresh()
+            // Refresh succeeded — retry the /auth/me call
+            continue
+          } catch {
+            // Refresh genuinely failed (token revoked, etc.) — clear session
+            localStorage.removeItem('hok_access_token')
+            localStorage.removeItem('hok_csrf_token')
+            if (!cancelledRef.current) setUser(null)
+            break
+          }
         }
-        // Exponential backoff with jitter
-        const delay = Math.min(1000 * 2 ** (attempt - 1), 3000) + Math.random() * 200
-        // eslint-disable-next-line no-await-in-loop
-        await new Promise((r) => setTimeout(r, delay))
-        continue
+
+        // Any other 4xx (403, 404, etc.) — preserve session, stop retrying
+        break
       }
     }
 
@@ -63,39 +73,19 @@ export function AuthProvider({ children }) {
     return () => { cancelledRef.current = true }
   }, [validateSession])
 
-  // Track when the tab was last visible so we only re-validate after meaningful
-  // idle periods (>= 10 minutes) rather than on every focus/tab-switch.
-  const lastVisibleRef = useRef(Date.now())
+  // Session re-validation on tab visibility / app resume is handled centrally
+  // by AppLifecycleProvider to avoid duplicate /auth/me calls when both this
+  // provider and AppLifecycleProvider register useAppLifecycle hooks.
 
-  useAppLifecycle({
-    onVisible: () => {
-      const token = localStorage.getItem('hok_access_token')
-      const idleMs = Date.now() - lastVisibleRef.current
-      lastVisibleRef.current = Date.now()
-
-      if (token && idleMs >= 10 * 60 * 1000) {
-        // After 10+ minutes of inactivity: re-validate session AND clear the
-        // in-memory API cache so all pages refetch fresh data from the backend.
-        clearApiCache()
-        validateSession()
-      } else if (token && idleMs >= 60 * 1000) {
-        // After 1+ minute: just re-validate the session token silently.
-        validateSession()
-      }
-    },
-    onHidden: () => {
-      lastVisibleRef.current = Date.now()
-    },
-  })
+  const handleAuthFailed = useCallback(() => {
+    setUser(null)
+    setLoading(false)
+  }, [])
 
   useEffect(() => {
-    const handler = () => {
-      setUser(null)
-      setLoading(false)
-    }
-    window.addEventListener('hok-auth-failed', handler)
-    return () => window.removeEventListener('hok-auth-failed', handler)
-  }, [])
+    window.addEventListener('hok-auth-failed', handleAuthFailed)
+    return () => window.removeEventListener('hok-auth-failed', handleAuthFailed)
+  }, [handleAuthFailed])
 
   const login = useCallback(async (email, password) => {
     const res = await api.post('/auth/login', { email, password })

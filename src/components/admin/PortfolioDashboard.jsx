@@ -302,13 +302,25 @@ export const PortfolioDashboard = () => {
 
     updateUploadImageState(id, { status: 'retrying', error: null, retries: (imageState.retries || 0) + 1 })
 
-    // Ensure we have a valid token before retrying.
+    // Ensure we have a valid token before retrying. Network errors (cold
+    // starts, transient outages) should not kill the retry — only genuine
+    // auth failures should.
     try {
       await ensureValidToken()
     } catch (tokenErr) {
-      updateUploadImageState(id, { status: 'failed', error: tokenErr.message })
-      toast.error(`Image "${file?.name}" failed: ${tokenErr.message}`)
-      return null
+      const isNetworkError =
+        tokenErr?.message?.includes('Could not refresh') ||
+        tokenErr?.message?.includes('Network error') ||
+        tokenErr?.cause?.name === 'AbortError' ||
+        tokenErr?.cause?.name === 'TypeError'
+
+      if (!isNetworkError) {
+        updateUploadImageState(id, { status: 'failed', error: tokenErr.message })
+        toast.error(`Image "${file?.name}" failed: ${tokenErr.message}`)
+        return null
+      }
+      // Network error — fall through and let the upload attempt itself
+      // handle timeout/retry logic via the API interceptor.
     }
 
     try {
@@ -327,9 +339,17 @@ export const PortfolioDashboard = () => {
       toast.success(`Image "${file?.name}" uploaded successfully`)
       return url
     } catch (err) {
-      const errorMsg = err?.response?.data?.message || err?.message || 'Upload failed'
-      updateUploadImageState(id, { status: 'failed', error: errorMsg })
-      toast.error(`Image "${file?.name}" failed: ${errorMsg}`)
+      const status = err?.response?.status
+      const isAuthError = status === 401 || status === 403
+
+      if (isAuthError) {
+        toast.error('Session expired. Please refresh the page and log in again.')
+      } else {
+        const errorMsg = err?.response?.data?.message || err?.message || 'Upload failed'
+        toast.error(`Image "${file?.name}" failed: ${errorMsg}`)
+      }
+
+      updateUploadImageState(id, { status: 'failed', error: isAuthError ? 'Session expired' : (err?.response?.data?.message || err?.message || 'Upload failed') })
       return null
     }
   }, [])
@@ -388,6 +408,13 @@ export const PortfolioDashboard = () => {
     setUploadOverallProgress(0)
     setUploadImageStates([])
 
+    // Warm the backend before starting uploads. On Render free-tier, the
+    // server spins down after 15 minutes of inactivity; a lightweight
+    // health-check wakes it so the subsequent upload doesn't pay the
+    // cold-start penalty. This is done before the token check so that the
+    // refresh call (if needed) also benefits from the warm server.
+    await warmServer()
+
     // Ensure a valid token exists before starting any upload.
     try {
       await ensureValidToken()
@@ -396,12 +423,6 @@ export const PortfolioDashboard = () => {
       setLoading(false)
       return
     }
-
-    // Warm the backend before starting uploads. On Render free-tier, the
-    // server spins down after 15 minutes of inactivity; a lightweight
-    // health-check wakes it so the subsequent upload doesn't pay the
-    // cold-start penalty.
-    await warmServer()
 
     try {
       const newBeforeFiles = beforeFiles.filter((f) => f instanceof File)

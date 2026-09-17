@@ -36,42 +36,79 @@ function isTokenValid() {
  * Ensures a valid access token exists before an upload. If the token is
  * missing or about to expire, attempts a refresh using the httpOnly refresh
  * cookie. Throws if no valid session can be obtained.
+ *
+ * Network/timeout errors (e.g. Render cold starts) are retried with backoff
+ * rather than treated as auth failures — a transient failure must NOT clear
+ * a valid access token or log the admin out.
  */
 async function ensureValidToken() {
   if (isTokenValid()) return localStorage.getItem('hok_access_token')
 
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 30000)
-    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
-      signal: controller.signal,
-    })
-    clearTimeout(timeoutId)
+  const MAX_ATTEMPTS = 3
+  let lastError
 
-    if (!response.ok) {
-      throw new Error('Token refresh failed')
-    }
+  for (let attempt = 0; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000)
+      const response = await fetch(joinUrl(API_BASE_URL, '/auth/refresh'), {
+        method: 'POST',
+        credentials: 'include',
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
 
-    const data = await response.json()
-    const accessToken = data?.data?.accessToken
-    if (!accessToken) {
-      throw new Error('No access token in refresh response')
-    }
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem('hok_access_token')
+        localStorage.removeItem('hok_csrf_token')
+        csrfToken = null
+        window.dispatchEvent(new CustomEvent('hok-auth-failed'))
+        throw new Error('Session expired. Please log in again.')
+      }
 
-    localStorage.setItem('hok_access_token', accessToken)
-    if (data?.data?.csrfToken) {
-      setStoredCsrfToken(data.data.csrfToken)
+      if (!response.ok) {
+        throw new Error(`Refresh returned ${response.status}`)
+      }
+
+      const data = await response.json()
+      const accessToken = data?.data?.accessToken
+      if (!accessToken) {
+        throw new Error('No access token in refresh response')
+      }
+
+      localStorage.setItem('hok_access_token', accessToken)
+      if (data?.data?.csrfToken) {
+        setStoredCsrfToken(data.data.csrfToken)
+      }
+      return accessToken
+    } catch (err) {
+      lastError = err
+
+      const isAuthError = err?.message?.includes('Session expired')
+      if (isAuthError) throw err
+
+      const isNetworkOrTimeout =
+        err?.name === 'AbortError' ||
+        err?.name === 'TypeError' ||
+        (err?.message && /refresh returned|timed out|fetch/i.test(err.message))
+
+      if (!isNetworkOrTimeout) {
+        localStorage.removeItem('hok_access_token')
+        localStorage.removeItem('hok_csrf_token')
+        csrfToken = null
+        window.dispatchEvent(new CustomEvent('hok-auth-failed'))
+        throw new Error('Session expired. Please log in again.', { cause: err })
+      }
+
+      if (attempt < MAX_ATTEMPTS) {
+        const delay = Math.min(1000 * 2 ** attempt, 4000) + Math.random() * 300
+        await new Promise((r) => setTimeout(r, delay))
+        continue
+      }
     }
-    return accessToken
-  } catch (err) {
-    localStorage.removeItem('hok_access_token')
-    localStorage.removeItem('hok_csrf_token')
-    csrfToken = null
-    window.dispatchEvent(new CustomEvent('hok-auth-failed'))
-    throw new Error('Session expired. Please log in again.', { cause: err })
   }
+
+  throw new Error(`Could not refresh token: ${lastError?.message || 'Network error'}`, { cause: lastError })
 }
 
 function getRequestTimeout(url) {
@@ -136,13 +173,13 @@ function combineSignals(a, b) {
   return combined.signal
 }
 
-// ─── Token refresh ────────────────────────────────────────────────────────────
+// ─── Token refresh ─────────────────────────────────────────────────────────────────
 // Single in-flight refresh promise so concurrent 401s only trigger one refresh.
 let refreshPromise = null
-// Track last refresh failure time — only block retries for 10s after a failure
+// Track last refresh failure time — only block retries for a short cooldown
 // so a transient network error doesn't permanently block the session.
 let refreshFailedAt = 0
-const REFRESH_FAILURE_COOLDOWN = 10000 // 10 seconds
+const REFRESH_FAILURE_COOLDOWN = 5000 // 5 seconds — short enough to retry quickly
 
 function isRefreshBlocked() {
   return refreshFailedAt > 0 && Date.now() - refreshFailedAt < REFRESH_FAILURE_COOLDOWN
@@ -152,47 +189,82 @@ async function attemptTokenRefresh() {
   if (refreshPromise) return refreshPromise
 
   refreshPromise = (async () => {
-    try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000)
-      const response = await fetch(joinUrl(API_BASE_URL, '/auth/refresh'), {
-        method: 'POST',
-        credentials: 'include',
-        signal: controller.signal,
-      })
-      clearTimeout(timeoutId)
+    let lastError
 
-      if (!response.ok) {
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000)
+        const response = await fetch(joinUrl(API_BASE_URL, '/auth/refresh'), {
+          method: 'POST',
+          credentials: 'include',
+          signal: controller.signal,
+        })
+        clearTimeout(timeoutId)
+
+        // Genuine auth rejection — the refresh token is expired/invalid.
+        // Clear state and force re-login.
+        if (response.status === 401 || response.status === 403) {
+          refreshFailedAt = Date.now()
+          localStorage.removeItem('hok_access_token')
+          try { localStorage.removeItem('hok_csrf_token') } catch { /* ignore */ }
+          csrfToken = null
+          window.dispatchEvent(new CustomEvent('hok-auth-failed'))
+          throw new Error('Refresh rejected (invalid session)')
+        }
+
+        // Other 4xx/5xx — retry with backoff (could be cold-start 503, etc.)
+        if (!response.ok) {
+          throw new Error(`Refresh returned ${response.status}`)
+        }
+
+        const data = await response.json()
+        const accessToken = data?.data?.accessToken
+        if (!accessToken) {
+          refreshFailedAt = Date.now()
+          localStorage.removeItem('hok_access_token')
+          window.dispatchEvent(new CustomEvent('hok-auth-failed'))
+          throw new Error('No access token in refresh response')
+        }
+
+        localStorage.setItem('hok_access_token', accessToken)
+        if (data?.data?.csrfToken) {
+          setStoredCsrfToken(data.data.csrfToken)
+        }
+        refreshFailedAt = 0
+        return accessToken
+      } catch (err) {
+        lastError = err
+
+        const isAuthError =
+          err?.message?.includes('invalid session') ||
+          err?.message?.includes('No access token')
+
+        if (isAuthError) throw err
+
+        // Network timeout / cold start — retry with backoff
+        if (attempt < 2) {
+          const delay = Math.min(1000 * 2 ** attempt, 4000) + Math.random() * 300
+          await new Promise((r) => setTimeout(r, delay))
+          continue
+        }
+
+        // Exhausted retries on network failures — do NOT clear the token or
+        // fire auth-failed. The existing token may still be valid; the request
+        // that triggered the refresh will get a 401 and can retry later.
         refreshFailedAt = Date.now()
-        localStorage.removeItem('hok_access_token')
-        try { localStorage.removeItem('hok_csrf_token') } catch { /* ignore */ }
-        csrfToken = null
-        window.dispatchEvent(new CustomEvent('hok-auth-failed'))
-        throw new Error('Refresh failed')
+        throw lastError
       }
-
-      const data = await response.json()
-      const accessToken = data?.data?.accessToken
-      if (!accessToken) {
-        refreshFailedAt = Date.now()
-        localStorage.removeItem('hok_access_token')
-        window.dispatchEvent(new CustomEvent('hok-auth-failed'))
-        throw new Error('No access token in refresh response')
-      }
-
-      localStorage.setItem('hok_access_token', accessToken)
-      if (data?.data?.csrfToken) {
-        setStoredCsrfToken(data.data.csrfToken)
-      }
-      // Reset failure tracking on success
-      refreshFailedAt = 0
-      return accessToken
-    } finally {
-      refreshPromise = null
     }
+
+    throw lastError
   })()
 
-  return refreshPromise
+  try {
+    return await refreshPromise
+  } finally {
+    refreshPromise = null
+  }
 }
 
 // ─── CSRF ─────────────────────────────────────────────────────────────────────
@@ -549,4 +621,4 @@ function getCancelable(url, config = {}) {
 // Load any stored CSRF token on module init
 loadStoredCsrfToken()
 
-export { api, getCacheStats, clearApiCache, getCancelable, ensureValidToken, isTokenValid }
+export { api, getCacheStats, clearApiCache, getCancelable, ensureValidToken, isTokenValid, attemptTokenRefresh }
