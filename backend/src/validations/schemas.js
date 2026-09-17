@@ -151,7 +151,7 @@ const stringArray = z
     return []
   })
 
-const stringArrayMax35 = stringArray.refine((val) => val.length <= 35, 'Maximum 35 images allowed')
+const stringArrayMax40 = stringArray.refine((val) => val.length <= 40, 'Maximum 40 images allowed')
 
 export const portfolioSchemas = {
     reorder: z.object({
@@ -173,21 +173,21 @@ export const portfolioSchemas = {
       featured: z.union([z.boolean(), z.string()]).optional(),
       displayOrder: z.coerce.number().int().nonnegative().optional(),
       published: z.union([z.boolean(), z.string()]).optional(),
-      mediaUrls: z.array(z.string()).max(35, 'Maximum 35 gallery images allowed').optional(),
-      beforeImages: stringArrayMax35.optional(),
-      afterImages: stringArrayMax35.optional(),
-      imageUrl: z.string().optional(),
-    }),
-    update: z.object({
-      title: z.string().optional(),
-      description: z.string().optional(),
-      category: z.string().optional(),
-      featured: z.union([z.boolean(), z.string()]).optional(),
-      displayOrder: z.coerce.number().int().nonnegative().optional(),
-      published: z.union([z.boolean(), z.string()]).optional(),
-      mediaUrls: z.array(z.string()).max(35, 'Maximum 35 gallery images allowed').optional(),
-      beforeImages: stringArrayMax35.optional(),
-      afterImages: stringArrayMax35.optional(),
+       mediaUrls: z.array(z.string()).max(40, 'Maximum 40 gallery images allowed').optional(),
+       beforeImages: stringArrayMax40.optional(),
+       afterImages: stringArrayMax40.optional(),
+       imageUrl: z.string().optional(),
+     }),
+     update: z.object({
+       title: z.string().optional(),
+       description: z.string().optional(),
+       category: z.string().optional(),
+       featured: z.union([z.boolean(), z.string()]).optional(),
+       displayOrder: z.coerce.number().int().nonnegative().optional(),
+       published: z.union([z.boolean(), z.string()]).optional(),
+       mediaUrls: z.array(z.string()).max(40, 'Maximum 40 gallery images allowed').optional(),
+       beforeImages: stringArrayMax40.optional(),
+       afterImages: stringArrayMax40.optional(),
     }),
   }
 

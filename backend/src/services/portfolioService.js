@@ -2,7 +2,8 @@ import { prisma } from '../config/database.js'
 import { uploadFile, deleteFile, deleteFiles } from '../uploads/uploadService.js'
 import { failure } from '../utils/response.js'
 
-const MAX_IMAGES_PER_SECTION = 35
+const MAX_IMAGES_PER_SECTION = 40
+const MAX_TOTAL_IMAGES = 80
 
 function enforceImageLimit(section, total, existingCount, requestedNew) {
   if (total > MAX_IMAGES_PER_SECTION) {
@@ -11,14 +12,48 @@ function enforceImageLimit(section, total, existingCount, requestedNew) {
       `You can upload a maximum of ${MAX_IMAGES_PER_SECTION} ${section.charAt(0).toUpperCase() + section.slice(1)} images. You currently have ${existingCount}, so you can add ${remaining} more.`,
     )
     err.status = 400
+    err.code = `${section.toUpperCase()}_IMAGE_LIMIT_EXCEEDED`
     err.details = {
+      error: err.code,
+      message: `${section.charAt(0).toUpperCase() + section.slice(1)} images cannot exceed ${MAX_IMAGES_PER_SECTION}.`,
+      currentCount: existingCount,
+      newCount: requestedNew,
+      maximum: MAX_IMAGES_PER_SECTION,
+      limit: MAX_IMAGES_PER_SECTION,
+      remaining,
       limitType: section,
       section,
-      limit: MAX_IMAGES_PER_SECTION,
-      existing: existingCount,
-      requested: requestedNew,
       total,
+      requested: requestedNew,
+    }
+    throw err
+  }
+}
+
+function enforceTotalLimit(beforeTotal, afterTotal, beforeExisting, afterExisting, beforeNew, afterNew) {
+  const combined = beforeTotal + afterTotal
+  if (combined > MAX_TOTAL_IMAGES) {
+    const remaining = Math.max(0, MAX_TOTAL_IMAGES - (beforeExisting + afterExisting))
+    const err = new Error(
+      `You can upload a maximum of ${MAX_TOTAL_IMAGES} total images (Before + After combined). You currently have ${beforeExisting + afterExisting}, so you can add ${remaining} more.`,
+    )
+    err.status = 400
+    err.code = 'TOTAL_IMAGE_LIMIT_EXCEEDED'
+    err.details = {
+      error: err.code,
+      message: `Total images (Before + After) cannot exceed ${MAX_TOTAL_IMAGES}.`,
+      currentCount: beforeExisting + afterExisting,
+      newCount: beforeNew + afterNew,
+      maximum: MAX_TOTAL_IMAGES,
+      limit: MAX_TOTAL_IMAGES,
       remaining,
+      limitType: 'total',
+      section: 'total',
+      beforeExisting,
+      afterExisting,
+      beforeNew,
+      afterNew,
+      total: combined,
     }
     throw err
   }
@@ -187,9 +222,18 @@ async function createPortfolio(data, file, beforeFiles = [], afterFiles = [], ci
   const existingAfterCount = data.afterImages?.length || 0
 
   // Check limits BEFORE uploading to prevent orphaned Cloudinary files when
-  // the total (existing + new) exceeds the maximum allowed per section.
+  // the total (existing + new) exceeds the maximum allowed per section, or when
+  // the combined Before + After total exceeds the overall limit.
   enforceImageLimit('before', existingBeforeCount + beforeFiles.length, existingBeforeCount, beforeFiles.length)
   enforceImageLimit('after', existingAfterCount + afterFiles.length, existingAfterCount, afterFiles.length)
+  enforceTotalLimit(
+    existingBeforeCount + beforeFiles.length,
+    existingAfterCount + afterFiles.length,
+    existingBeforeCount,
+    existingAfterCount,
+    beforeFiles.length,
+    afterFiles.length,
+  )
 
   const beforeImages = [...(data.beforeImages || [])]
   const afterImages = [...(data.afterImages || [])]
@@ -288,9 +332,17 @@ async function updatePortfolio(id, data, file, beforeFiles = [], afterFiles = []
   const uploadPromises = []
   const uploadStart = Date.now()
 
-   // Check limits BEFORE uploading to prevent orphaned Cloudinary files.
-   enforceImageLimit('before', beforeImages.length + beforeFiles.length, beforeImages.length, beforeFiles.length)
-   enforceImageLimit('after', afterImages.length + afterFiles.length, afterImages.length, afterFiles.length)
+    // Check limits BEFORE uploading to prevent orphaned Cloudinary files.
+    enforceImageLimit('before', beforeImages.length + beforeFiles.length, beforeImages.length, beforeFiles.length)
+    enforceImageLimit('after', afterImages.length + afterFiles.length, afterImages.length, afterFiles.length)
+    enforceTotalLimit(
+      beforeImages.length + beforeFiles.length,
+      afterImages.length + afterFiles.length,
+      beforeImages.length,
+      afterImages.length,
+      beforeFiles.length,
+      afterFiles.length,
+    )
 
   if (file) {
     if (existing.cloudinaryId) uploadPromises.push(deleteFile(existing.cloudinaryId))

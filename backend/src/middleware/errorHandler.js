@@ -57,6 +57,7 @@ export function errorHandler(err, req, res, next) {
 
   res.setHeader('X-Server-ID', SERVER_ID)
   const body = { success: false, message }
+  if (err?.code) body.code = err.code
   if (err?.details) body.details = err.details
   res.status(status).json(body)
 }

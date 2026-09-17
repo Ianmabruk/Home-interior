@@ -19,7 +19,8 @@ const INITIAL_FORM = {
   published: true,
 }
 
-const MAX_IMAGES = 35
+const MAX_IMAGES = 40
+const MAX_TOTAL_IMAGES = 80
 
 export const PortfolioDashboard = () => {
    const [portfolio, setPortfolio] = useState([])
@@ -147,16 +148,33 @@ export const PortfolioDashboard = () => {
     }
   }
 
-  const handleImageFiles = async (files, setFiles, setPreviews, currentCount) => {
+  const handleImageFiles = async (files, setFiles, setPreviews, currentCount, otherCount, imageType) => {
     const validFiles = Array.from(files).filter((f) => f.type.startsWith('image/'))
-    const remaining = Math.max(0, MAX_IMAGES - currentCount)
-    if (validFiles.length > remaining) {
-      toast.error(`You currently have ${currentCount} image${currentCount !== 1 ? 's' : ''} in this section. You can add ${remaining} more (maximum ${MAX_IMAGES}).`)
-      validFiles.splice(remaining)
-    }
     if (validFiles.length === 0) return
 
-    const compressed = await compressImages(validFiles, { maxWidth: 1600, maxHeight: 1600 })
+    // Allow adding all selected files (up to a generous hard limit to prevent abuse)
+    // Validation happens at submit time and user can remove individual images
+    const HARD_LIMIT = 80
+    const filesToAdd = validFiles.slice(0, HARD_LIMIT)
+
+    const sectionRemaining = Math.max(0, MAX_IMAGES - currentCount)
+    const totalRemaining = Math.max(0, MAX_TOTAL_IMAGES - currentCount - otherCount)
+    const remaining = Math.min(sectionRemaining, totalRemaining)
+
+    if (filesToAdd.length > remaining) {
+      if (remaining === 0) {
+        if (currentCount >= MAX_IMAGES) {
+          toast.error(`Maximum ${MAX_IMAGES} ${imageType} images reached. Please remove some existing ${imageType.toLowerCase()} images before adding more.`)
+        } else {
+          toast.error(`Total image limit of ${MAX_TOTAL_IMAGES} reached. You can add ${totalRemaining} more across both sections. Please remove some selected images to continue.`)
+        }
+      } else {
+        toast.error(`You currently have ${currentCount} ${imageType.toLowerCase()} images. You can add ${remaining} more (maximum ${MAX_IMAGES} per section, ${MAX_TOTAL_IMAGES} total). You selected ${filesToAdd.length} - please remove ${filesToAdd.length - remaining} to continue.`)
+      }
+      // Note: We still add all files to let user remove individual ones, but warn them
+    }
+
+    const compressed = await compressImages(filesToAdd, { maxWidth: 1600, maxHeight: 1600 })
     if (compressed.length === 0) return
 
     setFiles((prev) => [...prev, ...compressed])
@@ -168,11 +186,11 @@ export const PortfolioDashboard = () => {
   }
 
   const handleBeforeFiles = (files) => {
-    handleImageFiles(files, setBeforeFiles, setBeforePreviews, beforePreviews.length)
+    handleImageFiles(files, setBeforeFiles, setBeforePreviews, beforePreviews.length, afterPreviews.length, 'Before')
   }
 
   const handleAfterFiles = (files) => {
-    handleImageFiles(files, setAfterFiles, setAfterPreviews, afterPreviews.length)
+    handleImageFiles(files, setAfterFiles, setAfterPreviews, afterPreviews.length, beforePreviews.length, 'After')
   }
 
   const handleMainDrop = (e) => {
@@ -447,6 +465,28 @@ export const PortfolioDashboard = () => {
           throw new Error('Some images failed validation')
         }
 
+        const existingBeforeCount = beforeFiles.filter((f) => !(f instanceof File)).length
+        const existingAfterCount = afterFiles.filter((f) => !(f instanceof File)).length
+        const projectedBeforeCount = existingBeforeCount + newBeforeFiles.length
+        const projectedAfterCount = existingAfterCount + newAfterFiles.length
+        const projectedTotalCount = projectedBeforeCount + projectedAfterCount
+
+        if (projectedBeforeCount > MAX_IMAGES || projectedAfterCount > MAX_IMAGES || projectedTotalCount > MAX_TOTAL_IMAGES) {
+          const limitErrors = []
+          if (projectedBeforeCount > MAX_IMAGES) {
+            limitErrors.push(`Before images would reach ${projectedBeforeCount} (${existingBeforeCount} existing + ${newBeforeFiles.length} new), exceeding the ${MAX_IMAGES} limit. You can add up to ${MAX_IMAGES - existingBeforeCount} more before images.`)
+          }
+          if (projectedAfterCount > MAX_IMAGES) {
+            limitErrors.push(`After images would reach ${projectedAfterCount} (${existingAfterCount} existing + ${newAfterFiles.length} new), exceeding the ${MAX_IMAGES} limit. You can add up to ${MAX_IMAGES - existingAfterCount} more after images.`)
+          }
+          if (projectedTotalCount > MAX_TOTAL_IMAGES) {
+            limitErrors.push(`Total images would reach ${projectedTotalCount} (${projectedBeforeCount} before + ${projectedAfterCount} after), exceeding the ${MAX_TOTAL_IMAGES} total limit.`)
+          }
+          limitErrors.forEach((msg) => toast.error(msg))
+          setIsUploadingImages(false)
+          return
+        }
+
         const compressedBefore = newBeforeFiles.length > 0
           ? await compressImages(newBeforeFiles, { maxWidth: 1920, maxHeight: 1920, quality: 0.82 })
           : []
@@ -512,6 +552,9 @@ export const PortfolioDashboard = () => {
         }
         if (finalAfterUrls.length > MAX_IMAGES) {
           throw new Error(`After images exceed limit of ${MAX_IMAGES}`)
+        }
+        if (finalBeforeUrls.length + finalAfterUrls.length > MAX_TOTAL_IMAGES) {
+          throw new Error(`Total images (Before + After) exceed limit of ${MAX_TOTAL_IMAGES}`)
         }
 
         const payload = new FormData()
@@ -873,16 +916,27 @@ export const PortfolioDashboard = () => {
     dropHandler,
     orderChanged,
     setOrderChanged,
-  ) => (
+    imageType,
+    otherPreviews,
+  ) => {
+    const totalCount = previews.length + (otherPreviews?.length || 0)
+    return (
     <div className="space-y-2">
       <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70 flex items-center gap-2">
         <Images size={14} strokeWidth={1.5} />
         {title} (<span className="text-[var(--accent)]">{previews.length}</span>/{MAX_IMAGES})
-        <span className="text-[var(--primary)]/40">· {Math.max(0, MAX_IMAGES - previews.length)} slots remaining</span>
+        <span className="text-[var(--primary)]/40">· {Math.max(0, MAX_IMAGES - previews.length)} {imageType} slots remaining</span>
         {orderChanged && (
           <span className="text-[var(--accent)] text-[10px] font-medium">• Unsaved changes</span>
         )}
       </label>
+      {otherPreviews !== undefined && (
+        <div className="text-[10px] text-[var(--primary)]/40 flex items-center gap-2">
+          <span>Total Images: <span className="text-[var(--accent)] font-medium">{totalCount}/{MAX_TOTAL_IMAGES}</span></span>
+          <span className="text-[var(--primary)]/30">·</span>
+          <span>{Math.max(0, MAX_TOTAL_IMAGES - totalCount)} of {MAX_TOTAL_IMAGES} total slots remaining</span>
+        </div>
+      )}
       <input
         ref={fileRef}
         type="file"
@@ -981,13 +1035,18 @@ export const PortfolioDashboard = () => {
             </motion.div>
             <div>
               <p className="text-sm font-medium text-[var(--primary)]">Drop images here or click to browse</p>
-              <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG, WebP up to 10MB each (max {MAX_IMAGES})</p>
+              <p className="text-[10px] text-[var(--primary)]/50 mt-1">
+                PNG, JPG, WebP up to 10MB each
+                <br />
+                {Math.max(0, MAX_IMAGES - previews.length)} {imageType} slots remaining · {Math.max(0, MAX_TOTAL_IMAGES - totalCount)} total slots remaining
+              </p>
             </div>
           </div>
         )}
       </motion.div>
     </div>
   )
+  }
 
   return (
     <div className="space-y-6">
@@ -1147,43 +1206,45 @@ export const PortfolioDashboard = () => {
 
             {renderMainImageSection()}
 
-            {renderImageSection(
-              'Before Images (Optional)',
-              beforeFiles,
-              beforePreviews,
-              setBeforeFiles,
-              setBeforePreviews,
-              handleBeforeFiles,
-              removeBeforeImage,
-              beforeFileRef,
-              isDragOverBefore,
-              setIsDragOverBefore,
-              handleBeforeDragOver,
-              handleBeforeDragLeave,
-              handleBeforeDrop,
-              beforeOrderChanged,
-              setBeforeOrderChanged,
-              'before',
-            )}
+             {renderImageSection(
+               'Before Images (Optional)',
+               beforeFiles,
+               beforePreviews,
+               setBeforeFiles,
+               setBeforePreviews,
+               handleBeforeFiles,
+               removeBeforeImage,
+               beforeFileRef,
+               isDragOverBefore,
+               setIsDragOverBefore,
+               handleBeforeDragOver,
+               handleBeforeDragLeave,
+               handleBeforeDrop,
+               beforeOrderChanged,
+               setBeforeOrderChanged,
+               'before',
+               afterPreviews,
+             )}
 
-            {renderImageSection(
-              'After Images (Optional)',
-              afterFiles,
-              afterPreviews,
-              setAfterFiles,
-              setAfterPreviews,
-              handleAfterFiles,
-              removeAfterImage,
-              afterFileRef,
-              isDragOverAfter,
-              setIsDragOverAfter,
-              handleAfterDragOver,
-              handleAfterDragLeave,
-              handleAfterDrop,
-              afterOrderChanged,
-              setAfterOrderChanged,
-              'after',
-            )}
+             {renderImageSection(
+               'After Images (Optional)',
+               afterFiles,
+               afterPreviews,
+               setAfterFiles,
+               setAfterPreviews,
+               handleAfterFiles,
+               removeAfterImage,
+               afterFileRef,
+               isDragOverAfter,
+               setIsDragOverAfter,
+               handleAfterDragOver,
+               handleAfterDragLeave,
+               handleAfterDrop,
+                afterOrderChanged,
+                setAfterOrderChanged,
+                'after',
+                beforePreviews,
+              )}
 
             {(beforeOrderChanged || afterOrderChanged) && (
               <motion.button

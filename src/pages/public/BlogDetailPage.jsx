@@ -425,7 +425,7 @@ export const BlogDetailPage = () => {
             </motion.div>
           )}
 
-          {/* Video */}
+{/* Video */}
            {videoUrl && !videoError && (
             <motion.div
               initial={reduceMotion ? false : { opacity: 0, y: 20 }}
@@ -435,21 +435,24 @@ export const BlogDetailPage = () => {
             >
               <video
                 key={getOptimizedVideoUrl(videoUrl) || videoUrl}
-                src={getOptimizedVideoUrl(videoUrl) || videoUrl}
                 poster={getVideoPosterUrl(videoUrl)}
                 controls
                 playsInline
                 muted
                 autoPlay={reduceMotion ? false : undefined}
                 preload="metadata"
-                type="video/mp4"
                 className="w-full h-full object-contain"
                 onPlay={handleVideoPlay}
                 onError={(e) => {
                   console.warn('[BlogDetailPage] Video load error:', e.target.error?.message)
                   setVideoError(true)
                 }}
-              />
+              >
+                <source src={getOptimizedVideoUrl(videoUrl) || videoUrl} type="video/mp4" />
+                {/* Fallback to original URL if optimized fails */}
+                <source src={videoUrl} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
             </motion.div>
           )}
 

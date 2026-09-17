@@ -6,7 +6,7 @@ import { validateCsrfToken } from '../middleware/csrf.js'
 
 const router = Router()
 
-const MAX_IMAGES = 35
+const MAX_IMAGES = 40
 
 router.get('/', portfolioController.list)
 router.get('/:id', portfolioController.get)
