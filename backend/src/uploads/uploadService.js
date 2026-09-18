@@ -139,7 +139,8 @@ export async function uploadFile(buffer, mimetype, folder) {
     console.warn(`[uploadService] Large upload (${bufferSizeMB}MB) — may approach Cloudinary timeout on slow connections`)
   }
 
-  if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+  const useCloudinary = process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET && process.env.SKIP_CLOUDINARY !== 'true'
+  if (useCloudinary) {
     try {
       const uploaded = await uploadToCloudinary(optimizedBuffer, optimizedMimetype, folder)
       return { url: uploaded.url, path: uploaded.publicId, mimeType: optimizedMimetype, isLocal: false }

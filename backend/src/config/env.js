@@ -35,10 +35,11 @@ export function validateEnv() {
   if (!env.jwtAccessSecret) missing.push('JWT_ACCESS_SECRET')
   if (!env.jwtRefreshSecret) missing.push('JWT_REFRESH_SECRET')
   if (!env.databaseUrl) missing.push('DATABASE_URL')
-  const hasCloudinary = process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET
+  const hasCloudinary = process.env.SKIP_CLOUDINARY !== 'true' && process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET
   const hasSupabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!hasCloudinary && !hasSupabase) {
-    missing.push('Either CLOUDINARY_* or SUPABASE_* environment variables for file storage')
+  const isDevWithNoStorage = process.env.NODE_ENV === 'development' && process.env.SKIP_CLOUDINARY === 'true'
+  if (!hasCloudinary && !hasSupabase && !isDevWithNoStorage) {
+    missing.push('Either CLOUDINARY_* or SUPABASE_* environment variables for file storage (set SKIP_CLOUDINARY=true for local dev storage)')
   }
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`)

@@ -59,6 +59,29 @@ export const uploadToCloudinary = async (buffer, mimetype, folder) => {
       const ext = mimetype.split('/')[1] || 'bin'
       const publicId = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}`
 
+      const uploadOptions = {
+        resource_type: 'auto',
+        folder,
+        public_id: publicId,
+        overwrite: false,
+        quality: 'auto:good',
+      }
+
+      // For video uploads, use resource_type: 'video' (instead of 'auto')
+      // to ensure Cloudinary correctly identifies the file as a video.
+      // 'auto' can misidentify edge-case formats (e.g. HEIC video, ProRes),
+      // causing the secure_url to use /image/upload/ instead of /video/upload/,
+      // which breaks isCloudinaryVideo() checks and video playback.
+      // Also add a transformation to force H.264/AAC MP4 encoding at upload
+      // time, so the stored asset is always web-compatible — no on-the-fly
+      // transcoding needed at delivery time.
+      if (mimetype && mimetype.startsWith('video/')) {
+        uploadOptions.resource_type = 'video'
+        uploadOptions.transformation = [
+          { format: 'mp4', video_codec: 'h264', audio_codec: 'aac' },
+        ]
+      }
+
       const result = await new Promise((resolve, reject) => {
         let settled = false
         const timer = setTimeout(() => {
@@ -67,13 +90,7 @@ export const uploadToCloudinary = async (buffer, mimetype, folder) => {
           reject(new Error('Cloudinary upload timed out after 120000ms'))
         }, CLOUDINARY_UPLOAD_TIMEOUT_MS)
         const stream = cloudinary.uploader.upload_stream(
-          {
-            resource_type: 'auto',
-            folder,
-            public_id: publicId,
-            overwrite: false,
-            quality: 'auto:good',
-          },
+          uploadOptions,
           (error, result) => {
             if (settled) return
             clearTimeout(timer)
