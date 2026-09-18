@@ -22,8 +22,77 @@ const INITIAL_FORM = {
 const MAX_IMAGES = 40
 const MAX_TOTAL_IMAGES = 80
 
+// Stable identity for a browser File. Filename alone is not unique (two
+// different files can share a name), so name + size + lastModified is used to
+// reliably detect duplicate selections.
+const fileIdentity = (file) => (file ? `${file.name}|${file.size}|${file.lastModified}` : '')
+
+// Pure, framework-free decision function for the before/after image limits.
+//
+// `candidates`    - newly selected, compressed File objects, each tagged with
+//                   `__fileId` (the ORIGINAL file identity, see handleImageFiles).
+// `currentFiles`  - this section's array: existing persisted images live as
+//                   plain objects ({id, url} / {url}) while new pending files
+//                   are File instances. It never mixes the two.
+// `otherFiles`    - the other section's array (used for the 80-total cap).
+// `imageType`     - 'Before' | 'After'.
+//
+// Returns { accepted, feedback } where `accepted` is the subset of `candidates`
+// that fit within the 40-per-section / 80-total limits (new duplicates and
+// capacity excess are dropped) and `feedback` is { type, message } | null
+// describing exactly which limit bound the selection.
+export function computePortfolioSelection(candidates, currentFiles, otherFiles, imageType) {
+  const existingCount = currentFiles.filter((f) => !(f instanceof File)).length
+  const pendingNew = currentFiles.filter((f) => f instanceof File)
+
+  const otherExisting = otherFiles.filter((f) => !(f instanceof File)).length
+  const otherPending = otherFiles.filter((f) => f instanceof File).length
+  const otherTotal = otherExisting + otherPending
+
+  const sectionTotal = existingCount + pendingNew.length
+  const totalSoFar = sectionTotal + otherTotal
+
+  // Available capacity right now (existing persisted + already-pending new).
+  const sectionRemaining = Math.max(0, MAX_IMAGES - sectionTotal)
+  const totalRemaining = Math.max(0, MAX_TOTAL_IMAGES - totalSoFar)
+  const remaining = Math.min(sectionRemaining, totalRemaining)
+
+  // Drop duplicates of files already pending upload (by original identity).
+  const pendingKeys = new Set(pendingNew.map((f) => f.__fileId).filter(Boolean))
+  const notDuplicate = candidates.filter((c) => c.__fileId && !pendingKeys.has(c.__fileId))
+
+  // Enforce capacity: keep only as many as still fit, drop the excess.
+  const accepted = notDuplicate.slice(0, remaining)
+  const rejected = notDuplicate.length - accepted.length
+
+  let feedback = null
+  if (notDuplicate.length === 0) {
+    feedback = {
+      type: 'info',
+      message: `${imageType}: ${candidates.length} image(s) are already selected below and were not added again.`,
+    }
+  } else if (rejected > 0) {
+    let message
+    if (remaining === 0) {
+      // Section is full at 40/40. The 80 total is necessarily also exhausted
+      // because the other section cannot exceed 40.
+      message = `${imageType} images are full (${MAX_IMAGES}/${MAX_IMAGES}). Delete an existing ${imageType.toLowerCase()} image before adding another. ${rejected} new image(s) were not added.`
+    } else if (totalRemaining < sectionRemaining) {
+      // The combined 80 total is the binding constraint (only possible once the
+      // other section is already at 40).
+      message = `${imageType} has ${sectionTotal}/${MAX_IMAGES} images. Total limit reached: ${totalSoFar}/${MAX_TOTAL_IMAGES}. You selected ${notDuplicate.length} new images, but only ${remaining} can be added.`
+    } else {
+      // The per-section 40 limit is the binding constraint.
+      message = `${imageType} already contains ${sectionTotal} images. You selected ${notDuplicate.length} new images, but only ${remaining} can be added.`
+    }
+    feedback = { type: 'error', message }
+  }
+
+  return { accepted, feedback }
+}
+
 export const PortfolioDashboard = () => {
-   const [portfolio, setPortfolio] = useState([])
+  const [portfolio, setPortfolio] = useState([])
   const [form, setForm] = useState(INITIAL_FORM)
   const [editingId, setEditingId] = useState(null)
   const [mainImageFile, setMainImageFile] = useState(null)
@@ -46,7 +115,7 @@ export const PortfolioDashboard = () => {
     const [isReorderSaving, setIsReorderSaving] = useState(false)
     const [reorderDirty, setReorderDirty] = useState(false)
    const [isOffline, setIsOffline] = useState(!navigator.onLine)
-  const mainFileRef = useRef(null)
+   const mainFileRef = useRef(null)
   const beforeFileRef = useRef(null)
   const afterFileRef = useRef(null)
 
@@ -82,7 +151,7 @@ export const PortfolioDashboard = () => {
       window.removeEventListener('online', goOnline)
       window.removeEventListener('offline', goOffline)
     }
-  }, [load])
+   }, [load])
 
   const handleReorder = useCallback((newOrder) => {
     setPortfolio(newOrder)
@@ -148,49 +217,59 @@ export const PortfolioDashboard = () => {
     }
   }
 
-  const handleImageFiles = async (files, setFiles, setPreviews, currentCount, otherCount, imageType) => {
-    const validFiles = Array.from(files).filter((f) => f.type.startsWith('image/'))
-    if (validFiles.length === 0) return
+  const handleImageFiles = async (fileList, setFiles, setPreviews, currentFiles, otherFiles, imageType) => {
+    const incoming = Array.from(fileList).filter((f) => f && f.type.startsWith('image/'))
+    if (incoming.length === 0) return
 
-    // Allow adding all selected files (up to a generous hard limit to prevent abuse)
-    // Validation happens at submit time and user can remove individual images
-    const HARD_LIMIT = 80
-    const filesToAdd = validFiles.slice(0, HARD_LIMIT)
+    // De-duplicate within this single selection by file identity
+    // (name + size + lastModified). Filename alone is not unique.
+    const seen = new Set()
+    const uniqueIncoming = []
+    incoming.forEach((f) => {
+      const k = fileIdentity(f)
+      if (seen.has(k)) return
+      seen.add(k)
+      uniqueIncoming.push(f)
+    })
 
-    const sectionRemaining = Math.max(0, MAX_IMAGES - currentCount)
-    const totalRemaining = Math.max(0, MAX_TOTAL_IMAGES - currentCount - otherCount)
-    const remaining = Math.min(sectionRemaining, totalRemaining)
-
-    if (filesToAdd.length > remaining) {
-      if (remaining === 0) {
-        if (currentCount >= MAX_IMAGES) {
-          toast.error(`Maximum ${MAX_IMAGES} ${imageType} images reached. Please remove some existing ${imageType.toLowerCase()} images before adding more.`)
-        } else {
-          toast.error(`Total image limit of ${MAX_TOTAL_IMAGES} reached. You can add ${totalRemaining} more across both sections. Please remove some selected images to continue.`)
-        }
-      } else {
-        toast.error(`You currently have ${currentCount} ${imageType.toLowerCase()} images. You can add ${remaining} more (maximum ${MAX_IMAGES} per section, ${MAX_TOTAL_IMAGES} total). You selected ${filesToAdd.length} - please remove ${filesToAdd.length - remaining} to continue.`)
-      }
-      // Note: We still add all files to let user remove individual ones, but warn them
-    }
-
-    const compressed = await compressImages(filesToAdd, { maxWidth: 1600, maxHeight: 1600 })
+    const compressed = await compressImages(uniqueIncoming, { maxWidth: 1600, maxHeight: 1600 })
     if (compressed.length === 0) return
 
-    setFiles((prev) => [...prev, ...compressed])
+    // Compression may rename (e.g. to .webp) and resize a file, so carry the
+    // ORIGINAL file identity on each compressed file. This lets subsequent
+    // selections detect that a file is already pending upload.
+    compressed.forEach((c, i) => {
+      c.__fileId = fileIdentity(uniqueIncoming[i])
+    })
+
+    // Decide what to keep/drop using the pure helper. Capacity and de-dup are
+    // computed from the current state (existing vs new are never mixed, since
+    // File detection is by `instanceof File`); the submit-time validation below
+    // is an independent safety net that rejects any residual over-cap before
+    // any upload or database write.
+    const { accepted, feedback } = computePortfolioSelection(compressed, currentFiles, otherFiles, imageType)
+
+    if (feedback) {
+      if (feedback.type === 'error') toast.error(feedback.message)
+      else toast(feedback.message, { icon: 'ℹ️' })
+    }
+
+    if (accepted.length === 0) return
+
+    setFiles((prev) => [...prev, ...accepted])
     setPreviews((prevPreviews) => {
       const newPreviews = [...prevPreviews]
-      compressed.forEach((f) => newPreviews.push(URL.createObjectURL(f)))
+      accepted.forEach((f) => newPreviews.push(URL.createObjectURL(f)))
       return newPreviews
     })
   }
 
   const handleBeforeFiles = (files) => {
-    handleImageFiles(files, setBeforeFiles, setBeforePreviews, beforePreviews.length, afterPreviews.length, 'Before')
+    handleImageFiles(files, setBeforeFiles, setBeforePreviews, beforeFiles, afterFiles, 'Before')
   }
 
   const handleAfterFiles = (files) => {
-    handleImageFiles(files, setAfterFiles, setAfterPreviews, afterPreviews.length, beforePreviews.length, 'After')
+    handleImageFiles(files, setAfterFiles, setAfterPreviews, afterFiles, beforeFiles, 'After')
   }
 
   const handleMainDrop = (e) => {
@@ -779,7 +858,7 @@ export const PortfolioDashboard = () => {
         <Images size={14} strokeWidth={1.5} />
         Main Project Image <span className="text-[var(--error)]">*</span>
       </label>
-      <input ref={mainFileRef} type="file" accept="image/*" onChange={(e) => handleMainFiles(e.target.files)} className="hidden" />
+      <input ref={mainFileRef} type="file" accept="image/*" onChange={(e) => { const selected = Array.from(e.target.files || []); if (mainFileRef.current) mainFileRef.current.value = ''; handleMainFiles(selected) }} className="hidden" />
       <motion.div
         whileHover={{ scale: 1.01 }}
         onDrop={handleMainDrop}
@@ -942,7 +1021,11 @@ export const PortfolioDashboard = () => {
         type="file"
         accept="image/*"
         multiple
-        onChange={(e) => handleFiles(e.target.files)}
+        onChange={(e) => {
+          const selected = Array.from(e.target.files || [])
+          if (fileRef.current) fileRef.current.value = ''
+          handleFiles(selected)
+        }}
         className="hidden"
       />
       <motion.div
