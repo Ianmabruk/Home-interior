@@ -824,7 +824,14 @@ export const PortfolioDashboard = () => {
       }
     } catch (err) {
       console.error('Submit error:', err)
-      toast.error(err?.message || 'Failed to save portfolio project. Please try again.')
+      if (err?.status === 404) {
+        setEditingId(null)
+        resetForm()
+        load()
+        toast.error('This project no longer exists. It may have been deleted.')
+      } else {
+        toast.error(err?.message || 'Failed to save portfolio project. Please try again.')
+      }
     } finally {
       setLoading(false)
       setIsUploadingImages(false)
@@ -842,6 +849,10 @@ export const PortfolioDashboard = () => {
 
     try {
       await api.delete(`/admin/portfolio/${id}`)
+      if (editingId === id) {
+        setEditingId(null)
+        resetForm()
+      }
       load()
       dispatchAdminDataChanged('portfolio-changed')
       toast.success('Portfolio project deleted successfully.')

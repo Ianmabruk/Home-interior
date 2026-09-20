@@ -4,7 +4,7 @@ import { ArrowLeft, Share2, Facebook, Twitter, Linkedin, Copy, Calendar, User, C
 import { SiPinterest } from 'react-icons/si'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '@services/api'
-import { getOptimizedVideoUrl, getVideoPosterUrl } from '@utils/cloudinaryHelpers'
+import { getVideoPosterUrl } from '@utils/cloudinaryHelpers'
 import OptimizedImage from '@components/common/OptimizedImage'
 import { getReadingTime, formatDate, extractTags } from '@utils/blogHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
@@ -12,6 +12,7 @@ import { PageMeta } from '@hooks/usePageMeta'
 import { SectionErrorBoundary } from '@components/home/SectionErrorBoundary'
 import BlogCard from '@components/blog/BlogCard'
 import { useIsMobile } from '@hooks/useIsMobile'
+import BlogVideo from '@components/blog/BlogVideo'
 
 const SITE_URL = 'https://hokinteriors.com'
 const DEFAULT_OG_IMAGE = `${SITE_URL}/images/og-default.jpg`
@@ -433,22 +434,11 @@ export const BlogDetailPage = () => {
                transition={{ duration: 0.6, delay: 0.3 }}
                className="my-12 rounded-2xl overflow-hidden bg-[var(--secondary)]/30 aspect-video"
              >
-               <video
-                 key={videoUrl}
-                 src={getOptimizedVideoUrl(videoUrl, { width: 1280 })}
+               <BlogVideo
+                 src={videoUrl}
                  poster={getVideoPosterUrl(videoUrl)}
-                 controls
-                 playsInline
-                 preload="metadata"
-                 className="w-full h-full object-contain"
-                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                  onPlay={handleVideoPlay}
-                 onError={(e) => {
-                   console.warn('[BlogDetailPage] Video load error:', e.target.error?.message)
-                 }}
-               >
-                 Your browser does not support the video tag.
-               </video>
+               />
              </motion.div>
            )}
 
