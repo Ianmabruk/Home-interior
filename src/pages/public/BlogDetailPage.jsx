@@ -394,39 +394,17 @@ export const BlogDetailPage = () => {
             )}
           </motion.header>
 
-          {/* Rich Text Content */}
-          <motion.div
-            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="prose-wrapper"
-          >
-            <ContentRenderer content={blog.content || blog.description || ''} />
-          </motion.div>
+{/* Rich Text Content */}
+           <motion.div
+             initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ duration: 0.6, delay: 0.2 }}
+             className="prose-wrapper"
+           >
+             <ContentRenderer content={blog.content || blog.description || ''} />
+           </motion.div>
 
-          {/* Content Images Gallery */}
-          {mediaUrls.length > 0 && (
-            <motion.div
-              initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="my-12 grid grid-cols-1 md:grid-cols-2 gap-6"
-            >
-              {mediaUrls.map((url, i) => (
-                <div key={i} className="overflow-hidden rounded-2xl bg-[var(--secondary)]/10">
-                  <OptimizedImage
-                    src={url}
-                    alt={`${blog.title} — gallery ${i + 1}`}
-                    className="h-full w-full object-cover"
-                    width={800}
-                    height={600}
-                  />
-                </div>
-              ))}
-            </motion.div>
-          )}
-
-{/* Video */}
+           {/* Video */}
            {videoUrl && (
              <motion.div
                initial={reduceMotion ? false : { opacity: 0, y: 20 }}
@@ -439,6 +417,28 @@ export const BlogDetailPage = () => {
                  poster={getVideoPosterUrl(videoUrl)}
                  onPlay={handleVideoPlay}
                />
+             </motion.div>
+           )}
+
+           {/* Content Images Gallery */}
+           {mediaUrls.length > 0 && (
+             <motion.div
+               initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ duration: 0.6, delay: 0.3 }}
+               className="my-12 grid grid-cols-1 md:grid-cols-2 gap-6"
+             >
+               {mediaUrls.map((url, i) => (
+                 <div key={i} className="overflow-hidden rounded-2xl bg-[var(--secondary)]/10">
+                   <OptimizedImage
+                     src={url}
+                     alt={`${blog.title} — gallery ${i + 1}`}
+                     className="h-full w-full object-cover"
+                     width={800}
+                     height={600}
+                   />
+                 </div>
+               ))}
              </motion.div>
            )}
 
