@@ -56,10 +56,6 @@ export const buildSrcSet = (url, widths = RESPONSIVE_WIDTHS) => {
 
 export const getOptimizedVideoUrl = (url, options = {}) => {
   if (isCloudinaryVideo(url) && typeof url === 'string') {
-    // Strip any existing f_auto / f_webp / f_avif / f_mp4 from the URL — iOS
-    // Safari requires mp4/h.264, and f_auto can serve incompatible formats
-    // (webm, av1) causing a black screen on iPhone. Cloudinary bakes f_auto
-    // into the stored URL when the upload preset uses fetch_format: 'auto'.
     url = url.replace(/(?:,?)(f_auto|f_webp|f_avif|f_mp4)(?:,?)/g, '')
     url = url.replace(/(?<!:)\/\/+/g, '/')
   }
@@ -68,10 +64,29 @@ export const getOptimizedVideoUrl = (url, options = {}) => {
   const parts = []
   if (width) parts.push(`w_${width}`, 'c_limit')
   parts.push(`q_${quality}`)
-  // Always force f_mp4 so Cloudinary delivers an H.264/AAC MP4 that works on
-  // iPhone Safari, iPhone Chrome, Android Chrome, and desktop browsers.
-  parts.push('f_mp4')
+  parts.push('f_mp4', 'vc_h264', 'ac_aac')
   return url.replace(CLOUDINARY_VIDEO_SEGMENT, `${CLOUDINARY_VIDEO_SEGMENT}${parts.join(',')}/`)
+}
+
+export const getVideoSourceType = (url) => {
+  if (typeof url !== 'string' || !url) return undefined
+  if (isCloudinaryVideo(url)) return 'video/mp4'
+  const extension = url.split('?')[0].split('#')[0].split('.').pop()?.toLowerCase()
+  const types = {
+    mp4: 'video/mp4',
+    m4v: 'video/mp4',
+    webm: 'video/webm',
+    ogg: 'video/ogg',
+    ogv: 'video/ogg',
+    mov: 'video/quicktime',
+    avi: 'video/x-msvideo',
+    mkv: 'video/x-matroska',
+    mpeg: 'video/mpeg',
+    mpg: 'video/mpeg',
+    '3gp': 'video/3gpp',
+    '3g2': 'video/3gpp2',
+  }
+  return types[extension]
 }
 
 export const getVideoPosterUrl = (url, options = {}) => {
@@ -79,7 +94,7 @@ export const getVideoPosterUrl = (url, options = {}) => {
   const { width = 1280 } = options
   const transformed = url.replace(
     CLOUDINARY_VIDEO_SEGMENT,
-    `${CLOUDINARY_VIDEO_SEGMENT}so_0,w_${width},c_limit,q_auto,f_auto/`,
+    `${CLOUDINARY_VIDEO_SEGMENT}so_0,w_${width},c_limit,q_auto,f_jpg/`,
   )
   return transformed.replace(/\.(mp4|webm|mov|m4v|avi)(\?.*)?$/i, '.jpg$2')
 }

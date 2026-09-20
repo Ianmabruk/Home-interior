@@ -95,7 +95,24 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       const url = URL.createObjectURL(file)
       setImagePreview(url)
     } else if (field === 'video') {
+      // Pre-upload validation: warn if the video format is not H.264/AAC MP4
+      // (the most broadly compatible format). Other formats (WebM, MOV, AVI,
+      // MKV, HEVC) are still accepted but will be transcoded by Cloudinary
+      // to H.264/AAC MP4 for delivery — this just sets expectations.
+      if (!file.type.startsWith('video/')) {
+        toast.error('Please select a valid video file (MP4, MOV, WebM, AVI, MKV)')
+        return
+      }
+
       setVideoFile(file)
+
+      if (file.type !== 'video/mp4') {
+        toast(
+          `You selected a ${file.type.split('/')[1].toUpperCase()} file. It will be converted to H.264/AAC MP4 for compatibility.`,
+          { duration: 5000 }
+        )
+      }
+
       const url = URL.createObjectURL(file)
       setVideoPreview(url)
     }
@@ -421,7 +438,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
               <input
                 type="file"
                 ref={videoInputRef}
-                accept="video/*"
+                accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska"
                 onChange={(e) => handleFileChange(e, 'video')}
                 className="hidden"
               />
