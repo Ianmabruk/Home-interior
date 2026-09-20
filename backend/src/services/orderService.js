@@ -1,4 +1,5 @@
 import { prisma, withRetry, withRetryTransaction } from '../config/database.js'
+import { normalizeKenyanPhone } from '../utils/phone.js'
 import { failure } from '../utils/response.js'
 import { sendOrderConfirmationEmail, default as emailService } from './emailService.js'
 import { getRedisClient, isRedisAvailable } from '../config/redis.js'
@@ -57,14 +58,33 @@ function parseOrder(order) {
   }
 }
 
-function parseOrderSafe(order) {
+function parseOrderPublic(order) {
+  const items = typeof order.items === 'string' ? (() => { try { return JSON.parse(order.items) } catch { return [] } })() : (order.items || [])
+  const shippingAddress = typeof order.shippingAddress === 'string' ? (() => { try { return JSON.parse(order.shippingAddress) } catch { return {} } })() : (order.shippingAddress || {})
   return {
     id: order.id,
+    _id: order.id,
     trackingNumber: order.trackingNumber,
     status: order.status,
     customerNote: order.customerNote,
     estimatedDelivery: order.estimatedDelivery,
     createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+    name: order.name,
+    email: order.email,
+    phone: order.phone,
+    items: items.map((item) => ({
+      productId: item.productId || item.productId,
+      variantId: item.variantId || undefined,
+      quantity: Number(item.quantity) || 1,
+      price: Number(item.price) || 0,
+      name: item.name || undefined,
+      image: item.image || item.imageUrl || undefined,
+    })),
+    shippingAddress,
+    shippingMethod: order.shippingMethod,
+    total: Number(order.total) || 0,
+    paymentStatus: order.paymentStatus || 'pending',
   }
 }
 
@@ -478,27 +498,33 @@ async function trackOrder(trackingNumber, contact) {
     throw failure(400, 'Tracking number and contact are required')
   }
   const normalizedTracking = String(trackingNumber).trim().toUpperCase()
-  const contactLower = String(contact).trim().toLowerCase()
-  const order = await withRetry(() => prisma.order.findFirst({
-    where: {
-      trackingNumber: normalizedTracking,
-      OR: [
-        { email: { equals: contactLower, mode: 'insensitive' } },
-        { phone: { equals: contact, mode: 'insensitive' } },
-      ],
-    },
+  const contactTrimmed = String(contact).trim()
+  const contactLower = contactTrimmed.toLowerCase()
+  const normalizedPhone = normalizeKenyanPhone(contactTrimmed)
+
+  // trackingNumber is unique, so fetch by it and match the contact in memory.
+  // This avoids SQL-side phone comparison across differently-formatted stored
+  // values (e.g. "+2547...", "2547...", "07...") by normalizing both sides.
+  const order = await withRetry(() => prisma.order.findUnique({
+    where: { trackingNumber: normalizedTracking },
+    include: { statusHistory: true },
   }))
   if (!order) {
     throw failure(404, 'We couldn\'t verify this order. Please check your tracking number and contact details.')
   }
 
-  const history = await withRetry(() => prisma.orderStatusHistory.findMany({
-    where: { orderId: order.id },
-    orderBy: { createdAt: 'asc' },
-  }))
+  const storedPhone = normalizeKenyanPhone(order.phone)
+  const phoneMatches = normalizedPhone ? storedPhone === normalizedPhone : false
+  const emailMatches = !!order.email && order.email.toLowerCase() === contactLower
+
+  if (!phoneMatches && !emailMatches) {
+    throw failure(404, 'We couldn\'t verify this order. Please check your tracking number and contact details.')
+  }
+
+  const history = order.statusHistory || []
 
   return {
-    ...parseOrderSafe(order),
+    ...parseOrderPublic(order),
     statusHistory: history.map((entry) => ({
       id: entry.id,
       orderId: entry.orderId,

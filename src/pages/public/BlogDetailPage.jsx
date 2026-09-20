@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from '@components/common/DynamicMotion'
 import { ArrowLeft, Share2, Facebook, Twitter, Linkedin, Copy, Calendar, User, Clock, Eye, Tag } from 'lucide-react'
+import { SiPinterest } from 'react-icons/si'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '@services/api'
-import { getOptimizedVideoUrl, getVideoPosterUrl } from '@utils/cloudinaryHelpers'
+import { getOptimizedVideoUrl, getVideoPosterUrl, getVideoSourceType } from '@utils/cloudinaryHelpers'
 import OptimizedImage from '@components/common/OptimizedImage'
 import { getReadingTime, formatDate, extractTags } from '@utils/blogHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
@@ -89,7 +90,6 @@ export const BlogDetailPage = () => {
   const [blog, setBlog] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [videoError, setVideoError] = useState(false)
   const [related, setRelated] = useState([])
   const [navigation, setNavigation] = useState({ previous: null, next: null })
   const [copied, setCopied] = useState(false)
@@ -426,49 +426,35 @@ export const BlogDetailPage = () => {
           )}
 
 {/* Video */}
-           {videoUrl && !videoError && (
-            <motion.div
-              initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="my-12 rounded-2xl overflow-hidden bg-[var(--secondary)]/30 aspect-video"
-            >
-              <video
-                key={getOptimizedVideoUrl(videoUrl) || videoUrl}
-                poster={getVideoPosterUrl(videoUrl)}
-                controls
-                playsInline
-                muted
-                autoPlay={reduceMotion ? false : undefined}
-                preload="metadata"
-                className="w-full h-full object-contain"
-                onPlay={handleVideoPlay}
-                onError={(e) => {
-                  console.warn('[BlogDetailPage] Video load error:', e.target.error?.message)
-                  setVideoError(true)
-                }}
-              >
-                <source src={getOptimizedVideoUrl(videoUrl) || videoUrl} type="video/mp4" />
-                {/* Fallback to original URL if optimized fails */}
-                <source src={videoUrl} type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
+           {videoUrl && (
+             <motion.div
+               initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ duration: 0.6, delay: 0.3 }}
+               className="my-12 rounded-2xl overflow-hidden bg-[var(--secondary)]/30 aspect-video"
+             >
+                <video
+                  key={videoUrl}
+                  poster={getVideoPosterUrl(videoUrl)}
+                  controls
+                  playsInline
+                  muted
+                  preload="metadata"
+                  className="w-full h-full object-contain"
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  onPlay={handleVideoPlay}
+                  onError={(e) => {
+                    console.warn('[BlogDetailPage] Video load error:', e.target.error?.message)
+                  }}
+                >
+                  <source src={getOptimizedVideoUrl(videoUrl) || videoUrl} type={getVideoSourceType(videoUrl)} />
+                  <source src={videoUrl} type={getVideoSourceType(videoUrl)} />
+                  Your browser does not support the video tag.
+                </video>
             </motion.div>
           )}
 
-          {videoUrl && videoError && (
-            <motion.div
-              initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="my-12 flex flex-col items-center justify-center rounded-2xl bg-[var(--secondary)]/20 aspect-video text-center p-6"
-            >
-              <p className="text-sm text-[var(--primary)]/60 mb-2">Video could not be loaded</p>
-              <p className="text-xs text-[var(--primary)]/40">The video file may be unavailable or in an unsupported format.</p>
-            </motion.div>
-          )}
-
-          {/* Social Sharing */}
+           {/* Social Sharing */}
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -513,18 +499,15 @@ export const BlogDetailPage = () => {
                   >
                     <Linkedin size={18} />
                   </a>
-                  <a
-                    href={shareUrls.pinterest}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[var(--primary)]/60 hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-colors"
-                    title="Share on Pinterest"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm0 21.6c-5.3 0-9.6-4.3-9.6-9.6S6.7 2.4 12 2.4s9.6 4.3 9.6 9.6-4.3 9.6-9.6 9.6z" />
-                      <path d="M14.8 10.4c-.4-.2-1.3-.6-2.6 0-.3.2-.5.4-.8.4-.2 0-.4-.1-.6-.1-.5 0-1.3.1-2.2.6 0 .2 0 .3.1.5 0 .2.2.4.4.5.1 0 .2.1.3.1.1 0 .2-.1.3-.1h.2c-.1.4-.2 1-.1 1.5 0 .1 0 .1.1.2 0 .1 0 .2.1.2.1 0 .2-.1.2-.1h.2c-.1 0-.1 0-.1.1.1.5.5 1 1.1 1.2 0 .1 0 .2.1.2 0 .1 0 .1 0 .1-.1 0 0-.1 0-.1.1.1.4.3.7.5.9.3.6.5 1 1 .9 0 .1 0 .2 0 .3.1.5.1.6 0 .7-.1.3-.2.4-.4.5zm-3.3.2c-.1 0-.1 0-.1-.1 0 .2 0 .3.1.5 0 .2.1.3.2.4.1.1.2.1.3.1.2-.1 0-.2 0-.3s0-.2-.1-.3c-.1-.2-.3-.3-.4-.4z" />
-                    </svg>
-                  </a>
+                     <a
+                     href={shareUrls.pinterest}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[#e60023] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-colors"
+                     title="Share on Pinterest"
+                   >
+                     <SiPinterest size={18} />
+                   </a>
                   <button
                     onClick={() => copyToClipboard(window.location.href)}
                     className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[var(--primary)]/60 hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-colors"

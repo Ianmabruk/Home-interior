@@ -79,8 +79,11 @@ export const TrackOrderPage = () => {
               <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)]/10 text-[var(--accent)] mb-4">
                 <Package size={32} strokeWidth={1.5} />
               </div>
-              <h1 className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-2">Tracking Number: {result.trackingNumber}</h1>
-              <p className="text-[var(--primary)]/60">Current Status: <span className="font-semibold capitalize">{result.status || 'Pending'}</span></p>
+             <h1 className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-2">Tracking Number: {result.trackingNumber}</h1>
+             <p className="text-[var(--primary)]/60">Current Status: <span className="font-semibold capitalize">{result.status || 'Pending'}</span></p>
+             <p className="mt-2 text-sm text-[var(--accent)]/90">
+               Someone from HOK Interiors will reach out within <span className="font-semibold">24 hours</span> to confirm your order and delivery arrangements.
+             </p>
               {result.trackingNumber && (
                 <div className="mt-4 flex items-center justify-center gap-2">
                   <button
