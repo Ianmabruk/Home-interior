@@ -12,34 +12,28 @@ describe('cloudinaryHelpers - video', () => {
       expect(result).not.toContain('https:/res')
     })
 
-    it('does NOT force q_auto / vc_h264 / ac_aac / f_mp4 on delivery', () => {
+    it('forces H.264 video, AAC audio, MP4 container, and faststart for mobile compatibility', () => {
       const result = getOptimizedVideoUrl(videoUrl)
-      expect(result).not.toContain('q_auto')
-      expect(result).not.toContain('vc_h264')
-      expect(result).not.toContain('ac_aac')
-      // f_mp4 format forcing is also removed — the backend already stores MP4
-      expect(result).not.toContain('f_mp4')
+      expect(result).toContain('vc_h264')
+      expect(result).toContain('ac_aac')
+      expect(result).toContain('f_mp4')
+      expect(result).toContain('fl_faststart')
     })
 
-    it('returns the original URL unchanged when no width is requested', () => {
-      const result = getOptimizedVideoUrl(videoUrl)
-      // An already H.264/AAC MP4 stored by the backend is fast-start and
-      // range-requestable as-is, so delivery-time transforms are unnecessary.
-      expect(result).toBe(videoUrl)
-    })
-
-    it('applies only a width-based resize when width is requested', () => {
+    it('applies width-based resize when width is requested', () => {
       const result = getOptimizedVideoUrl(videoUrl, { width: 640 })
       expect(result).toContain('w_640')
       expect(result).toContain('c_limit')
-      // no codec/quality forcing
-      expect(result).not.toContain('q_auto')
-      expect(result).not.toContain('vc_h264')
+      // codec/format forcing still applied
+      expect(result).toContain('vc_h264')
+      expect(result).toContain('ac_aac')
+      expect(result).toContain('f_mp4')
+      expect(result).toContain('fl_faststart')
     })
 
     it('preserves video segment and valid https for width transform', () => {
       const result = getOptimizedVideoUrl(videoUrl, { width: 640 })
-      expect(result).toMatch(/^https:\/\/.*\/video\/upload\/w_640,c_limit\//)
+      expect(result).toMatch(/^https:\/\/.*\/video\/upload\/vc_h264,ac_aac,f_mp4,fl_faststart,w_640,c_limit\//)
       expect(result).not.toContain('https:/res')
     })
 

@@ -60,16 +60,11 @@ export const getOptimizedVideoUrl = (url, options = {}) => {
   if (!isCloudinaryVideo(url) || typeof url !== 'string') return typeof url === 'string' ? url : null
   const { width } = options
   const parts = []
-  // Only apply a width-based resize. We deliberately do NOT add q_auto or
-  // codec-forcing transformations (vc_h264/ac_aac) here. Those force Cloudinary
-  // to re-encode the video for delivery, which produces a non-streamable MP4
-  // (moov atom at the end, no byte-range support) that fails on mobile Safari
-  // with a gray player / 00:00 - 00:00.
-  // The backend already stores every uploaded video as H.264/AAC MP4, so no
-  // delivery-time codec conversion is required for playback. Width-only resize
-  // is streamable and preserves fast-start.
+  // Force H.264 video codec, AAC audio codec, and MP4 container for broad
+  // mobile/desktop compatibility. Use fl_faststart to ensure moov atom is at
+  // the start for progressive playback (prevents gray screen / 00:00 on mobile).
+  parts.push('vc_h264', 'ac_aac', 'f_mp4', 'fl_faststart')
   if (width) parts.push(`w_${width}`, 'c_limit')
-  if (parts.length === 0) return url
   return url.replace(CLOUDINARY_VIDEO_SEGMENT, `${CLOUDINARY_VIDEO_SEGMENT}${parts.join(',')}/`)
 }
 

@@ -4,7 +4,7 @@ import { ArrowLeft, Share2, Facebook, Twitter, Linkedin, Copy, Calendar, User, C
 import { SiPinterest } from 'react-icons/si'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '@services/api'
-import { getOptimizedVideoUrl, getVideoPosterUrl, getVideoSourceType } from '@utils/cloudinaryHelpers'
+import { getOptimizedVideoUrl, getVideoPosterUrl } from '@utils/cloudinaryHelpers'
 import OptimizedImage from '@components/common/OptimizedImage'
 import { getReadingTime, formatDate, extractTags } from '@utils/blogHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
@@ -433,30 +433,24 @@ export const BlogDetailPage = () => {
                transition={{ duration: 0.6, delay: 0.3 }}
                className="my-12 rounded-2xl overflow-hidden bg-[var(--secondary)]/30 aspect-video"
              >
-                    <video
-                      key={videoUrl}
-                      poster={getVideoPosterUrl(videoUrl)}
-                      controls
-                      playsInline
-                      preload="metadata"
-                      className="w-full h-full object-contain"
-                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                      onPlay={handleVideoPlay}
-                      onError={(e) => {
-                        console.warn('[BlogDetailPage] Video load error:', e.target.error?.message)
-                      }}
-                    >
-                      {/* Primary source: the original Cloudinary H.264/AAC MP4, which
-                          is stored as a fast-start, range-requestable stream. This is
-                          what mobile Safari needs to read duration metadata and play
-                          reliably. The optimized (width-resized) source is offered as
-                          an enhancement for bandwidth-constrained devices. */}
-                      <source src={videoUrl} type={getVideoSourceType(videoUrl)} />
-                      <source src={getOptimizedVideoUrl(videoUrl) || videoUrl} type={getVideoSourceType(videoUrl)} />
-                      Your browser does not support the video tag.
-                    </video>
-            </motion.div>
-          )}
+               <video
+                 key={videoUrl}
+                 src={getOptimizedVideoUrl(videoUrl, { width: 1280 })}
+                 poster={getVideoPosterUrl(videoUrl)}
+                 controls
+                 playsInline
+                 preload="metadata"
+                 className="w-full h-full object-contain"
+                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                 onPlay={handleVideoPlay}
+                 onError={(e) => {
+                   console.warn('[BlogDetailPage] Video load error:', e.target.error?.message)
+                 }}
+               >
+                 Your browser does not support the video tag.
+               </video>
+             </motion.div>
+           )}
 
            {/* Social Sharing */}
           <motion.div
