@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { getOptimizedVideoUrl, getVideoPosterUrl } from '@utils/cloudinaryHelpers'
+import { getOptimizedVideoUrl } from '@utils/cloudinaryHelpers'
 
 export default function BlogVideo({ src, poster, onPlay, className = '' }) {
   const videoRef = useRef(null)
@@ -31,8 +31,20 @@ export default function BlogVideo({ src, poster, onPlay, className = '' }) {
     }
     video.addEventListener('canplay', handleCanPlay, { once: true })
 
+    // Safari sometimes needs a nudge after initial play attempt
+    const handlePlaying = () => {
+      video.removeEventListener('playing', handlePlaying)
+      // Force a repaint to ensure video isn't stuck on poster
+      video.style.opacity = '0.99'
+      requestAnimationFrame(() => {
+        video.style.opacity = '1'
+      })
+    }
+    video.addEventListener('playing', handlePlaying, { once: true })
+
     return () => {
       video.removeEventListener('canplay', handleCanPlay)
+      video.removeEventListener('playing', handlePlaying)
     }
   }, [src, onPlay])
 
@@ -42,7 +54,7 @@ export default function BlogVideo({ src, poster, onPlay, className = '' }) {
     <video
       ref={videoRef}
       src={getOptimizedVideoUrl(src, { width: 1280 })}
-      poster={poster ? getVideoPosterUrl(poster) : undefined}
+      poster={poster}
       controls
       playsInline
       preload="metadata"
@@ -51,6 +63,10 @@ export default function BlogVideo({ src, poster, onPlay, className = '' }) {
       style={{ width: '100%', height: '100%', objectFit: 'contain' }}
       onError={(e) => {
         console.warn('[BlogVideo] Video load error:', e.target.error?.message)
+        // Keep video element visible even on error - don't hide it
+        const video = e.target
+        video.controls = true
+        video.style.opacity = '1'
       }}
     >
       Your browser does not support the video tag.
