@@ -1,79 +1,46 @@
 import { describe, it, expect } from 'vitest'
-import { getOptimizedVideoUrl, getVideoPosterUrl } from '@utils/cloudinaryHelpers'
+import { getOptimizedVideoUrl, getVideoPosterUrl, getVideoSourceType, isCloudinaryVideo } from '@utils/cloudinaryHelpers'
 
 describe('cloudinaryHelpers - video', () => {
   const videoUrl =
     'https://res.cloudinary.com/demo/video/upload/v1234567890/myvideo.mp4'
-  const videoUrlWithFormat =
-    'https://res.cloudinary.com/demo/video/upload/f_auto,q_auto/f_myvideo.mp4'
 
-  describe('getOptimizedVideoUrl', () => {
+  describe('getOptimizedVideoUrl - streamability contract', () => {
     it('preserves https:// protocol (does not corrupt to https:/)', () => {
       const result = getOptimizedVideoUrl(videoUrl)
       expect(result).toContain('https://')
       expect(result).not.toContain('https:/res')
     })
 
-    it('returns a string with valid protocol and video segment', () => {
+    it('does NOT force q_auto / vc_h264 / ac_aac / f_mp4 on delivery', () => {
       const result = getOptimizedVideoUrl(videoUrl)
-      expect(result).toMatch(/^https:\/\/.*\/video\/upload\//)
+      expect(result).not.toContain('q_auto')
+      expect(result).not.toContain('vc_h264')
+      expect(result).not.toContain('ac_aac')
+      // f_mp4 format forcing is also removed — the backend already stores MP4
+      expect(result).not.toContain('f_mp4')
     })
 
-    it('injects f_mp4 transformation', () => {
+    it('returns the original URL unchanged when no width is requested', () => {
       const result = getOptimizedVideoUrl(videoUrl)
-      expect(result).toContain('f_mp4')
+      // An already H.264/AAC MP4 stored by the backend is fast-start and
+      // range-requestable as-is, so delivery-time transforms are unnecessary.
+      expect(result).toBe(videoUrl)
     })
 
-    it('strips existing f_auto and inserts f_mp4', () => {
-      const result = getOptimizedVideoUrl(videoUrlWithFormat)
-      expect(result).not.toContain('f_auto')
-      expect(result).toContain('f_mp4')
-      expect(result).toMatch(/^https:\/\/.*\/video\/upload\//)
+    it('applies only a width-based resize when width is requested', () => {
+      const result = getOptimizedVideoUrl(videoUrl, { width: 640 })
+      expect(result).toContain('w_640')
+      expect(result).toContain('c_limit')
+      // no codec/quality forcing
+      expect(result).not.toContain('q_auto')
+      expect(result).not.toContain('vc_h264')
     })
 
-    it('forces H.264 video codec (vc_h264) for browser compatibility', () => {
-      const result = getOptimizedVideoUrl(videoUrl)
-      expect(result).toContain('vc_h264')
-    })
-
-    it('forces AAC audio codec (ac_aac) for browser compatibility', () => {
-      const result = getOptimizedVideoUrl(videoUrl)
-      expect(result).toContain('ac_aac')
-    })
-
-    it('includes both f_mp4 and vc_h264 in the transformation', () => {
-      const result = getOptimizedVideoUrl(videoUrl)
-      expect(result).toContain('f_mp4')
-      expect(result).toContain('vc_h264')
-      expect(result).toContain('ac_aac')
-    })
-
-    it('handles HEVC/H.265 source videos (iPhone) correctly', () => {
-      const hevcUrl =
-        'https://res.cloudinary.com/du02q965h/video/upload/v1728962400/blogs/iphone-hevc.mp4'
-      const result = getOptimizedVideoUrl(hevcUrl)
-      expect(result).toContain('f_mp4')
-      expect(result).toContain('vc_h264')
+    it('preserves video segment and valid https for width transform', () => {
+      const result = getOptimizedVideoUrl(videoUrl, { width: 640 })
+      expect(result).toMatch(/^https:\/\/.*\/video\/upload\/w_640,c_limit\//)
       expect(result).not.toContain('https:/res')
-      expect(result).toMatch(/^https:\/\/.*\/video\/upload\//)
-    })
-
-    it('handles WebM source videos correctly', () => {
-      const webmUrl =
-        'https://res.cloudinary.com/du02q965h/video/upload/v1728962400/blogs/myvideo.webm'
-      const result = getOptimizedVideoUrl(webmUrl)
-      expect(result).toContain('f_mp4')
-      expect(result).toContain('vc_h264')
-      expect(result).toMatch(/^https:\/\/.*\/video\/upload\//)
-    })
-
-    it('handles MOV source videos correctly', () => {
-      const movUrl =
-        'https://res.cloudinary.com/du02q965h/video/upload/v1728962400/blogs/myvideo.mov'
-      const result = getOptimizedVideoUrl(movUrl)
-      expect(result).toContain('f_mp4')
-      expect(result).toContain('vc_h264')
-      expect(result).toMatch(/^https:\/\/.*\/video\/upload\//)
     })
 
     it('returns null for non-string input', () => {
@@ -85,6 +52,34 @@ describe('cloudinaryHelpers - video', () => {
     it('returns non-Cloudinary URLs unchanged', () => {
       const result = getOptimizedVideoUrl('https://example.com/video.mp4')
       expect(result).toBe('https://example.com/video.mp4')
+    })
+
+    it('returns empty string URLs unchanged', () => {
+      const result = getOptimizedVideoUrl('')
+      expect(result).toBe('')
+    })
+  })
+
+  describe('getVideoSourceType', () => {
+    it('returns video/mp4 for Cloudinary video URLs', () => {
+      expect(getVideoSourceType(videoUrl)).toBe('video/mp4')
+    })
+
+    it('returns video/mp4 for .mp4 extension', () => {
+      expect(getVideoSourceType('https://example.com/video.mp4')).toBe('video/mp4')
+    })
+
+    it('returns video/webm for .webm', () => {
+      expect(getVideoSourceType('https://example.com/video.webm')).toBe('video/webm')
+    })
+
+    it('returns video/quicktime for .mov', () => {
+      expect(getVideoSourceType('https://example.com/video.mov')).toBe('video/quicktime')
+    })
+
+    it('returns undefined for empty/non-string', () => {
+      expect(getVideoSourceType('')).toBeUndefined()
+      expect(getVideoSourceType(null)).toBeUndefined()
     })
   })
 
@@ -110,14 +105,18 @@ describe('cloudinaryHelpers - video', () => {
       expect(result).toContain('f_jpg')
       expect(result).not.toContain('f_auto')
     })
+  })
 
-    it('preserves video segment and returns a .jpg URL for HEVC sources', () => {
-      const hevcUrl =
-        'https://res.cloudinary.com/du02q965h/video/upload/v1728962400/blogs/iphone-hevc.mp4'
-      const result = getVideoPosterUrl(hevcUrl)
-      expect(result).toContain('f_jpg')
-      expect(result).toMatch(/\.jpg(\?.*)?$/)
-      expect(result).toMatch(/^https:\/\/.*\/video\/upload\//)
+  describe('isCloudinaryVideo', () => {
+    it('detects Cloudinary video URLs', () => {
+      expect(isCloudinaryVideo(videoUrl)).toBe(true)
+      expect(isCloudinaryVideo('https://res.cloudinary.com/demo/video/upload/v1/x.mp4')).toBe(true)
+    })
+
+    it('rejects non-cloudinary and image URLs', () => {
+      expect(isCloudinaryVideo('https://example.com/video.mp4')).toBe(false)
+      expect(isCloudinaryVideo('https://res.cloudinary.com/demo/image/upload/x.jpg')).toBe(false)
+      expect(isCloudinaryVideo(null)).toBe(false)
     })
   })
 })

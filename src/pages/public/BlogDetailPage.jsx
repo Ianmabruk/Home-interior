@@ -433,24 +433,28 @@ export const BlogDetailPage = () => {
                transition={{ duration: 0.6, delay: 0.3 }}
                className="my-12 rounded-2xl overflow-hidden bg-[var(--secondary)]/30 aspect-video"
              >
-                <video
-                  key={videoUrl}
-                  poster={getVideoPosterUrl(videoUrl)}
-                  controls
-                  playsInline
-                  muted
-                  preload="metadata"
-                  className="w-full h-full object-contain"
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                  onPlay={handleVideoPlay}
-                  onError={(e) => {
-                    console.warn('[BlogDetailPage] Video load error:', e.target.error?.message)
-                  }}
-                >
-                  <source src={getOptimizedVideoUrl(videoUrl) || videoUrl} type={getVideoSourceType(videoUrl)} />
-                  <source src={videoUrl} type={getVideoSourceType(videoUrl)} />
-                  Your browser does not support the video tag.
-                </video>
+                    <video
+                      key={videoUrl}
+                      poster={getVideoPosterUrl(videoUrl)}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="w-full h-full object-contain"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      onPlay={handleVideoPlay}
+                      onError={(e) => {
+                        console.warn('[BlogDetailPage] Video load error:', e.target.error?.message)
+                      }}
+                    >
+                      {/* Primary source: the original Cloudinary H.264/AAC MP4, which
+                          is stored as a fast-start, range-requestable stream. This is
+                          what mobile Safari needs to read duration metadata and play
+                          reliably. The optimized (width-resized) source is offered as
+                          an enhancement for bandwidth-constrained devices. */}
+                      <source src={videoUrl} type={getVideoSourceType(videoUrl)} />
+                      <source src={getOptimizedVideoUrl(videoUrl) || videoUrl} type={getVideoSourceType(videoUrl)} />
+                      Your browser does not support the video tag.
+                    </video>
             </motion.div>
           )}
 
