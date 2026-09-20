@@ -12,12 +12,11 @@ describe('cloudinaryHelpers - video', () => {
       expect(result).not.toContain('https:/res')
     })
 
-    it('forces H.264 video, AAC audio, MP4 container, and faststart for mobile compatibility', () => {
+    it('forces H.264 video, AAC audio, MP4 container for mobile compatibility', () => {
       const result = getOptimizedVideoUrl(videoUrl)
       expect(result).toContain('vc_h264')
       expect(result).toContain('ac_aac')
       expect(result).toContain('f_mp4')
-      expect(result).toContain('fl_faststart')
     })
 
     it('applies width-based resize when width is requested', () => {
@@ -28,12 +27,11 @@ describe('cloudinaryHelpers - video', () => {
       expect(result).toContain('vc_h264')
       expect(result).toContain('ac_aac')
       expect(result).toContain('f_mp4')
-      expect(result).toContain('fl_faststart')
     })
 
     it('preserves video segment and valid https for width transform', () => {
       const result = getOptimizedVideoUrl(videoUrl, { width: 640 })
-      expect(result).toMatch(/^https:\/\/.*\/video\/upload\/vc_h264,ac_aac,f_mp4,fl_faststart,w_640,c_limit\//)
+      expect(result).toMatch(/^https:\/\/.*\/video\/upload\/vc_h264,ac_aac,f_mp4,w_640,c_limit\//)
       expect(result).not.toContain('https:/res')
     })
 

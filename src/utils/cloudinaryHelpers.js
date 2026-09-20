@@ -60,10 +60,7 @@ export const getOptimizedVideoUrl = (url, options = {}) => {
   if (!isCloudinaryVideo(url) || typeof url !== 'string') return typeof url === 'string' ? url : null
   const { width } = options
   const parts = []
-  // Force H.264 video codec, AAC audio codec, and MP4 container for broad
-  // mobile/desktop compatibility. Use fl_faststart to ensure moov atom is at
-  // the start for progressive playback (prevents gray screen / 00:00 on mobile).
-  parts.push('vc_h264', 'ac_aac', 'f_mp4', 'fl_faststart')
+  parts.push('vc_h264', 'ac_aac', 'f_mp4')
   if (width) parts.push(`w_${width}`, 'c_limit')
   return url.replace(CLOUDINARY_VIDEO_SEGMENT, `${CLOUDINARY_VIDEO_SEGMENT}${parts.join(',')}/`)
 }
