@@ -122,7 +122,7 @@ function recordFailedUpload(entry) {
   }
 }
 
-export async function uploadFile(buffer, mimetype, folder) {
+export async function uploadFile(buffer, mimetype, folder, originalName) {
   if (!buffer) {
     throw failure(400, 'No file buffer provided for upload')
   }
@@ -131,9 +131,9 @@ export async function uploadFile(buffer, mimetype, folder) {
   const optimizedMimetype = optimizedBuffer !== buffer ? 'image/webp' : mimetype
 
   // Pre-upload size check: warn if the optimized buffer is large enough to
-  // risk hitting Cloudinary's 120s timeout on slower connections. This is a
-  // soft threshold — uploads above it still proceed, but the error message
-  // will include guidance to reduce file size.
+  // risk hitting Cloudinary's 120s timeout on slower connections. This is a soft
+  // threshold — uploads above it still proceed, but the error message will
+  // include guidance to reduce file size.
   const bufferSizeMB = (optimizedBuffer.length / (1024 * 1024)).toFixed(1)
   if (optimizedBuffer.length > LARGE_UPLOAD_WARN_THRESHOLD) {
     console.warn(`[uploadService] Large upload (${bufferSizeMB}MB) — may approach Cloudinary timeout on slow connections`)
@@ -142,8 +142,20 @@ export async function uploadFile(buffer, mimetype, folder) {
   const useCloudinary = process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET && process.env.SKIP_CLOUDINARY !== 'true'
   if (useCloudinary) {
     try {
-      const uploaded = await uploadToCloudinary(optimizedBuffer, optimizedMimetype, folder)
-      return { url: uploaded.url, path: uploaded.publicId, mimeType: optimizedMimetype, isLocal: false }
+      const uploaded = await uploadToCloudinary(optimizedBuffer, optimizedMimetype, folder, originalName)
+      return {
+        url: uploaded.url,
+        path: uploaded.publicId,
+        mimeType: uploaded.mimeType,
+        originalName: uploaded.originalName,
+        resourceType: uploaded.resourceType,
+        format: uploaded.format,
+        duration: uploaded.duration,
+        width: uploaded.width,
+        height: uploaded.height,
+        bytes: uploaded.bytes,
+        isLocal: false,
+      }
     } catch (cloudErr) {
       console.error('[uploadService] Cloudinary upload failed:', cloudErr?.message || cloudErr)
       // Provide a clearer error message for timeout failures.
@@ -207,10 +219,11 @@ export async function deleteFile(storagePath) {
   if (storagePath.startsWith('http')) {
     const match = storagePath.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[^.]+)?$/)
     if (match && match[1]) {
+      const isVideo = storagePath.includes('/video/upload/') || /.(mp4|webm|mov|m4v|avi|mkv|ogg|ogv)$/i.test(storagePath)
       if (isSupabaseConfigured()) {
         await deleteFromSupabase(match[1])
       } else {
-        await deleteFromCloudinary(match[1])
+        await deleteFromCloudinary(match[1], isVideo ? 'video' : 'image')
       }
     }
     return

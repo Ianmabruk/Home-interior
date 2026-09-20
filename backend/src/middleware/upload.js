@@ -20,6 +20,24 @@ function isAllowedFile(file, allowedTypes, allowedExts) {
   return false
 }
 
+function getAllowedTypesForField(fieldname) {
+  if (fieldname === 'video') return ALLOWED_VIDEO_TYPES
+  if (['image', 'contentImages', 'homepageCircularImage', 'photo', 'socialMedia'].includes(fieldname)) return ALLOWED_IMAGE_TYPES
+  return [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES]
+}
+
+function getAllowedExtensionsForTypes(allowedTypes) {
+  return allowedTypes.flatMap((type) => {
+    const extension = `.${type.split('/')[1]}`
+    if (type === 'video/quicktime') return ['.mov']
+    if (type === 'video/x-m4v') return ['.m4v']
+    if (type === 'video/x-msvideo') return ['.avi']
+    if (type === 'video/x-matroska') return ['.mkv']
+    if (type === 'video/ogg') return ['.ogg', '.ogv']
+    return extension
+  })
+}
+
 export const uploadSingle = (field = 'media', allowedTypes = ALLOWED_IMAGE_TYPES) => {
   const allowedExts = allowedTypes
     ? allowedTypes.map((t) => ALLOWED_IMAGE_EXTENSIONS.find((e) => t.includes(e.replace('.', ''))))

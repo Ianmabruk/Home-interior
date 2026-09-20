@@ -473,11 +473,20 @@ model Blog {
   tags                    String[] @default([]) @db.Text
   author                  String?  @db.Text
   metaDescription         String?  @db.Text @map("meta_description")
-   image                   String?  @db.Text
-   video                   String?  @db.Text
-   mediaUrls               String[] @default([]) @db.Text @map("media_urls")
-   cloudinaryId            String?  @db.Text @map("cloudinary_id")
-  homepageCircularImage   String?  @db.Text @map("homepage_circular_image")
+    image                   String?  @db.Text
+    video                   String?  @db.Text
+    mediaUrls               String[] @default([]) @db.Text @map("media_urls")
+    cloudinaryId            String?  @db.Text @map("cloudinary_id")
+    videoCloudinaryId       String?  @db.Text @map("video_cloudinary_id")
+    videoResourceType       String?  @db.Text @map("video_resource_type")
+    videoFormat             String?  @db.Text @map("video_format")
+    videoMimeType           String?  @db.Text @map("video_mime_type")
+    videoDuration           Float?   @map("video_duration")
+    videoWidth              Int?     @map("video_width")
+    videoHeight             Int?     @map("video_height")
+    videoBytes              Int?     @map("video_bytes")
+    videoOriginalName       String?  @db.Text @map("video_original_name")
+   homepageCircularImage   String?  @db.Text @map("homepage_circular_image")
   homepageCircularImageId String? @db.Text @map("homepage_circular_image_id")
   published               Boolean  @default(false)
   featured                Boolean  @default(false)

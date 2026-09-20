@@ -42,11 +42,12 @@ function isRetryableCloudinaryError(err) {
   return false
 }
 
-export const uploadToCloudinary = async (buffer, mimetype, folder) => {
+export const uploadToCloudinary = async (buffer, mimetype, folder, originalName) => {
   if (!isConfigured) {
     throw new Error('Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.')
   }
 
+  const isVideoUpload = Boolean(mimetype && mimetype.startsWith('video/'))
   let lastError = null
   for (let attempt = 0; attempt <= CLOUDINARY_MAX_RETRIES; attempt++) {
     if (attempt > 0) {
@@ -56,8 +57,7 @@ export const uploadToCloudinary = async (buffer, mimetype, folder) => {
     }
 
     try {
-      const ext = mimetype.split('/')[1] || 'bin'
-      const publicId = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}`
+      const publicId = `${Date.now()}-${Math.random().toString(36).slice(2)}`
 
       const uploadOptions = {
         resource_type: 'auto',
@@ -67,15 +67,7 @@ export const uploadToCloudinary = async (buffer, mimetype, folder) => {
         quality: 'auto:good',
       }
 
-      // For video uploads, use resource_type: 'video' (instead of 'auto')
-      // to ensure Cloudinary correctly identifies the file as a video.
-      // 'auto' can misidentify edge-case formats (e.g. HEIC video, ProRes),
-      // causing the secure_url to use /image/upload/ instead of /video/upload/,
-      // which breaks isCloudinaryVideo() checks and video playback.
-      // Also add a transformation to force H.264/AAC MP4 encoding at upload
-      // time, so the stored asset is always web-compatible — no on-the-fly
-      // transcoding needed at delivery time.
-      if (mimetype && mimetype.startsWith('video/')) {
+      if (isVideoUpload) {
         uploadOptions.resource_type = 'video'
         uploadOptions.transformation = [
           { format: 'mp4', video_codec: 'h264', audio_codec: 'aac' },
@@ -104,14 +96,35 @@ export const uploadToCloudinary = async (buffer, mimetype, folder) => {
             } else {
               resolve(result)
             }
-          }
+          },
         ).end(buffer)
       })
 
+      if (!result?.secure_url) {
+        throw new Error('Cloudinary upload did not return a secure media URL')
+      }
+
+      if (isVideoUpload) {
+        if (result.resource_type !== 'video') {
+          throw new Error(`Cloudinary stored the video as ${result.resource_type || 'an unknown resource type'}`)
+        }
+        if (result.format && result.format !== 'mp4') {
+          throw new Error(`Cloudinary returned an unsupported video format: ${result.format}`)
+        }
+      }
+
+      const duration = Number(result.duration)
       return {
         url: result.secure_url,
         publicId: result.public_id,
         mimeType: mimetype,
+        originalName: originalName || null,
+        resourceType: result.resource_type || null,
+        format: result.format || null,
+        duration: Number.isFinite(duration) ? duration : null,
+        width: Number.isFinite(Number(result.width)) ? Number(result.width) : null,
+        height: Number.isFinite(Number(result.height)) ? Number(result.height) : null,
+        bytes: Number.isFinite(Number(result.bytes)) ? Number(result.bytes) : null,
       }
     } catch (err) {
       lastError = err
@@ -125,7 +138,6 @@ export const uploadToCloudinary = async (buffer, mimetype, folder) => {
         attempt,
       })
 
-      // Don't retry on the last attempt or on non-retryable errors
       if (attempt >= CLOUDINARY_MAX_RETRIES || !isRetryableCloudinaryError(err)) {
         throw err
       }
@@ -135,10 +147,10 @@ export const uploadToCloudinary = async (buffer, mimetype, folder) => {
   throw lastError
 }
 
-export const deleteFromCloudinary = async (publicId) => {
+export const deleteFromCloudinary = async (publicId, resourceType = 'auto') => {
   if (!publicId || !isConfigured) return
   try {
-    await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' })
+    await cloudinary.uploader.destroy(publicId, { resource_type: resourceType })
   } catch (error) {
     console.error('Cloudinary delete error:', error)
   }

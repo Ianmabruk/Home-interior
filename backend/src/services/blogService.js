@@ -1,6 +1,16 @@
 import { prisma } from '../config/database.js'
-import { uploadFile, deleteFiles } from '../uploads/uploadService.js'
+import { uploadFile } from '../uploads/uploadService.js'
+import { deleteFromCloudinary } from '../config/cloudinary.js'
 import { failure } from '../utils/response.js'
+
+async function deleteFileByPublicId(publicId, resourceType = 'auto') {
+  if (!publicId) return
+  try {
+    await deleteFromCloudinary(publicId, resourceType)
+  } catch (err) {
+    console.error('[blogService] File deletion failed (non-fatal):', err?.message)
+  }
+}
 
 function mapBlog(item) {
   if (!item) return null
@@ -14,6 +24,15 @@ function mapBlog(item) {
     id: item.id,
     imageUrl,
     videoUrl,
+    videoCloudinaryId: item.videoCloudinaryId || null,
+    videoResourceType: item.videoResourceType || null,
+    videoFormat: item.videoFormat || null,
+    videoMimeType: item.videoMimeType || null,
+    videoDuration: item.videoDuration || null,
+    videoWidth: item.videoWidth || null,
+    videoHeight: item.videoHeight || null,
+    videoBytes: item.videoBytes || null,
+    videoOriginalName: item.videoOriginalName || null,
     mediaUrl: imageUrl || videoUrl,
     mediaUrls: allMediaUrls,
     mediaType: videoUrl ? 'video' : 'image',
@@ -296,22 +315,33 @@ async function incrementViews(id) {
 async function createBlog(data, imageFile, videoFile, contentFiles = [], homepageCircularImageFile = null) {
   const createData = { ...data }
 
-  if (imageFile) {
-    try {
-      const uploaded = await uploadFile(imageFile.buffer, imageFile.mimetype, 'blogs')
-      createData.image = uploaded.url
-      createData.cloudinaryId = uploaded.path
-    } catch (err) {
-      console.error('[blogService.createBlog] Image upload failed:', err?.message)
-      throw failure(500, `Image upload failed: ${err?.message || 'Unknown error'}`)
-    }
-  }
+   if (imageFile) {
+     try {
+       const uploaded = await uploadFile(imageFile.buffer, imageFile.mimetype, 'blogs', imageFile.originalname)
+       createData.image = uploaded.url
+       createData.cloudinaryId = uploaded.publicId || uploaded.path
+     } catch (err) {
+       console.error('[blogService.createBlog] Image upload failed:', err?.message)
+       throw failure(500, `Image upload failed: ${err?.message || 'Unknown error'}`)
+     }
+   }
+
 
   if (videoFile) {
     try {
-      const uploaded = await uploadFile(videoFile.buffer, videoFile.mimetype, 'blogs')
+      const uploaded = await uploadFile(videoFile.buffer, videoFile.mimetype, 'blogs', videoFile.originalname)
       createData.video = uploaded.url
-      if (!createData.cloudinaryId) createData.cloudinaryId = uploaded.path
+      createData.videoCloudinaryId = uploaded.publicId || uploaded.path
+      createData.videoResourceType = uploaded.resourceType || 'video'
+      createData.videoFormat = uploaded.format || 'mp4'
+      createData.videoMimeType = uploaded.mimeType || videoFile.mimetype || null
+      createData.videoDuration = uploaded.duration || null
+      createData.videoWidth = uploaded.width || null
+      createData.videoHeight = uploaded.height || null
+      createData.videoBytes = uploaded.bytes || null
+      createData.videoOriginalName = uploaded.originalName || videoFile.originalname || null
+      // Preserve a separate image cloudinary_id; do not clobber it with the video's
+      if (!createData.cloudinaryId) createData.cloudinaryId = uploaded.publicId || uploaded.path
     } catch (err) {
       console.error('[blogService.createBlog] Video upload failed:', err?.message)
       throw failure(500, `Video upload failed: ${err?.message || 'Unknown error'}`)
@@ -320,9 +350,9 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
 
   if (homepageCircularImageFile) {
     try {
-      const uploaded = await uploadFile(homepageCircularImageFile.buffer, homepageCircularImageFile.mimetype, 'blogs')
+      const uploaded = await uploadFile(homepageCircularImageFile.buffer, homepageCircularImageFile.mimetype, 'blogs', homepageCircularImageFile.originalname)
       createData.homepageCircularImage = uploaded.url
-      createData.homepageCircularImageId = uploaded.path
+      createData.homepageCircularImageId = uploaded.publicId || uploaded.path
     } catch (err) {
       console.error('[blogService.createBlog] Homepage circular image upload failed:', err?.message)
       throw failure(500, `Homepage image upload failed: ${err?.message || 'Unknown error'}`)
@@ -331,7 +361,7 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
 
   const mediaUrls = []
   if (contentFiles.length > 0) {
-    const uploadPromises = contentFiles.map((f) => uploadFile(f.buffer, f.mimetype, 'blogs'))
+    const uploadPromises = contentFiles.map((f) => uploadFile(f.buffer, f.mimetype, 'blogs', f.originalname))
     const results = await Promise.allSettled(uploadPromises)
     results.forEach((result) => {
       if (result.status === 'fulfilled') {
@@ -368,49 +398,77 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
       if (pid) pathsToDelete.push(pid)
     }
 
-    try {
-      const uploaded = await uploadFile(imageFile.buffer, imageFile.mimetype, 'blogs')
-      updateData.image = uploaded.url
-      updateData.cloudinaryId = uploaded.path
-    } catch (err) {
+     try {
+       const uploaded = await uploadFile(imageFile.buffer, imageFile.mimetype, 'blogs', imageFile.originalname)
+       updateData.image = uploaded.url
+       updateData.cloudinaryId = uploaded.publicId || uploaded.path
+     } catch (err) {
       console.error('[blogService.updateBlog] Image upload failed:', err?.message)
       throw failure(500, `Image upload failed: ${err?.message || 'Unknown error'}`)
     }
   }
 
   if (videoFile) {
-    // Delete the existing video (not the image) when a new video is uploaded.
-    // The video URL is stored in the `video` column, so we extract its public ID.
+    // Delete the existing video when a new video is uploaded. Prefer the
+    // dedicated video_cloudinary_id so we remove the exact video resource
+    // (resource_type: video) rather than treating it as an image.
     if (existing.video) {
-      const videoPublicId = extractPublicId(existing.video)
-      if (videoPublicId) pathsToDelete.push(videoPublicId)
+      if (existing.videoCloudinaryId) {
+        pathsToDelete.push({ publicId: existing.videoCloudinaryId, resourceType: existing.videoResourceType || 'video' })
+      } else {
+        const videoPublicId = extractPublicId(existing.video)
+        if (videoPublicId) pathsToDelete.push({ publicId: videoPublicId, resourceType: existing.videoResourceType || 'video' })
+      }
     }
 
     try {
-      const uploaded = await uploadFile(videoFile.buffer, videoFile.mimetype, 'blogs')
+      const uploaded = await uploadFile(videoFile.buffer, videoFile.mimetype, 'blogs', videoFile.originalname)
       updateData.video = uploaded.url
-      if (!updateData.cloudinaryId) updateData.cloudinaryId = uploaded.path
+      updateData.videoCloudinaryId = uploaded.publicId || uploaded.path
+      updateData.videoResourceType = uploaded.resourceType || 'video'
+      updateData.videoFormat = uploaded.format || 'mp4'
+      updateData.videoMimeType = uploaded.mimeType || videoFile.mimetype || null
+      updateData.videoDuration = uploaded.duration || null
+      updateData.videoWidth = uploaded.width || null
+      updateData.videoHeight = uploaded.height || null
+      updateData.videoBytes = uploaded.bytes || null
+      updateData.videoOriginalName = uploaded.originalName || videoFile.originalname || null
+      // Preserve a separate image cloudinary_id; do not clobber it with the video's
+      if (!updateData.cloudinaryId) updateData.cloudinaryId = uploaded.publicId || uploaded.path
     } catch (err) {
       console.error('[blogService.updateBlog] Video upload failed:', err?.message)
       throw failure(500, `Video upload failed: ${err?.message || 'Unknown error'}`)
     }
-  } else if (removeVideo) {
+   } else if (removeVideo) {
     // Explicitly remove the video when requested
     if (existing.video) {
-      const videoPublicId = extractPublicId(existing.video)
-      if (videoPublicId) pathsToDelete.push(videoPublicId)
+      if (existing.videoCloudinaryId) {
+        pathsToDelete.push({ publicId: existing.videoCloudinaryId, resourceType: existing.videoResourceType || 'video' })
+      } else {
+        const videoPublicId = extractPublicId(existing.video)
+        if (videoPublicId) pathsToDelete.push({ publicId: videoPublicId, resourceType: existing.videoResourceType || 'video' })
+      }
     }
     updateData.video = null
+    updateData.videoCloudinaryId = null
+    updateData.videoResourceType = null
+    updateData.videoFormat = null
+    updateData.videoMimeType = null
+    updateData.videoDuration = null
+    updateData.videoWidth = null
+    updateData.videoHeight = null
+    updateData.videoBytes = null
+    updateData.videoOriginalName = null
   }
 
-  if (homepageCircularImageFile) {
-    if (existing.homepageCircularImageId) pathsToDelete.push(existing.homepageCircularImageId)
+   if (homepageCircularImageFile) {
+     if (existing.homepageCircularImageId) pathsToDelete.push(existing.homepageCircularImageId)
 
-    try {
-      const uploaded = await uploadFile(homepageCircularImageFile.buffer, homepageCircularImageFile.mimetype, 'blogs')
-      updateData.homepageCircularImage = uploaded.url
-      updateData.homepageCircularImageId = uploaded.path
-    } catch (err) {
+     try {
+      const uploaded = await uploadFile(homepageCircularImageFile.buffer, homepageCircularImageFile.mimetype, 'blogs', homepageCircularImageFile.originalname)
+        updateData.homepageCircularImage = uploaded.url
+        updateData.homepageCircularImageId = uploaded.publicId || uploaded.path
+      } catch (err) {
       console.error('[blogService.updateBlog] Homepage circular image upload failed:', err?.message)
       throw failure(500, `Homepage image upload failed: ${err?.message || 'Unknown error'}`)
     }
@@ -421,7 +479,7 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
   }
 
   if (contentFiles && contentFiles.length > 0) {
-    const uploadPromises = contentFiles.map((f) => uploadFile(f.buffer, f.mimetype, 'blogs'))
+    const uploadPromises = contentFiles.map((f) => uploadFile(f.buffer, f.mimetype, 'blogs', f.originalname))
     const results = await Promise.allSettled(uploadPromises)
     const newMediaUrls = []
     results.forEach((result) => {
@@ -441,13 +499,17 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
       updateData.mediaUrls = currentUrls.filter((url) => !removeMediaUrls.includes(url))
       for (const url of toRemove) {
         const pid = extractPublicId(url)
-        if (pid) pathsToDelete.push(pid)
+        if (pid) pathsToDelete.push({ publicId: pid, resourceType: 'image' })
       }
     }
   }
 
   if (pathsToDelete.length > 0) {
-    deleteFiles(pathsToDelete).catch((err) => {
+    const deletePromises = pathsToDelete.map((entry) => {
+      if (typeof entry === 'object') return deleteFileByPublicId(entry.publicId, entry.resourceType)
+      return deleteFileByPublicId(entry, 'image')
+    })
+    Promise.allSettled(deletePromises).catch((err) => {
       console.error('[blogService.updateBlog] File deletion failed (non-fatal):', err?.message)
     })
   }
@@ -471,18 +533,25 @@ async function deleteBlog(id) {
     if (pid) pathsToDelete.push(pid)
   }
   if (existing.video) {
-    const pid = extractPublicId(existing.video)
-    if (pid && !pathsToDelete.includes(pid)) pathsToDelete.push(pid)
+    if (existing.videoCloudinaryId) {
+      pathsToDelete.push({ publicId: existing.videoCloudinaryId, resourceType: existing.videoResourceType || 'video' })
+    } else {
+      const pid = extractPublicId(existing.video)
+      if (pid) pathsToDelete.push({ publicId: pid, resourceType: existing.videoResourceType || 'video' })
+    }
   }
   if (existing.mediaUrls && existing.mediaUrls.length > 0) {
     for (const url of existing.mediaUrls) {
       const pid = extractPublicId(url)
-      if (pid && !pathsToDelete.includes(pid)) pathsToDelete.push(pid)
+      if (pid && !pathsToDelete.some((p) => p.publicId === pid)) pathsToDelete.push({ publicId: pid, resourceType: 'image' })
     }
   }
 
   if (pathsToDelete.length > 0) {
-    deleteFiles(pathsToDelete).catch((err) => {
+    const deletePromises = pathsToDelete.map((entry) =>
+      deleteFileByPublicId(typeof entry === 'object' ? entry.publicId : entry, typeof entry === 'object' ? entry.resourceType : 'video')
+    )
+    Promise.allSettled(deletePromises).catch((err) => {
       console.error('[blogService.deleteBlog] File deletion failed (non-fatal):', err?.message)
     })
   }
