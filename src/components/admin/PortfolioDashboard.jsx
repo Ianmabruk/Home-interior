@@ -894,15 +894,15 @@ export const PortfolioDashboard = () => {
                 Replace
               </motion.button>
             </div>
-               <div className="relative rounded-xl overflow-hidden group">
-                       <OptimizedImage
-                        src={mainImagePreview}
-                        alt="Preview"
-                        className="h-40 w-full bg-[var(--secondary)]/10"
-                        width={600}
-                        height={400}
-                        objectFit="contain"
-                      />
+<div className="relative rounded-xl overflow-hidden group">
+                        <OptimizedImage
+                         src={mainImagePreview}
+                         alt="Preview"
+                         className="h-40 w-full"
+                         width={600}
+                         height={400}
+                         objectFit="contain"
+                       />
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
@@ -1080,7 +1080,7 @@ export const PortfolioDashboard = () => {
                 }}
               className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3"
             >
-              {previews.map((src, i) => {
+{previews.map((src, i) => {
                 return (
                   <Reorder.Item
                     key={`${src}-${i}`}
@@ -1089,13 +1089,13 @@ export const PortfolioDashboard = () => {
                   >
                     <div className="relative rounded-xl overflow-hidden group">
                        <OptimizedImage
-                        src={typeof src === 'string' ? src : src?.url}
-                        alt="Preview"
-                        className="h-40 w-full bg-[var(--secondary)]/10"
-                        width={600}
-                        height={400}
-                        objectFit="contain"
-                      />
+                         src={typeof src === 'string' ? src : src?.url}
+                         alt="Preview"
+                         className="h-40 w-full"
+                         width={600}
+                         height={400}
+                         objectFit="contain"
+                       />
                       <div className="absolute top-1 left-1 bg-[var(--primary)]/90 backdrop-blur-sm text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
                         <div className="flex flex-col gap-0.5">
                           <div className="w-3 h-0.5 bg-white rounded-full"></div>

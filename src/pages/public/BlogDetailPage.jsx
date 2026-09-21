@@ -4,7 +4,7 @@ import { ArrowLeft, Share2, Facebook, Twitter, Linkedin, Copy, Calendar, User, C
 import { SiPinterest } from 'react-icons/si'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '@services/api'
-import { getVideoPosterUrl } from '@utils/cloudinaryHelpers'
+import { getVideoPosterUrl, getOptimizedVideoUrl } from '@utils/cloudinaryHelpers'
 import OptimizedImage from '@components/common/OptimizedImage'
 import { getReadingTime, formatDate, extractTags } from '@utils/blogHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
@@ -12,7 +12,7 @@ import { PageMeta } from '@hooks/usePageMeta'
 import { SectionErrorBoundary } from '@components/home/SectionErrorBoundary'
 import BlogCard from '@components/blog/BlogCard'
 import { useIsMobile } from '@hooks/useIsMobile'
-import BlogVideo from '@components/blog/BlogVideo'
+import LazyVideo from '@components/common/LazyVideo'
 
 const SITE_URL = 'https://hokinteriors.com'
 const DEFAULT_OG_IMAGE = `${SITE_URL}/images/og-default.jpg`
@@ -94,7 +94,6 @@ export const BlogDetailPage = () => {
   const [related, setRelated] = useState([])
   const [navigation, setNavigation] = useState({ previous: null, next: null })
   const [copied, setCopied] = useState(false)
-  const [videoPlayed, setVideoPlayed] = useState(false)
   const reduceMotion = useIsMobile()
 
   const loadBlog = useCallback(async () => {
@@ -161,22 +160,9 @@ export const BlogDetailPage = () => {
 
   useEffect(() => {
     if (!blog?.id) return
-    // For video blogs, only count a view when the video actually plays.
-    // For text-only blogs, count on page load (current behaviour).
-    if (videoUrl) {
-      // Wait for the video to play before incrementing the view count.
-      return
-    }
     incrementView()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [blog?.id, videoUrl])
-
-  const handleVideoPlay = () => {
-    if (videoUrl && !videoPlayed) {
-      setVideoPlayed(true)
-      incrementView()
-    }
-  }
+  }, [blog?.id])
 
   useEffect(() => {
     const handler = (event) => {
@@ -404,21 +390,27 @@ export const BlogDetailPage = () => {
              <ContentRenderer content={blog.content || blog.description || ''} />
            </motion.div>
 
-           {/* Video */}
-           {videoUrl && (
-             <motion.div
-               initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ duration: 0.6, delay: 0.3 }}
-               className="my-12 rounded-2xl overflow-hidden bg-[var(--secondary)]/30 aspect-video"
-             >
-               <BlogVideo
-                 src={videoUrl}
-                 poster={getVideoPosterUrl(videoUrl)}
-                 onPlay={handleVideoPlay}
-               />
-             </motion.div>
-           )}
+{/* Video */}
+            {videoUrl && (
+              <motion.div
+                initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="my-12 rounded-2xl overflow-hidden bg-[var(--secondary)]/30 aspect-video"
+              >
+                <LazyVideo
+                  src={getOptimizedVideoUrl(videoUrl, { width: 1280 })}
+                  poster={getVideoPosterUrl(videoUrl)}
+                  autoPlay={true}
+                  loop={true}
+                  muted={true}
+                  playsInline={true}
+                  controls={true}
+                  preload="metadata"
+                  className="w-full h-full object-contain"
+                />
+              </motion.div>
+            )}
 
            {/* Content Images Gallery */}
            {mediaUrls.length > 0 && (

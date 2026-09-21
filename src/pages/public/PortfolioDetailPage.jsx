@@ -236,7 +236,7 @@ export const PortfolioDetailPage = () => {
                   <button
                     key={`before-${index}`}
                     onClick={() => openLightbox('before', index)}
-                    className="relative rounded-xl overflow-hidden border border-[var(--border)]/40 bg-[var(--secondary)]/10 aspect-[4/3] hover:border-[var(--accent)]/60 active:scale-[0.98] transition-all"
+                    className="relative rounded-xl overflow-hidden border border-[var(--border)]/40 aspect-[4/3] hover:border-[var(--accent)]/60 active:scale-[0.98] transition-all"
                     aria-label={`View before image ${index + 1}`}
                   >
                     <OptimizedImage
@@ -270,23 +270,23 @@ export const PortfolioDetailPage = () => {
             <h2 className="font-display text-2xl md:text-3xl font-medium text-[var(--primary)] mb-6">After</h2>
             {afterImages.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-              {afterImages.slice(0, 12).map((img, index) => (
-                <button
-                  key={`after-${index}`}
-                  onClick={() => openLightbox('after', index)}
-                  className="relative rounded-xl overflow-hidden border border-[var(--border)]/40 bg-[var(--secondary)]/10 aspect-[4/3] hover:border-[var(--accent)]/60 active:scale-[0.98] transition-all"
-                  aria-label={`View after image ${index + 1}`}
-                >
-                  <OptimizedImage
-                    src={img.src}
-                    alt={`After ${index + 1}`}
-                    className="h-full w-full"
-                    objectFit="contain"
-                    width={600}
-                    height={450}
-                  />
-                </button>
-              ))}
+                {afterImages.slice(0, 12).map((img, index) => (
+                  <button
+                    key={`after-${index}`}
+                    onClick={() => openLightbox('after', index)}
+                    className="relative rounded-xl overflow-hidden border border-[var(--border)]/40 aspect-[4/3] hover:border-[var(--accent)]/60 active:scale-[0.98] transition-all"
+                    aria-label={`View after image ${index + 1}`}
+                  >
+                    <OptimizedImage
+                      src={img.src}
+                      alt={`After ${index + 1}`}
+                      className="h-full w-full"
+                      objectFit="contain"
+                      width={600}
+                      height={450}
+                    />
+                  </button>
+                ))}
               </div>
             ) : (
               <p className="text-[var(--primary)]/55">No After images available.</p>
