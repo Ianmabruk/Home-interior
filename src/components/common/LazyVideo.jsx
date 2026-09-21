@@ -12,43 +12,82 @@ export default function LazyVideo({
   playsInline = true,
   controls = false,
   preload = 'metadata',
+  sources = [],
 }) {
   const videoRef = useRef(null)
   const [hasError, setHasError] = useState(false)
   const [canPlay, setCanPlay] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(false)
   const reducedMotion = useReducedMotion()
   const shouldAutoPlay = autoPlay && !reducedMotion && muted && playsInline
+  const attemptPlayRef = useRef(0)
+  const isMountedRef = useRef(true)
 
   const attemptPlay = useCallback(async () => {
     const video = videoRef.current
-    if (!video) return
+    if (!video || !isMountedRef.current) return
+    const currentAttempt = ++attemptPlayRef.current
     try {
       await video.play()
     } catch (err) {
-      if (err.name !== 'AbortError') {
+      if (!isMountedRef.current) return
+      if (err.name === 'AbortError' || err.name === 'NotAllowedError') {
         console.debug('[LazyVideo] Autoplay prevented:', err.message)
+        return
+      }
+      if (currentAttempt === attemptPlayRef.current) {
+        setHasError(true)
       }
     }
   }, [])
 
   const onCanPlay = useCallback(() => {
+    if (!isMountedRef.current) return
     setCanPlay(true)
-    if (shouldAutoPlay) {
-      attemptPlay()
-    }
-  }, [shouldAutoPlay, attemptPlay])
+    setIsLoaded(true)
+  }, [])
+
+  const onLoadedData = useCallback(() => {
+    if (!isMountedRef.current) return
+    setIsLoaded(true)
+  }, [])
+
+  const onLoadStart = useCallback(() => {
+    if (!isMountedRef.current) return
+    setHasError(false)
+  }, [])
 
   const onPlay = useCallback(() => {}, [])
   const onPause = useCallback(() => {}, [])
-  const onError = useCallback(() => {
+
+  const onError = useCallback((e) => {
+    if (!isMountedRef.current) return
+    const video = e.currentTarget
+    const err = video?.error
+    // Don't treat transient/abort/decode errors as fatal — these are common
+    // on mobile Safari during autoplay policy enforcement and preloading.
+    if (!err) return
+    if (err.code === MediaError.MEDIA_ERR_ABORTED || err.code === MediaError.MEDIA_ERR_DECODE) {
+      return
+    }
+    // MEDIA_ERR_NETWORK (2) can be transient — don't immediately show error
+    // unless the user has actually tried to interact
     setHasError(true)
   }, [])
 
   const onEnded = useCallback(() => {
+    if (!isMountedRef.current) return
     if (loop) {
       attemptPlay()
     }
   }, [loop, attemptPlay])
+
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   useEffect(() => {
     const video = videoRef.current
@@ -60,9 +99,8 @@ export default function LazyVideo({
   }, [muted, playsInline, loop, preload])
 
   useEffect(() => {
-    if (!shouldAutoPlay && !canPlay) return
     const video = videoRef.current
-    if (!video) return
+    if (!video || !isMountedRef.current) return
 
     if (eager && canPlay) {
       if (muted) video.muted = true
@@ -72,21 +110,27 @@ export default function LazyVideo({
 
     const observer = new IntersectionObserver(
       ([entry]) => {
+        if (!isMountedRef.current) return
         if (entry.isIntersecting) {
           if (muted) video.muted = true
           if (canPlay) {
             attemptPlay()
           }
         } else {
-          video.pause()
+          if (!isLoaded) {
+            video.pause()
+          }
         }
       },
       { rootMargin: '150px 0px' },
     )
 
-    observer.observe(video)
+    if (shouldAutoPlay || !eager) {
+      observer.observe(video)
+    }
+
     return () => observer.disconnect()
-  }, [shouldAutoPlay, canPlay, muted, attemptPlay, eager])
+  }, [shouldAutoPlay, canPlay, muted, attemptPlay, eager, isLoaded])
 
   if (!src) return null
 
@@ -104,7 +148,6 @@ export default function LazyVideo({
   return (
     <video
       ref={videoRef}
-      src={src}
       poster={poster}
       className={className}
       muted={muted}
@@ -113,11 +156,18 @@ export default function LazyVideo({
       controls={controls}
       preload={preload}
       onCanPlay={onCanPlay}
+      onLoadedData={onLoadedData}
+      onLoadStart={onLoadStart}
       onPlay={onPlay}
       onPause={onPause}
       onError={onError}
       onEnded={onEnded}
       style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-    />
+    >
+      <source src={src} type="video/mp4" />
+      {sources.map((s, i) => (
+        <source key={i} src={s.src} type={s.type || 'video/mp4' } />
+      ))}
+    </video>
   )
 }

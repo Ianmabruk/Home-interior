@@ -12,28 +12,30 @@ describe('cloudinaryHelpers - video', () => {
       expect(result).not.toContain('https:/res')
     })
 
-    it('does not re-encode or force codec/format transforms (preserves stored streamable asset)', () => {
+    it('adds H.264/AAC/MP4 transforms for broad compatibility (no sp_auto)', () => {
       const result = getOptimizedVideoUrl(videoUrl)
-      expect(result).toBe(videoUrl)
-      expect(result).not.toContain('vc_h264')
-      expect(result).not.toContain('ac_aac')
-      expect(result).not.toContain('f_mp4')
+      expect(result).toContain('vc_h264')
+      expect(result).toContain('ac_aac')
+      expect(result).toContain('f_mp4')
+      expect(result).not.toBe(videoUrl)
+      expect(result).not.toContain('sp_auto')
     })
 
-    it('applies width-based resize only when width is requested', () => {
+    it('applies width-based resize with codec transforms when width is requested (no sp_auto)', () => {
       const result = getOptimizedVideoUrl(videoUrl, { width: 640 })
       expect(result).toContain('w_640')
       expect(result).toContain('c_limit')
-      // no codec/format forcing — preserves H.264/AAC/yuv420p streamability
-      expect(result).not.toContain('vc_h264')
-      expect(result).not.toContain('ac_aac')
-      expect(result).not.toContain('f_mp4')
+      expect(result).toContain('vc_h264')
+      expect(result).toContain('ac_aac')
+      expect(result).toContain('f_mp4')
+      expect(result).not.toContain('sp_auto')
     })
 
-    it('preserves video segment and valid https for width transform', () => {
+    it('preserves video segment and valid https for width transform (no sp_auto)', () => {
       const result = getOptimizedVideoUrl(videoUrl, { width: 640 })
-      expect(result).toMatch(/^https:\/\/.*\/video\/upload\/w_640,c_limit\//)
+      expect(result).toMatch(/^https:\/\/.*\/video\/upload\/w_640,c_limit,vc_h264,ac_aac,f_mp4\//)
       expect(result).not.toContain('https:/res')
+      expect(result).not.toContain('sp_auto')
     })
 
     it('returns null for non-string input', () => {

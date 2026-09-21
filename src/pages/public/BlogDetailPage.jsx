@@ -4,7 +4,7 @@ import { ArrowLeft, Share2, Facebook, Twitter, Linkedin, Copy, Calendar, User, C
 import { SiPinterest } from 'react-icons/si'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '@services/api'
-import { getVideoPosterUrl } from '@utils/cloudinaryHelpers'
+import { getVideoPosterUrl, getOptimizedVideoUrl } from '@utils/cloudinaryHelpers'
 import OptimizedImage from '@components/common/OptimizedImage'
 import { getReadingTime, formatDate, extractTags } from '@utils/blogHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
@@ -399,7 +399,7 @@ export const BlogDetailPage = () => {
                 className="my-12 rounded-2xl overflow-hidden bg-[var(--secondary)]/30 aspect-video"
               >
                 <LazyVideo
-                  src={videoUrl}
+                  src={getOptimizedVideoUrl(videoUrl) || videoUrl}
                   poster={getVideoPosterUrl(videoUrl)}
                   autoPlay={true}
                   loop={true}

@@ -59,8 +59,11 @@ export const buildSrcSet = (url, widths = RESPONSIVE_WIDTHS) => {
 export const getOptimizedVideoUrl = (url, options = {}) => {
   if (!isCloudinaryVideo(url) || typeof url !== 'string') return typeof url === 'string' ? url : null
   const { width } = options
-  if (!width) return url
-  const transform = `w_${width},c_limit`
+  const codecTransforms = 'vc_h264,ac_aac,f_mp4'
+  if (!width) {
+    return url.replace(CLOUDINARY_VIDEO_SEGMENT, `${CLOUDINARY_VIDEO_SEGMENT}${codecTransforms}/`)
+  }
+  const transform = `w_${width},c_limit,${codecTransforms}`
   return url.replace(CLOUDINARY_VIDEO_SEGMENT, `${CLOUDINARY_VIDEO_SEGMENT}${transform}/`)
 }
 

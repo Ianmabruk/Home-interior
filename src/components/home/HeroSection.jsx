@@ -35,6 +35,9 @@ const buildTaglineVariants = (reduced) => ({
   },
 })
 
+const HOLD_DURATION = 5500
+const CROSSFADE_DURATION = 2200
+
 const HeroSection = memo(({ heroImages = [], className = '' }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [displayIndex, setDisplayIndex] = useState(0)
@@ -42,6 +45,7 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
   const [opacityB, setOpacityB] = useState(0)
   const [nextMedia, setNextMedia] = useState(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [loadedImages, setLoadedImages] = useState({})
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const firstImageLoadedRef = useRef(false)
   const transitionTimeoutRef = useRef(null)
@@ -105,23 +109,34 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
 
   useEffect(() => {
     if (mediaItems.length <= 1 || prefersReducedMotion) return
-    const interval = 8500
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % mediaItems.length)
-    }, interval)
+    }, HOLD_DURATION + CROSSFADE_DURATION)
     return () => clearInterval(timer)
   }, [mediaItems.length, prefersReducedMotion])
 
   useEffect(() => {
     if (currentIndex === displayIndex) return
-    setNextMedia(mediaItems[currentIndex])
+
+    const nextItem = mediaItems[currentIndex]
+
+    // Only start the fade once the next image is fully loaded (or is a video,
+    // which we trust as preloaded via preload attr). This prevents flashing
+    // to a blank/unavailable image during the crossfade.
+    const nextKey = nextItem?.url || ''
+    if (nextItem?.type === 'image' && !loadedImages[nextKey]) {
+      // Image not yet loaded — keep current image visible, just track the pending change
+      return
+    }
+
+    setNextMedia(nextItem)
     setOpacityA(0)
     setOpacityB(1)
 
     if (transitionTimeoutRef.current) {
       clearTimeout(transitionTimeoutRef.current)
     }
-    const duration = prefersReducedMotion ? 300 : 1200
+    const duration = prefersReducedMotion ? 300 : CROSSFADE_DURATION
     transitionTimeoutRef.current = setTimeout(() => {
       setDisplayIndex(currentIndex)
       setOpacityA(1)
@@ -134,13 +149,35 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
         clearTimeout(transitionTimeoutRef.current)
       }
     }
-  }, [currentIndex, displayIndex, mediaItems, prefersReducedMotion])
+  }, [currentIndex, displayIndex, mediaItems, prefersReducedMotion, loadedImages])
 
   const currentMedia = mediaItems[displayIndex]
 
-  const handleImageLoad = useCallback(() => {
+  const handleImageLoad = useCallback((url) => () => {
     if (!isLoaded) setIsLoaded(true)
+    setLoadedImages((prev) => ({ ...prev, [url]: true }))
   }, [isLoaded])
+
+  // Preload next image so the crossfade never flashes to a blank frame
+  useEffect(() => {
+    if (mediaItems.length <= 1 || prefersReducedMotion) return
+    const nextIdx = (currentIndex + 1) % mediaItems.length
+    const nextItem = mediaItems[nextIdx]
+    if (!nextItem || nextItem.type !== 'image') return
+
+    const nextKey = nextItem.url
+    if (loadedImages[nextKey]) return
+
+    const img = new Image()
+    img.onload = () => {
+      setLoadedImages((prev) => ({ ...prev, [nextKey]: true }))
+    }
+    img.onerror = () => {
+      // Keep current image visible — do not mark as loaded, do not fade
+      console.warn('[HeroSection] Next hero image failed to load, keeping current:', nextKey)
+    }
+    img.src = getOptimizedUrlAutoDpr(nextItem.url, { width: 1920, crop: 'limit' })
+  }, [currentIndex, mediaItems, prefersReducedMotion, loadedImages])
 
   const renderMedia = (media, opacity, isNext = false) => {
     if (!media) return null
@@ -156,9 +193,9 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
           type="video/mp4"
           autoPlay={!isNext}
           preload={isNext ? 'none' : 'metadata'}
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1200ms] ease-out hero-media"
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ease-out hero-media"
           style={{ opacity }}
-          onLoadedData={handleImageLoad}
+          onLoadedData={handleImageLoad('video')}
         />
       )
     }
@@ -168,11 +205,11 @@ const HeroSection = memo(({ heroImages = [], className = '' }) => {
         key={media.url}
         src={optimizedSrc}
         alt={media.alt}
-        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1200ms] ease-out hero-media"
+        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ease-out hero-media"
         style={{ opacity, objectPosition: 'center' }}
         loading={!isNext ? 'eager' : 'lazy'}
         decoding="async"
-        onLoad={handleImageLoad}
+        onLoad={handleImageLoad(optimizedSrc)}
       />
     )
   }
