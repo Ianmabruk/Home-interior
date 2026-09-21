@@ -1,13 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useReducedMotion } from '@components/common/DynamicMotion'
 
-// Lazily loads and autoplays a video only once it scrolls into (or near) the
-// viewport, and pauses it when it leaves — so below-the-fold videos never
-// download or decode until needed and don't burn CPU/battery on mobile.
-//
-// The poster always renders (even before the video loads), so there is no
-// layout shift and the first frame paints instantly. Pass `eager` to keep the
-// original above-the-fold behaviour (hero video plays immediately).
 export default function LazyVideo({
   src,
   poster,
@@ -18,85 +11,121 @@ export default function LazyVideo({
   muted = true,
   playsInline = true,
   controls = false,
+  preload = 'metadata',
 }) {
   const videoRef = useRef(null)
-  const [active, setActive] = useState(eager)
+  const [_isLoaded, setIsLoaded] = useState(false)
+  const [_hasError, setHasError] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
   const reducedMotion = useReducedMotion()
-  const shouldAutoPlay = autoPlay && !reducedMotion
-  const showVideo = eager || active
+  const shouldAutoPlay = autoPlay && !reducedMotion && muted && playsInline
 
-  // Force the `muted` DOM property (React's JSX `muted` attribute is not
-  // reliably applied), so browsers permit muted autoplay for eager videos too.
-  useEffect(() => {
-    if (muted && videoRef.current) videoRef.current.muted = true
-  }, [muted, active])
+  const attemptPlay = useCallback(async () => {
+    const video = videoRef.current
+    if (!video || isPlaying) return
 
-  // Play as soon as the video source is attached and the section is meant to
-  // be active. This covers the case where the browser does not auto-play a
-  // dynamically-sourced <video> even when `autoplay` is present.
-  useEffect(() => {
-    const v = videoRef.current
-    if (!v || !showVideo || !shouldAutoPlay) return
-    const p = v.play()
-    if (p && typeof p.catch === 'function') p.catch(() => {})
-  }, [showVideo, shouldAutoPlay])
+    try {
+      await video.play()
+      setIsPlaying(true)
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.debug('[LazyVideo] Autoplay prevented:', err.message)
+      }
+    }
+  }, [isPlaying])
 
-  // Load (set src + autoplay) as soon as the element is near the viewport.
+  const handleCanPlay = useCallback(() => {
+    setIsLoaded(true)
+    if (shouldAutoPlay) {
+      attemptPlay()
+    }
+  }, [attemptPlay, shouldAutoPlay])
+
+  const handlePlay = useCallback(() => setIsPlaying(true), [])
+  const handlePause = useCallback(() => setIsPlaying(false), [])
+  const handleError = useCallback(() => {
+    setHasError(true)
+    setIsPlaying(false)
+  }, [])
+
+  const handleEnded = useCallback(() => {
+    if (loop) {
+      attemptPlay()
+    } else {
+      setIsPlaying(false)
+    }
+  }, [attemptPlay, loop])
+
   useEffect(() => {
-    if (eager) return undefined
-    const el = videoRef.current
-    if (!el) return undefined
+    const video = videoRef.current
+    if (!video) return
+
+    video.muted = muted
+    video.playsInline = playsInline
+    video.loop = loop
+    video.preload = preload
+  }, [muted, playsInline, loop, preload])
+
+  useEffect(() => {
+    if (!eager && !shouldAutoPlay) return
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setActive(true)
+          setIsLoaded(true)
           observer.disconnect()
         }
       },
       { rootMargin: '300px 0px' },
     )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [eager])
 
-  // Pause when scrolled out of view to free the decoder (CPU/memory on mobile).
+    const video = videoRef.current
+    if (video) observer.observe(video)
+
+    return () => observer.disconnect()
+  }, [eager, shouldAutoPlay])
+
   useEffect(() => {
-    if (eager || !shouldAutoPlay) return undefined
-    const el = videoRef.current
-    if (!el) return undefined
+    if (eager || !shouldAutoPlay) return
+
+    const video = videoRef.current
+    if (!video) return
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          // React doesn't reliably set the `muted` DOM property from the JSX
-          // attribute; force it so browsers allow muted autoplay.
-          if (muted) el.muted = true
-          const p = el.play()
-          if (p && typeof p.catch === 'function') p.catch(() => {})
+          if (muted) video.muted = true
+          attemptPlay()
         } else {
-          el.pause()
+          video.pause()
         }
       },
       { rootMargin: '150px 0px' },
     )
-    observer.observe(el)
+
+    observer.observe(video)
     return () => observer.disconnect()
-  }, [eager, shouldAutoPlay, muted])
+  }, [eager, shouldAutoPlay, muted, attemptPlay])
+
+  if (!src) return null
 
   return (
     <video
       ref={videoRef}
+      src={src}
       poster={poster}
       className={className}
       muted={muted}
       loop={loop}
       playsInline={playsInline}
       controls={controls}
-      preload={showVideo ? 'metadata' : 'none'}
-      type="video/mp4"
-      src={showVideo ? src : undefined}
-      autoPlay={showVideo && shouldAutoPlay}
+      preload={preload}
+      onCanPlay={handleCanPlay}
+      onPlay={handlePlay}
+      onPause={handlePause}
+      onError={handleError}
+      onEnded={handleEnded}
+      style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
     />
   )
 }

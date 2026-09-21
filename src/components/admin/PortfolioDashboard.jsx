@@ -505,14 +505,8 @@ export const PortfolioDashboard = () => {
     setUploadOverallProgress(0)
     setUploadImageStates([])
 
-    // Warm the backend before starting uploads. On Render free-tier, the
-    // server spins down after 15 minutes of inactivity; a lightweight
-    // health-check wakes it so the subsequent upload doesn't pay the
-    // cold-start penalty. This is done before the token check so that the
-    // refresh call (if needed) also benefits from the warm server.
     await warmServer()
 
-    // Ensure a valid token exists before starting any upload.
     try {
       await ensureValidToken()
     } catch (tokenErr) {
@@ -566,22 +560,15 @@ export const PortfolioDashboard = () => {
           return
         }
 
-        const compressedBefore = newBeforeFiles.length > 0
-          ? await compressImages(newBeforeFiles, { maxWidth: 1920, maxHeight: 1920, quality: 0.82 })
-          : []
-        const compressedAfter = newAfterFiles.length > 0
-          ? await compressImages(newAfterFiles, { maxWidth: 1920, maxHeight: 1920, quality: 0.82 })
-          : []
-
         const beforeResult = await uploadWithProgress(
-          compressedBefore,
+          newBeforeFiles,
           'before',
           0,
           totalNewFiles > 0 ? 50 : 0,
         )
 
         const afterResult = await uploadWithProgress(
-          compressedAfter,
+          newAfterFiles,
           'after',
           totalNewFiles > 0 ? 50 : 0,
           100,
@@ -601,13 +588,13 @@ export const PortfolioDashboard = () => {
           throw new Error(`Failed to upload ${allFailed.length} image(s). See details above.`)
         }
 
-        const uploadedBeforeUrls = compressedBefore
+        const uploadedBeforeUrls = newBeforeFiles
           .map((f, idx) => {
             const res = beforeResult.successful.find((r) => r.index === idx)
             return res?.url
           })
           .filter(Boolean)
-        const uploadedAfterUrls = compressedAfter
+        const uploadedAfterUrls = newAfterFiles
           .map((f, idx) => {
             const res = afterResult.successful.find((r) => r.index === idx)
             return res?.url
