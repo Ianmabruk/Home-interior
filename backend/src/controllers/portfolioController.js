@@ -5,7 +5,10 @@ import { failure } from '../utils/response.js'
 
 function normalizeStringArray(val) {
   if (!val) return undefined
-  if (Array.isArray(val)) return val.filter(Boolean)
+  if (Array.isArray(val)) {
+    const filtered = val.filter(Boolean)
+    return filtered.length > 0 ? filtered : undefined
+  }
   if (typeof val === 'string') return val ? [val] : []
   return undefined
 }
