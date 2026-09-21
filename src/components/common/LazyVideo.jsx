@@ -14,52 +14,45 @@ export default function LazyVideo({
   preload = 'metadata',
 }) {
   const videoRef = useRef(null)
-  const [_isLoaded, setIsLoaded] = useState(false)
-  const [_hasError, setHasError] = useState(false)
-  const [isPlaying, setIsPlaying] = useState(false)
+  const [hasError, setHasError] = useState(false)
+  const [canPlay, setCanPlay] = useState(false)
   const reducedMotion = useReducedMotion()
   const shouldAutoPlay = autoPlay && !reducedMotion && muted && playsInline
 
   const attemptPlay = useCallback(async () => {
     const video = videoRef.current
-    if (!video || isPlaying) return
-
+    if (!video) return
     try {
       await video.play()
-      setIsPlaying(true)
     } catch (err) {
       if (err.name !== 'AbortError') {
         console.debug('[LazyVideo] Autoplay prevented:', err.message)
       }
     }
-  }, [isPlaying])
+  }, [])
 
-  const handleCanPlay = useCallback(() => {
-    setIsLoaded(true)
+  const onCanPlay = useCallback(() => {
+    setCanPlay(true)
     if (shouldAutoPlay) {
       attemptPlay()
     }
-  }, [attemptPlay, shouldAutoPlay])
+  }, [shouldAutoPlay, attemptPlay])
 
-  const handlePlay = useCallback(() => setIsPlaying(true), [])
-  const handlePause = useCallback(() => setIsPlaying(false), [])
-  const handleError = useCallback(() => {
+  const onPlay = useCallback(() => {}, [])
+  const onPause = useCallback(() => {}, [])
+  const onError = useCallback(() => {
     setHasError(true)
-    setIsPlaying(false)
   }, [])
 
-  const handleEnded = useCallback(() => {
+  const onEnded = useCallback(() => {
     if (loop) {
       attemptPlay()
-    } else {
-      setIsPlaying(false)
     }
-  }, [attemptPlay, loop])
+  }, [loop, attemptPlay])
 
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
-
     video.muted = muted
     video.playsInline = playsInline
     video.loop = loop
@@ -67,35 +60,23 @@ export default function LazyVideo({
   }, [muted, playsInline, loop, preload])
 
   useEffect(() => {
-    if (!eager && !shouldAutoPlay) return
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsLoaded(true)
-          observer.disconnect()
-        }
-      },
-      { rootMargin: '300px 0px' },
-    )
-
-    const video = videoRef.current
-    if (video) observer.observe(video)
-
-    return () => observer.disconnect()
-  }, [eager, shouldAutoPlay])
-
-  useEffect(() => {
-    if (eager || !shouldAutoPlay) return
-
+    if (!shouldAutoPlay && !canPlay) return
     const video = videoRef.current
     if (!video) return
+
+    if (eager && canPlay) {
+      if (muted) video.muted = true
+      attemptPlay()
+      return
+    }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           if (muted) video.muted = true
-          attemptPlay()
+          if (canPlay) {
+            attemptPlay()
+          }
         } else {
           video.pause()
         }
@@ -105,9 +86,20 @@ export default function LazyVideo({
 
     observer.observe(video)
     return () => observer.disconnect()
-  }, [eager, shouldAutoPlay, muted, attemptPlay])
+  }, [shouldAutoPlay, canPlay, muted, attemptPlay, eager])
 
   if (!src) return null
+
+  if (hasError) {
+    return (
+      <div
+        className={`flex items-center justify-center bg-[var(--secondary)]/20 text-[var(--primary)]/50 ${className}`}
+        style={{ width: '100%', height: '100%' }}
+      >
+        Video unavailable
+      </div>
+    )
+  }
 
   return (
     <video
@@ -120,11 +112,11 @@ export default function LazyVideo({
       playsInline={playsInline}
       controls={controls}
       preload={preload}
-      onCanPlay={handleCanPlay}
-      onPlay={handlePlay}
-      onPause={handlePause}
-      onError={handleError}
-      onEnded={handleEnded}
+      onCanPlay={onCanPlay}
+      onPlay={onPlay}
+      onPause={onPause}
+      onError={onError}
+      onEnded={onEnded}
       style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
     />
   )
