@@ -96,15 +96,19 @@ export const BlogDetailPage = () => {
   const [copied, setCopied] = useState(false)
   const reduceMotion = useIsMobile()
 
-  const loadBlog = useCallback(async () => {
+const loadBlog = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
       const res = await api.get(`/blog/${id}`)
       setBlog(res.data || null)
     } catch (err) {
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return
       const msg = err?.response?.status === 404 ? 'Blog not found' : (err?.message || 'Failed to load blog')
       setError(msg)
+      // CRITICAL: Only clear blog on a genuine fetch failure.
+      // Do NOT clear it when the API returns 200 with null data.
+      // The error handler is only reached when the API call itself failed.
       setBlog(null)
     } finally {
       setLoading(false)

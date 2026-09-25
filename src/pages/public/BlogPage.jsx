@@ -64,7 +64,7 @@ export const BlogPage = memo(() => {
     }
   }, [])
 
-  const loadBlogs = useCallback(async () => {
+const loadBlogs = useCallback(async () => {
     setError(null)
     try {
       const params = new URLSearchParams({
@@ -83,8 +83,13 @@ export const BlogPage = memo(() => {
       const featured = data.find((b) => b.featured) || data[0] || null
       setFeaturedBlog(featured)
     } catch (err) {
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return
       console.warn('[BlogPage] Failed to load blogs:', err?.message)
       setError(err)
+      // CRITICAL: Only clear blogs on a genuine fetch failure.
+      // Do NOT clear them when the API returns 200 with zero results.
+      // The error handler is only reached when the API call itself failed.
+      setBlogs([])
     } finally {
       setLoading(false)
     }

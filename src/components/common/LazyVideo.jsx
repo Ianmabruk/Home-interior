@@ -123,6 +123,9 @@ export default function LazyVideo({
     video.preload = preload
   }, [muted, playsInline, loop, preload])
 
+  // Single IntersectionObserver setup — stable across state changes.
+  // We use a ref to track whether we've already set up the observer.
+  const observerRef = useRef(null)
   useEffect(() => {
     const video = videoRef.current
     if (!video || !isMountedRef.current) return
@@ -133,6 +136,8 @@ export default function LazyVideo({
       return
     }
 
+    // Only set up the observer once per mount.
+    if (observerRef.current) return
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!isMountedRef.current) return
@@ -153,8 +158,14 @@ export default function LazyVideo({
     if (shouldAutoPlay || !eager) {
       observer.observe(video)
     }
+    observerRef.current = observer
 
-    return () => observer.disconnect()
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect()
+        observerRef.current = null
+      }
+    }
   }, [shouldAutoPlay, canPlay, muted, attemptPlay, eager, isLoaded])
 
   useEffect(() => {

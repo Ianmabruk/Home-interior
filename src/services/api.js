@@ -367,10 +367,21 @@ async function withRetry(fn, signal) {
       if (attempt >= MAX_RETRIES) break
       if (signal?.aborted) break
       const status = err?.response?.status || err?.status
-      if (!RETRYABLE_STATUS.has(status) && status !== undefined) break
+      // Retry on retryable HTTP status codes
+      if (RETRYABLE_STATUS.has(status)) {
+        await new Promise((r) => setTimeout(r, getRetryDelay(attempt)))
+        continue
+      }
+      // Retry on network errors (TypeError, no status) — cold backend, Render spin-up
+      // This is critical: a cold backend returns TypeError with no HTTP status.
+      if (err?.name === 'TypeError' && !status) {
+        await new Promise((r) => setTimeout(r, getRetryDelay(attempt)))
+        continue
+      }
+      // Do NOT retry on abort/cancel
       if (err?.name === 'AbortError' || err?.code === 'ERR_CANCELED') break
-      if (err?.name === 'TypeError' && !status) break
-      await new Promise((r) => setTimeout(r, getRetryDelay(attempt)))
+      // Do NOT retry on non-retryable status codes (401, 403, 404, etc.)
+      if (status !== undefined && !RETRYABLE_STATUS.has(status)) break
     }
   }
   throw lastError

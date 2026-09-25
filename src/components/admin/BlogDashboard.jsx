@@ -24,7 +24,7 @@ const BlogDashboard = () => {
   const [page, setPage] = useState(1)
   const [meta, setMeta] = useState({ total: 0, totalPages: 1 })
 
-  const loadBlogs = useCallback(async (params) => {
+const loadBlogs = useCallback(async (params) => {
     const p = params || {
       page,
       search: searchTerm,
@@ -50,6 +50,9 @@ const BlogDashboard = () => {
     } catch (err) {
       console.error('[BlogDashboard] load error:', err?.message)
       toast.error(`Failed to load blogs: ${err?.message || 'Unknown error'}`)
+      // CRITICAL: Only clear blogs on a genuine fetch failure.
+      // Do NOT clear them when the API returns 200 with zero results.
+      // The error handler is only reached when the API call itself failed.
       setBlogs([])
     } finally {
       setLoading(false)
