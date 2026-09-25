@@ -300,13 +300,41 @@ const loadBlog = useCallback(async () => {
       <article className="container-wide mx-auto px-6 md:px-12 lg:px-20 pb-12 md:pb-20">
         {/* Two-column grid:
             Desktop: Image (left) | Title + Content (right)
-            Mobile:  Title → Image → Content (vertical flow via DOM order) */}
+            Mobile:  Image → Title → Content (vertical flow via DOM order) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* Article header — first in DOM (top on mobile), right column on desktop */}
-          <motion.header
+          {/* Main image — FIRST in DOM (top on mobile), left column on desktop */}
+          <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
+            className="lg:col-start-1 lg:row-start-1"
+          >
+            {imageUrl ? (
+              <div className="relative w-full overflow-hidden rounded-3xl bg-[var(--secondary)]/10" style={{ aspectRatio: '4 / 3' }}>
+                <OptimizedImage
+                  src={imageUrl}
+                  alt={blog.title}
+                  className="h-full w-full"
+                  objectFit="contain"
+                  objectPosition="center"
+                  crop="limit"
+                  priority={true}
+                />
+              </div>
+            ) : (
+              <div className="w-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center rounded-3xl" style={{ aspectRatio: '4 / 3' }}>
+                <div className="text-center text-white">
+                  <h2 className="font-display text-4xl md:text-5xl font-semibold">{blog.title}</h2>
+                </div>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Article header — SECOND in DOM (below image on mobile), right column on desktop */}
+          <motion.header
+            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
             className="lg:col-start-2 lg:row-start-1"
           >
             {blog.category && (
@@ -360,36 +388,11 @@ const loadBlog = useCallback(async () => {
             )}
           </motion.header>
 
-          {/* Main image — second in DOM (below title on mobile), left column on desktop */}
-          <div className="lg:col-start-1 lg:row-start-1">
-            {imageUrl ? (
-              <div className="relative w-full overflow-hidden rounded-3xl bg-[var(--secondary)]/10">
-                <OptimizedImage
-                  src={imageUrl}
-                  alt={blog.title}
-                  className="h-full w-full"
-                  objectFit="contain"
-                  objectPosition="center"
-                  crop="limit"
-                  width={1600}
-                  height={1200}
-                  priority={true}
-                />
-              </div>
-            ) : (
-              <div className="aspect-[4/3] w-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center rounded-3xl">
-                <div className="text-center text-white">
-                  <h2 className="font-display text-4xl md:text-5xl font-semibold">{blog.title}</h2>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Article content — third in DOM (below image on mobile), right column below title on desktop */}
+          {/* Article content — THIRD in DOM (below header on mobile), right column below header on desktop */}
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
             className="prose-wrapper lg:col-start-2 lg:row-start-2"
           >
             <ContentRenderer content={blog.content || blog.description || ''} />
@@ -428,7 +431,7 @@ const loadBlog = useCallback(async () => {
             className="my-12 grid grid-cols-1 md:grid-cols-2 gap-6"
           >
             {mediaUrls.map((url, i) => (
-              <div key={i} className="relative overflow-hidden rounded-2xl bg-[var(--secondary)]/10">
+              <div key={i} className="relative overflow-hidden rounded-2xl bg-[var(--secondary)]/10" style={{ aspectRatio: '4 / 3' }}>
                 <OptimizedImage
                   src={url}
                   alt={`${blog.title} — gallery ${i + 1}`}
@@ -436,8 +439,6 @@ const loadBlog = useCallback(async () => {
                   objectFit="contain"
                   objectPosition="center"
                   crop="limit"
-                  width={800}
-                  height={600}
                 />
               </div>
             ))}

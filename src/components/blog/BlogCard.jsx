@@ -8,7 +8,7 @@ export const BlogCard = ({ blog, priority = false }) => {
   return (
     <article className="group relative flex flex-col h-full bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)] hover:shadow-[0_20px_60px_rgba(42,36,31,0.08)] transition-all duration-500">
       <Link to={`/blog/${blog.slug || blog.id}`} className="block">
-        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl">
+        <div className="relative aspect-square w-full overflow-hidden rounded-3xl">
           {imageUrl ? (
             <OptimizedImage
               src={imageUrl}
@@ -17,8 +17,8 @@ export const BlogCard = ({ blog, priority = false }) => {
               crop="fill"
               objectFit="cover"
               objectPosition="center"
-              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              width={800}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              width={600}
               height={600}
               priority={priority}
             />
@@ -36,11 +36,11 @@ export const BlogCard = ({ blog, priority = false }) => {
         </div>
       </Link>
 
-      <div className="p-6 md:p-8 flex-1 flex flex-col">
+      <div className="p-5 flex-1 flex flex-col">
         {blog.category && (
           <span className="text-xs font-medium text-[var(--primary)]/40 mb-2">{blog.category}</span>
         )}
-        <h3 className="font-display text-xl md:text-2xl font-medium text-[var(--primary)] leading-tight line-clamp-2 mb-4">
+        <h3 className="font-display text-lg md:text-xl font-medium text-[var(--primary)] leading-tight line-clamp-2 mb-4">
           <Link to={`/blog/${blog.slug || blog.id}`} className="hover:text-[var(--accent)] transition-colors">
             {blog.title}
           </Link>
