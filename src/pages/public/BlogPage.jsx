@@ -1,24 +1,34 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { motion } from '@components/common/DynamicMotion'
-import { Link, useSearchParams } from 'react-router-dom'
-import { Search, Tag, Grid3X3 } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { Search, Tag } from 'lucide-react'
 import { api, clearApiCache } from '@services/api'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 import { SectionErrorBoundary } from '@components/home/SectionErrorBoundary'
-import { getBlogImageUrl } from '@utils/blogHelpers'
-import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
 import BlogCard from '@components/blog/BlogCard'
 import { useIsMobile } from '@hooks/useIsMobile'
 
 const SkeletonGrid = ({ count = 6 }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
     {Array.from({ length: count }).map((_, i) => (
-      <div key={i} className="group flex flex-col">
-        <div className="aspect-[4/3] w-full rounded-3xl skeleton mb-4" />
-        <div className="skeleton h-5 w-3/4 rounded-lg mb-2" />
-        <div className="skeleton h-4 w-full rounded-lg mb-2" />
-        <div className="skeleton h-4 w-1/2 rounded-lg" />
+      <div key={i} className="group flex flex-col bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(42,36,31,0.04)]">
+        <div className="relative aspect-[4/3] w-full rounded-3xl skeleton mb-4" />
+        <div className="px-6 md:px-8 pb-6 flex-1 flex flex-col">
+          <div className="mb-2 flex items-center gap-2 flex-wrap">
+            <div className="skeleton h-3 w-12 rounded" />
+            <div className="skeleton h-3 w-16 rounded" />
+          </div>
+          <div className="skeleton h-5 w-3/4 rounded-lg mb-3" />
+          <div className="skeleton h-4 w-full rounded-lg mb-2" />
+          <div className="skeleton h-4 w-full rounded-lg mb-2" />
+          <div className="skeleton h-4 w-1/2 rounded-lg mt-auto mb-4" />
+          <div className="flex items-center justify-between pt-4 border-t border-border/50">
+            <div className="skeleton h-3 w-20 rounded" />
+            <div className="skeleton h-3 w-16 rounded" />
+            <div className="skeleton h-3 w-14 rounded" />
+          </div>
+        </div>
       </div>
     ))}
   </div>
@@ -256,73 +266,6 @@ export const BlogPage = memo(() => {
           </div>
         </SectionErrorBoundary>
 
-        {/* Featured Article */}
-        {!loading && featuredBlog && (
-          <SectionErrorBoundary sectionName="FeaturedArticle">
-            <motion.article
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="mb-16"
-            >
-              <Link to={`/blog/${featuredBlog.slug || featuredBlog.id}`} className="group block">
-                <div className="relative aspect-[2/1] w-full overflow-hidden rounded-3xl">
-                  {getBlogImageUrl(featuredBlog) ? (
-                    <>
-                      <img
-                        src={getOptimizedUrl(getBlogImageUrl(featuredBlog), { width: 1200, crop: 'limit' }) || getBlogImageUrl(featuredBlog)}
-                        srcSet={buildSrcSet(getBlogImageUrl(featuredBlog)) || undefined}
-                        sizes="100vw"
-                        alt={featuredBlog.title}
-                        className="h-full w-full object-cover transition duration-1000 group-hover:scale-105"
-                        loading="eager"
-                        decoding="async"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    </>
-                  ) : (
-                    <div className="h-full w-full bg-gradient-to-br from-[var(--secondary)]/20 to-[var(--accent)]/10 flex items-center justify-center">
-                      <Grid3X3 size={48} className="text-[var(--primary)]/20" />
-                    </div>
-                  )}
-                  <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12">
-                    <div className="mb-3 flex items-center gap-2">
-                      {featuredBlog.featured && (
-                        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
-                          Featured
-                        </span>
-                      )}
-                      {featuredBlog.category && (
-                        <span className="text-xs font-medium text-white/60">{featuredBlog.category}</span>
-                      )}
-                    </div>
-                    <h2 className="font-display text-2xl md:text-3xl lg:text-4xl font-semibold text-white leading-tight mb-3 line-clamp-2 group-hover:text-[var(--accent)]/80 transition-colors">
-                      {featuredBlog.title}
-                    </h2>
-                    {featuredBlog.description && (
-                      <p className="text-sm text-white/70 line-clamp-2 max-w-2xl">
-                        {featuredBlog.description}
-                      </p>
-                    )}
-                    <div className="mt-4 flex items-center gap-4 text-xs text-white/50">
-                      <span>{featuredBlog.author || 'HOK Interiors'}</span>
-                      <time dateTime={featuredBlog.publishDate || featuredBlog.createdAt}>
-                        {featuredBlog.published && featuredBlog.publishDate
-                          ? new Date(featuredBlog.publishDate).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                            })
-                          : 'Draft'}
-                      </time>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            </motion.article>
-          </SectionErrorBoundary>
-        )}
-
         {/* Blog Grid */}
         <SectionErrorBoundary sectionName="BlogGrid">
           {error && blogs.length === 0 ? (
@@ -357,6 +300,7 @@ export const BlogPage = memo(() => {
                     duration: 0.5,
                     ease: [0.22, 1, 0.36, 1],
                   }}
+                  className="h-full"
                 >
                   <BlogCard blog={item} priority={i < 6} />
                 </motion.div>

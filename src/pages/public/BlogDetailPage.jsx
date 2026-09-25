@@ -282,52 +282,28 @@ export const BlogDetailPage = () => {
         description={blog.metaDescription || blog.description || `Read ${blog.title} by ${blog.author || 'HOK Interiors'}.`}
       />
 
-      {/* Hero */}
-      <motion.section
-        initial={reduceMotion ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6 }}
-        className="relative w-full overflow-hidden"
-      >
-        {imageUrl ? (
-          <div className="relative aspect-[2/1] w-full overflow-hidden bg-[var(--secondary)]/10">
-            <OptimizedImage
-              src={imageUrl}
-              alt={blog.title}
-              className="h-full w-full object-cover"
-              width={1600}
-              height={800}
-              priority={true}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-          </div>
-        ) : (
-          <div className="aspect-[2/1] w-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center">
-            <div className="text-center text-white">
-              <h1 className="font-display text-5xl md:text-6xl font-semibold mb-4">{blog.title}</h1>
-            </div>
-          </div>
-        )}
+      {/* Back button — always at the top, stable position */}
+      <div className="container-wide mx-auto px-6 md:px-12 lg:px-20 pt-8 pb-4">
+        <Link
+          to="/blog"
+          className="inline-flex items-center gap-2 text-sm text-[var(--primary)]/50 hover:text-[var(--accent)] transition-colors"
+        >
+          <ArrowLeft size={16} />
+          Back to Blog
+        </Link>
+      </div>
 
-        <div className="absolute bottom-0 left-0 right-0 container-wide mx-auto px-6 md:px-12 lg:px-20 pb-8">
-          <Link
-            to="/blog"
-            className="inline-flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors mb-6"
-          >
-            <ArrowLeft size={16} />
-            Back to Blog
-          </Link>
-        </div>
-      </motion.section>
-
-      <article className="container-wide mx-auto px-6 md:px-12 lg:px-20 py-12 md:py-20">
-        <div className="mx-auto max-w-3xl">
-          {/* Meta */}
+      <article className="container-wide mx-auto px-6 md:px-12 lg:px-20 pb-12 md:pb-20">
+        {/* Two-column grid:
+            Desktop: Image (left) | Title + Content (right)
+            Mobile:  Title → Image → Content (vertical flow via DOM order) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+          {/* Article header — first in DOM (top on mobile), right column on desktop */}
           <motion.header
             initial={reduceMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="mb-10"
+            className="lg:col-start-2 lg:row-start-1"
           >
             {blog.category && (
               <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-3">
@@ -380,206 +356,235 @@ export const BlogDetailPage = () => {
             )}
           </motion.header>
 
-{/* Rich Text Content */}
-           <motion.div
-             initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-             animate={{ opacity: 1, y: 0 }}
-             transition={{ duration: 0.6, delay: 0.2 }}
-             className="prose-wrapper"
-           >
-             <ContentRenderer content={blog.content || blog.description || ''} />
-           </motion.div>
-
-{/* Video */}
-            {videoUrl && (
-              <motion.div
-                initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-                className="my-12 rounded-2xl overflow-hidden bg-[var(--secondary)]/30 aspect-video"
-              >
-                <LazyVideo
-                  src={getOptimizedVideoUrl(videoUrl) || videoUrl}
-                  poster={getVideoPosterUrl(videoUrl)}
-                  autoPlay={true}
-                  loop={true}
-                  muted={true}
-                  playsInline={true}
-                  controls={true}
-                  preload="metadata"
-                  className="w-full h-full object-contain"
+          {/* Main image — second in DOM (below title on mobile), left column on desktop */}
+          <div className="lg:col-start-1 lg:row-start-1">
+            {imageUrl ? (
+              <div className="relative w-full overflow-hidden rounded-3xl bg-[var(--secondary)]/10">
+                <OptimizedImage
+                  src={imageUrl}
+                  alt={blog.title}
+                  className="h-full w-full"
+                  objectFit="contain"
+                  objectPosition="center"
+                  crop="limit"
+                  width={1600}
+                  height={1200}
+                  priority={true}
                 />
-              </motion.div>
+              </div>
+            ) : (
+              <div className="aspect-[4/3] w-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center rounded-3xl">
+                <div className="text-center text-white">
+                  <h2 className="font-display text-4xl md:text-5xl font-semibold">{blog.title}</h2>
+                </div>
+              </div>
             )}
+          </div>
 
-           {/* Content Images Gallery */}
-           {mediaUrls.length > 0 && (
-             <motion.div
-               initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ duration: 0.6, delay: 0.3 }}
-               className="my-12 grid grid-cols-1 md:grid-cols-2 gap-6"
-             >
-               {mediaUrls.map((url, i) => (
-                 <div key={i} className="overflow-hidden rounded-2xl bg-[var(--secondary)]/10">
-                   <OptimizedImage
-                     src={url}
-                     alt={`${blog.title} — gallery ${i + 1}`}
-                     className="h-full w-full object-cover"
-                     width={800}
-                     height={600}
-                   />
-                 </div>
-               ))}
-             </motion.div>
-           )}
+          {/* Article content — third in DOM (below image on mobile), right column below title on desktop */}
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="prose-wrapper lg:col-start-2 lg:row-start-2"
+          >
+            <ContentRenderer content={blog.content || blog.description || ''} />
+          </motion.div>
+        </div>
 
-           {/* Social Sharing */}
+        {/* Video — below the two-column section */}
+        {videoUrl && (
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="my-12 rounded-2xl overflow-hidden bg-[var(--secondary)]/30 aspect-video"
+          >
+            <LazyVideo
+              src={getOptimizedVideoUrl(videoUrl) || videoUrl}
+              fallbackSrc={videoUrl}
+              poster={getVideoPosterUrl(videoUrl)}
+              autoPlay={true}
+              loop={true}
+              muted={true}
+              playsInline={true}
+              controls={true}
+              preload="metadata"
+              className="w-full h-full object-contain"
+            />
+          </motion.div>
+        )}
+
+        {/* Content Images Gallery — below video */}
+        {mediaUrls.length > 0 && (
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="my-12 border-t border-border/50 pt-8"
+            className="my-12 grid grid-cols-1 md:grid-cols-2 gap-6"
           >
-            <p className="text-sm font-semibold text-[var(--primary)]/60 mb-4">Share this article</p>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleShare}
-                className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[var(--primary)]/60 hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-colors"
-                title="Share"
-              >
-                <Share2 size={18} />
-              </button>
-              {shareUrls && (
-                <>
-                  <a
-                    href={shareUrls.facebook}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[var(--primary)]/60 hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-colors"
-                    title="Share on Facebook"
-                  >
-                    <Facebook size={18} />
-                  </a>
-                  <a
-                    href={shareUrls.twitter}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[var(--primary)]/60 hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-colors"
-                    title="Share on Twitter"
-                  >
-                    <Twitter size={18} />
-                  </a>
-                  <a
-                    href={shareUrls.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[var(--primary)]/60 hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-colors"
-                    title="Share on LinkedIn"
-                  >
-                    <Linkedin size={18} />
-                  </a>
-                     <a
-                     href={shareUrls.pinterest}
-                     target="_blank"
-                     rel="noopener noreferrer"
-                     className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[#e60023] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-colors"
-                     title="Share on Pinterest"
-                   >
-                     <SiPinterest size={18} />
-                   </a>
-                  <button
-                    onClick={() => copyToClipboard(window.location.href)}
-                    className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[var(--primary)]/60 hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-colors"
-                    title="Copy link"
-                  >
-                    {copied ? <span className="text-xs">✓</span> : <Copy size={18} />}
-                  </button>
-                </>
+            {mediaUrls.map((url, i) => (
+              <div key={i} className="relative overflow-hidden rounded-2xl bg-[var(--secondary)]/10">
+                <OptimizedImage
+                  src={url}
+                  alt={`${blog.title} — gallery ${i + 1}`}
+                  className="h-full w-full"
+                  objectFit="contain"
+                  objectPosition="center"
+                  crop="limit"
+                  width={800}
+                  height={600}
+                />
+              </div>
+            ))}
+          </motion.div>
+        )}
+
+        {/* Social Sharing */}
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="my-12 border-t border-border/50 pt-8"
+        >
+          <p className="text-sm font-semibold text-[var(--primary)]/60 mb-4">Share this article</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleShare}
+              className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[var(--primary)]/60 hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-colors"
+              title="Share"
+            >
+              <Share2 size={18} />
+            </button>
+            {shareUrls && (
+              <>
+                <a
+                  href={shareUrls.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[var(--primary)]/60 hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-colors"
+                  title="Share on Facebook"
+                >
+                  <Facebook size={18} />
+                </a>
+                <a
+                  href={shareUrls.twitter}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[var(--primary)]/60 hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-colors"
+                  title="Share on Twitter"
+                >
+                  <Twitter size={18} />
+                </a>
+                <a
+                  href={shareUrls.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[var(--primary)]/60 hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-colors"
+                  title="Share on LinkedIn"
+                >
+                  <Linkedin size={18} />
+                </a>
+                <a
+                  href={shareUrls.pinterest}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[#e60023] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-colors"
+                  title="Share on Pinterest"
+                >
+                  <SiPinterest size={18} />
+                </a>
+                <button
+                  onClick={() => copyToClipboard(window.location.href)}
+                  className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[var(--primary)]/60 hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-colors"
+                  title="Copy link"
+                >
+                  {copied ? <span className="text-xs">✓</span> : <Copy size={18} />}
+                </button>
+              </>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Prev/Next Navigation */}
+        {navigation.previous || navigation.next ? (
+          <motion.nav
+            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            className="border-t border-border/50 pt-8 mb-12"
+          >
+            <div className="flex items-center justify-between gap-4">
+              {navigation.previous && (
+                <Link
+                  to={`/blog/${navigation.previous.slug || navigation.previous.id}`}
+                  className="group flex items-center gap-3 text-left"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--secondary)]/20 text-[var(--accent)]">
+                    <ArrowLeft size={16} />
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[var(--primary)]/40">
+                      Previous
+                    </span>
+                    <p className="font-display text-lg font-medium text-[var(--primary)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
+                      {navigation.previous.title}
+                    </p>
+                  </div>
+                </Link>
+              )}
+              {navigation.next && (
+                <Link
+                  to={`/blog/${navigation.next.slug || navigation.next.id}`}
+                  className="group flex items-center gap-3 text-right"
+                >
+                  <div>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[var(--primary)]/40">
+                      Next
+                    </span>
+                    <p className="font-display text-lg font-medium text-[var(--primary)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
+                      {navigation.next.title}
+                    </p>
+                  </div>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--secondary)]/20 text-[var(--accent)]">
+                    <ArrowLeft size={16} className="rotate-180" />
+                  </div>
+                </Link>
               )}
             </div>
-          </motion.div>
+          </motion.nav>
+        ) : null}
 
-          {/* Prev/Next Navigation */}
-          {navigation.previous || navigation.next ? (
-            <motion.nav
-              initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              className="border-t border-border/50 pt-8 mb-12"
-          >
-              <div className="flex items-center justify-between gap-4">
-                {navigation.previous && (
-                  <Link
-                    to={`/blog/${navigation.previous.slug || navigation.previous.id}`}
-                    className="group flex items-center gap-3 text-left"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--secondary)]/20 text-[var(--accent)]">
-                      <ArrowLeft size={16} />
-                    </div>
-                    <div>
-                      <span className="text-xs font-semibold uppercase tracking-wider text-[var(--primary)]/40">
-                        Previous
-                      </span>
-                      <p className="font-display text-lg font-medium text-[var(--primary)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
-                        {navigation.previous.title}
-                      </p>
-                    </div>
-                  </Link>
-                )}
-                {navigation.next && (
-                  <Link
-                    to={`/blog/${navigation.next.slug || navigation.next.id}`}
-                    className="group flex items-center gap-3 text-right"
-                  >
-                    <div>
-                      <span className="text-xs font-semibold uppercase tracking-wider text-[var(--primary)]/40">
-                        Next
-                      </span>
-                      <p className="font-display text-lg font-medium text-[var(--primary)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
-                        {navigation.next.title}
-                      </p>
-                    </div>
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--secondary)]/20 text-[var(--accent)]">
-                      <ArrowLeft size={16} className="rotate-180" />
-                    </div>
-                  </Link>
-                )}
-              </div>
-            </motion.nav>
-          ) : null}
-
-          {/* Related Posts */}
-          {related.length > 0 && (
-            <motion.section
-              initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-            >
-              <h2 className="font-display text-2xl font-semibold text-[var(--primary)] mb-8">Related Articles</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {related.slice(0, 3).map((item) => (
-                  <BlogCard key={item.id || item._id} blog={item} priority={false} />
-                ))}
-              </div>
-            </motion.section>
-          )}
-
-          {/* INTERNAL LINKS */}
+        {/* Related Posts */}
+        {related.length > 0 && (
           <motion.section
             initial={reduceMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.7 }}
-            className="mt-16 text-center"
           >
-            <p className="text-[var(--primary)]/60 mb-4">Explore more from HOK Interiors</p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Link to="/portfolio" className="btn-luxury-secondary">View Portfolio</Link>
-              <Link to="/services" className="btn-luxury-secondary">Our Services</Link>
-              <Link to="/contact" className="btn-luxury-primary">Start a Project</Link>
+            <h2 className="font-display text-2xl font-semibold text-[var(--primary)] mb-8">Related Articles</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 h-full">
+              {related.slice(0, 3).map((item) => (
+                <BlogCard key={item.id || item._id} blog={item} priority={false} />
+              ))}
             </div>
           </motion.section>
-        </div>
+        )}
+
+        {/* INTERNAL LINKS */}
+        <motion.section
+          initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.8 }}
+          className="mt-16 text-center"
+        >
+          <p className="text-[var(--primary)]/60 mb-4">Explore more from HOK Interiors</p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link to="/portfolio" className="btn-luxury-secondary">View Portfolio</Link>
+            <Link to="/services" className="btn-luxury-secondary">Our Services</Link>
+            <Link to="/contact" className="btn-luxury-primary">Start a Project</Link>
+          </div>
+        </motion.section>
       </article>
     </main>
   )

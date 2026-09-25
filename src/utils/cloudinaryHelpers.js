@@ -59,6 +59,13 @@ export const buildSrcSet = (url, widths = RESPONSIVE_WIDTHS) => {
 export const getOptimizedVideoUrl = (url, options = {}) => {
   if (!isCloudinaryVideo(url) || typeof url !== 'string') return typeof url === 'string' ? url : null
   const { width } = options
+  // Use H.264/AAC/MP4 for broad mobile compatibility. Profile, level, and
+  // pixel format are enforced at UPLOAD time in cloudinary.js (baseline:3.1,
+  // yuv420p). Re-applying them at delivery time forces Cloudinary to
+  // re-transcode on every request, causing timeouts and MEDIA_ERR_DECODE
+  // failures on mobile for previously uploaded videos. The simple
+  // vc_h264,ac_aac,f_mp4 delivery transformation is a no-op for already-
+  // encoded H.264/AAC/MP4 sources and only re-encodes legacy H.265.
   const codecTransforms = 'vc_h264,ac_aac,f_mp4'
   if (!width) {
     return url.replace(CLOUDINARY_VIDEO_SEGMENT, `${CLOUDINARY_VIDEO_SEGMENT}${codecTransforms}/`)
