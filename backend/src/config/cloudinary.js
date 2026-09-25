@@ -69,8 +69,18 @@ export const uploadToCloudinary = async (buffer, mimetype, folder, originalName)
 
       if (isVideoUpload) {
         uploadOptions.resource_type = 'video'
+        // Use baseline profile + level 3.1 for maximum mobile device compatibility.
+        // baseline profile is supported on virtually all H.264 decoders including
+        // older iOS and Android devices. Level 3.1 caps bitrate/resolution at
+        // mobile-friendly limits. The SDK's process_video_params serializes
+        // { codec, profile, level } into the URL form vc_h264:baseline:3.1
         uploadOptions.transformation = [
-          { format: 'mp4', video_codec: 'h264', audio_codec: 'aac' },
+          {
+            format: 'mp4',
+            video_codec: { codec: 'h264', profile: 'baseline', level: '3.1' },
+            audio_codec: 'aac',
+            pixel_format: 'yuv420p',
+          },
         ]
       }
 
