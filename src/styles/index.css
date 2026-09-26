@@ -526,6 +526,105 @@ section > .container-wide {
     @apply border-bronze scale-110;
   }
 
+  /* Social Brand Icon — official Simple Icons marks on platform-coloured badges.
+     All colours arrive as CSS custom properties from @constants/socialBrands. */
+  .social-brand-icon {
+    --social-badge-size: 64px;
+    --social-icon-size: 32px;
+    --social-chromatic-offset: 3px;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: var(--social-badge-size);
+    height: var(--social-badge-size);
+    background: var(--social-badge-bg);
+    color: var(--social-icon);
+    transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .social-brand-icon.is-circle {
+    @apply rounded-full;
+  }
+  .social-brand-icon.is-rounded {
+    border-radius: 28%;
+  }
+  @media (max-width: 639px) {
+    .social-brand-icon.is-responsive {
+      --social-badge-size: 56px;
+      --social-icon-size: 28px;
+    }
+  }
+  .social-brand-glyph {
+    display: block;
+    width: var(--social-icon-size);
+    height: var(--social-icon-size);
+    color: var(--social-icon);
+  }
+  /* TikTok chromatic lockup: the official note glyph offset in cyan and red. */
+  .social-brand-icon[data-platform='tiktok'] .social-brand-glyph {
+    position: absolute;
+  }
+  .social-brand-icon[data-platform='tiktok'] .social-brand-glyph.is-cyan {
+    color: var(--social-cyan);
+    transform: translate(calc(var(--social-chromatic-offset) * -1), var(--social-chromatic-offset));
+  }
+  .social-brand-icon[data-platform='tiktok'] .social-brand-glyph.is-red {
+    color: var(--social-red);
+    transform: translate(var(--social-chromatic-offset), calc(var(--social-chromatic-offset) * -1));
+  }
+  .social-brand-icon[data-platform='tiktok'] .social-brand-glyph.is-white {
+    color: #FFFFFF;
+    transform: translate(0, 0);
+  }
+
+  /* Social card CTA — platform-coloured, full width, large tap target. */
+  .social-follow-button {
+    @apply flex w-full min-h-[46px] items-center justify-center border-0 px-5 py-3 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-white no-underline;
+    background: var(--social-button-bg);
+    color: #FFFFFF;
+    border-radius: 12px;
+    cursor: pointer;
+    transition:
+      transform 180ms ease,
+      filter 180ms ease,
+      box-shadow 180ms ease;
+  }
+  .social-follow-button:hover {
+    background: var(--social-button-hover);
+    transform: translateY(-1px);
+    filter: brightness(0.94);
+    box-shadow: 0 10px 24px rgba(42, 36, 31, 0.16);
+  }
+  .social-follow-button:active {
+    transform: translateY(0);
+  }
+  .social-follow-button:focus-visible {
+    @apply outline-none ring-2 ring-offset-2;
+    --tw-ring-color: var(--social-brand);
+  }
+  .social-card {
+    transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .social-card:hover {
+    transform: translateY(-4px);
+  }
+  .social-card:hover .social-brand-icon {
+    transform: scale(1.04);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .social-card,
+    .social-card:hover,
+    .social-brand-icon,
+    .social-follow-button,
+    .social-follow-button:hover,
+    .social-follow-button:active {
+      transform: none;
+      transition: none;
+    }
+  }
+
   /* Mobile Menu */
   .mobile-menu-enter {
     animation: slideInMenu 0.3s ease-out forwards;

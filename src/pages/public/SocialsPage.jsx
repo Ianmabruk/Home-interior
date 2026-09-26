@@ -4,19 +4,9 @@ import { api } from '@services/api'
 import { getOptimizedUrl } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
-import { SiInstagram, SiFacebook, SiTiktok, SiPinterest, SiYoutube, SiWhatsapp, SiX, SiGlobus } from 'react-icons/si'
+import { SocialBrandIcon } from '@components/common/SocialBrandIcon'
 import { SOCIAL_LINKS } from '@constants/socialLinks'
-
-const platformIconMap = {
-  instagram: SiInstagram,
-  facebook: SiFacebook,
-  tiktok: SiTiktok,
-  pinterest: SiPinterest,
-  youtube: SiYoutube,
-  whatsapp: SiWhatsapp,
-  x: SiX,
-  custom: SiGlobus,
-}
+import { getSocialBrandCssVars } from '@constants/socialBrands'
 
 const SkeletonSocials = () => (
   <section className="bg-[var(--bg)]/40 bg-gradient-to-b from-[var(--primary)]/5 via-[var(--bg)] to-[var(--secondary)]/20 px-6 md:px-12 lg:px-20 py-20 md:py-32">
@@ -174,7 +164,8 @@ export const SocialsPage = memo(() => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
-                  className="group flex flex-col items-center"
+                  whileHover={{ y: -4 }}
+                  className="social-card group flex flex-col items-center"
                 >
                   <div className="relative w-full max-w-sm mx-auto mb-6">
                     <div className="relative rounded-full overflow-hidden bg-[var(--secondary)]/30">
@@ -188,10 +179,11 @@ export const SocialsPage = memo(() => {
                         />
                       ) : (
                         <div className="h-[320px] w-full flex items-center justify-center bg-[var(--secondary)]/30">
-                          {(() => {
-                            const Icon = platformIconMap[(platform.platform || '').toLowerCase()] || SiGlobus
-                            return <Icon size={64} className="text-[var(--primary)]/20" />
-                          })()}
+                          <SocialBrandIcon
+                            platform={platform.platform}
+                            name={platform.name}
+                            size={96}
+                          />
                         </div>
                       )}
                     </div>
@@ -206,9 +198,11 @@ export const SocialsPage = memo(() => {
                       href={platform.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block w-full py-4 bg-[var(--primary)] text-white text-base font-semibold uppercase tracking-wide rounded-full text-center whitespace-nowrap shadow-[0_4px_16px_rgba(42,36,31,0.2)] hover:bg-[var(--primary)]/90 hover:shadow-[0_8px_24px_rgba(42,36,31,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                      aria-label={`Follow us on ${platform.name}`}
+                      className={`social-follow-button ${platform.platform || 'custom'}`}
+                      style={getSocialBrandCssVars(platform.platform)}
                     >
-                      Give Us a Follow
+                      FOLLOW US
                     </a>
                   </div>
                 </motion.div>

@@ -16,19 +16,14 @@ import {
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
+import { SocialBrandIcon } from '@components/common/SocialBrandIcon'
+import {
+  getSocialBrandColor,
+  getSocialBrandCssVars,
+  getSocialPlatforms,
+} from '@constants/socialBrands'
 
-const PLATFORMS = [
-  { key: 'instagram', label: 'Instagram', color: '#E4405F' },
-  { key: 'facebook', label: 'Facebook', color: '#1877F2' },
-  { key: 'tiktok', label: 'TikTok', color: '#000000' },
-  { key: 'pinterest', label: 'Pinterest', color: '#BD081C' },
-  { key: 'youtube', label: 'YouTube', color: '#FF0000' },
-  { key: 'linkedin', label: 'LinkedIn', color: '#0A66C2' },
-  { key: 'whatsapp', label: 'WhatsApp', color: '#25D366' },
-  { key: 'x', label: 'X (Twitter)', color: '#000000' },
-  { key: 'threads', label: 'Threads', color: '#000000' },
-  { key: 'custom', label: 'Custom', color: '#666666' },
-]
+const PLATFORMS = getSocialPlatforms()
 
 const INITIAL_ITEM = {
   name: '',
@@ -213,7 +208,7 @@ export const SocialDashboard = () => {
   }
 
   const platformLabel = (key) => PLATFORMS.find((p) => p.key === key)?.label || key
-  const platformColor = (key) => PLATFORMS.find((p) => p.key === key)?.color || '#666666'
+  const platformColor = (key) => getSocialBrandColor(key)
 
   return (
     <div className="space-y-6">
@@ -268,7 +263,7 @@ export const SocialDashboard = () => {
                   onDragStart={(e) => handleDragStart(e, item.id)}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, item.id)}
-                  className={`relative group rounded-2xl overflow-hidden border-2 transition-all duration-300 cursor-move ${
+                  className={`social-card relative group rounded-2xl overflow-hidden border-2 transition-all duration-300 cursor-move ${
                     dragId === item.id ? 'border-[var(--accent)] opacity-50' : 'border-[var(--border)]'
                   } ${!item.isActive ? 'opacity-60' : ''}`}
                 >
@@ -282,12 +277,12 @@ export const SocialDashboard = () => {
                       />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center">
-                        <div
-                          className="w-20 h-20 rounded-full flex items-center justify-center text-white font-display text-2xl font-semibold"
-                          style={{ backgroundColor: platformColor(item.platform) }}
-                        >
-                          {item.name?.charAt(0)?.toUpperCase() || '?'}
-                        </div>
+                        <SocialBrandIcon
+                          platform={item.platform}
+                          name={item.name}
+                          size={64}
+                          responsive
+                        />
                       </div>
                     )}
                     {!item.isActive && (
@@ -313,6 +308,17 @@ export const SocialDashboard = () => {
                       <LinkIcon size={10} />
                       {item.link}
                     </p>
+                    <a
+                      href={item.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Follow us on ${item.name}`}
+                      className={`social-follow-button mt-3 ${item.platform || 'custom'}`}
+                      style={getSocialBrandCssVars(item.platform)}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
+                      FOLLOW US
+                    </a>
                     <div className="mt-3 flex items-center justify-between">
                       <div className="flex items-center gap-1">
                         <button
