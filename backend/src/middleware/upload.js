@@ -54,14 +54,21 @@ export const uploadSingle = (field = 'media', allowedTypes = ALLOWED_IMAGE_TYPES
 
 export const uploadFields = (fields) => {
   const allExts = [...ALLOWED_IMAGE_EXTENSIONS, ...ALLOWED_VIDEO_EXTENSIONS]
+  // Constrain each field to the media it is meant to hold. A video posted to
+  // `image` used to be accepted and then stored as an unplayable record.
+  // Unknown field names keep the permissive union so mixed fields such as the
+  // portfolio `media` slot keep working.
+  const perFieldTypes = new Map(fields.map((f) => [f.name, getAllowedTypesForField(f.name)]))
   return multer({
     storage,
     limits: { fileSize: MAX_FILE_SIZE, files: MAX_FILES },
     fileFilter: (req, file, cb) => {
-      if (isAllowedFile(file, [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES], allExts)) {
+      const allowedTypes = perFieldTypes.get(file.fieldname) || [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES]
+      const allowedExts = allowedTypes === undefined ? allExts : getAllowedExtensionsForTypes(allowedTypes)
+      if (isAllowedFile(file, allowedTypes, allowedExts)) {
         return cb(null, true)
       }
-      cb(new ApiError(400, `Invalid file type: ${file.mimetype}`))
+      cb(new ApiError(400, `Invalid file type for "${file.fieldname}": ${file.mimetype}`))
     },
   }).fields(fields)
 }

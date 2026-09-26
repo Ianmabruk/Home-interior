@@ -1,6 +1,12 @@
 const CLOUDINARY_IMAGE_SEGMENT = '/image/upload/'
 const CLOUDINARY_VIDEO_SEGMENT = '/video/upload/'
 
+// A Cloudinary URL that already ends in .mp4 is served straight from the CDN.
+// Appending vc_h264 there would ask Cloudinary to build a derived asset on the
+// first viewer's request; that request blocks while the transcode runs, and
+// mobile Safari abandons it (MEDIA_ERR_NETWORK) long before desktop finishes.
+const isDirectMp4 = (url) => /\.mp4(\?|#|$)/i.test(String(url).split('/').pop() || '')
+
 const buildTransformString = (options = {}) => {
   // Default to device-pixel-ratio auto so Cloudinary serves appropriately
   // sized images on high-DPI mobile devices unless explicitly overridden.
@@ -57,23 +63,25 @@ export const buildSrcSet = (url, widths = RESPONSIVE_WIDTHS) => {
 }
 
 export const getOptimizedVideoUrl = (url, options = {}) => {
-  if (!isCloudinaryVideo(url) || typeof url !== 'string') return typeof url === 'string' ? url : null
+  if (typeof url !== 'string') return null
+  if (!url) return url
+  if (!isCloudinaryVideo(url)) return url
+  // Already an MP4 (every upload since the eager-derivative fix, plus any
+  // legacy asset that was stored as MP4): serve it untouched.
+  if (isDirectMp4(url)) return url
+  // Legacy non-MP4 assets (.mov/.webm/.avi/.mkv …) still need a real transcode.
+  // Re-encoding on demand is unavoidable for these, so keep the request minimal
+  // and let the browser retry the now-cached derivative.
   const { width } = options
-  // Use H.264/AAC/MP4 for broad mobile compatibility. Profile, level, and
-  // pixel format are enforced at UPLOAD time in cloudinary.js (baseline:3.1,
-  // yuv420p). Re-applying them at delivery time forces Cloudinary to
-  // re-transcode on every request, causing timeouts and MEDIA_ERR_DECODE
-  // failures on mobile for previously uploaded videos. The simple
-  // vc_h264,ac_aac,f_mp4 delivery transformation is a no-op for already-
-  // encoded H.264/AAC/MP4 sources and only re-encodes legacy H.265.
-  const codecTransforms = 'vc_h264,ac_aac,f_mp4'
-  if (!width) {
-    return url.replace(CLOUDINARY_VIDEO_SEGMENT, `${CLOUDINARY_VIDEO_SEGMENT}${codecTransforms}/`)
-  }
-  const transform = `w_${width},c_limit,${codecTransforms}`
-  return url.replace(CLOUDINARY_VIDEO_SEGMENT, `${CLOUDINARY_VIDEO_SEGMENT}${transform}/`)
+  const parts = []
+  if (width) parts.push(`w_${width}`, 'c_limit')
+  parts.push('f_mp4', 'vc_h264', 'ac_aac')
+  return url.replace(CLOUDINARY_VIDEO_SEGMENT, `${CLOUDINARY_VIDEO_SEGMENT}${parts.join(',')}/`)
 }
 
+// The MIME type to advertise on a <source>. Browsers skip a source whose
+// declared type they cannot handle, so this must reflect the real file rather
+// than assuming MP4.
 export const getVideoSourceType = (url) => {
   if (typeof url !== 'string' || !url) return undefined
   if (isCloudinaryVideo(url)) return 'video/mp4'
@@ -95,14 +103,23 @@ export const getVideoSourceType = (url) => {
   return types[extension]
 }
 
+// Poster frame for a Cloudinary video. Cloudinary derives this from the stored
+// asset, so it never depends on autoplay succeeding. If derivation fails the
+// <video> simply falls back to its own first frame — the poster must never be
+// what breaks playback.
 export const getVideoPosterUrl = (url, options = {}) => {
-  if (!isCloudinaryVideo(url) || typeof url !== 'string') return undefined
+  if (typeof url !== 'string' || !url) return undefined
+  if (!isCloudinaryVideo(url)) return undefined
   const { width = 1280 } = options
   const transformed = url.replace(
     CLOUDINARY_VIDEO_SEGMENT,
     `${CLOUDINARY_VIDEO_SEGMENT}so_0,w_${width},c_limit,q_auto,f_jpg/`,
   )
-  return transformed.replace(/\.(mp4|webm|mov|m4v|avi)(\?.*)?$/i, '.jpg$2')
+  const base = transformed.split('/').pop() || ''
+  const withoutQuery = base.split('?')[0].split('#')[0]
+  const stem = withoutQuery.replace(/\.[^.]+$/, '')
+  if (!stem) return undefined
+  return `${transformed.slice(0, transformed.length - base.length)}${stem}.jpg`
 }
 
 export default getOptimizedUrl

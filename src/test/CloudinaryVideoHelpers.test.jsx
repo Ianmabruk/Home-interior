@@ -12,28 +12,40 @@ describe('cloudinaryHelpers - video', () => {
       expect(result).not.toContain('https:/res')
     })
 
-    it('adds H.264/AAC/MP4 transforms for broad compatibility (no sp_auto)', () => {
+    // Regression guard for the phone-only playback failure: appending codec
+    // transforms to an already-MP4 asset makes Cloudinary build a derived
+    // asset on the first viewer's request. That request blocks while
+    // transcoding, and mobile Safari abandons it (MEDIA_ERR_NETWORK) where
+    // desktop waits it out. The eager derivative is created at upload time, so
+    // an MP4 must be served untouched.
+    it('returns an already-MP4 Cloudinary URL untouched (no on-demand transcode)', () => {
       const result = getOptimizedVideoUrl(videoUrl)
-      expect(result).toContain('vc_h264')
-      expect(result).toContain('ac_aac')
-      expect(result).toContain('f_mp4')
-      expect(result).not.toBe(videoUrl)
+      expect(result).toBe(videoUrl)
+      expect(result).not.toContain('vc_h264')
       expect(result).not.toContain('sp_auto')
     })
 
-    it('applies width-based resize with codec transforms when width is requested (no sp_auto)', () => {
+    it('does not add codec transforms to MP4 URLs even when a width is requested', () => {
       const result = getOptimizedVideoUrl(videoUrl, { width: 640 })
-      expect(result).toContain('w_640')
-      expect(result).toContain('c_limit')
+      expect(result).toBe(videoUrl)
+      expect(result).not.toContain('w_640')
+      expect(result).not.toContain('vc_h264')
+    })
+
+    it('still transcodes legacy non-MP4 Cloudinary assets to H.264/AAC/MP4', () => {
+      const legacy = 'https://res.cloudinary.com/demo/video/upload/v1234567890/oldclip.mov'
+      const result = getOptimizedVideoUrl(legacy)
       expect(result).toContain('vc_h264')
       expect(result).toContain('ac_aac')
       expect(result).toContain('f_mp4')
+      expect(result).not.toBe(legacy)
       expect(result).not.toContain('sp_auto')
     })
 
-    it('preserves video segment and valid https for width transform (no sp_auto)', () => {
-      const result = getOptimizedVideoUrl(videoUrl, { width: 640 })
-      expect(result).toMatch(/^https:\/\/.*\/video\/upload\/w_640,c_limit,vc_h264,ac_aac,f_mp4\//)
+    it('applies width-based resize alongside codec transforms for non-MP4 assets', () => {
+      const legacy = 'https://res.cloudinary.com/demo/video/upload/v1234567890/oldclip.mov'
+      const result = getOptimizedVideoUrl(legacy, { width: 640 })
+      expect(result).toMatch(/^https:\/\/.*\/video\/upload\/w_640,c_limit,f_mp4,vc_h264,ac_aac\//)
       expect(result).not.toContain('https:/res')
       expect(result).not.toContain('sp_auto')
     })

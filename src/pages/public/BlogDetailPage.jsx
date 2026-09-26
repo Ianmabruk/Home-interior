@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from '@components/common/DynamicMotion'
 import { ArrowLeft, Share2, Facebook, Twitter, Linkedin, Copy, Calendar, User, Clock, Eye, Tag } from 'lucide-react'
 import { SiPinterest } from 'react-icons/si'
@@ -95,23 +95,30 @@ export const BlogDetailPage = () => {
   const [navigation, setNavigation] = useState({ previous: null, next: null })
   const [copied, setCopied] = useState(false)
   const reduceMotion = useIsMobile()
+  // Guards against a slow, superseded request overwriting newer state.
+  const requestIdRef = useRef(0)
 
 const loadBlog = useCallback(async () => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
     setError(null)
     try {
       const res = await api.get(`/blog/${id}`)
-      setBlog(res.data || null)
+      if (requestId !== requestIdRef.current) return
+      if (!res.data) {
+        setError('Blog not found')
+        return
+      }
+      setBlog(res.data)
     } catch (err) {
+      if (requestId !== requestIdRef.current) return
       if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return
       const msg = err?.response?.status === 404 ? 'Blog not found' : (err?.message || 'Failed to load blog')
+      // The error state drives the not-found/unavailable view, so the article
+      // is never cleared out from under a visitor mid-read.
       setError(msg)
-      // CRITICAL: Only clear blog on a genuine fetch failure.
-      // Do NOT clear it when the API returns 200 with null data.
-      // The error handler is only reached when the API call itself failed.
-      setBlog(null)
     } finally {
-      setLoading(false)
+      if (requestId === requestIdRef.current) setLoading(false)
     }
   }, [id])
 
@@ -151,6 +158,9 @@ const loadBlog = useCallback(async () => {
   const readingTime = blog?.content ? getReadingTime(blog.content) : 1
   const imageUrl = blog?.imageUrl || blog?.image || null
   const videoUrl = blog?.videoUrl || blog?.video || null
+  // Already an H.264/AAC MP4 for every upload since the eager-derivative fix,
+  // so this is a plain CDN URL with no first-view transcode.
+  const playableVideoUrl = videoUrl ? (getOptimizedVideoUrl(videoUrl) || videoUrl) : null
   const mediaUrls = blog?.mediaUrls || []
 
   const incrementView = () => {
@@ -299,15 +309,16 @@ const loadBlog = useCallback(async () => {
 
       <article className="container-wide mx-auto px-6 md:px-12 lg:px-20 pb-12 md:pb-20">
         {/* Two-column grid:
-            Desktop: Image (left) | Title + Content (right)
-            Mobile:  Image → Title → Content (vertical flow via DOM order) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* Main image — FIRST in DOM (top on mobile), left column on desktop */}
+            Tablet and up (md:): Image (left) | Title + Content (right)
+            Phone: Image → Title → Content, unchanged stacked flow.
+            The DOM order is mobile-first, so the phone layout is untouched. */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 lg:gap-12">
+          {/* Main image — FIRST in DOM (top on mobile), left column on md+ */}
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="lg:col-start-1 lg:row-start-1"
+            className="md:col-start-1 md:row-start-1"
           >
             {imageUrl ? (
               <div className="relative w-full overflow-hidden rounded-3xl bg-[var(--secondary)]/10" style={{ aspectRatio: '4 / 3' }}>
@@ -330,12 +341,12 @@ const loadBlog = useCallback(async () => {
             )}
           </motion.div>
 
-          {/* Article header — SECOND in DOM (below image on mobile), right column on desktop */}
+          {/* Article header — SECOND in DOM (below image on mobile), right column on md+ */}
           <motion.header
             initial={reduceMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="lg:col-start-2 lg:row-start-1"
+            className="md:col-start-2 md:row-start-1"
           >
             {blog.category && (
               <span className="inline-block text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-3">
@@ -393,41 +404,18 @@ const loadBlog = useCallback(async () => {
             initial={reduceMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="prose-wrapper lg:col-start-2 lg:row-start-2"
+            className="prose-wrapper md:col-start-2 md:row-start-2"
           >
             <ContentRenderer content={blog.content || blog.description || ''} />
           </motion.div>
         </div>
 
-        {/* Video — below the two-column section */}
-        {videoUrl && (
-          <motion.div
-            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="my-12 rounded-2xl overflow-hidden bg-[var(--secondary)]/30 aspect-video"
-          >
-            <LazyVideo
-              src={getOptimizedVideoUrl(videoUrl) || videoUrl}
-              fallbackSrc={videoUrl}
-              poster={getVideoPosterUrl(videoUrl)}
-              autoPlay={true}
-              loop={true}
-              muted={true}
-              playsInline={true}
-              controls={true}
-              preload="metadata"
-              className="w-full h-full object-contain"
-            />
-          </motion.div>
-        )}
-
-        {/* Content Images Gallery — below video */}
+        {/* Content Images Gallery — below the main article area */}
         {mediaUrls.length > 0 && (
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
             className="my-12 grid grid-cols-1 md:grid-cols-2 gap-6"
           >
             {mediaUrls.map((url, i) => (
@@ -443,6 +431,28 @@ const loadBlog = useCallback(async () => {
               </div>
             ))}
           </motion.div>
+        )}
+
+        {/* Video — part of the article body, below the main two-column area */}
+        {videoUrl && (
+          <motion.figure
+            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="my-12 overflow-hidden rounded-2xl bg-black"
+          >
+            <LazyVideo
+              src={playableVideoUrl}
+              fallbackSrc={videoUrl}
+              poster={getVideoPosterUrl(videoUrl)}
+              autoPlay={true}
+              loop={true}
+              muted={true}
+              playsInline={true}
+              controls={true}
+              preload="metadata"
+            />
+          </motion.figure>
         )}
 
         {/* Social Sharing */}

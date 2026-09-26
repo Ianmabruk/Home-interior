@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from '@components/common/DynamicMotion'
 import { Plus } from 'lucide-react'
 import { toast } from 'react-hot-toast'
@@ -24,7 +24,16 @@ const BlogDashboard = () => {
   const [page, setPage] = useState(1)
   const [meta, setMeta] = useState({ total: 0, totalPages: 1 })
 
+  // The list and stats are requested together on mount and again on every
+  // filter change, so several requests can be in flight at once. Without a
+  // sequence guard a slow failure could resolve last and wipe rows that a
+  // newer, successful request had already loaded — the "blog list is empty
+  // after refresh" symptom.
+  const listRequestIdRef = useRef(0)
+  const statsRequestIdRef = useRef(0)
+
 const loadBlogs = useCallback(async (params) => {
+    const requestId = ++listRequestIdRef.current
     const p = params || {
       page,
       search: searchTerm,
@@ -41,6 +50,7 @@ const loadBlogs = useCallback(async (params) => {
       if (p.status && p.status !== 'all') query.set('status', p.status)
 
       const res = await api.get(`/admin/blog?${query.toString()}`)
+      if (requestId !== listRequestIdRef.current) return
       const data = Array.isArray(res.data) ? res.data : res.data?.items || []
       setBlogs(data)
       setMeta({
@@ -48,27 +58,29 @@ const loadBlogs = useCallback(async (params) => {
         totalPages: res.meta?.totalPages || Math.ceil((res.meta?.total || data.length) / ITEMS_PER_PAGE),
       })
     } catch (err) {
+      if (requestId !== listRequestIdRef.current) return
       console.error('[BlogDashboard] load error:', err?.message)
       toast.error(`Failed to load blogs: ${err?.message || 'Unknown error'}`)
-      // CRITICAL: Only clear blogs on a genuine fetch failure.
-      // Do NOT clear them when the API returns 200 with zero results.
-      // The error handler is only reached when the API call itself failed.
-      setBlogs([])
+      // Deliberately do NOT call setBlogs([]) here. A transient failure must
+      // never blank out posts that are already on screen; the list keeps its
+      // last good state and the error is surfaced as a toast instead.
     } finally {
-      setLoading(false)
+      if (requestId === listRequestIdRef.current) setLoading(false)
     }
   }, [page, searchTerm, statusFilter, sortOption])
 
   const loadStats = useCallback(async () => {
+    const requestId = ++statsRequestIdRef.current
     try {
       clearApiCache('/admin/blog/stats')
       const res = await api.get('/admin/blog/stats')
+      if (requestId !== statsRequestIdRef.current) return
       setStats(res.data || {})
     } catch (err) {
+      if (requestId !== statsRequestIdRef.current) return
       console.error('[BlogDashboard] stats error:', err?.message)
-      setStats({ totalPosts: 0, publishedPosts: 0, draftPosts: 0, totalImages: 0, totalVideos: 0, totalViews: 0 })
     } finally {
-      setStatsLoading(false)
+      if (requestId === statsRequestIdRef.current) setStatsLoading(false)
     }
   }, [])
 
@@ -78,9 +90,7 @@ const loadBlogs = useCallback(async (params) => {
 
   useEffect(() => {
     loadStats()
-    loadBlogs()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [loadStats])
 
   useEffect(() => {
     const handler = (event) => {

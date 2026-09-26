@@ -145,11 +145,13 @@ export async function uploadFile(buffer, mimetype, folder, originalName) {
       const uploaded = await uploadToCloudinary(optimizedBuffer, optimizedMimetype, folder, originalName)
       return {
         url: uploaded.url,
+        originalUrl: uploaded.originalUrl,
         path: uploaded.publicId,
         mimeType: uploaded.mimeType,
         originalName: uploaded.originalName,
         resourceType: uploaded.resourceType,
         format: uploaded.format,
+        originalFormat: uploaded.originalFormat,
         duration: uploaded.duration,
         width: uploaded.width,
         height: uploaded.height,

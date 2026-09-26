@@ -330,6 +330,8 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
   if (videoFile) {
     try {
       const uploaded = await uploadFile(videoFile.buffer, videoFile.mimetype, 'blogs', videoFile.originalname)
+      // `url` is the eager H.264/AAC/MP4 derivative. The untouched original
+      // stays in Cloudinary and stays addressable via videoCloudinaryId.
       createData.video = uploaded.url
       createData.videoCloudinaryId = uploaded.publicId || uploaded.path
       createData.videoResourceType = uploaded.resourceType || 'video'
