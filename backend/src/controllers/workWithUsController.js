@@ -2,6 +2,26 @@ import { asyncHandler } from '../middleware/asyncHandler.js'
 import { workWithUsService } from '../services/workWithUsService.js'
 import { failure } from '../utils/response.js'
 
+function getUploadedFiles(reqFiles, fieldName) {
+  if (!reqFiles) return []
+
+  if (Array.isArray(reqFiles)) {
+    return reqFiles.filter((file) => file?.fieldname === fieldName)
+  }
+
+  const fieldValue = reqFiles[fieldName]
+  if (Array.isArray(fieldValue)) return fieldValue
+  if (fieldValue) return [fieldValue]
+
+  for (const value of Object.values(reqFiles)) {
+    const list = Array.isArray(value) ? value : [value]
+    const matches = list.filter((file) => file?.fieldname === fieldName)
+    if (matches.length > 0) return matches
+  }
+
+  return []
+}
+
 export const workWithUsController = {
   list: asyncHandler(async (req, res) => {
     const items = await workWithUsService.listWorkWithUs()
@@ -49,9 +69,8 @@ export const workWithUsController = {
   }),
 
   createContent: asyncHandler(async (req, res) => {
-    const files = req.files || []
-    const file = files.find((f) => f.fieldname === 'image')
-    const circularFile = files.find((f) => f.fieldname === 'homepageCircularImage')
+    const file = getUploadedFiles(req.files, 'image')[0] || null
+    const circularFile = getUploadedFiles(req.files, 'homepageCircularImage')[0] || null
     const data = {
       title: req.body.title || '',
       description: req.body.description || '',
@@ -63,9 +82,8 @@ export const workWithUsController = {
   }),
 
   updateContent: asyncHandler(async (req, res) => {
-    const files = req.files || []
-    const file = files.find((f) => f.fieldname === 'image')
-    const circularFile = files.find((f) => f.fieldname === 'homepageCircularImage')
+    const file = getUploadedFiles(req.files, 'image')[0] || null
+    const circularFile = getUploadedFiles(req.files, 'homepageCircularImage')[0] || null
     const removeHomepageCircularImage = req.body.removeHomepageCircularImage === 'true'
     const data = {}
     if (req.body.title !== undefined) data.title = req.body.title

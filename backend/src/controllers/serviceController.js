@@ -3,6 +3,31 @@ import { serviceService } from '../services/serviceService.js'
 import { invalidateCachePattern } from '../utils/cache.js'
 import { failure } from '../utils/response.js'
 
+function getUploadedFiles(reqFiles, fieldName) {
+  if (!reqFiles) return []
+
+  if (Array.isArray(reqFiles)) {
+    return reqFiles.filter((file) => file?.fieldname === fieldName)
+  }
+
+  if (Array.isArray(reqFiles[fieldName])) {
+    return reqFiles[fieldName]
+  }
+
+  if (reqFiles[fieldName]) {
+    return [reqFiles[fieldName]]
+  }
+
+  const values = Object.values(reqFiles || {})
+  for (const value of values) {
+    const list = Array.isArray(value) ? value : [value]
+    const match = list.find((file) => file?.fieldname === fieldName)
+    if (match) return list.filter((file) => file?.fieldname === fieldName)
+  }
+
+  return []
+}
+
 export const serviceController = {
   list: asyncHandler(async (req, res) => {
     const items = await serviceService.listServices()
@@ -15,9 +40,8 @@ export const serviceController = {
   }),
 
   create: asyncHandler(async (req, res) => {
-    const files = req.files || []
-    const file = files.find((f) => f.fieldname === 'media')
-    const circularFile = files.find((f) => f.fieldname === 'homepageCircularImage')
+    const file = getUploadedFiles(req.files, 'media')[0] || null
+    const circularFile = getUploadedFiles(req.files, 'homepageCircularImage')[0] || null
     const data = {
       title: req.body.title || 'Untitled',
       description: req.body.description || '',
@@ -35,9 +59,8 @@ export const serviceController = {
   }),
 
   update: asyncHandler(async (req, res) => {
-    const files = req.files || []
-    const file = files.find((f) => f.fieldname === 'media')
-    const circularFile = files.find((f) => f.fieldname === 'homepageCircularImage')
+    const file = getUploadedFiles(req.files, 'media')[0] || null
+    const circularFile = getUploadedFiles(req.files, 'homepageCircularImage')[0] || null
     const data = {}
     if (req.body.title !== undefined) data.title = req.body.title
     if (req.body.description !== undefined) data.description = req.body.description

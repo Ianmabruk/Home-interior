@@ -42,6 +42,25 @@ describe('Services', () => {
     expect(res.body.data.title).toBe('test_Service Alpha')
   })
 
+  it('should create a service with a multipart media upload', async () => {
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB4LqAAAAA1J0hUAAAAAXNSR0IArs4c6QAAAABJRU5ErkJggg==', 'base64')
+
+    const res = await request(app)
+      .post(`${API}/admin/services`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
+      .attach('media', png, { filename: 'service-upload.png', contentType: 'image/png' })
+      .field('title', 'test_Service Upload')
+      .field('description', 'Uploaded media service')
+      .field('featured', 'false')
+      .field('displayOrder', '4')
+
+    expect(res.status).toBe(201)
+    expect(res.body.success).toBe(true)
+    expect(res.body.data.title).toBe('test_Service Upload')
+    expect(res.body.data.imageUrl || res.body.data.mediaUrl).toBeTruthy()
+  })
+
   it('should get a service by id', async () => {
     const createRes = await request(app)
       .post(`${API}/admin/services`)

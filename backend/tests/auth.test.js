@@ -74,6 +74,15 @@ describe('Auth', () => {
     expect(res.status).toBe(401)
   })
 
+  it('should reject expired access tokens with a 401', async () => {
+    const res = await request(app)
+      .get(`${API}/auth/me`)
+      .set('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDAwMDAwMDB9.invalidsignature')
+
+    expect(res.status).toBe(401)
+    expect(res.body.success).toBe(false)
+  })
+
   it('should refresh access token', async () => {
     const email = generateTestEmail()
     await createTestAdmin(email)
