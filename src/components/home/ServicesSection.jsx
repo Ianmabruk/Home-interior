@@ -48,6 +48,14 @@ const ErrorServices = memo(({ onRetry }) => (
 
 ErrorServices.displayName = 'ErrorServices'
 
+const sortServicesByDisplayOrder = (items = []) => {
+  return [...items].sort((a, b) => {
+    const aOrder = Number(a?.displayOrder ?? Number.MAX_SAFE_INTEGER)
+    const bOrder = Number(b?.displayOrder ?? Number.MAX_SAFE_INTEGER)
+    return aOrder - bOrder
+  })
+}
+
 export const ServicesSection = memo(({ services = [], images = {} }) => {
   const [data, setData] = useState(services)
   const [imageData, setImageData] = useState(images)
@@ -59,7 +67,7 @@ export const ServicesSection = memo(({ services = [], images = {} }) => {
       setLoading(true)
       setError(null)
       const res = await api.get('/services')
-      setData(res.data || [])
+      setData(sortServicesByDisplayOrder(res.data || []))
       if (res.data?.servicesImages) {
         setImageData(res.data.servicesImages)
       }
@@ -84,13 +92,15 @@ export const ServicesSection = memo(({ services = [], images = {} }) => {
     return () => window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handler)
   }, [loadData])
 
+  const orderedData = sortServicesByDisplayOrder(data)
+
   if (loading) return <SkeletonServices />
   if (error) return <ErrorServices onRetry={loadData} />
-  if (!data.length) return null
+  if (!orderedData.length) return null
 
   return (
     <section id="services">
-      <CircularServicesGrid services={data} images={imageData} />
+      <CircularServicesGrid services={orderedData} images={imageData} />
       <div className="mt-12 text-center">
         <Link to="/services" className="btn-luxury-primary group inline-flex items-center gap-2">
           View All Services

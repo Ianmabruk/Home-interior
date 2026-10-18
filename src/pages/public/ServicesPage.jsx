@@ -31,6 +31,14 @@ const SkeletonServices = () => (
   </section>
 )
 
+const sortServicesByDisplayOrder = (items = []) => {
+  return [...items].sort((a, b) => {
+    const aOrder = Number(a?.displayOrder ?? Number.MAX_SAFE_INTEGER)
+    const bOrder = Number(b?.displayOrder ?? Number.MAX_SAFE_INTEGER)
+    return aOrder - bOrder
+  })
+}
+
 export const ServicesPage = memo(() => {
   const [services, setServices] = useState([])
   const [loading, setLoading] = useState(true)
@@ -57,7 +65,7 @@ export const ServicesPage = memo(() => {
     setError(null)
     try {
       const res = await api.get('/services')
-      setServices(res.data || [])
+      setServices(sortServicesByDisplayOrder(res.data || []))
     } catch (err) {
       console.warn('[SERVICES] Failed to load:', err?.message)
       setError(err)
@@ -200,7 +208,7 @@ export const ServicesPage = memo(() => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
-            {services.map((service, index) => (
+            {sortServicesByDisplayOrder(services).map((service, index) => (
               <motion.article
                 key={service.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -208,26 +216,28 @@ export const ServicesPage = memo(() => {
                 transition={{ duration: 0.5, delay: reduceMotion ? 0 : index * 0.08, ease: [0.22, 1, 0.36, 1] }}
                 className="group flex flex-col items-center text-center"
               >
-                <div className="relative mb-8">
-                  <div className="relative inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--secondary)]/60 text-[var(--primary)] group-hover:bg-[var(--accent)] group-hover:text-white transition-all duration-500">
+                <div className="relative mb-8 w-full">
+                  <div className="relative overflow-hidden rounded-[1.75rem] border border-[var(--border)]/60 bg-[var(--secondary)]/40 shadow-[0_18px_50px_rgba(42,36,31,0.08)]">
                     {service.imageUrl || service.mediaUrl ? (
                       <img
-                        src={getOptimizedUrl(service.imageUrl || service.mediaUrl, { width: 120, crop: 'limit' })}
+                        src={getOptimizedUrl(service.imageUrl || service.mediaUrl, { width: 900, crop: 'limit' })}
                         srcSet={buildSrcSet(service.imageUrl || service.mediaUrl) || undefined}
-                        sizes={buildSrcSet(service.imageUrl || service.mediaUrl) ? '120px' : undefined}
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         alt={service.title}
-                        className="h-full w-full object-cover rounded-3xl"
+                        className="aspect-[4/5] w-full object-cover transition duration-700 group-hover:scale-[1.02]"
                         loading="lazy"
                         decoding="async"
-                        width={120}
-                        height={120}
+                        width={900}
+                        height={1125}
                       />
                     ) : (
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 3a6 6 0 0 0 9 4 9 9 0 1 1-9-9Z" />
-                        <line x1="21" y1="9" x2="15.5" y2="14.5" />
-                        <line x1="15" y1="15" x2="14" y2="16" />
-                      </svg>
+                      <div className="flex aspect-[4/5] w-full items-center justify-center bg-[var(--secondary)]/60 text-[var(--primary)]">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 3a6 6 0 0 0 9 4 9 9 0 1 1-9-9Z" />
+                          <line x1="21" y1="9" x2="15.5" y2="14.5" />
+                          <line x1="15" y1="15" x2="14" y2="16" />
+                        </svg>
+                      </div>
                     )}
                   </div>
                 </div>

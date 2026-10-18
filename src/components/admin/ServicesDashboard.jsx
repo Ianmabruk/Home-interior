@@ -164,22 +164,44 @@ export const ServicesDashboard = () => {
     }
   }
 
-  const moveService = async (index, direction) => {
-    const newIndex = index + direction
-    if (newIndex < 0 || newIndex >= services.length) return
-    const updated = [...services]
-    const temp = updated[index]
-    updated[index] = updated[newIndex]
-    updated[newIndex] = temp
-    const orderPayload = updated.map((s, i) => ({ id: s.id, displayOrder: i }))
+  const persistServiceOrder = async (orderedServices) => {
+    const orderPayload = orderedServices.map((service, index) => ({ id: service.id, displayOrder: index }))
     try {
       await api.patch('/admin/services/reorder', { order: orderPayload })
-      setServices(updated)
+      setServices(orderedServices)
       dispatchAdminDataChanged('services-changed')
     } catch (err) {
       console.error('Reorder error:', err)
       toast.error(err?.message || 'Failed to reorder services.')
     }
+  }
+
+  const moveService = async (index, direction) => {
+    const newIndex = index + direction
+    if (newIndex < 0 || newIndex >= services.length) return
+    const updated = [...services]
+    const [moved] = updated.splice(index, 1)
+    updated.splice(newIndex, 0, moved)
+    await persistServiceOrder(updated)
+  }
+
+  const moveServiceToPosition = async (index, targetIndex) => {
+    if (targetIndex < 0 || targetIndex >= services.length || index === targetIndex) return
+    const updated = [...services]
+    const [moved] = updated.splice(index, 1)
+    updated.splice(targetIndex, 0, moved)
+    await persistServiceOrder(updated)
+  }
+
+  const moveToFirst = async (index) => {
+    if (index === 0) return
+    await moveServiceToPosition(index, 0)
+  }
+
+  const moveToLast = async (index) => {
+    const lastIndex = services.length - 1
+    if (index === lastIndex || lastIndex < 0) return
+    await moveServiceToPosition(index, lastIndex)
   }
 
   const toggleActive = async (item) => {
@@ -514,10 +536,22 @@ export const ServicesDashboard = () => {
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
+                  onClick={() => moveToFirst(i)}
+                  disabled={i === 0}
+                  className="px-2 py-1.5 bg-white/90 backdrop-blur-sm rounded-xl text-[var(--primary)] hover:bg-white shadow-lg disabled:opacity-30"
+                  aria-label="Move to first"
+                  title="Move to first"
+                >
+                  <span className="text-[10px] font-semibold tracking-[0.12em] uppercase">First</span>
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={() => moveService(i, -1)}
                   disabled={i === 0}
                   className="p-2 bg-white/90 backdrop-blur-sm rounded-xl text-[var(--primary)] hover:bg-white shadow-lg disabled:opacity-30"
                   aria-label="Move up"
+                  title="Move up"
                 >
                   <ArrowUp size={14} />
                 </motion.button>
@@ -528,8 +562,20 @@ export const ServicesDashboard = () => {
                   disabled={i === services.length - 1}
                   className="p-2 bg-white/90 backdrop-blur-sm rounded-xl text-[var(--primary)] hover:bg-white shadow-lg disabled:opacity-30"
                   aria-label="Move down"
+                  title="Move down"
                 >
                   <ArrowDown size={14} />
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => moveToLast(i)}
+                  disabled={i === services.length - 1}
+                  className="px-2 py-1.5 bg-white/90 backdrop-blur-sm rounded-xl text-[var(--primary)] hover:bg-white shadow-lg disabled:opacity-30"
+                  aria-label="Move to last"
+                  title="Move to last"
+                >
+                  <span className="text-[10px] font-semibold tracking-[0.12em] uppercase">Last</span>
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.1 }}
