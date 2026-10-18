@@ -160,6 +160,39 @@ export async function uploadFile(buffer, mimetype, folder, originalName) {
       }
     } catch (cloudErr) {
       console.error('[uploadService] Cloudinary upload failed:', cloudErr?.message || cloudErr)
+
+      const shouldFallbackToLocal = process.env.NODE_ENV !== 'production' || process.env.FALLBACK_TO_LOCAL_UPLOADS === 'true' || process.env.CLOUDINARY_CLOUD_NAME === undefined || process.env.CLOUDINARY_API_KEY === undefined || process.env.CLOUDINARY_API_SECRET === undefined
+      if (shouldFallbackToLocal) {
+        try {
+          const local = await uploadToLocal(optimizedBuffer, optimizedMimetype, folder)
+          recordFailedUpload({
+            time: new Date().toISOString(),
+            reason: cloudErr?.message || String(cloudErr),
+            intended: { provider: 'cloudinary', folder, originalName },
+            localPath: local.path,
+            mimeType: optimizedMimetype,
+          })
+          console.warn('[uploadService] Cloudinary unavailable; saved upload locally instead:', local.path)
+          return {
+            url: local.url,
+            originalUrl: local.url,
+            path: local.path,
+            mimeType: local.mimeType,
+            originalName: originalName || null,
+            resourceType: null,
+            format: optimizedMimetype.split('/')[1] || null,
+            originalFormat: optimizedMimetype,
+            duration: null,
+            width: null,
+            height: null,
+            bytes: optimizedBuffer.length,
+            isLocal: true,
+          }
+        } catch (localErr) {
+          console.error('[uploadService] Local fallback upload also failed:', localErr?.message || localErr)
+        }
+      }
+
       // Provide a clearer error message for timeout failures.
       // Use 408 (Request Timeout) so the error handler preserves the message
       // in production (it only hides messages for status >= 500).

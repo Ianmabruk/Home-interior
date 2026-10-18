@@ -92,6 +92,36 @@ describe('Services', () => {
     expect(res.body.data.title).toBe('test_Service Gamma Updated')
   })
 
+  it('should reorder services persistently via the dedicated reorder endpoint', async () => {
+    const first = await request(app)
+      .post(`${API}/admin/services`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
+      .send({ title: 'test_Service Reorder A', description: 'A', featured: false, displayOrder: 0 })
+
+    const second = await request(app)
+      .post(`${API}/admin/services`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
+      .send({ title: 'test_Service Reorder B', description: 'B', featured: false, displayOrder: 1 })
+
+    const reorderRes = await request(app)
+      .patch(`${API}/admin/services/reorder`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
+      .send({ order: [{ id: second.body.data.id, displayOrder: 0 }, { id: first.body.data.id, displayOrder: 1 }] })
+
+    expect(reorderRes.status).toBe(200)
+    expect(reorderRes.body.success).toBe(true)
+
+    const listRes = await request(app).get(`${API}/services`)
+    const orderedTitles = listRes.body.data
+      .filter((service) => service.title.startsWith('test_Service Reorder'))
+      .map((service) => service.title)
+
+    expect(orderedTitles).toEqual(['test_Service Reorder B', 'test_Service Reorder A'])
+  })
+
   it('should delete a service as admin', async () => {
     const createRes = await request(app)
       .post(`${API}/admin/services`)

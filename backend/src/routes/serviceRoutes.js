@@ -12,8 +12,8 @@ const router = Router()
 router.get('/', optionalAuth, cacheHeaders(120, 60), serviceController.list)
 router.get('/:id', optionalAuth, cacheHeaders(120, 60), serviceController.get)
 router.post('/', authenticate, validateCsrfToken, uploadSingle('media', ['image/jpeg', 'image/png', 'image/webp', 'image/gif']), validateZod(serviceSchemas.create), serviceController.create)
-router.patch('/:id', authenticate, validateCsrfToken, uploadSingle('media', ['image/jpeg', 'image/png', 'image/webp', 'image/gif']), validateZod(serviceSchemas.update), serviceController.update)
 router.patch('/reorder', authenticate, validateCsrfToken, validateZod(serviceSchemas.reorder), serviceController.reorder)
+router.patch('/:id', authenticate, validateCsrfToken, uploadSingle('media', ['image/jpeg', 'image/png', 'image/webp', 'image/gif']), validateZod(serviceSchemas.update), serviceController.update)
 router.delete('/:id', authenticate, validateCsrfToken, serviceController.delete)
 
 export default router
