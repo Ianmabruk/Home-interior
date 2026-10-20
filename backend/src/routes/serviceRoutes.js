@@ -10,9 +10,9 @@ import { serviceSchemas } from '../validations/schemas.js'
 const router = Router()
 
 router.get('/', optionalAuth, cacheHeaders(120, 60), serviceController.list)
-router.get('/:id', optionalAuth, cacheHeaders(120, 60), serviceController.get)
 router.post('/', authenticate, validateCsrfToken, uploadSingle('media', ['image/jpeg', 'image/png', 'image/webp', 'image/gif']), validateZod(serviceSchemas.create), serviceController.create)
 router.patch('/reorder', authenticate, validateCsrfToken, validateZod(serviceSchemas.reorder), serviceController.reorder)
+router.get('/:id', optionalAuth, cacheHeaders(120, 60), serviceController.get)
 router.patch('/:id', authenticate, validateCsrfToken, uploadSingle('media', ['image/jpeg', 'image/png', 'image/webp', 'image/gif']), validateZod(serviceSchemas.update), serviceController.update)
 router.delete('/:id', authenticate, validateCsrfToken, serviceController.delete)
 

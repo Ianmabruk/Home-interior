@@ -92,10 +92,10 @@ router.delete('/virtual-designs/:id', virtualDesignController.delete)
 
 // Admin Services
 router.get('/services', serviceController.list)
-router.get('/services/:id', serviceController.get)
 router.post('/services', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), serviceController.create)
 router.patch('/services/reorder', serviceController.reorder)
 router.post('/services/reorder', serviceController.reorder)
+router.get('/services/:id', serviceController.get)
 router.patch('/services/:id', uploadFields([{ name: 'media', maxCount: 1 }, { name: 'homepageCircularImage', maxCount: 1 }]), serviceController.update)
 router.delete('/services/:id', serviceController.delete)
 
