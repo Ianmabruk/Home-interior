@@ -4,11 +4,25 @@ import { Check, ChevronDown, ChevronUp, Sparkles, Shield, Wifi, ArrowRight } fro
 import { Link } from 'react-router-dom'
 import { api } from '@services/api'
 
-const addOns = [
+const fallbackAddOns = [
   { name: 'Virtual Styling Call (30 min)', price: '3,500' },
   { name: 'Thrift & Local Sourcing Guide', price: '2,500' },
   { name: 'Rush 5-Day Delivery', price: '5,000' },
 ]
+
+const getStoredAddOns = () => {
+  if (typeof window === 'undefined') return fallbackAddOns
+
+  try {
+    const raw = window.localStorage.getItem('hokVirtualDesignAddOns')
+    if (!raw) return fallbackAddOns
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed) || parsed.length === 0) return fallbackAddOns
+    return parsed.filter((item) => item && typeof item.name === 'string' && typeof item.price === 'string').slice(0, 6)
+  } catch {
+    return fallbackAddOns
+  }
+}
 
 const faqs = [
   {
@@ -45,10 +59,11 @@ const trustIndicators = [
 ]
 
 function mapPackage(item) {
-  const price = item.price || 0
-  const priceMax = item.priceMax || price
+  const price = Number(item.price) || 0
+  const priceMax = Number(item.priceMax) || price
   const currency = item.currency || 'KES'
   const features = Array.isArray(item.features) ? item.features : []
+  const image = item.imageUrl || item.mediaUrl || item.image || item.galleryMedia?.[0]?.url || null
   return {
     id: item.id,
     name: item.title || 'Untitled Package',
@@ -57,6 +72,7 @@ function mapPackage(item) {
     priceMax: String(Number(priceMax).toLocaleString()),
     currency,
     features,
+    image,
     buttonText: item.ctaText || 'Book',
     popular: Boolean(item.featured),
     rawPrice: price,
@@ -70,6 +86,14 @@ export const EDesignPackages = memo(({ packages: propPackages }) => {
   const [loading, setLoading] = useState(false)
   const [showComparison, setShowComparison] = useState(false)
   const [openFaq, setOpenFaq] = useState(null)
+  const [addOns, setAddOns] = useState(getStoredAddOns)
+
+  useEffect(() => {
+    setAddOns(getStoredAddOns())
+    const sync = () => setAddOns(getStoredAddOns())
+    window.addEventListener('storage', sync)
+    return () => window.removeEventListener('storage', sync)
+  }, [])
 
   useEffect(() => {
     if (propPackages && propPackages.length > 0) {
@@ -181,6 +205,11 @@ export const EDesignPackages = memo(({ packages: propPackages }) => {
               )}
 
               <div className="p-6 md:p-8 flex-1 flex flex-col">
+                {pkg.image && (
+                  <div className="mb-5 overflow-hidden rounded-2xl border border-[var(--border)]/70 bg-[var(--bg)]">
+                    <img src={pkg.image} alt={pkg.name} className="h-40 w-full object-cover" />
+                  </div>
+                )}
                 {/* Package Header */}
                 <div className="text-center mb-6 pt-2">
                   <h3 className="font-display text-2xl font-medium text-[var(--primary)] mb-2">

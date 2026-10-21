@@ -16,6 +16,7 @@ vi.mock('@services/api', () => ({
     post: vi.fn(),
     delete: vi.fn(),
   },
+  clearApiCache: vi.fn(),
 }))
 
 vi.mock('react-hot-toast', () => ({
@@ -83,6 +84,35 @@ describe('ServicesDashboard', () => {
     await waitFor(() => {
       const serviceCards = Array.from(container.querySelectorAll('article')).map((card) => card.querySelector('h3')?.textContent)
       expect(serviceCards).toEqual(['Design', 'Styling'])
+    })
+  })
+
+  it('keeps the consultation modal closed until a user intentionally opens it', async () => {
+    mocks.get.mockResolvedValueOnce({
+      data: [
+        { id: 's1', title: 'Design', description: 'A', imageUrl: 'https://example.com/1.jpg', displayOrder: 0, isActive: true, featured: false, buttonText: 'Request This Service', buttonUrl: '' },
+      ],
+    })
+
+    render(
+      <MemoryRouter>
+        <ServicesPage />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => expect(screen.getByText('Design')).toBeInTheDocument())
+    expect(screen.queryByRole('heading', { name: /book a consultation/i })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /request this service/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /book a consultation/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByLabelText('Close modal'))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: /book a consultation/i })).not.toBeInTheDocument()
     })
   })
 })

@@ -16,6 +16,12 @@ import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { getOptimizedVideoUrl, getVideoPosterUrl, getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
+const FALLBACK_ADD_ONS = [
+  { name: 'Virtual Styling Call (30 min)', price: '3500' },
+  { name: 'Thrift & Local Sourcing Guide', price: '2500' },
+  { name: 'Rush 5-Day Delivery', price: '5000' },
+]
+
 const INITIAL_FORM = {
   title: '',
   description: '',
@@ -48,6 +54,21 @@ export const VirtualDesignDashboard = () => {
   const [error, setError] = useState('')
   const [optimisticDeletes, setOptimisticDeletes] = useState(new Set())
   const [featureInput, setFeatureInput] = useState('')
+  const [addOnServices, setAddOnServices] = useState(() => {
+    if (typeof window === 'undefined') return FALLBACK_ADD_ONS
+    try {
+      const raw = window.localStorage.getItem('hokVirtualDesignAddOns')
+      if (!raw) return FALLBACK_ADD_ONS
+      const parsed = JSON.parse(raw)
+      if (!Array.isArray(parsed) || parsed.length === 0) return FALLBACK_ADD_ONS
+      return parsed.map((item) => ({
+        name: String(item?.name || '').trim(),
+        price: String(item?.price || '').trim(),
+      })).filter((item) => item.name || item.price)
+    } catch {
+      return FALLBACK_ADD_ONS
+    }
+  })
   const mainFileRef = useRef(null)
   const videoRef = useRef(null)
   const galleryFileRef = useRef(null)
@@ -69,6 +90,11 @@ export const VirtualDesignDashboard = () => {
     window.addEventListener('admin-data-changed', handler)
     return () => window.removeEventListener('admin-data-changed', handler)
   }, [load])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem('hokVirtualDesignAddOns', JSON.stringify(addOnServices))
+  }, [addOnServices])
 
   const handleMainFiles = useCallback((files) => {
     const validFiles = Array.from(files).filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'))
@@ -175,6 +201,18 @@ export const VirtualDesignDashboard = () => {
     setForm((f) => ({ ...f, features: [...f.features, text] }))
     setFeatureInput('')
   }, [featureInput])
+
+  const addAddOn = useCallback(() => {
+    setAddOnServices((prev) => [...prev, { name: '', price: '' }])
+  }, [])
+
+  const updateAddOn = useCallback((index, field, value) => {
+    setAddOnServices((prev) => prev.map((item, idx) => idx === index ? { ...item, [field]: value } : item))
+  }, [])
+
+  const removeAddOn = useCallback((index) => {
+    setAddOnServices((prev) => prev.filter((_, idx) => idx !== index))
+  }, [])
 
   const removeFeature = useCallback((index) => {
     setForm((f) => ({ ...f, features: f.features.filter((_, i) => i !== index) }))
@@ -461,12 +499,38 @@ export const VirtualDesignDashboard = () => {
 
             <div className="space-y-1">
               <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">CTA Text</label>
-                <input
-                  value={form.buttonText}
-                  onChange={(e) => setForm((f) => ({ ...f, buttonText: e.target.value }))}
-                  className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
-                  placeholder="e.g. View More"
-                />
+              <input
+                value={form.ctaText || 'Book'}
+                onChange={(e) => setForm((f) => ({ ...f, ctaText: e.target.value }))}
+                className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm outline-none placeholder:text-[var(--primary)]/35 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition h-12"
+                placeholder="e.g. View More"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--primary)]/70">Add-On Services</label>
+                <button type="button" onClick={addAddOn} className="text-xs font-semibold text-[var(--accent)]">+ Add</button>
+              </div>
+              <div className="space-y-2">
+                {addOnServices.map((addon, index) => (
+                  <div key={`${addon.name || 'addon'}-${index}`} className="grid grid-cols-[1fr_140px_40px] gap-2">
+                    <input
+                      value={addon.name}
+                      onChange={(e) => updateAddOn(index, 'name', e.target.value)}
+                      className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
+                      placeholder="Service name"
+                    />
+                    <input
+                      value={addon.price}
+                      onChange={(e) => updateAddOn(index, 'price', e.target.value)}
+                      className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition"
+                      placeholder="3500"
+                    />
+                    <button type="button" onClick={() => removeAddOn(index)} className="rounded-xl border border-[var(--border)] bg-white p-2 text-[var(--error)] hover:bg-[var(--error)]/5">X</button>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-2">

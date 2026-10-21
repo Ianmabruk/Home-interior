@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from '@components/common/DynamicMotion'
-import { ArrowLeft, Share2, Facebook, Twitter, Linkedin, Copy, Calendar, User, Clock, Eye, Tag } from 'lucide-react'
+import { ArrowLeft, Share2, Facebook, Twitter, Linkedin, Copy, User, Clock, Eye, Tag } from 'lucide-react'
 import { SiPinterest } from 'react-icons/si'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '@services/api'
 import { getVideoPosterUrl, getOptimizedVideoUrl } from '@utils/cloudinaryHelpers'
 import OptimizedImage from '@components/common/OptimizedImage'
-import { getReadingTime, formatDate, extractTags } from '@utils/blogHelpers'
+import { getReadingTime, extractTags } from '@utils/blogHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
 import { SectionErrorBoundary } from '@components/home/SectionErrorBoundary'
@@ -361,6 +361,15 @@ const loadBlog = useCallback(async () => {
               <p className="text-lg text-[var(--primary)]/60 leading-relaxed mb-6">{blog.subtitle}</p>
             )}
 
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="prose-wrapper mb-6 md:mb-8"
+            >
+              <ContentRenderer content={blog.content || blog.description || ''} />
+            </motion.div>
+
             <div className="flex flex-wrap items-center gap-4 text-sm text-[var(--primary)]/50">
               {blog.author && (
                 <span className="flex items-center gap-1.5">
@@ -368,10 +377,6 @@ const loadBlog = useCallback(async () => {
                   {blog.author}
                 </span>
               )}
-              <time dateTime={blog.publishDate || blog.createdAt} className="flex items-center gap-1.5">
-                <Calendar size={14} />
-                {formatDate(blog.publishDate || blog.createdAt, { year: 'numeric', month: 'long', day: 'numeric' })}
-              </time>
               <span className="flex items-center gap-1.5">
                 <Clock size={14} />
                 {readingTime} min read
@@ -398,16 +403,6 @@ const loadBlog = useCallback(async () => {
               </div>
             )}
           </motion.header>
-
-          {/* Article content — THIRD in DOM (below header on mobile), right column below header on desktop */}
-          <motion.div
-            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="prose-wrapper md:col-start-2 md:row-start-2"
-          >
-            <ContentRenderer content={blog.content || blog.description || ''} />
-          </motion.div>
         </div>
 
         {/* Content Images Gallery — below the main article area */}

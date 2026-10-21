@@ -16,7 +16,7 @@ const buildTitleVariants = (reduced) => ({
     opacity: 1,
     x: 0,
     transition: {
-      duration: reduced ? 0.6 : 1.8,
+      duration: reduced ? 1.2 : 3.6,
       ease: [0.22, 1, 0.36, 1],
     },
   },
@@ -28,8 +28,8 @@ const buildTaglineVariants = (reduced) => ({
     opacity: 1,
     x: 0,
     transition: {
-      delay: reduced ? 0 : 0.4,
-      duration: reduced ? 0.6 : 1.8,
+      delay: 0,
+      duration: reduced ? 1.2 : 3.6,
       ease: [0.22, 1, 0.36, 1],
     },
   },

@@ -253,9 +253,9 @@ export const workWithUsSchemas = {
     fullName: z.string().min(1, 'Full name is required'),
     email: z.string().email('Invalid email address'),
     phone: z.string().min(1, 'Phone number is required'),
-    budget: z.string().min(1, 'Budget is required'),
-    startDate: z.string().optional(),
-    timeline: z.string().min(1, 'Timeline is required'),
+    budget: z.string().optional().nullable(),
+    startDate: z.string().optional().nullable(),
+    timeline: z.string().optional().nullable(),
   }),
   updateStatus: z.object({
     status: z.string().min(1, 'Status is required'),

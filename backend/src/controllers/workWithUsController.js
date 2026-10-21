@@ -38,12 +38,12 @@ export const workWithUsController = {
       fullName: String(req.body.fullName || '').trim(),
       phone: String(req.body.phone || '').trim(),
       email: String(req.body.email || '').trim(),
-      budget: String(req.body.budget || '').trim(),
+      budget: req.body.budget ? String(req.body.budget).trim() : null,
       startDate: req.body.startDate ? String(req.body.startDate).trim() : null,
-      timeline: String(req.body.timeline || '').trim(),
+      timeline: req.body.timeline ? String(req.body.timeline).trim() : null,
     }
-    if (!data.fullName || !data.email || !data.phone || !data.budget || !data.timeline) {
-      return res.status(400).json({ success: false, message: 'All fields are required' })
+    if (!data.fullName || !data.email || !data.phone) {
+      return res.status(400).json({ success: false, message: 'Full name, email and phone are required' })
     }
     const item = await workWithUsService.createWorkWithUs(data)
     res.status(201).json({ success: true, data: item })

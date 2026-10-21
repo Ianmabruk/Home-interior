@@ -17,9 +17,7 @@ export const WorkWithUsPage = () => {
     fullName: '',
     phone: '',
     email: '',
-    budget: '',
     startDate: '',
-    timeline: '',
   })
 
   useEffect(() => {
@@ -52,7 +50,7 @@ export const WorkWithUsPage = () => {
     try {
       await api.post('/work-with-us', formData)
       setSubmitStatus('success')
-      setFormData({ fullName: '', phone: '', email: '', budget: '', startDate: '', timeline: '' })
+      setFormData({ fullName: '', phone: '', email: '', startDate: '' })
     } catch (err) {
       setSubmitStatus('error')
       setSubmitError(err?.message || 'Something went wrong. Please try again or contact us directly at info@hokinteriors.co.ke')
@@ -209,25 +207,6 @@ export const WorkWithUsPage = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="budget" className="block text-sm font-medium text-[var(--primary)] mb-1">Construction Budget</label>
-                  <select
-                    id="budget"
-                    name="budget"
-                    value={formData.budget}
-                    onChange={handleChange}
-                    className="input-luxury"
-                  >
-                    <option value="">Select budget range</option>
-                    <option value="under-5m">Under KES 5M</option>
-                    <option value="5m-20m">KES 5M - 20M</option>
-                    <option value="20m-50m">KES 20M - 50M</option>
-                    <option value="50m-100m">KES 50M - 100M</option>
-                    <option value="100m-plus">KES 100M+</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
                   <label htmlFor="startDate" className="block text-sm font-medium text-[var(--primary)] mb-1">Preferred Start Date</label>
                   <input
                     type="date"
@@ -237,24 +216,6 @@ export const WorkWithUsPage = () => {
                     onChange={handleChange}
                     className="input-luxury"
                   />
-                </div>
-                <div>
-                  <label htmlFor="timeline" className="block text-sm font-medium text-[var(--primary)] mb-1">Time Limit / Project Timeline</label>
-                  <select
-                    id="timeline"
-                    name="timeline"
-                    value={formData.timeline}
-                    onChange={handleChange}
-                    className="input-luxury"
-                  >
-                    <option value="">Select time frame</option>
-                    <option value="asap">ASAP</option>
-                    <option value="1-3-months">1-3 Months</option>
-                    <option value="3-6-months">3-6 Months</option>
-                    <option value="6-12-months">6-12 Months</option>
-                    <option value="flexible">Flexible</option>
-                    <option value="custom">Custom</option>
-                  </select>
                 </div>
               </div>
 

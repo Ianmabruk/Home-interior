@@ -57,7 +57,7 @@ const sortServicesByDisplayOrder = (items = []) => {
 }
 
 export const ServicesSection = memo(({ services = [], images = {} }) => {
-  const [data, setData] = useState(services)
+  const [data, setData] = useState([])
   const [imageData, setImageData] = useState(images)
   const [loading, setLoading] = useState(!services.length)
   const [error, setError] = useState(null)
@@ -67,7 +67,8 @@ export const ServicesSection = memo(({ services = [], images = {} }) => {
       setLoading(true)
       setError(null)
       const res = await api.get('/services')
-      setData(sortServicesByDisplayOrder(res.data || []))
+      const nextData = sortServicesByDisplayOrder(res.data || [])
+      setData(nextData)
       if (res.data?.servicesImages) {
         setImageData(res.data.servicesImages)
       }
@@ -80,8 +81,15 @@ export const ServicesSection = memo(({ services = [], images = {} }) => {
   }, [])
 
   useEffect(() => {
-    if (!services.length) loadData()
-  }, [services.length, loadData])
+    if (services.length) {
+      setData(sortServicesByDisplayOrder(services))
+      setLoading(false)
+      setError(null)
+      return
+    }
+
+    loadData()
+  }, [services, loadData])
 
   useEffect(() => {
     const handler = (event) => {

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, memo } from 'react'
 import { motion } from '@components/common/DynamicMotion'
 import { Loader2, X, Send } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { api } from '@services/api'
+import { api, clearApiCache } from '@services/api'
 import { getOptimizedUrl, buildSrcSet } from '@utils/cloudinaryHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload, dispatchAdminDataChanged } from '@utils/adminEvents'
 import { PageMeta } from '@hooks/usePageMeta'
@@ -44,7 +44,7 @@ export const ServicesPage = memo(() => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
-  const [_selectedService, setSelectedService] = useState(null)
+  const [selectedServiceId, setSelectedServiceId] = useState(null)
   const [formData, setFormData] = useState({
     fullName: '',
     phoneNumber: '',
@@ -61,18 +61,29 @@ export const ServicesPage = memo(() => {
   const fileInput1Ref = useRef(null)
   const fileInput2Ref = useRef(null)
 
+  const closeConsultationModal = useCallback(() => {
+    setFormOpen(false)
+    setSelectedServiceId(null)
+    setFormData(prev => ({ ...prev, service: '' }))
+  }, [])
+
   const loadServices = useCallback(async () => {
     setError(null)
     try {
+      clearApiCache('/services')
       const res = await api.get('/services')
-      setServices(sortServicesByDisplayOrder(res.data || []))
+      const sortedServices = sortServicesByDisplayOrder(res.data || [])
+      setServices(sortedServices)
+      if (selectedServiceId && !sortedServices.some((service) => service.id === selectedServiceId)) {
+        closeConsultationModal()
+      }
     } catch (err) {
       console.warn('[SERVICES] Failed to load:', err?.message)
       setError(err)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [closeConsultationModal, selectedServiceId])
 
   const retry = useCallback(() => {
     setLoading(true)
@@ -145,8 +156,7 @@ export const ServicesPage = memo(() => {
       await api.post('/consultations', payload)
 
       toast.success('Consultation request submitted successfully!')
-      setFormOpen(false)
-      setSelectedService(null)
+      closeConsultationModal()
       setFormData({
         fullName: '',
         phoneNumber: '',
@@ -248,7 +258,11 @@ export const ServicesPage = memo(() => {
                   {service.description || 'Premium interior design service tailored to your unique vision and requirements.'}
                 </p>
                 <button
-                  onClick={() => { setSelectedService(service); setFormOpen(true); setFormData(prev => ({ ...prev, service: service.title })) }}
+                  onClick={() => {
+                    setSelectedServiceId(service.id)
+                    setFormOpen(true)
+                    setFormData(prev => ({ ...prev, service: service.title }))
+                  }}
                   className="btn-luxury-primary group inline-flex items-center gap-2 w-full max-w-xs"
                 >
                   {service.buttonText || 'Request This Service'}
@@ -276,35 +290,36 @@ export const ServicesPage = memo(() => {
       </section>
 
       {/* Book Consultation Modal */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={formOpen ? { opacity: 1 } : { opacity: 0 }}
-        exit={{ opacity: 0 }}
-        className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--primary)]/40 backdrop-blur-sm ${formOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}
-        onClick={() => setFormOpen(false)}
-      >
+      {formOpen && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="relative w-full max-w-md bg-white rounded-3xl p-8 shadow-[0_30px_80px_rgba(0,0,0,0.15)] max-h-[90vh] overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--primary)]/40 backdrop-blur-sm pointer-events-auto"
+          onClick={closeConsultationModal}
         >
-          <button
-            onClick={() => setFormOpen(false)}
-            className="absolute top-4 right-4 p-1 rounded-full text-[var(--primary)]/40 hover:text-[var(--primary)] hover:bg-[var(--secondary)]/30 transition-colors"
-            aria-label="Close modal"
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="relative w-full max-w-md bg-white rounded-3xl p-8 shadow-[0_30px_80px_rgba(0,0,0,0.15)] max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
           >
-            <X size={24} strokeWidth={1.5} />
-          </button>
+            <button
+              onClick={closeConsultationModal}
+              className="absolute top-4 right-4 p-1 rounded-full text-[var(--primary)]/40 hover:text-[var(--primary)] hover:bg-[var(--secondary)]/30 transition-colors"
+              aria-label="Close modal"
+            >
+              <X size={24} strokeWidth={1.5} />
+            </button>
 
-          <div className="text-center mb-8">
-            <h3 className="font-display text-3xl font-medium text-[var(--primary)]">Book a Consultation</h3>
-            <p className="mt-2 text-[var(--primary)]/60">Tell us about your project and we'll get back to you within 24 hours.</p>
-          </div>
+            <div className="text-center mb-8">
+              <h3 className="font-display text-3xl font-medium text-[var(--primary)]">Book a Consultation</h3>
+              <p className="mt-2 text-[var(--primary)]/60">Tell us about your project and we'll get back to you within 24 hours.</p>
+            </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="fullName" className="block text-sm font-medium text-[var(--primary)] mb-1">Full Name *</label>
@@ -483,9 +498,10 @@ export const ServicesPage = memo(() => {
                 </>
               )}
             </button>
-          </form>
+            </form>
+          </motion.div>
         </motion.div>
-      </motion.div>
+      )}
     </main>
   )
 })
