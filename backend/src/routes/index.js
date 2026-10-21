@@ -26,6 +26,7 @@ import { cacheHeaders } from '../middleware/cacheHeaders.js'
 import { contentController } from '../controllers/contentController.js'
 import { prisma } from '../config/database.js'
 import { circularTabController } from '../controllers/circularTabController.js'
+import { websiteAnalyticsController } from '../controllers/websiteAnalyticsController.js'
 
 const router = Router()
 
@@ -61,6 +62,7 @@ router.use('/blog', publicBlogRoutes)
 router.use('/admin/blog', blogRoutes)
 router.use('/content/work-with-us', workWithUsRoutes)
 router.use('/work-with-us', workWithUsRoutes)
+router.post('/analytics/visit', websiteAnalyticsController.trackVisit)
 
 // Public circular tabs API (for homepage)
 router.get('/circular-tabs', circularTabController.getHomepage)

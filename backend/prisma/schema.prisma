@@ -377,6 +377,22 @@ model Consultation {
   @@index([type, createdAt(desc)])
 }
 
+model WebsiteVisit {
+  id          String   @id @default(cuid())
+  path        String   @db.Text
+  url         String?  @db.Text
+  referrer    String?  @db.Text
+  pageTitle   String?  @map("page_title") @db.Text
+  sessionId   String?  @map("session_id") @db.Text
+  userAgent   String?  @map("user_agent") @db.Text
+  ipHash      String?  @map("ip_hash") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("website_visits")
+  @@index([path, createdAt(desc)])
+  @@index([createdAt(desc)])
+}
+
 model SiteSetting {
   id        String   @id @default(cuid())
   key       String   @unique @db.Text

@@ -16,6 +16,7 @@ import { consultationController } from '../controllers/consultationController.js
 import { orderController } from '../controllers/orderController.js'
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import { adminOverviewController } from '../controllers/adminOverviewController.js'
+import { websiteAnalyticsController } from '../controllers/websiteAnalyticsController.js'
 import { workWithUsController } from '../controllers/workWithUsController.js'
 import { notificationController } from '../controllers/notificationController.js'
 import { circularTabController } from '../controllers/circularTabController.js'
@@ -34,6 +35,7 @@ router.use((req, res, next) => {
 })
 
 router.get('/overview', adminOverviewController.getStats)
+router.get('/insights', websiteAnalyticsController.getInsights)
 router.get('/settings', adminOverviewController.getSettings)
 router.put('/settings', adminOverviewController.updateSettings)
 router.post('/settings/shop-banner', uploadSingle('image'), asyncHandler(async (req, res) => {

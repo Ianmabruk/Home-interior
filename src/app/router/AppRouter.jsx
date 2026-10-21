@@ -91,6 +91,7 @@ const SocialDashboard = lazyWithCache(() => import('@components/admin/SocialDash
 const WorkWithUsDashboard = lazyWithCache(() => import('@components/admin/WorkWithUsDashboard').then(m => ({ default: m.default })), 'work-with-us-dashboard')
 const TestimonialsDashboard = lazyWithCache(() => import('@components/admin/TestimonialDashboard').then(m => ({ default: m.default })), 'testimonials-dashboard')
 const CircularTabDashboard = lazyWithCache(() => import('@components/admin/CircularTabDashboard').then(m => ({ default: m.default })), 'circular-tab-dashboard')
+const InsightsDashboard = lazyWithCache(() => import('@components/admin/InsightsDashboard').then(m => ({ default: m.default })), 'insights-dashboard')
 
 const ErrorBoundaryRoute = memo(({ element }) => (
   <ErrorBoundary fallback={<ErrorFallback />}>
@@ -132,9 +133,50 @@ const PrefetchOnIdle = () => {
   return null
 }
 
+const WebsiteVisitTracker = () => {
+  const location = useLocation()
+
+  useEffect(() => {
+    if (location.pathname.startsWith('/admin')) return
+
+    const visitedKey = `hok_visit_last_path`
+    try {
+      const lastPath = sessionStorage.getItem(visitedKey)
+      if (lastPath === location.pathname) return
+      sessionStorage.setItem(visitedKey, location.pathname)
+    } catch {
+      // ignore storage issues
+    }
+
+    const payload = {
+      path: location.pathname,
+      url: window.location.href,
+      referrer: document.referrer || null,
+      title: document.title,
+      sessionId: (() => {
+        try {
+          return sessionStorage.getItem('hok_session_id') || (sessionStorage.setItem('hok_session_id', crypto.randomUUID()), sessionStorage.getItem('hok_session_id'))
+        } catch {
+          return null
+        }
+      })(),
+    }
+
+    fetch('/api/analytics/visit', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => {})
+  }, [location.pathname])
+
+  return null
+}
+
 export const AppRouter = () => {
   return (
     <Suspense fallback={<RouteFallback />}>
+      <WebsiteVisitTracker />
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<ErrorBoundaryRoute element={<HomePage />} />} />
@@ -180,6 +222,7 @@ export const AppRouter = () => {
               <Route path="about" element={<ErrorBoundaryRoute element={<AboutDashboard />} />} />
               <Route path="shop" element={<ErrorBoundaryRoute element={<ShopDashboard />} />} />
               <Route path="blog" element={<ErrorBoundaryRoute element={<BlogDashboard />} />} />
+              <Route path="insights" element={<ErrorBoundaryRoute element={<InsightsDashboard />} />} />
                <Route path="orders" element={<ErrorBoundaryRoute element={<OrderDashboard />} />} />
                <Route path="consultations" element={<ErrorBoundaryRoute element={<ConsultationDashboard />} />} />
                <Route path="work-with-us" element={<ErrorBoundaryRoute element={<WorkWithUsDashboard />} />} />

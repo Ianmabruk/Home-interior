@@ -211,7 +211,7 @@ export const DashboardOverview = () => {
         <StatCard title="Blog Images" value={overview?.imageCount ?? 0} icon={ImageIcon} delay={0.55} color="gold" onClick={() => navigate('/admin/blog')} />
         <StatCard title="Blog Videos" value={overview?.videoCount ?? 0} icon={Video} delay={0.6} color="forest" onClick={() => navigate('/admin/blog')} />
         <StatCard title="Total Views" value={overview?.totalViews ?? 0} icon={Eye} delay={0.65} color="gold" />
-        <StatCard title="Revenue" value={overview?.revenue ?? 0} prefix="$" icon={DollarSign} delay={0.7} color="gold" />
+        <StatCard title="Revenue" value={overview?.revenue ?? 0} prefix="KSh" icon={DollarSign} delay={0.7} color="gold" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

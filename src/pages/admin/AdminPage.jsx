@@ -18,6 +18,7 @@ import {
   FileText,
   Heart,
   CircleDot,
+  BarChart3,
 } from 'lucide-react'
 import { motion } from '@components/common/DynamicMotion'
 import { useAuth } from '@context/AuthContext'
@@ -27,6 +28,7 @@ import { AdminLoginPage } from './AdminLoginPage'
 
 const ADMIN_NAV = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
+  { id: 'insights', label: 'Insights', icon: BarChart3, to: '/admin/insights' },
   { id: 'about', label: 'About', icon: Users, to: '/admin/about' },
   { id: 'hero-images', label: 'Hero Images', icon: Image, to: '/admin/hero-images' },
   { id: 'portfolio', label: 'Portfolio', icon: Image, to: '/admin/portfolio' },

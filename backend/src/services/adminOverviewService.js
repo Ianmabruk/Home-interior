@@ -7,6 +7,11 @@ export const adminOverviewService = {
 }
 
 export async function getAdminOverview() {
+  const confirmedSalesWhere = {
+    paymentStatus: 'confirmed',
+    status: { notIn: ['cancelled', 'refunded'] },
+  }
+
   const [
     portfolioCount,
     productCount,
@@ -41,7 +46,7 @@ export async function getAdminOverview() {
       by: ['email'],
       _count: { email: true },
     }).then((groups) => groups.length),
-    prisma.order.aggregate({ _sum: { total: true } }).then((r) => r._sum.total || 0),
+    prisma.order.aggregate({ where: confirmedSalesWhere, _sum: { total: true } }).then((r) => Number(r?._sum?.total || 0)),
   ])
 
   return {
@@ -72,7 +77,7 @@ export async function getSettings() {
   return {
     siteName: result.siteName || '',
     supportEmail: result.supportEmail || '',
-    currency: result.currency || 'USD',
+    currency: result.currency || 'KES',
     maintenanceMode: result.maintenanceMode === 'true',
     shippingPolicy: result.shippingPolicy || '',
     returnPolicy: result.returnPolicy || '',
