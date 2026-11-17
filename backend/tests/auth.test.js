@@ -1,7 +1,9 @@
 import request from 'supertest'
+import jwt from 'jsonwebtoken'
 import { getApp } from './lazyApp.js'
 import { prisma } from '../src/config/database.js'
 import bcrypt from 'bcryptjs'
+import { env } from '../src/config/env.js'
 
 const API = '/api'
 
@@ -115,6 +117,34 @@ describe('Auth', () => {
     expect(res.status).toBe(401)
     expect(res.body.success).toBe(false)
     expect(res.body.code).toBe('INVALID_REFRESH_TOKEN')
+  })
+
+  it('should accept a legacy admin refresh token payload without normalized type claims', async () => {
+    const email = generateTestEmail()
+    const admin = await createTestAdmin(email)
+    const legacyPayload = {
+      id: admin.id,
+      email: admin.email,
+      role: 'ADMIN',
+      exp: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
+    }
+    const legacyToken = jwt.sign(legacyPayload, env.jwtRefreshSecret)
+
+    await prisma.passwordReset.create({
+      data: {
+        adminId: admin.id,
+        token: legacyToken,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    })
+
+    const res = await request(app)
+      .post(`${API}/auth/refresh`)
+      .set('Cookie', `refreshToken=${encodeURIComponent(legacyToken)}`)
+
+    expect(res.status).toBe(200)
+    expect(res.body.success).toBe(true)
+    expect(res.body.data.accessToken).toBeDefined()
   })
 
   it('should logout successfully', async () => {
