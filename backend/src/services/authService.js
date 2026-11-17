@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import { prisma, withRetry } from '../config/database.js'
 import { failure } from '../utils/response.js'
 import { env } from '../config/env.js'
+import { buildTokenPayload, getTokenSubject, getTokenType } from '../utils/tokenClaims.js'
 
 export const authService = {
   login,
@@ -27,7 +28,7 @@ async function login(email, password) {
     throw failure(401, 'Invalid email or password')
   }
 
-  const payload = { adminId: admin.id, email: admin.email, role: admin.role }
+  const payload = buildTokenPayload({ id: admin.id, email: admin.email, role: admin.role, type: 'admin' })
   const accessToken = jwt.sign(payload, env.jwtAccessSecret, { expiresIn: env.accessTokenTtl || '15m' })
   const refreshToken = jwt.sign(payload, env.jwtRefreshSecret, { expiresIn: env.refreshTokenTtl || '30d' })
 
@@ -48,31 +49,38 @@ async function login(email, password) {
 }
 
 async function refresh(refreshToken) {
-  if (!refreshToken) throw failure(401, 'No refresh token')
+  if (!refreshToken) throw failure(401, 'Refresh token required', 'MISSING_REFRESH_TOKEN')
 
   let decoded
   try {
     decoded = jwt.verify(refreshToken, env.jwtRefreshSecret)
   } catch {
-    throw failure(401, 'Invalid refresh token')
+    throw failure(401, 'Invalid refresh token', 'INVALID_REFRESH_TOKEN')
+  }
+
+  const tokenType = getTokenType(decoded)
+  const subject = getTokenSubject(decoded)
+
+  if (tokenType !== 'admin' || !subject) {
+    throw failure(401, 'Invalid refresh token', 'INVALID_REFRESH_TOKEN')
   }
 
   const reset = await withRetry(() => prisma.passwordReset.findFirst({
-    where: { adminId: decoded.adminId, token: refreshToken },
+    where: { adminId: subject, token: refreshToken },
   }))
 
   if (!reset || new Date(reset.expiresAt) < new Date()) {
-    throw failure(401, 'Invalid refresh token')
+    throw failure(401, 'Invalid refresh token', 'INVALID_REFRESH_TOKEN')
   }
 
   const admin = await withRetry(() => prisma.admin.findUnique({
-    where: { id: decoded.adminId },
+    where: { id: subject },
     select: { id: true, email: true, fullName: true, role: true },
   }))
 
-  if (!admin) throw failure(401, 'Admin not found')
+  if (!admin) throw failure(401, 'Admin not found', 'ADMIN_NOT_FOUND')
 
-  const payload = { adminId: admin.id, email: admin.email, role: admin.role }
+  const payload = buildTokenPayload({ id: admin.id, email: admin.email, role: admin.role, type: 'admin' })
   const accessToken = jwt.sign(payload, env.jwtAccessSecret, { expiresIn: env.accessTokenTtl || '15m' })
   const newRefresh = jwt.sign(payload, env.jwtRefreshSecret, { expiresIn: env.refreshTokenTtl || '30d' })
 

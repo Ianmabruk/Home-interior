@@ -104,6 +104,19 @@ describe('Auth', () => {
     expect(res.body.data.accessToken).toBeDefined()
   })
 
+  it('should reject malformed refresh tokens with a structured auth error code', async () => {
+    const malformedPayload = { role: 'ADMIN', exp: Math.floor(Date.now() / 1000) + 60 }
+    const invalidRefreshToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' + Buffer.from(JSON.stringify(malformedPayload)).toString('base64url') + '.signature'
+
+    const res = await request(app)
+      .post(`${API}/auth/refresh`)
+      .set('Cookie', `refreshToken=${encodeURIComponent(invalidRefreshToken)}`)
+
+    expect(res.status).toBe(401)
+    expect(res.body.success).toBe(false)
+    expect(res.body.code).toBe('INVALID_REFRESH_TOKEN')
+  })
+
   it('should logout successfully', async () => {
     const email = generateTestEmail()
     await createTestAdmin(email)

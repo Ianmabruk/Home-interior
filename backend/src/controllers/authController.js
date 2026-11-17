@@ -7,6 +7,7 @@ import { prisma, withRetry } from '../config/database.js'
 import { env } from '../config/env.js'
 import { generateCsrfToken } from '../middleware/csrf.js'
 import { emailService } from '../services/emailService.js'
+import { buildTokenPayload, getTokenType } from '../utils/tokenClaims.js'
 
 export const authController = {
   login: asyncHandler(async (req, res) => {
@@ -60,16 +61,9 @@ export const authController = {
     const user = await customerAuthService.register({ email, password, fullName, phone })
     const csrfToken = generateCsrfToken()
 
-    const accessToken = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
-      env.jwtAccessSecret,
-      { expiresIn: env.accessTokenTtl || '15m' },
-    )
-    const refreshToken = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
-      env.jwtRefreshSecret,
-      { expiresIn: env.refreshTokenTtl || '30d' },
-    )
+    const payload = buildTokenPayload({ id: user.id, email: user.email, role: user.role, type: 'customer' })
+    const accessToken = jwt.sign(payload, env.jwtAccessSecret, { expiresIn: env.accessTokenTtl || '15m' })
+    const refreshToken = jwt.sign(payload, env.jwtRefreshSecret, { expiresIn: env.refreshTokenTtl || '30d' })
 
     // Store refresh token asynchronously - not critical for signup response
     setImmediate(() => {
@@ -111,19 +105,28 @@ export const authController = {
 
     if (!token) {
       console.warn(`[auth] refresh rejected: no token (cookies=${!!cookieToken}, header=${!!headerToken}, bearer=${!!authHeaderToken}) from ${req.ip}`)
-      return res.status(401).json({ success: false, message: 'Refresh token required' })
+      return res.status(401).json({ success: false, message: 'Refresh token required', code: 'MISSING_REFRESH_TOKEN' })
     }
+
+    const decoded = jwt.decode(token) || {}
+    const inferredType = getTokenType(decoded)
 
     let result
     try {
-      result = await authService.refresh(token)
+      if (inferredType === 'admin' || (!inferredType && !decoded.userId && !decoded.customerId)) {
+        result = await authService.refresh(token)
+      } else if (inferredType === 'customer' || decoded.userId || decoded.customerId) {
+        result = await customerAuthService.refresh(token)
+      } else {
+        result = await authService.refresh(token)
+      }
     } catch (err) {
-      console.warn(`[auth] refresh rejected for admin: ${err?.message || err}`)
+      console.warn(`[auth] refresh rejected for primary token type: ${err?.message || err}`)
       try {
         result = await customerAuthService.refresh(token)
       } catch (custErr) {
         console.warn(`[auth] refresh rejected for customer: ${custErr?.message || custErr}`)
-        return res.status(401).json({ success: false, message: 'Invalid refresh token' })
+        return res.status(401).json({ success: false, message: 'Invalid refresh token', code: custErr?.code || 'INVALID_REFRESH_TOKEN' })
       }
     }
 

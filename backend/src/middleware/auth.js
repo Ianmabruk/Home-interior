@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken'
 import { prisma, withRetry } from '../config/database.js'
 import { ApiError } from '../utils/ApiError.js'
 import { env } from '../config/env.js'
+import { getTokenSubject, getTokenType } from '../utils/tokenClaims.js'
 
 const SERVER_ID = process.env.SERVER_ID || 'hok-api-01'
 
@@ -18,20 +19,26 @@ export async function authenticate(req, res, next) {
 
     const token = authHeader.split(' ')[1]
     const decoded = jwt.verify(token, env.jwtAccessSecret)
+    const tokenType = getTokenType(decoded)
+    const subject = getTokenSubject(decoded)
 
-    if (decoded.adminId) {
+    if (!tokenType || !subject) {
+      throw new ApiError(401, 'Invalid token')
+    }
+
+    if (tokenType === 'admin') {
       const admin = await withRetry(() => prisma.admin.findUnique({
-        where: { id: decoded.adminId },
+        where: { id: subject },
         select: { id: true, email: true, fullName: true, role: true },
       }))
       if (!admin) {
-        console.warn(`[${SERVER_ID}] [auth] admin not found for token`, decoded.adminId)
+        console.warn(`[${SERVER_ID}] [auth] admin not found for token`, subject)
         throw new ApiError(401, 'Admin not found')
       }
       req.admin = admin
-    } else if (decoded.userId) {
+    } else if (tokenType === 'customer') {
       const user = await withRetry(() => prisma.user.findUnique({
-        where: { id: decoded.userId },
+        where: { id: subject },
         select: { id: true, email: true, fullName: true, phone: true, role: true, status: true },
       }))
       if (!user) {
@@ -91,16 +98,18 @@ export const optionalAuth = async (req, res, next) => {
 
     const token = authHeader.split(' ')[1]
     const decoded = jwt.verify(token, env.jwtAccessSecret)
+    const tokenType = getTokenType(decoded)
+    const subject = getTokenSubject(decoded)
 
-    if (decoded.adminId) {
+    if (tokenType === 'admin' && subject) {
       const admin = await withRetry(() => prisma.admin.findUnique({
-        where: { id: decoded.adminId },
+        where: { id: subject },
         select: { id: true, email: true, fullName: true, role: true },
       }))
       if (admin) req.admin = admin
-    } else if (decoded.userId) {
+    } else if (tokenType === 'customer' && subject) {
       const user = await withRetry(() => prisma.user.findUnique({
-        where: { id: decoded.userId },
+        where: { id: subject },
         select: { id: true, email: true, fullName: true, phone: true, role: true, status: true },
       }))
       if (user && user.status === 'ACTIVE') {

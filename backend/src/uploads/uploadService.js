@@ -139,7 +139,7 @@ export async function uploadFile(buffer, mimetype, folder, originalName) {
     console.warn(`[uploadService] Large upload (${bufferSizeMB}MB) — may approach Cloudinary timeout on slow connections`)
   }
 
-  const shouldUseLocalFallback = process.env.NODE_ENV === 'test' || process.env.ALLOW_LOCAL_UPLOADS === 'true'
+  const shouldUseLocalFallback = process.env.ALLOW_LOCAL_UPLOADS === 'true'
   const useCloudinary = isCloudinaryConfigured() && process.env.SKIP_CLOUDINARY !== 'true' && !shouldUseLocalFallback
   if (useCloudinary) {
     try {

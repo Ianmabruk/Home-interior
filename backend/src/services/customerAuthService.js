@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import { prisma, withRetry } from '../config/database.js'
 import { failure } from '../utils/response.js'
 import { env } from '../config/env.js'
+import { buildTokenPayload, getTokenSubject, getTokenType } from '../utils/tokenClaims.js'
 
 export const customerAuthService = {
   register,
@@ -57,7 +58,7 @@ async function login(email, password) {
     throw failure(401, 'Invalid email or password')
   }
 
-  const payload = { userId: user.id, email: user.email, role: user.role }
+  const payload = buildTokenPayload({ id: user.id, email: user.email, role: user.role, type: 'customer' })
   const accessToken = jwt.sign(payload, env.jwtAccessSecret, { expiresIn: env.accessTokenTtl || '15m' })
   const refreshToken = jwt.sign(payload, env.jwtRefreshSecret, { expiresIn: env.refreshTokenTtl || '30d' })
 
@@ -77,37 +78,40 @@ async function login(email, password) {
 }
 
 async function refresh(refreshToken) {
-  if (!refreshToken) throw failure(401, 'No refresh token')
+  if (!refreshToken) throw failure(401, 'Refresh token required', 'MISSING_REFRESH_TOKEN')
 
   let decoded
   try {
     decoded = jwt.verify(refreshToken, env.jwtRefreshSecret)
   } catch {
-    throw failure(401, 'Invalid refresh token')
+    throw failure(401, 'Invalid refresh token', 'INVALID_REFRESH_TOKEN')
   }
 
-  if (!decoded.userId) {
-    throw failure(401, 'Invalid refresh token')
+  const tokenType = getTokenType(decoded)
+  const subject = getTokenSubject(decoded)
+
+  if (tokenType !== 'customer' || !subject) {
+    throw failure(401, 'Invalid refresh token', 'INVALID_REFRESH_TOKEN')
   }
 
   const reset = await withRetry(() => prisma.passwordReset.findFirst({
-    where: { userId: decoded.userId, token: refreshToken },
+    where: { userId: subject, token: refreshToken },
   }))
 
   if (!reset || new Date(reset.expiresAt) < new Date()) {
-    throw failure(401, 'Invalid refresh token')
+    throw failure(401, 'Invalid refresh token', 'INVALID_REFRESH_TOKEN')
   }
 
   const user = await withRetry(() => prisma.user.findUnique({
-    where: { id: decoded.userId },
+    where: { id: subject },
     select: { id: true, email: true, fullName: true, phone: true, role: true, status: true },
   }))
 
   if (!user || user.status !== 'ACTIVE') {
-    throw failure(401, 'User not found or inactive')
+    throw failure(401, 'User not found or inactive', 'USER_NOT_FOUND')
   }
 
-  const payload = { userId: user.id, email: user.email, role: user.role }
+  const payload = buildTokenPayload({ id: user.id, email: user.email, role: user.role, type: 'customer' })
   const accessToken = jwt.sign(payload, env.jwtAccessSecret, { expiresIn: env.accessTokenTtl || '15m' })
   const newRefresh = jwt.sign(payload, env.jwtRefreshSecret, { expiresIn: env.refreshTokenTtl || '30d' })
 
