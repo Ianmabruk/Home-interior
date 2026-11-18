@@ -275,10 +275,10 @@ export const WorkWithUsPage = () => {
             className="mt-12 text-center"
           >
             <p className="text-[var(--primary)]/60 mb-4">Prefer to explore first?</p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Link to="/portfolio" className="btn-luxury-secondary">View Portfolio</Link>
-              <Link to="/services" className="btn-luxury-secondary">Our Services</Link>
-              <Link to="/about" className="btn-luxury-secondary">About Us</Link>
+            <div className="flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:items-center sm:justify-center">
+              <Link to="/portfolio" className="btn-luxury-primary min-h-11 w-full text-center sm:w-auto">View Portfolio</Link>
+              <Link to="/services" className="btn-luxury-primary min-h-11 w-full text-center sm:w-auto">Our Services</Link>
+              <Link to="/about" className="btn-luxury-primary min-h-11 w-full text-center sm:w-auto">About Us</Link>
             </div>
           </motion.div>
         </div>

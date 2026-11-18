@@ -296,10 +296,10 @@ export const AboutPage = memo(() => {
         <div className="container-wide text-center">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-4">Explore More</p>
           <h2 className="font-display text-3xl md:text-4xl font-medium text-[var(--primary)] mb-8">Discover Our Work</h2>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link to="/portfolio" className="btn-luxury-primary">View Portfolio</Link>
-            <Link to="/services" className="btn-luxury-secondary">Our Services</Link>
-            <Link to="/contact" className="btn-luxury-secondary">Get In Touch</Link>
+          <div className="flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:items-center sm:justify-center">
+            <Link to="/portfolio" className="btn-luxury-primary min-h-11 w-full text-center sm:w-auto">View Portfolio</Link>
+            <Link to="/services" className="btn-luxury-primary min-h-11 w-full text-center sm:w-auto">Our Services</Link>
+            <Link to="/contact" className="btn-luxury-primary min-h-11 w-full text-center sm:w-auto">Get In Touch</Link>
           </div>
         </div>
       </motion.section>
