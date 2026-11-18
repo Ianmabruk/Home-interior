@@ -75,6 +75,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const imageInputRef = useRef(null)
   const videoInputRef = useRef(null)
   const contentInputRef = useRef(null)
+  const submissionLockRef = useRef(false)
 
   useEffect(() => {
     return () => {
@@ -120,10 +121,16 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   }
 
   const handleContentImagesChange = (e) => {
-    const files = Array.from(e.target.files || [])
-    if (files.length === 0) return
-    setContentFiles((prev) => [...prev, ...files])
-    const newPreviews = files.map((f) => URL.createObjectURL(f))
+    const selected = Array.from(e.target.files || [])
+    if (selected.length === 0) return
+    const remainingSlots = 75 - contentFiles.length
+    if (selected.length > remainingSlots) {
+      toast.error(`You can upload up to 75 content images. ${remainingSlots} slot${remainingSlots === 1 ? '' : 's'} remaining.`)
+      e.target.value = ''
+      return
+    }
+    setContentFiles((prev) => [...prev, ...selected])
+    const newPreviews = selected.map((f) => URL.createObjectURL(f))
     setContentPreviews((prev) => [...prev, ...newPreviews])
     e.target.value = ''
   }
@@ -182,11 +189,13 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
 
   const handleSubmit = async (e, status) => {
     e.preventDefault()
-    if (submitting) return
+    if (submitting || submissionLockRef.current) return
+    submissionLockRef.current = true
     setError(null)
 
     const title = (form.title || '').trim()
     if (!title) {
+      submissionLockRef.current = false
       setError('Title is required')
       return
     }
@@ -243,6 +252,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       setError(msg)
       toast.error(`Failed to save blog: ${msg}`)
     } finally {
+      submissionLockRef.current = false
       setSubmitting(false)
       setUploadProgress(0)
     }

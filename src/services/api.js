@@ -3,7 +3,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 // Timeouts — generous for cold-start recovery on Render free tier
 const REGULAR_TIMEOUT = 45000   // 45s (was 30s) — covers Render cold-start (~30s)
 const ORDER_TIMEOUT = 120000
-const UPLOAD_TIMEOUT = 300000   // 5 min for large uploads
+const UPLOAD_TIMEOUT = 300000   // 5 min for large/multi-image uploads
 
 // Token expiry window — refresh if the access token expires within this window
 const TOKEN_EXPIRY_WINDOW_MS = 2 * 60 * 1000
@@ -446,7 +446,23 @@ async function parseResponse(response, url, method) {
 
 // ─── Authenticated request with auto-refresh ──────────────────────────────────
 async function authenticatedRequest(method, url, { headers = {}, body, signal } = {}) {
-  const authHeaders = { ...getAuthHeader(), ...getCsrfHeader(), ...headers }
+  let accessToken = localStorage.getItem('hok_access_token')
+
+  // Refresh before multipart/admin uploads when the access token is expired or missing.
+  // This avoids losing the FormData after a 401 refresh/retry cycle.
+  if ((!isTokenValid() || !accessToken) && url.includes('/admin/') && !isRefreshBlocked()) {
+    try {
+      accessToken = await attemptTokenRefresh()
+    } catch {
+      // The server will return the normal authentication error.
+    }
+  }
+
+  const authHeaders = {
+    ...headers,
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    ...getCsrfHeader(),
+  }
 
   let response = await doFetch(method, url, { headers: authHeaders, body, signal })
 

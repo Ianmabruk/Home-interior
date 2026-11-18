@@ -19,7 +19,7 @@ router.post(
   uploadFields([
     { name: 'image', maxCount: 1 },
     { name: 'video', maxCount: 1 },
-    { name: 'contentImages', maxCount: 40 },
+    { name: 'contentImages', maxCount: 75 },
     { name: 'homepageCircularImage', maxCount: 1 },
   ]),
   validateZod(blogSchemas.create),
@@ -30,7 +30,7 @@ router.patch(
   uploadFields([
     { name: 'image', maxCount: 1 },
     { name: 'video', maxCount: 1 },
-    { name: 'contentImages', maxCount: 40 },
+    { name: 'contentImages', maxCount: 75 },
     { name: 'homepageCircularImage', maxCount: 1 },
   ]),
   validateZod(blogSchemas.update),

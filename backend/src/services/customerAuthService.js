@@ -62,6 +62,7 @@ async function login(email, password) {
   const accessToken = jwt.sign(payload, env.jwtAccessSecret, { expiresIn: env.accessTokenTtl || '15m' })
   const refreshToken = jwt.sign(payload, env.jwtRefreshSecret, { expiresIn: env.refreshTokenTtl || '30d' })
 
+  await withRetry(() => prisma.passwordReset.deleteMany({ where: { userId: user.id } }))
   await withRetry(() => prisma.passwordReset.create({
     data: {
       userId: user.id,

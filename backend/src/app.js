@@ -82,7 +82,7 @@ app.use(express.json({ limit: '1mb' }))
 app.use((req, res, next) => {
   // Allow longer timeouts for requests that might involve file uploads or external API calls
   const isUpload = req.path.includes('/upload') || req.path.includes('/media') || req.path.includes('/circular-tabs') || req.path.includes('/shop') || req.path.includes('/orders') || req.path.includes('/portfolio') || req.path.includes('/virtual-design') || req.path.includes('/blog')
-  const timeout = isUpload ? 120000 : REQUEST_TIMEOUT_MS
+  const timeout = isUpload ? 300000 : REQUEST_TIMEOUT_MS
   res.setTimeout(timeout, () => {
     console.error(`[${SERVER_ID}] [timeout] ${req.method} ${req.originalUrl} exceeded ${timeout}ms`)
     if (!res.headersSent) {
