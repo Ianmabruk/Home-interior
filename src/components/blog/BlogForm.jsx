@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
-import { UploadCloud, X, Trash2 } from 'lucide-react'
+import { UploadCloud, X, Trash2, Video } from 'lucide-react'
 import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { slugify, getReadingTime } from '../../utils/blogHelpers'
+import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '../../utils/uploadConfig'
 
 const FORMAT_COMMANDS = [
   { tag: 'h2', label: 'H2', title: 'Heading 2' },
@@ -63,6 +64,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const [imagePreview, setImagePreview] = useState(blog?.image || null)
   const [videoFile, setVideoFile] = useState(null)
   const [videoPreview, setVideoPreview] = useState(blog?.video || null)
+  const [videoPreviewError, setVideoPreviewError] = useState(false)
   const [removeVideo, setRemoveVideo] = useState(false)
   const [contentFiles, setContentFiles] = useState([])
   const [contentPreviews, setContentPreviews] = useState([])
@@ -91,6 +93,17 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     const file = e.target.files?.[0] || null
     if (!file) return
 
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      toast.error(`File exceeds the maximum allowed size of ${MAX_FILE_SIZE_MB} MB`)
+      e.target.value = ''
+      return
+    }
+    if (file.size === 0) {
+      toast.error('The selected file is empty')
+      e.target.value = ''
+      return
+    }
+
     if (field === 'image') {
       setImageFile(file)
       const url = URL.createObjectURL(file)
@@ -106,6 +119,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       }
 
       setVideoFile(file)
+      setVideoPreviewError(false)
 
       if (file.type !== 'video/mp4') {
         toast(
@@ -123,6 +137,12 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const handleContentImagesChange = (e) => {
     const selected = Array.from(e.target.files || [])
     if (selected.length === 0) return
+    const oversized = selected.find((file) => file.size > MAX_FILE_SIZE_BYTES)
+    if (oversized) {
+      toast.error(`File "${oversized.name}" exceeds the maximum allowed size of ${MAX_FILE_SIZE_MB} MB`)
+      e.target.value = ''
+      return
+    }
     const remainingSlots = 75 - contentFiles.length
     if (selected.length > remainingSlots) {
       toast.error(`You can upload up to 75 content images. ${remainingSlots} slot${remainingSlots === 1 ? '' : 's'} remaining.`)
@@ -159,6 +179,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       setVideoFile(null)
       if (videoPreview && videoPreview.startsWith('blob:')) URL.revokeObjectURL(videoPreview)
       setVideoPreview(null)
+      setVideoPreviewError(false)
       setRemoveVideo(true)
     }
   }
@@ -432,7 +453,23 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           </label>
           {videoPreview ? (
             <div className="relative inline-block">
-              <video src={videoPreview} className="h-32 w-48 rounded-xl object-cover" controls muted playsInline preload="metadata" />
+              {videoPreviewError ? (
+                <div className="flex h-32 w-48 flex-col items-center justify-center rounded-xl bg-[var(--secondary)]/20 px-3 text-center">
+                  <Video size={22} className="mb-2 text-[var(--primary)]/40" />
+                  <span className="text-xs font-medium text-[var(--primary)]/60">Preview unavailable</span>
+                </div>
+              ) : (
+                <video
+                  src={videoPreview}
+                  className="h-32 w-48 rounded-xl object-cover"
+                  controls
+                  muted
+                  playsInline
+                  preload="metadata"
+                  onError={() => setVideoPreviewError(true)}
+                  onCanPlay={() => setVideoPreviewError(false)}
+                />
+              )}
               <button
                 type="button"
                 onClick={() => handleRemovePreview('video')}
@@ -440,6 +477,11 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
               >
                 <Trash2 size={12} />
               </button>
+              {videoPreviewError && (
+                <p className="mt-2 max-w-64 text-xs text-[var(--primary)]/50">
+                  The file remains selected. Video compatibility is checked when you save.
+                </p>
+              )}
             </div>
           ) : (
             <label className="upload-zone flex cursor-pointer flex-col items-center justify-center py-6">
