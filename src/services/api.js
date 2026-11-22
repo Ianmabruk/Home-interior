@@ -496,6 +496,24 @@ const api = {
   get(url, config = {}) {
     const rewritten = rewriteContentPath(url)
     const cacheKey = `get:${rewritten}:${JSON.stringify(config?.params || {})}`
+    const disableCache = config.cache === false || rewritten === '/blog' || rewritten.startsWith('/blog/') || rewritten.startsWith('/content/blog')
+    if (disableCache) {
+      const params = config.params
+        ? '?' +
+          Object.entries(config.params)
+            .filter(([, v]) => v !== undefined && v !== null && v !== '')
+            .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+            .join('&')
+        : ''
+      const fullUrl = `${rewritten}${params}`
+      return withRetry(
+        () => doFetch('GET', fullUrl, {
+          headers: { ...getAuthHeader(), ...getCsrfHeader(), ...(config.headers || {}) },
+          signal: config.signal,
+        }).then((response) => parseResponse(response, rewritten, 'get')),
+        config.signal,
+      )
+    }
     const cached = requestCache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return Promise.resolve({

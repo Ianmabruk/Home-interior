@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import LazyVideo from '@components/common/LazyVideo'
 
@@ -7,6 +7,20 @@ describe('LazyVideo', () => {
     HTMLMediaElement.prototype.load = vi.fn()
     HTMLMediaElement.prototype.pause = vi.fn()
     HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(HTMLMediaElement.prototype, 'readyState', {
+      configurable: true,
+      get: () => 4,
+    })
+    globalThis.URL.createObjectURL = vi.fn(() => 'blob:test-video')
+    globalThis.URL.revokeObjectURL = vi.fn()
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name) => name.toLowerCase() === 'content-type' ? 'video/mp4' : null,
+      },
+      blob: () => Promise.resolve(new Blob(['video'], { type: 'video/mp4' })),
+    })
   })
 
   it('renders an embedded player with native controls and a Play button', () => {
@@ -22,7 +36,7 @@ describe('LazyVideo', () => {
     expect(video).toBeInTheDocument()
     expect(video).toHaveAttribute('controls')
     expect(video).toHaveAttribute('playsinline')
-    expect(screen.queryByRole('link', { name: /download/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Download' })).toHaveAttribute('href', 'https://res.cloudinary.com/demo/video/upload/v1/test.mp4')
     expect(screen.getByRole('button', { name: 'Play video' })).toBeInTheDocument()
   })
 
@@ -36,6 +50,8 @@ describe('LazyVideo', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Play video' }))
 
-    expect(HTMLMediaElement.prototype.play).toHaveBeenCalled()
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalled()
+    })
   })
 })

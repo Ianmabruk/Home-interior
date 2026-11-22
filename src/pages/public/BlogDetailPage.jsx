@@ -4,7 +4,7 @@ import { ArrowLeft, Share2, Facebook, Twitter, Linkedin, Copy, User, Clock, Eye,
 import { SiPinterest } from 'react-icons/si'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '@services/api'
-import { getVideoPosterUrl, getOptimizedVideoUrl } from '@utils/cloudinaryHelpers'
+import { getVideoPosterUrl, getOptimizedVideoUrl, getVideoDownloadUrl } from '@utils/cloudinaryHelpers'
 import OptimizedImage from '@components/common/OptimizedImage'
 import { getReadingTime, extractTags } from '@utils/blogHelpers'
 import { ADMIN_DATA_CHANGED_EVENT, getAdminDataChangedPayload } from '@utils/adminEvents'
@@ -103,7 +103,7 @@ const loadBlog = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get(`/blog/${id}`)
+      const res = await api.get(`/blog/${id}`, { cache: false, headers: { 'Cache-Control': 'no-cache' } })
       if (requestId !== requestIdRef.current) return
       if (!res.data) {
         setError('Blog not found')
@@ -438,6 +438,7 @@ const loadBlog = useCallback(async () => {
           >
             <LazyVideo
               src={playableVideoUrl}
+              downloadSrc={getVideoDownloadUrl(videoUrl)}
               fallbackSrc={videoUrl}
               poster={getVideoPosterUrl(videoUrl)}
               autoPlay={false}

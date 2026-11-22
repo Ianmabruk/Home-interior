@@ -95,17 +95,6 @@ export default defineConfig({
             },
           },
           {
-            // Cloudinary videos — cache-first with range support for seeking.
-            urlPattern: /^https:\/\/res\.cloudinary\.com\/.*\/video\/upload\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'cloudinary-videos',
-              rangeRequests: true,
-              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 14 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
             // Read-only public content APIs — NetworkFirst so admin
             // uploads appear on the public site immediately. The cache is only
             // used as an offline fallback (clientsClaim + skipWaiting keep the

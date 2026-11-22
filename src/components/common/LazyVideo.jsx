@@ -1,284 +1,267 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { useReducedMotion } from '@components/common/DynamicMotion'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getVideoSourceType } from '@utils/cloudinaryHelpers'
 
-const MAX_RETRIES = 2
-// A media element can stall without ever firing `error` — e.g. a CDN or proxy
-// answers with HTML, or a phone drops the connection mid-transfer. The browser
-// then sits at readyState 0 forever: a black box with dead controls and no
-// explanation. Bound that state so the visitor always gets a way forward.
-const STALL_TIMEOUT_MS = 15000
+const MAX_BLOB_BYTES = 50 * 1024 * 1024
+const STALL_TIMEOUT_MS = 20000
 
 const describeMediaError = (code) => {
   switch (code) {
-    case 1:
-      return 'Playback was aborted'
-    case 2:
-      return 'A network error interrupted the download'
-    case 3:
-      return 'The video could not be decoded on this device'
-    case 4:
-      return 'This video format is not supported on this device'
-    default:
-      return 'The video could not be loaded'
+    case 1: return 'Playback was aborted.'
+    case 2: return 'A network error interrupted video playback.'
+    case 3: return 'This video could not be decoded on this device.'
+    case 4: return 'This video format is not supported on this device.'
+    default: return 'The video could not be loaded.'
   }
 }
 
 export default function LazyVideo({
   src,
+  downloadSrc,
   poster,
   className = '',
-  eager = false,
-  autoPlay = false,
   loop = false,
   muted = false,
   playsInline = true,
-  controls = false,
+  controls = true,
   preload = 'metadata',
   sources = [],
   fallbackSrc,
   maxHeight = '75vh',
 }) {
   const videoRef = useRef(null)
+  const objectUrlRef = useRef(null)
+  const fetchControllerRef = useRef(null)
+  const mountedRef = useRef(true)
+  const retryCountRef = useRef(0)
+
+  const [effectiveSrc, setEffectiveSrc] = useState('')
+  const [hasStarted, setHasStarted] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [downloadProgress, setDownloadProgress] = useState(0)
   const [hasError, setHasError] = useState(false)
   const [errorDetail, setErrorDetail] = useState('')
-  const [canPlay, setCanPlay] = useState(false)
-  const [isLoaded, setIsLoaded] = useState(false)
-  const [isInitializing, setIsInitializing] = useState(false)
-  const [hasStarted, setHasStarted] = useState(false)
-  // Until the browser reports intrinsic dimensions the element has no height,
-  // which collapses it to the default 150px bar. Hold a neutral placeholder
-  // ratio in that window, then switch to the video's real aspect ratio so a
-  // portrait clip is never cropped or letterboxed.
   const [hasDimensions, setHasDimensions] = useState(false)
-  const [effectiveSrc, setEffectiveSrc] = useState(null)
-  const reducedMotion = useReducedMotion()
 
-  const shouldAutoPlay = autoPlay && !reducedMotion && muted && playsInline
-  const attemptPlayRef = useRef(0)
-  const isMountedRef = useRef(true)
-  const retryCountRef = useRef(0)
-  const usedFallbackRef = useRef(false)
+  const sourceCandidates = [
+    src,
+    fallbackSrc,
+    ...sources.map((item) => typeof item === 'string' ? item : item?.src),
+  ].filter(Boolean)
+  const primarySrc = sourceCandidates[0] || ''
 
-  // Reset per-source retry bookkeeping whenever the source actually changes,
-  // otherwise a failure on one source burns the budget for the next one.
-  useEffect(() => {
-    retryCountRef.current = 0
-    usedFallbackRef.current = false
-    setHasDimensions(false)
-    setIsInitializing(false)
-    setHasStarted(false)
-  }, [src, fallbackSrc])
-
-  const primarySrc = src || fallbackSrc || null
-
-  const attemptPlay = useCallback(async () => {
-    const video = videoRef.current
-    if (!video || !isMountedRef.current) return
-    const currentAttempt = ++attemptPlayRef.current
-    try {
-      await video.play()
-    } catch (err) {
-      if (!isMountedRef.current) return
-      // Autoplay policy rejections are expected on mobile. The video stays
-      // visible and fully manual — this must never escalate to an error state.
-      if (err.name === 'AbortError' || err.name === 'NotAllowedError') return
-      if (currentAttempt === attemptPlayRef.current) {
-        setHasError(true)
-        setErrorDetail(err.message || 'Playback could not start')
-      }
+  const revokeObjectUrl = useCallback(() => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current)
+      objectUrlRef.current = null
     }
   }, [])
 
-  const onCanPlay = useCallback(() => {
-    if (!isMountedRef.current) return
-    setCanPlay(true)
-    setIsLoaded(true)
-    setIsInitializing(false)
-    setHasError(false)
-  }, [])
-
-  const onLoadedData = useCallback(() => {
-    if (!isMountedRef.current) return
-    setIsLoaded(true)
-  }, [])
-
-  const onLoadedMetadata = useCallback((e) => {
-    if (!isMountedRef.current) return
-    const el = e.currentTarget
-    if (el.videoWidth > 0 && el.videoHeight > 0) setHasDimensions(true)
-  }, [])
-
-  const onLoadStart = useCallback(() => {
-    if (!isMountedRef.current) return
+  const resetPlayer = useCallback(() => {
+    fetchControllerRef.current?.abort()
+    fetchControllerRef.current = null
+    revokeObjectUrl()
+    retryCountRef.current = 0
+    setEffectiveSrc('')
+    setHasStarted(false)
+    setIsLoading(false)
+    setDownloadProgress(0)
     setHasError(false)
     setErrorDetail('')
-  }, [])
+    setHasDimensions(false)
+  }, [revokeObjectUrl])
 
-  const onWaiting = useCallback(() => {
-    if (!isMountedRef.current || !hasStarted) return
-    setIsInitializing(true)
-  }, [hasStarted])
+  useEffect(() => {
+    mountedRef.current = true
+    resetPlayer()
+    return () => {
+      mountedRef.current = false
+      fetchControllerRef.current?.abort()
+      revokeObjectUrl()
+    }
+  }, [src, fallbackSrc, resetPlayer, revokeObjectUrl])
 
-  const onPlaying = useCallback(() => {
-    if (!isMountedRef.current) return
-    setIsInitializing(false)
+  useEffect(() => {
+    if (!effectiveSrc || !videoRef.current) return
+    const video = videoRef.current
+    video.src = effectiveSrc
+    video.load()
+  }, [effectiveSrc])
+
+  const waitForCanPlay = useCallback((video) => new Promise((resolve, reject) => {
+    if (video.readyState >= 3) {
+      resolve()
+      return
+    }
+    const timeout = setTimeout(() => reject(new Error('The video took too long to initialize.')), STALL_TIMEOUT_MS)
+    const cleanup = () => {
+      clearTimeout(timeout)
+      video.removeEventListener('canplay', onCanPlay)
+      video.removeEventListener('error', onError)
+    }
+    const onCanPlay = () => {
+      cleanup()
+      resolve()
+    }
+    const onError = () => {
+      cleanup()
+      reject(new Error(describeMediaError(video.error?.code)))
+    }
+    video.addEventListener('canplay', onCanPlay, { once: true })
+    video.addEventListener('error', onError, { once: true })
+  }), [])
+
+  const startPlaying = useCallback(async (video) => {
+    try {
+      await waitForCanPlay(video)
+      if (!mountedRef.current) return
+      await video.play()
+      if (!mountedRef.current) return
+      setIsLoading(false)
+      setHasStarted(true)
+    } catch (error) {
+      if (!mountedRef.current) return
+      if (error?.name === 'NotAllowedError') {
+        setErrorDetail('Your browser blocked autoplay. Press Play again or use the player controls.')
+        setHasError(true)
+      } else if (error?.name !== 'AbortError') {
+        setErrorDetail(error?.message || 'Playback could not start.')
+        setHasError(true)
+      }
+      setIsLoading(false)
+    }
+  }, [waitForCanPlay])
+
+  const setProgressiveSource = useCallback((source) => {
+    const video = videoRef.current
+    if (!video) return
+    revokeObjectUrl()
+    setEffectiveSrc(source)
+    setHasStarted(true)
+    setIsLoading(true)
+    setDownloadProgress(100)
+    startPlaying(video)
+  }, [revokeObjectUrl, startPlaying])
+
+  const fetchAsBlob = useCallback(async (source) => {
+    const controller = new AbortController()
+    fetchControllerRef.current = controller
+    setIsLoading(true)
+    setDownloadProgress(0)
+
+    try {
+      const response = await fetch(source, {
+        mode: 'cors',
+        credentials: 'omit',
+        cache: 'no-store',
+        redirect: 'follow',
+        signal: controller.signal,
+      })
+      if (!response.ok) throw new Error(`Video request failed with HTTP ${response.status}.`)
+
+      const contentType = response.headers.get('content-type') || ''
+      if (contentType && !contentType.includes('video/') && !contentType.includes('application/octet-stream')) {
+        throw new Error(`Invalid video response (${contentType}).`)
+      }
+
+      if (!response.body || typeof response.body.getReader !== 'function') {
+        const blob = await response.blob()
+        if (!blob.size) throw new Error('The video response was empty.')
+        return blob
+      }
+
+      const reader = response.body.getReader()
+      const chunks = []
+      let received = 0
+      const contentLength = Number(response.headers.get('content-length')) || 0
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        chunks.push(value)
+        received += value.byteLength
+        if (contentLength) setDownloadProgress(Math.min(99, Math.round(received * 100 / contentLength)))
+        if (received > MAX_BLOB_BYTES) throw new Error('This video is too large for in-memory playback.')
+      }
+      const blob = new Blob(chunks, { type: contentType.includes('video/') ? contentType : 'video/mp4' })
+      if (!blob.size) throw new Error('The video response was empty.')
+      return blob
+    } finally {
+      if (fetchControllerRef.current === controller) fetchControllerRef.current = null
+    }
   }, [])
 
   const handlePlay = useCallback(async () => {
-    setHasStarted(true)
-    setIsInitializing(true)
-    await attemptPlay()
-  }, [attemptPlay])
-
-  const onStalled = useCallback(() => {
-    if (!isMountedRef.current) return
-    if (import.meta.env.DEV) {
-      console.warn('[LazyVideo] media stalled', { src: effectiveSrc || primarySrc })
-    }
-  }, [effectiveSrc, primarySrc])
-
-  const onEnded = useCallback(() => {
-    if (!isMountedRef.current) return
-    if (loop) attemptPlay()
-  }, [loop, attemptPlay])
-
-  const onError = useCallback(() => {
-    if (!isMountedRef.current) return
-    const video = videoRef.current
-    const err = video?.error
-    if (!err) return
-
-    if (import.meta.env.DEV) {
-      console.warn('[LazyVideo] media error', {
-        code: err.code,
-        message: err.message,
-        src: effectiveSrc || primarySrc,
-      })
-    }
-
-    // An aborted request is not a failure — the browser cancels media requests
-    // routinely (seek, source switch, unmount).
-    if (err.code === 1 /* MEDIA_ERR_ABORTED */) return
-
-    const recoverable = err.code === 3 /* DECODE */ || err.code === 2 /* NETWORK */
-    if (recoverable && retryCountRef.current < MAX_RETRIES) {
-      retryCountRef.current += 1
-      videoRef.current?.load()
-      return
-    }
-
-    // Legacy/transformed URL failed — try the untouched original once.
-    if (!usedFallbackRef.current && fallbackSrc && (effectiveSrc || src) !== fallbackSrc) {
-      usedFallbackRef.current = true
-      setEffectiveSrc(fallbackSrc)
-      setHasError(false)
-      setErrorDetail('')
-      return
-    }
-
-    setErrorDetail(describeMediaError(err.code))
-    setHasError(true)
-  }, [effectiveSrc, fallbackSrc, primarySrc, src])
-
-  const retry = useCallback(() => {
-    const video = videoRef.current
-    if (!video) return
-    retryCountRef.current = 0
-    usedFallbackRef.current = false
+    if (!primarySrc) return
     setHasError(false)
     setErrorDetail('')
-    setIsInitializing(true)
-    // Re-assigning src restarts the media pipeline even when the URL is
-    // unchanged and the element was left in a failed state.
-    setEffectiveSrc(null)
-    video.load()
-    if (shouldAutoPlay) attemptPlay()
-  }, [attemptPlay, shouldAutoPlay])
+    setHasStarted(true)
+    setIsLoading(true)
 
-  useEffect(() => {
-    isMountedRef.current = true
-    return () => {
-      isMountedRef.current = false
+    try {
+      const blob = await fetchAsBlob(primarySrc)
+      if (!mountedRef.current) return
+      revokeObjectUrl()
+      const objectUrl = URL.createObjectURL(blob)
+      objectUrlRef.current = objectUrl
+      setDownloadProgress(100)
+      setEffectiveSrc(objectUrl)
+
+      const video = videoRef.current
+      if (video) {
+        video.src = objectUrl
+        video.load()
+        await startPlaying(video)
+      }
+    } catch (error) {
+      if (!mountedRef.current) return
+      if (error?.name === 'AbortError') return
+      setEffectiveSrc('')
+      setHasStarted(true)
+      setIsLoading(true)
+      setErrorDetail('')
+      setProgressiveSource(primarySrc)
     }
+  }, [fetchAsBlob, primarySrc, revokeObjectUrl, setProgressiveSource, startPlaying])
+
+  const retry = useCallback(() => {
+    resetPlayer()
+    setTimeout(() => handlePlay(), 0)
+  }, [handlePlay, resetPlayer])
+
+  const onLoadedMetadata = useCallback((event) => {
+    const video = event.currentTarget
+    if (video.videoWidth > 0 && video.videoHeight > 0) setHasDimensions(true)
   }, [])
 
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-    video.muted = muted
-    video.playsInline = playsInline
-    video.loop = loop
-    video.preload = preload
-  }, [muted, playsInline, loop, preload])
+  const onCanPlay = useCallback(() => {
+    setIsLoading(false)
+  }, [])
 
-  const observerRef = useRef(null)
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video || !isMountedRef.current) return
+  const onPlaying = useCallback(() => {
+    setIsLoading(false)
+    setHasStarted(true)
+  }, [])
 
-    if (eager && canPlay) {
-      if (muted) video.muted = true
-      attemptPlay()
+  const onWaiting = useCallback(() => {
+    if (hasStarted) setIsLoading(true)
+  }, [hasStarted])
+
+  const onError = useCallback(() => {
+    const video = videoRef.current
+    if (!video?.error) return
+    if (video.error.code === 1) return
+
+    if (retryCountRef.current < 1) {
+      retryCountRef.current += 1
+      setProgressiveSource(primarySrc)
       return
     }
-
-    if (observerRef.current) return
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!isMountedRef.current) return
-        if (entry.isIntersecting) {
-          if (muted) video.muted = true
-          if (canPlay) attemptPlay()
-        } else if (!isLoaded) {
-          video.pause()
-        }
-      },
-      { rootMargin: '150px 0px' },
-    )
-
-    if (shouldAutoPlay || !eager) {
-      observer.observe(video)
-    }
-    observerRef.current = observer
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect()
-        observerRef.current = null
-      }
-    }
-  }, [shouldAutoPlay, canPlay, muted, attemptPlay, eager, isLoaded])
-
-  useEffect(() => {
-    if (!effectiveSrc) return
-    const video = videoRef.current
-    if (video && isMountedRef.current) video.load()
-  }, [effectiveSrc])
-
-  // Watchdog: if a load attempt neither succeeds nor errors within the
-  // timeout, treat it as a failure so the visitor sees the fallback and a
-  // retry instead of an inert black rectangle.
-  useEffect(() => {
-    if (!primarySrc) return undefined
-    if (isLoaded || hasError) return undefined
-
-    const timer = setTimeout(() => {
-      if (!isMountedRef.current) return
-      const video = videoRef.current
-      // Only escalate if the element is genuinely stuck with nothing to show.
-      if (video && video.readyState >= 2) return
-      setErrorDetail('The video took too long to load')
-      setHasError(true)
-    }, STALL_TIMEOUT_MS)
-
-    return () => clearTimeout(timer)
-  }, [primarySrc, isLoaded, hasError])
+    setIsLoading(false)
+    setErrorDetail(describeMediaError(video.error.code))
+    setHasError(true)
+  }, [primarySrc, setProgressiveSource])
 
   if (!primarySrc) return null
-
-  const sourceSrc = effectiveSrc || src || fallbackSrc
-  const sourceType = getVideoSourceType(sourceSrc) || 'video/mp4'
+  const sourceType = getVideoSourceType(effectiveSrc || primarySrc) || 'video/mp4'
 
   return (
     <div className={`relative w-full ${className}`}>
@@ -286,23 +269,16 @@ export default function LazyVideo({
         ref={videoRef}
         poster={poster}
         className="block w-full"
-        autoPlay={shouldAutoPlay}
         muted={muted}
         loop={loop}
         playsInline={playsInline}
         controls={controls}
         preload={preload}
-        onCanPlay={onCanPlay}
-        onLoadedData={onLoadedData}
         onLoadedMetadata={onLoadedMetadata}
-        onLoadStart={onLoadStart}
-        onStalled={onStalled}
-        onWaiting={onWaiting}
+        onCanPlay={onCanPlay}
         onPlaying={onPlaying}
+        onWaiting={onWaiting}
         onError={onError}
-        onEnded={onEnded}
-        // height:auto + object-fit:contain keeps the natural aspect ratio, so a
-        // portrait phone clip is never cropped or squashed into a fixed box.
         style={{
           width: '100%',
           height: 'auto',
@@ -313,34 +289,11 @@ export default function LazyVideo({
           backgroundColor: '#000',
         }}
       >
-        <source src={sourceSrc} type={sourceType} />
-        {sources.map((s, i) => (
-          <source key={i} src={s.src} type={getVideoSourceType(s.src) || s.type || 'video/mp4'} />
-        ))}
+        {effectiveSrc && <source src={effectiveSrc} type={sourceType} />}
         Your browser does not support HTML video.
       </video>
 
-      {/* The video element is intentionally never unmounted. A failed load
-          degrades to an overlay so the poster, controls and retry stay usable
-          instead of collapsing into an empty grey box. */}
-      {hasError && (
-        <div
-          className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[var(--secondary)]/20 px-4 text-center backdrop-blur-[2px]"
-          role="status"
-        >
-          <p className="text-sm font-medium text-[var(--primary)]/70">Video unavailable</p>
-          {errorDetail && <p className="text-xs text-[var(--primary)]/50">{errorDetail}</p>}
-          <button
-            type="button"
-            onClick={retry}
-            className="rounded-full border border-[var(--border)] px-4 py-1.5 text-xs font-semibold text-[var(--primary)]/70 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {!hasError && !hasStarted && (
+      {!hasStarted && !hasError && (
         <button
           type="button"
           onClick={handlePlay}
@@ -351,11 +304,30 @@ export default function LazyVideo({
         </button>
       )}
 
-      {!hasError && isInitializing && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20" role="status" aria-label="Loading video">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+      {isLoading && (
+        <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/75 px-4 py-2 text-center text-xs text-white" role="status">
+          <span>Loading video</span>
+          {downloadProgress > 0 && <span className="ml-2">{downloadProgress}%</span>}
         </div>
       )}
+
+      {hasError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/65 px-4 text-center text-white">
+          <p className="text-sm font-semibold">Video unavailable</p>
+          {errorDetail && <p className="text-xs text-white/75">{errorDetail}</p>}
+          <button type="button" onClick={retry} className="rounded-full border border-white/50 px-4 py-1.5 text-xs font-semibold hover:bg-white/10">
+            Retry
+          </button>
+        </div>
+      )}
+
+      <a
+        href={downloadSrc || primarySrc}
+        download
+        className="absolute bottom-3 right-3 z-10 rounded-full border border-white/30 bg-black/70 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm hover:bg-black/85"
+      >
+        Download
+      </a>
     </div>
   )
 }

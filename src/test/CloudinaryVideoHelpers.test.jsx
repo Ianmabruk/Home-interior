@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getOptimizedVideoUrl, getVideoPosterUrl, getVideoSourceType, isCloudinaryVideo } from '@utils/cloudinaryHelpers'
+import { getOptimizedVideoUrl, getVideoPosterUrl, getVideoDownloadUrl, getVideoSourceType, isCloudinaryVideo } from '@utils/cloudinaryHelpers'
 
 describe('cloudinaryHelpers - video', () => {
   const videoUrl =
@@ -111,6 +111,18 @@ describe('cloudinaryHelpers - video', () => {
       const result = getVideoPosterUrl(videoUrl)
       expect(result).toContain('f_jpg')
       expect(result).not.toContain('f_auto')
+    })
+  })
+
+  describe('getVideoDownloadUrl', () => {
+    it('adds Cloudinary attachment delivery without changing the public player URL', () => {
+      expect(getVideoDownloadUrl(videoUrl)).toBe(
+        'https://res.cloudinary.com/demo/video/upload/fl_attachment/v1234567890/myvideo.mp4',
+      )
+    })
+
+    it('leaves non-Cloudinary download URLs unchanged', () => {
+      expect(getVideoDownloadUrl('https://example.com/video.mp4')).toBe('https://example.com/video.mp4')
     })
   })
 
