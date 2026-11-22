@@ -4,6 +4,23 @@ import { invalidateCachePattern } from '../utils/cache.js'
 import { failure } from '../utils/response.js'
 import { createSignedVideoUpload, verifyCloudinaryVideo } from '../config/cloudinary.js'
 
+function validateSavedVideoAsset(asset) {
+  if (!asset) return null
+  if (
+    typeof asset.secureUrl !== 'string'
+    || !asset.secureUrl.startsWith('https://res.cloudinary.com/')
+    || !asset.secureUrl.includes('/video/upload/')
+    || typeof asset.publicId !== 'string'
+    || !asset.publicId
+  ) {
+    throw failure(422, 'Invalid video asset. Upload and verify the video again.')
+  }
+  return {
+    ...asset,
+    resourceType: 'video',
+  }
+}
+
 export const blogController = {
   signVideoUpload: asyncHandler(async (req, res) => {
     const raw = String(req.body?.publicId || '').trim()
@@ -116,7 +133,7 @@ export const blogController = {
      }
 
       if (data.videoAsset) {
-        data.videoAsset = await verifyCloudinaryVideo(data.videoAsset.publicId, data.videoAsset.secureUrl)
+        data.videoAsset = validateSavedVideoAsset(data.videoAsset)
         data.videoAsset.originalName = req.body.videoAsset?.originalName || null
       }
 
@@ -151,7 +168,7 @@ export const blogController = {
     if (req.body.videoAsset !== undefined) data.videoAsset = req.body.videoAsset
 
     if (data.videoAsset) {
-      data.videoAsset = await verifyCloudinaryVideo(data.videoAsset.publicId, data.videoAsset.secureUrl)
+      data.videoAsset = validateSavedVideoAsset(data.videoAsset)
       data.videoAsset.originalName = req.body.videoAsset?.originalName || null
     }
 

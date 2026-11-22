@@ -44,6 +44,8 @@ export default function LazyVideo({
   const [errorDetail, setErrorDetail] = useState('')
   const [canPlay, setCanPlay] = useState(false)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [isInitializing, setIsInitializing] = useState(false)
+  const [hasStarted, setHasStarted] = useState(false)
   // Until the browser reports intrinsic dimensions the element has no height,
   // which collapses it to the default 150px bar. Hold a neutral placeholder
   // ratio in that window, then switch to the video's real aspect ratio so a
@@ -64,6 +66,8 @@ export default function LazyVideo({
     retryCountRef.current = 0
     usedFallbackRef.current = false
     setHasDimensions(false)
+    setIsInitializing(false)
+    setHasStarted(false)
   }, [src, fallbackSrc])
 
   const primarySrc = src || fallbackSrc || null
@@ -90,6 +94,7 @@ export default function LazyVideo({
     if (!isMountedRef.current) return
     setCanPlay(true)
     setIsLoaded(true)
+    setIsInitializing(false)
     setHasError(false)
   }, [])
 
@@ -109,6 +114,22 @@ export default function LazyVideo({
     setHasError(false)
     setErrorDetail('')
   }, [])
+
+  const onWaiting = useCallback(() => {
+    if (!isMountedRef.current || !hasStarted) return
+    setIsInitializing(true)
+  }, [hasStarted])
+
+  const onPlaying = useCallback(() => {
+    if (!isMountedRef.current) return
+    setIsInitializing(false)
+  }, [])
+
+  const handlePlay = useCallback(async () => {
+    setHasStarted(true)
+    setIsInitializing(true)
+    await attemptPlay()
+  }, [attemptPlay])
 
   const onStalled = useCallback(() => {
     if (!isMountedRef.current) return
@@ -167,6 +188,7 @@ export default function LazyVideo({
     usedFallbackRef.current = false
     setHasError(false)
     setErrorDetail('')
+    setIsInitializing(true)
     // Re-assigning src restarts the media pipeline even when the URL is
     // unchanged and the element was left in a failed state.
     setEffectiveSrc(null)
@@ -275,6 +297,8 @@ export default function LazyVideo({
         onLoadedMetadata={onLoadedMetadata}
         onLoadStart={onLoadStart}
         onStalled={onStalled}
+        onWaiting={onWaiting}
+        onPlaying={onPlaying}
         onError={onError}
         onEnded={onEnded}
         // height:auto + object-fit:contain keeps the natural aspect ratio, so a
@@ -316,16 +340,21 @@ export default function LazyVideo({
         </div>
       )}
 
-      {!hasError && sourceSrc && (
-        <a
-          href={sourceSrc}
-          download
-          target="_blank"
-          rel="noopener noreferrer"
-          className="absolute right-3 bottom-3 rounded-full border border-white/30 bg-black/60 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm"
+      {!hasError && !hasStarted && (
+        <button
+          type="button"
+          onClick={handlePlay}
+          className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/40 bg-black/70 text-white shadow-lg backdrop-blur-sm transition hover:scale-105 hover:bg-black/85"
+          aria-label="Play video"
         >
-          Download
-        </a>
+          <span className="ml-1 block h-0 w-0 border-y-[10px] border-l-[16px] border-y-transparent border-l-white" />
+        </button>
+      )}
+
+      {!hasError && isInitializing && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20" role="status" aria-label="Loading video">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+        </div>
       )}
     </div>
   )
