@@ -92,6 +92,21 @@ export const blogSchemas = {
       const d = new Date(v)
       return isNaN(d.getTime()) ? null : d.toISOString()
     }),
+    videoAsset: z.union([
+      z.string().transform((value) => JSON.parse(value)),
+      z.object({
+        secureUrl: z.string().url(),
+        publicId: z.string().min(1),
+        resourceType: z.literal('video').optional(),
+        format: z.string().optional(),
+        duration: z.number().nullable().optional(),
+        width: z.number().nullable().optional(),
+        height: z.number().nullable().optional(),
+        bytes: z.number().nullable().optional(),
+        originalName: z.string().optional(),
+      }),
+    ]).optional(),
+    removeVideo: z.union([z.boolean(), z.string()]).optional(),
   }),
   update: z.object({
     title: z.string().min(1).optional(),
@@ -114,6 +129,21 @@ export const blogSchemas = {
       const d = new Date(v)
       return isNaN(d.getTime()) ? null : d.toISOString()
     }),
+    videoAsset: z.union([
+      z.string().transform((value) => JSON.parse(value)),
+      z.object({
+        secureUrl: z.string().url(),
+        publicId: z.string().min(1),
+        resourceType: z.literal('video').optional(),
+        format: z.string().optional(),
+        duration: z.number().nullable().optional(),
+        width: z.number().nullable().optional(),
+        height: z.number().nullable().optional(),
+        bytes: z.number().nullable().optional(),
+        originalName: z.string().optional(),
+      }),
+    ]).optional(),
+    removeVideo: z.union([z.boolean(), z.string()]).optional(),
   }),
 }
 

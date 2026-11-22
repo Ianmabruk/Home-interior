@@ -234,4 +234,66 @@ export const deleteManyFromCloudinary = async (publicIds) => {
   await Promise.allSettled(publicIds.map(deleteFromCloudinary))
 }
 
+export function createSignedVideoUpload(publicId) {
+  assertCloudinaryConfigured()
+  if (!publicId) throw failure(400, 'publicId is required')
+  const timestamp = Math.floor(Date.now() / 1000)
+  const folder = 'hok-interiors/blog-videos'
+  const signature = cloudinary.utils.api_sign_request(
+    { timestamp, folder, public_id: publicId, overwrite: false },
+    CLOUDINARY_API_SECRET,
+  )
+  return {
+    cloudName: CLOUDINARY_CLOUD_NAME,
+    apiKey: CLOUDINARY_API_KEY,
+    signature,
+    timestamp,
+    folder,
+    publicId,
+  }
+}
+
+export async function verifyCloudinaryVideo(publicId, secureUrl) {
+  assertCloudinaryConfigured()
+  if (!publicId || !secureUrl) throw failure(400, 'Cloudinary public_id and secure_url are required')
+  if (!secureUrl.startsWith(`https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/`)) {
+    throw failure(422, 'The uploaded asset is not a secure Cloudinary video URL')
+  }
+
+  let verifiedPublicId = publicId
+  try {
+    const path = secureUrl.split('/video/upload/')[1] || ''
+    const withoutVersion = path.replace(/^v\d+\//, '')
+    const lastDot = withoutVersion.lastIndexOf('.')
+    if (lastDot > 0) verifiedPublicId = withoutVersion.slice(0, lastDot)
+  } catch {
+    verifiedPublicId = publicId
+  }
+
+  const resource = await cloudinary.api.resource(verifiedPublicId, { resource_type: 'video' })
+  if (!resource?.secure_url || resource.resource_type !== 'video') {
+    throw failure(422, 'Cloudinary could not verify the uploaded video asset')
+  }
+
+  let accessible = false
+  try {
+    const response = await fetch(resource.secure_url, { method: 'HEAD', headers: { Range: 'bytes=0-0' } })
+    accessible = response.ok || response.status === 206
+  } catch {
+    accessible = false
+  }
+  if (!accessible) throw failure(502, 'Cloudinary accepted the upload, but the video is not accessible yet. Retry verification.')
+
+  return {
+    secureUrl: resource.secure_url,
+    publicId: resource.public_id,
+    resourceType: resource.resource_type,
+    format: resource.format || 'mp4',
+    duration: Number.isFinite(Number(resource.duration)) ? Number(resource.duration) : null,
+    width: Number.isFinite(Number(resource.width)) ? Number(resource.width) : null,
+    height: Number.isFinite(Number(resource.height)) ? Number(resource.height) : null,
+    bytes: Number.isFinite(Number(resource.bytes)) ? Number(resource.bytes) : null,
+  }
+}
+
 export default cloudinary

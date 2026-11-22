@@ -5,6 +5,8 @@ import { api } from '../../services/api'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { slugify, getReadingTime } from '../../utils/blogHelpers'
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '../../utils/uploadConfig'
+import { compressVideoInWorker } from '../../services/videoCompressionService'
+import { uploadOptimizedVideo } from '../../services/cloudinaryVideoService'
 
 const FORMAT_COMMANDS = [
   { tag: 'h2', label: 'H2', title: 'Heading 2' },
@@ -66,6 +68,14 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const [videoPreview, setVideoPreview] = useState(blog?.video || null)
   const [videoPreviewError, setVideoPreviewError] = useState(false)
   const [removeVideo, setRemoveVideo] = useState(false)
+  const [videoAsset, setVideoAsset] = useState(null)
+  const [videoPhase, setVideoPhase] = useState('')
+  const [videoPhaseProgress, setVideoPhaseProgress] = useState(0)
+  const [videoOriginalBytes, setVideoOriginalBytes] = useState(0)
+  const [videoCompressedBytes, setVideoCompressedBytes] = useState(0)
+  const [videoError, setVideoError] = useState(null)
+  const cancelCompressionRef = useRef(null)
+  const cancelUploadRef = useRef(null)
   const [contentFiles, setContentFiles] = useState([])
   const [contentPreviews, setContentPreviews] = useState([])
   const [existingContentImages, setExistingContentImages] = useState(blog?.mediaUrls ? [...blog.mediaUrls] : [])
@@ -93,7 +103,13 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     const file = e.target.files?.[0] || null
     if (!file) return
 
-    if (file.size > MAX_FILE_SIZE_BYTES) {
+    const maxVideoBytes = 500 * 1024 * 1024
+    if (field === 'video' ? file.size > maxVideoBytes : file.size > MAX_FILE_SIZE_BYTES) {
+      if (field === 'video') {
+        toast.error('Video exceeds the 500 MB processing limit')
+        e.target.value = ''
+        return
+      }
       toast.error(`File exceeds the maximum allowed size of ${MAX_FILE_SIZE_MB} MB`)
       e.target.value = ''
       return
@@ -109,27 +125,11 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       const url = URL.createObjectURL(file)
       setImagePreview(url)
     } else if (field === 'video') {
-      // Pre-upload validation: warn if the video format is not H.264/AAC MP4
-      // (the most broadly compatible format). Other formats (WebM, MOV, AVI,
-      // MKV, HEVC) are still accepted but will be transcoded by Cloudinary
-      // to H.264/AAC MP4 for delivery — this just sets expectations.
-      if (!file.type.startsWith('video/')) {
+      if (!file.type.startsWith('video/') && !/\.(mp4|mov|m4v|webm|avi|mkv|3gp)$/i.test(file.name)) {
         toast.error('Please select a valid video file (MP4, MOV, WebM, AVI, MKV)')
         return
       }
-
-      setVideoFile(file)
-      setVideoPreviewError(false)
-
-      if (file.type !== 'video/mp4') {
-        toast(
-          `You selected a ${file.type.split('/')[1].toUpperCase()} file. It will be converted to H.264/AAC MP4 for compatibility.`,
-          { duration: 5000 }
-        )
-      }
-
-      const url = URL.createObjectURL(file)
-      setVideoPreview(url)
+      processSelectedVideo(file)
     }
     e.target.value = ''
   }
@@ -176,7 +176,17 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
       setImagePreview(null)
     } else if (field === 'video') {
+      cancelUploadRef.current?.()
+      cancelCompressionRef.current?.()
+      cancelUploadRef.current = null
+      cancelCompressionRef.current = null
       setVideoFile(null)
+      setVideoAsset(null)
+      setVideoPhase('')
+      setVideoPhaseProgress(0)
+      setVideoOriginalBytes(0)
+      setVideoCompressedBytes(0)
+      setVideoError(null)
       if (videoPreview && videoPreview.startsWith('blob:')) URL.revokeObjectURL(videoPreview)
       setVideoPreview(null)
       setVideoPreviewError(false)
@@ -208,6 +218,66 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     }, 0)
   }
 
+  const processSelectedVideo = async (file) => {
+    if (videoPreview && videoPreview.startsWith('blob:')) URL.revokeObjectURL(videoPreview)
+    setVideoFile(file)
+    setVideoAsset(null)
+    setVideoError(null)
+    setRemoveVideo(false)
+    setVideoPreviewError(false)
+    setVideoOriginalBytes(file.size)
+    setVideoCompressedBytes(0)
+    setVideoPreview(URL.createObjectURL(file))
+
+    try {
+      setVideoPhase('preparing')
+      setVideoPhaseProgress(5)
+      const result = await compressVideoInWorker(file, {
+        setCancel: (cancel) => { cancelCompressionRef.current = cancel },
+        onProgress: ({ phase, progress, originalBytes }) => {
+          setVideoPhase(phase)
+          setVideoPhaseProgress(progress)
+          if (originalBytes) setVideoOriginalBytes(originalBytes)
+        },
+      })
+      cancelCompressionRef.current = null
+      setVideoCompressedBytes(result.compressedBytes)
+      setVideoPhase('uploading')
+      setVideoPhaseProgress(0)
+
+      const optimizedUrl = URL.createObjectURL(result.file)
+      if (videoPreview && videoPreview.startsWith('blob:')) URL.revokeObjectURL(videoPreview)
+      setVideoPreview(optimizedUrl)
+
+      const asset = await uploadOptimizedVideo(result.file, result.contentHash, {
+        setCancel: (cancel) => { cancelUploadRef.current = cancel },
+        onUploadProgress: (progress) => setVideoPhaseProgress(progress),
+      })
+      cancelUploadRef.current = null
+      setVideoAsset({ ...asset, originalName: file.name })
+      setVideoPhase('completed')
+      setVideoPhaseProgress(100)
+      toast.success('Video optimized and uploaded successfully')
+    } catch (err) {
+      cancelCompressionRef.current = null
+      cancelUploadRef.current = null
+      const msg = err?.message || 'Video processing failed'
+      setVideoError(msg)
+      setVideoPhase('error')
+      setVideoPhaseProgress(0)
+      toast.error(msg)
+    }
+  }
+
+  const cancelVideoProcessing = () => {
+    cancelUploadRef.current?.()
+    cancelCompressionRef.current?.()
+    cancelUploadRef.current = null
+    cancelCompressionRef.current = null
+    setVideoPhase('cancelled')
+    setVideoError('Video processing cancelled')
+  }
+
   const handleSubmit = async (e, status) => {
     e.preventDefault()
     if (submitting || submissionLockRef.current) return
@@ -218,6 +288,16 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     if (!title) {
       submissionLockRef.current = false
       setError('Title is required')
+      return
+    }
+    if (videoFile && !videoAsset && videoPhase !== 'error' && videoPhase !== 'cancelled') {
+      submissionLockRef.current = false
+      setError('Wait for automatic video compression and upload to complete')
+      return
+    }
+    if (videoError && videoFile) {
+      submissionLockRef.current = false
+      setError(videoError)
       return
     }
 
@@ -240,12 +320,16 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     if (form.publishDate) payload.append('publishDate', form.publishDate)
 
     if (imageFile) payload.append('image', imageFile)
-    if (videoFile) payload.append('video', videoFile)
+    if (videoAsset) payload.append('videoAsset', JSON.stringify(videoAsset))
     if (removeVideo) payload.append('removeVideo', 'true')
     contentFiles.forEach((file) => payload.append('contentImages', file))
     if (removeMediaUrls.length > 0) payload.append('removeMediaUrls', JSON.stringify(removeMediaUrls))
 
     try {
+      if (videoAsset) {
+        setVideoPhase('saving')
+        setVideoPhaseProgress(100)
+      }
       let res
       if (isEdit) {
         res = await api.patch(`/admin/blog/${blog.id}`, payload, {
@@ -265,6 +349,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
         })
       }
 
+      if (videoAsset) setVideoPhase('completed')
       toast.success(`Blog ${isEdit ? 'updated' : 'created'} successfully`)
       dispatchAdminDataChanged('blog-changed')
       onSaved?.(res.data)
@@ -285,12 +370,65 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
 
   const wordCount = form.content ? form.content.replace(/<[^>]*>/g, ' ').trim().split(/\s+/).filter(Boolean).length : 0
   const readingTime = getReadingTime(form.content || '')
+  const formatBytes = (bytes) => {
+    if (!bytes) return '0 MB'
+    const mb = bytes / 1024 / 1024
+    return `${mb >= 1 ? mb.toFixed(1) : (bytes / 1024).toFixed(0)} ${mb >= 1 ? 'MB' : 'KB'}`
+  }
+  const compressionPercent = videoOriginalBytes && videoCompressedBytes
+    ? Math.max(0, Math.round((1 - videoCompressedBytes / videoOriginalBytes) * 100))
+    : 0
+  const videoStepLabels = {
+    preparing: 'Step 1: Preparing video',
+    compressing: 'Step 2: Compressing video',
+    uploading: 'Step 3: Uploading optimized video',
+    saving: 'Step 4: Saving video',
+    completed: 'Step 5: Completed',
+  }
 
   return (
     <form className="space-y-6">
       {error && (
         <div className="rounded-xl border border-[var(--error)]/20 bg-[var(--error)]/5 p-4 text-sm text-[var(--error)]">
           {error}
+        </div>
+      )}
+
+      {videoPhase && (
+        <div className="space-y-3 rounded-xl border border-border/50 bg-[var(--secondary)]/10 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-[var(--primary)]">
+                {videoStepLabels[videoPhase] || (videoPhase === 'error' ? 'Video processing failed' : 'Preparing video')}
+              </p>
+              {videoOriginalBytes > 0 && (
+                <p className="mt-1 text-xs text-[var(--primary)]/55">
+                  Original: {formatBytes(videoOriginalBytes)}
+                  {videoCompressedBytes > 0 && ` • Compressed: ${formatBytes(videoCompressedBytes)} • ${compressionPercent}% smaller`}
+                </p>
+              )}
+            </div>
+            {(videoPhase === 'preparing' || videoPhase === 'compressing' || videoPhase === 'uploading') && (
+              <button type="button" onClick={cancelVideoProcessing} className="text-xs font-semibold text-[var(--error)]">
+                Cancel
+              </button>
+            )}
+          </div>
+          {videoPhase !== 'error' && videoPhase !== 'cancelled' && (
+            <div className="h-2 overflow-hidden rounded-full bg-[var(--secondary)]/40">
+              <div className="h-full bg-[var(--accent)] transition-all" style={{ width: `${videoPhaseProgress}%` }} />
+            </div>
+          )}
+          {(videoPhase === 'error' || videoPhase === 'cancelled') && (
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-[var(--error)]">{videoError || 'Video processing cancelled'}</p>
+              {videoFile && (
+                <button type="button" onClick={() => processSelectedVideo(videoFile)} className="text-xs font-semibold text-[var(--accent)]">
+                  Retry
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -644,7 +782,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           type="button"
           onClick={(e) => handleSubmit(e, 'draft')}
           className="btn-luxury-secondary"
-          disabled={submitting || !form.title.trim()}
+          disabled={submitting || !form.title.trim() || Boolean(videoFile && !videoAsset && !videoError)}
         >
           {submitting ? 'Saving...' : 'Save Draft'}
         </button>
@@ -652,7 +790,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           type="button"
           onClick={(e) => handleSubmit(e, 'publish')}
           className="btn-luxury-primary"
-          disabled={submitting || !form.title.trim()}
+          disabled={submitting || !form.title.trim() || Boolean(videoFile && !videoAsset && !videoError)}
         >
           {submitting ? 'Publishing...' : (isEdit ? 'Update & Publish' : 'Publish')}
         </button>

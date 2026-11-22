@@ -2,8 +2,21 @@ import { asyncHandler } from '../middleware/asyncHandler.js'
 import { blogService } from '../services/blogService.js'
 import { invalidateCachePattern } from '../utils/cache.js'
 import { failure } from '../utils/response.js'
+import { createSignedVideoUpload, verifyCloudinaryVideo } from '../config/cloudinary.js'
 
 export const blogController = {
+  signVideoUpload: asyncHandler(async (req, res) => {
+    const raw = String(req.body?.publicId || '').trim()
+    if (!/^[a-zA-Z0-9_-]{8,180}$/.test(raw)) {
+      throw failure(400, 'Invalid video upload public_id')
+    }
+    res.json({ success: true, data: createSignedVideoUpload(raw) })
+  }),
+
+  verifyVideoUpload: asyncHandler(async (req, res) => {
+    const data = await verifyCloudinaryVideo(req.body?.publicId, req.body?.secureUrl)
+    res.json({ success: true, data })
+  }),
   list: asyncHandler(async (req, res) => {
     const items = await blogService.listBlogs()
     res.json({ success: true, data: items })
@@ -99,7 +112,13 @@ export const blogController = {
        featured: req.body.featured === 'true' || req.body.featured === true,
        displayOrder: Number(req.body.displayOrder) || 0,
        publishDate: req.body.publishDate ? new Date(req.body.publishDate) : null,
+       videoAsset: req.body.videoAsset || null,
      }
+
+      if (data.videoAsset) {
+        data.videoAsset = await verifyCloudinaryVideo(data.videoAsset.publicId, data.videoAsset.secureUrl)
+        data.videoAsset.originalName = req.body.videoAsset?.originalName || null
+      }
 
       const item = await blogService.createBlog(data, imageFile, videoFile, contentFiles, homepageCircularImageFile)
       invalidateCachePattern('blog')
@@ -129,6 +148,12 @@ export const blogController = {
     if (req.body.featured !== undefined) data.featured = req.body.featured
     if (req.body.displayOrder !== undefined) data.displayOrder = req.body.displayOrder
     if (req.body.publishDate !== undefined) data.publishDate = req.body.publishDate ? new Date(req.body.publishDate) : null
+    if (req.body.videoAsset !== undefined) data.videoAsset = req.body.videoAsset
+
+    if (data.videoAsset) {
+      data.videoAsset = await verifyCloudinaryVideo(data.videoAsset.publicId, data.videoAsset.secureUrl)
+      data.videoAsset.originalName = req.body.videoAsset?.originalName || null
+    }
 
     let removeMediaUrls = []
     if (req.body.removeMediaUrls) {

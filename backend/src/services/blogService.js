@@ -314,6 +314,21 @@ async function incrementViews(id) {
 
 async function createBlog(data, imageFile, videoFile, contentFiles = [], homepageCircularImageFile = null) {
   const createData = { ...data }
+  const videoAsset = createData.videoAsset
+  delete createData.videoAsset
+
+  if (videoAsset?.secureUrl && videoAsset?.publicId) {
+    createData.video = videoAsset.secureUrl
+    createData.videoCloudinaryId = videoAsset.publicId
+    createData.videoResourceType = videoAsset.resourceType || 'video'
+    createData.videoFormat = videoAsset.format || 'mp4'
+    createData.videoMimeType = 'video/mp4'
+    createData.videoDuration = videoAsset.duration ?? null
+    createData.videoWidth = videoAsset.width ?? null
+    createData.videoHeight = videoAsset.height ?? null
+    createData.videoBytes = videoAsset.bytes ?? null
+    createData.videoOriginalName = videoAsset.originalName || null
+  }
 
    if (imageFile) {
      try {
@@ -392,7 +407,28 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
   if (!existing) throw failure(404, 'Blog not found')
 
   const updateData = { ...data }
+  const videoAsset = updateData.videoAsset
+  delete updateData.videoAsset
   const pathsToDelete = []
+
+  if (videoAsset?.secureUrl && videoAsset?.publicId) {
+    updateData.video = videoAsset.secureUrl
+    updateData.videoCloudinaryId = videoAsset.publicId
+    updateData.videoResourceType = videoAsset.resourceType || 'video'
+    updateData.videoFormat = videoAsset.format || 'mp4'
+    updateData.videoMimeType = 'video/mp4'
+    updateData.videoDuration = videoAsset.duration ?? null
+    updateData.videoWidth = videoAsset.width ?? null
+    updateData.videoHeight = videoAsset.height ?? null
+    updateData.videoBytes = videoAsset.bytes ?? null
+    updateData.videoOriginalName = videoAsset.originalName || null
+    if (existing.video && existing.videoCloudinaryId !== videoAsset.publicId) {
+      pathsToDelete.push({
+        publicId: existing.videoCloudinaryId || extractPublicId(existing.video),
+        resourceType: existing.videoResourceType || 'video',
+      })
+    }
+  }
 
   if (imageFile) {
     if (existing.cloudinaryId) pathsToDelete.push(existing.cloudinaryId)
@@ -508,6 +544,8 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
     }
   }
 
+  const item = await prisma.blog.update({ where: { id }, data: updateData })
+
   if (pathsToDelete.length > 0) {
     const deletePromises = pathsToDelete.map((entry) => {
       if (typeof entry === 'object') return deleteFileByPublicId(entry.publicId, entry.resourceType)
@@ -518,7 +556,6 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
     })
   }
 
-  const item = await prisma.blog.update({ where: { id }, data: updateData })
   return mapBlog(item)
 }
 

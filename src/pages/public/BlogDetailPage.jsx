@@ -440,9 +440,9 @@ const loadBlog = useCallback(async () => {
               src={playableVideoUrl}
               fallbackSrc={videoUrl}
               poster={getVideoPosterUrl(videoUrl)}
-              autoPlay={true}
-              loop={true}
-              muted={true}
+              autoPlay={false}
+              loop={false}
+              muted={false}
               playsInline={true}
               controls={true}
               preload="metadata"

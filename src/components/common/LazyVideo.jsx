@@ -29,9 +29,9 @@ export default function LazyVideo({
   poster,
   className = '',
   eager = false,
-  autoPlay = true,
-  loop = true,
-  muted = true,
+  autoPlay = false,
+  loop = false,
+  muted = false,
   playsInline = true,
   controls = false,
   preload = 'metadata',
@@ -314,6 +314,18 @@ export default function LazyVideo({
             Retry
           </button>
         </div>
+      )}
+
+      {!hasError && sourceSrc && (
+        <a
+          href={sourceSrc}
+          download
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute right-3 bottom-3 rounded-full border border-white/30 bg-black/60 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm"
+        >
+          Download
+        </a>
       )}
     </div>
   )
