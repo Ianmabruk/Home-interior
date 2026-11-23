@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from '@components/common/DynamicMotion'
-import { ArrowLeft, Share2, Facebook, Twitter, Linkedin, Copy, User, Clock, Eye, Tag } from 'lucide-react'
+import { ArrowLeft, Share2, Facebook, Twitter, Linkedin, Copy, User, Clock, Eye, Tag, Download } from 'lucide-react'
 import { SiPinterest } from 'react-icons/si'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '@services/api'
@@ -461,7 +461,6 @@ const loadBlog = useCallback(async () => {
           >
             <LazyVideo
               src={playableVideoUrl}
-              downloadSrc={getVideoDownloadUrl(videoUrl)}
               fallbackSrc={videoUrl}
               poster={getVideoPosterUrl(videoUrl)}
               autoPlay={false}
@@ -471,6 +470,16 @@ const loadBlog = useCallback(async () => {
               controls={true}
               preload="metadata"
             />
+            <figcaption className="flex justify-end border-t border-white/10 px-4 py-3">
+              <a
+                href={getVideoDownloadUrl(videoUrl, blog.videoOriginalName)}
+                download={blog.videoOriginalName || undefined}
+                className="inline-flex items-center gap-2 rounded-full border border-white/30 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10"
+              >
+                <Download size={16} />
+                Download
+              </a>
+            </figcaption>
           </motion.figure>
         )}
 

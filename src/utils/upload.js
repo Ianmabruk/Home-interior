@@ -1,3 +1,7 @@
+import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from './uploadConfig.js'
+
+export { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB }
+
 export function uploadFile(file, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
@@ -31,10 +35,10 @@ export function uploadFile(file, onProgress) {
 }
 
 export function validateFile(file, options = {}) {
-  const { maxSize = 5 * 1024 * 1024, allowedTypes = ['image/', 'video/'] } = options
+  const { maxSize = MAX_FILE_SIZE_BYTES, allowedTypes = ['image/', 'video/'] } = options
 
   if (file.size > maxSize) {
-    return { valid: false, error: `File size must be less than ${maxSize / 1024 / 1024}MB` }
+    return { valid: false, error: `File exceeds the maximum allowed size of ${maxSize / 1024 / 1024} MB.` }
   }
 
   const isAllowed = allowedTypes.some((type) => file.type.startsWith(type))

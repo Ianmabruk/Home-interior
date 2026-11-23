@@ -122,10 +122,14 @@ export const getVideoPosterUrl = (url, options = {}) => {
   return `${transformed.slice(0, transformed.length - base.length)}${stem}.jpg`
 }
 
-export const getVideoDownloadUrl = (url) => {
+export const getVideoDownloadUrl = (url, fileName) => {
   if (typeof url !== 'string' || !url) return undefined
   if (!isCloudinaryVideo(url)) return url
-  return url.replace(CLOUDINARY_VIDEO_SEGMENT, `${CLOUDINARY_VIDEO_SEGMENT}fl_attachment/`)
+  const safeName = typeof fileName === 'string'
+    ? fileName.replace(/[\\/:*?"<>|]/g, '-').replace(/[\r\n]/g, '').slice(0, 120)
+    : ''
+  const attachment = safeName ? `fl_attachment:${encodeURIComponent(safeName)}` : 'fl_attachment'
+  return url.replace(CLOUDINARY_VIDEO_SEGMENT, `${CLOUDINARY_VIDEO_SEGMENT}${attachment}/`)
 }
 
 export default getOptimizedUrl

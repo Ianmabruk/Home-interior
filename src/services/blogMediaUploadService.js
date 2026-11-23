@@ -12,11 +12,14 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-export async function uploadBlogMediaFile(file, uploadId, { onRetry } = {}) {
+export async function uploadBlogMediaFile(file, uploadId, options = {}) {
+  const { onRetry, ...handlers } = options
   let lastError
   for (let attempt = 0; attempt <= 2; attempt += 1) {
     try {
-      const asset = await mediaService.upload(file, 'blogs', {}, uploadId)
+      const asset = Object.keys(handlers).length > 0
+        ? await mediaService.upload(file, 'blogs', {}, uploadId, handlers)
+        : await mediaService.upload(file, 'blogs', {}, uploadId)
       if (!asset?.secureUrl || !asset?.publicId || !['image', 'video'].includes(asset.resourceType)) {
         throw new Error('The server returned incomplete media details. Retry this file.')
       }

@@ -1,5 +1,19 @@
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import { virtualDesignService } from '../services/virtualDesignService.js'
+import { ApiError } from '../utils/ApiError.js'
+
+function parseJsonArray(value, name) {
+  if (value === undefined || value === null || value === '') return []
+  if (Array.isArray(value)) return value
+  if (typeof value !== 'string') throw new ApiError(400, `${name} must be an array`)
+  try {
+    const parsed = JSON.parse(value)
+    if (Array.isArray(parsed)) return parsed
+  } catch {
+    throw new ApiError(400, `${name} contains invalid JSON`)
+  }
+  throw new ApiError(400, `${name} must be an array`)
+}
 
 export const virtualDesignController = {
   list: asyncHandler(async (req, res) => {
@@ -19,7 +33,8 @@ export const virtualDesignController = {
     const file = req.files?.media?.[0] || null
     const galleryFiles = Array.isArray(req.files?.gallery) ? req.files.gallery : []
     const circularFile = req.files?.homepageCircularImage?.[0] || null
-    if (!file && galleryFiles.length === 0) {
+    const mediaUrls = parseJsonArray(req.body.mediaUrls, 'mediaUrls')
+    if (!file && galleryFiles.length === 0 && !req.body.imageUrl && mediaUrls.length === 0) {
       return res.status(400).json({ success: false, message: 'Media file is required' })
     }
     let parsedFeatures = []
@@ -36,10 +51,12 @@ export const virtualDesignController = {
       description: req.body.description || '',
       category: req.body.category || 'General',
       mediaType: req.body.mediaType || 'image',
+      imageUrl: req.body.imageUrl || null,
       featured: req.body.featured === 'true' || req.body.featured === true,
       displayOrder: Number(req.body.displayOrder) || 0,
       published: req.body.published !== 'false' && req.body.published !== false,
-      mediaUrls: Array.isArray(req.body.mediaUrls) ? req.body.mediaUrls : [],
+      mediaUrls,
+      mediaAssets: parseJsonArray(req.body.mediaAssets, 'mediaAssets'),
       price: req.body.price ? Number(req.body.price) : null,
       priceMax: req.body.priceMax ? Number(req.body.priceMax) : null,
       currency: req.body.currency || 'KES',
@@ -66,6 +83,7 @@ export const virtualDesignController = {
     if (req.body.displayOrder !== undefined) data.displayOrder = Number(req.body.displayOrder) || 0
     if (req.body.published !== undefined) data.published = req.body.published !== 'false' && req.body.published !== false
     if (req.body.imageUrl) data.imageUrl = req.body.imageUrl
+    if (req.body.mediaAssets !== undefined) data.mediaAssets = parseJsonArray(req.body.mediaAssets, 'mediaAssets')
     if (req.body.price !== undefined) data.price = req.body.price ? Number(req.body.price) : null
     if (req.body.priceMax !== undefined) data.priceMax = req.body.priceMax ? Number(req.body.priceMax) : null
     if (req.body.currency !== undefined) data.currency = req.body.currency

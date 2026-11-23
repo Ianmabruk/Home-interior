@@ -420,7 +420,7 @@ export const ServicesDashboard = () => {
                   </motion.div>
                   <div>
                     <p className="text-sm font-medium text-[var(--primary)]">Drop image here or click to browse</p>
-                    <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG up to 10MB</p>
+                    <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG up to 100 MB</p>
                   </div>
                 </div>
               )}

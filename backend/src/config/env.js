@@ -23,6 +23,8 @@ export const env = {
   brevoApiKey: process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY || '',
   brevoSenderEmail: process.env.BREVO_SENDER_EMAIL || process.env.SENDINBLUE_SENDER_EMAIL || '',
   brevoSenderName: process.env.BREVO_SENDER_NAME || 'HOK Interiors',
+  hyperserveApiKey: process.env.HYPERSERVE_API_KEY,
+  hyperserveApiBaseUrl: process.env.HYPERSERVE_API_BASE_URL || 'https://api.hyperserve.io/api',
   email: {
     smtpHost: process.env.SMTP_HOST || 'mail.hokinteriors.co.ke',
     smtpPort: Number(process.env.SMTP_PORT) || 465,
@@ -44,6 +46,9 @@ export function validateEnv() {
   const isDevWithNoStorage = process.env.NODE_ENV === 'development' && process.env.SKIP_CLOUDINARY === 'true'
   if (!hasCloudinary && !hasSupabase && !isDevWithNoStorage) {
     missing.push('Either CLOUDINARY_* or SUPABASE_* environment variables for file storage (set SKIP_CLOUDINARY=true for local dev storage)')
+  }
+  if (process.env.NODE_ENV === 'production' && !process.env.HYPERSERVE_API_KEY) {
+    missing.push('HYPERSERVE_API_KEY')
   }
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`)

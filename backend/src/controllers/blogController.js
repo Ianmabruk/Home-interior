@@ -2,15 +2,17 @@ import { asyncHandler } from '../middleware/asyncHandler.js'
 import { blogService } from '../services/blogService.js'
 import { invalidateCachePattern } from '../utils/cache.js'
 import { failure } from '../utils/response.js'
-import { createSignedVideoUpload } from '../config/cloudinary.js'
-
 function validateSavedVideoAsset(asset) {
   if (!asset) return null
+  const isHyperserve = asset.storageProvider === 'hyperserve'
+  const isLegacyCloudinary = typeof asset.secureUrl === 'string'
+    && asset.secureUrl.startsWith('https://res.cloudinary.com/')
+    && asset.secureUrl.includes('/video/upload/')
   if (
     (asset.resourceType && asset.resourceType !== 'video')
     || typeof asset.secureUrl !== 'string'
-    || !asset.secureUrl.startsWith('https://res.cloudinary.com/')
-    || !asset.secureUrl.includes('/video/upload/')
+    || (!isHyperserve && !isLegacyCloudinary)
+    || (isHyperserve && (!asset.providerAssetId || asset.uploadStatus !== 'ready'))
     || typeof asset.publicId !== 'string'
     || !asset.publicId
   ) {
@@ -44,12 +46,22 @@ function validateSavedMediaAssets(assets) {
   const seen = new Set()
   return assets.map((asset) => {
     const resourceType = asset?.resourceType
-    const requiredPath = resourceType === 'video' ? '/video/upload/' : '/image/upload/'
+    const isHyperserveVideo = resourceType === 'video'
+      && asset?.storageProvider === 'hyperserve'
+      && asset?.providerAssetId
+      && asset?.uploadStatus === 'ready'
+    const isCloudinaryImage = resourceType === 'image'
+      && typeof asset.secureUrl === 'string'
+      && asset.secureUrl.startsWith('https://res.cloudinary.com/')
+      && asset.secureUrl.includes('/image/upload/')
+    const isLegacyCloudinaryVideo = resourceType === 'video'
+      && typeof asset.secureUrl === 'string'
+      && asset.secureUrl.startsWith('https://res.cloudinary.com/')
+      && asset.secureUrl.includes('/video/upload/')
     if (
       !['image', 'video'].includes(resourceType)
       || typeof asset.secureUrl !== 'string'
-      || !asset.secureUrl.startsWith('https://res.cloudinary.com/')
-      || !asset.secureUrl.includes(requiredPath)
+      || (!isCloudinaryImage && !isLegacyCloudinaryVideo && !isHyperserveVideo)
       || typeof asset.publicId !== 'string'
       || !asset.publicId
       || seen.has(asset.secureUrl)

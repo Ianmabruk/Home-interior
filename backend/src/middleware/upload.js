@@ -22,7 +22,7 @@ function isAllowedFile(file, allowedTypes, allowedExts) {
 
 function getAllowedTypesForField(fieldname) {
   if (fieldname === 'video') return ALLOWED_VIDEO_TYPES
-  if (['image', 'contentImages', 'homepageCircularImage', 'photo', 'socialMedia'].includes(fieldname)) return ALLOWED_IMAGE_TYPES
+  if (['image', 'contentImages', 'homepageCircularImage', 'photo', 'socialMedia', 'media', 'gallery', 'before', 'after'].includes(fieldname)) return ALLOWED_IMAGE_TYPES
   return [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES]
 }
 
@@ -62,6 +62,9 @@ export const uploadFields = (fields) => {
     storage,
     limits: { fileSize: MAX_FILE_SIZE_BYTES, files: MAX_FILES },
     fileFilter: (req, file, cb) => {
+      if (file.fieldname === 'video') {
+        return cb(new ApiError(400, 'Video files must use the signed direct Cloudinary uploader'))
+      }
       const allowedTypes = perFieldTypes.get(file.fieldname) || [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES]
       const allowedExts = allowedTypes === undefined ? allExts : getAllowedExtensionsForTypes(allowedTypes)
       if (isAllowedFile(file, allowedTypes, allowedExts)) {
@@ -72,13 +75,13 @@ export const uploadFields = (fields) => {
   }).fields(fields)
 }
 
-export const uploadArray = (field = 'media', maxCount = MAX_FILES) => {
+export const uploadArray = (field = 'media', maxCount = MAX_FILES, allowedTypes = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES]) => {
   const allExts = [...ALLOWED_IMAGE_EXTENSIONS, ...ALLOWED_VIDEO_EXTENSIONS]
   return multer({
     storage,
     limits: { fileSize: MAX_FILE_SIZE_BYTES, files: maxCount },
     fileFilter: (req, file, cb) => {
-      if (isAllowedFile(file, [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES], allExts)) {
+      if (isAllowedFile(file, allowedTypes, allExts)) {
         return cb(null, true)
       }
       cb(new ApiError(400, `Invalid file type: ${file.mimetype}`))

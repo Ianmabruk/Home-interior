@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
+import { mediaService } from '../../services/mediaService'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { getOptimizedVideoUrl, getVideoPosterUrl, getOptimizedUrl } from '../../utils/cloudinaryHelpers'
 
@@ -49,12 +50,16 @@ export const VirtualDesignDashboard = () => {
   const [error, setError] = useState('')
   const [optimisticDeletes, setOptimisticDeletes] = useState(new Set())
   const [featureInput, setFeatureInput] = useState('')
+  const [videoUpload, setVideoUpload] = useState(null)
   const [addOnServices, setAddOnServices] = useState([])
   const [editingAddOnId, setEditingAddOnId] = useState(null)
   const [addOnForm, setAddOnForm] = useState({ name: '', price: '', currency: 'KES', durationMinutes: '', description: '', isActive: true, displayOrder: '0' })
   const mainFileRef = useRef(null)
   const videoRef = useRef(null)
   const galleryFileRef = useRef(null)
+  const videoCancelRef = useRef({})
+  const videoQueueRef = useRef(Promise.resolve())
+  const activeVideoFileRef = useRef(null)
 
   const load = useCallback(async () => {
     try {
@@ -64,7 +69,7 @@ export const VirtualDesignDashboard = () => {
     } catch {
       setItems([])
     }
-   }, [])
+   }, [galleryFiles])
 
   const loadAddOns = useCallback(async () => {
     setAddOnsLoading(true)
@@ -97,30 +102,137 @@ export const VirtualDesignDashboard = () => {
     loadAddOns()
   }, [loadAddOns])
 
-  const handleMainFiles = useCallback((files) => {
-    const validFiles = Array.from(files).filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'))
-    if (validFiles.length > 0) {
-      setMainMediaFiles([validFiles[0]])
-      setMainMediaPreviews([URL.createObjectURL(validFiles[0])])
+  const queueVideoUpload = useCallback((file) => {
+    const process = async () => {
+      activeVideoFileRef.current = file
+      videoCancelRef.current = {}
+      setVideoUpload({
+        fileName: file.name,
+        originalBytes: file.size,
+        compressedBytes: 0,
+        phase: 'preparing',
+        progress: 0,
+        error: '',
+      })
+      try {
+        const asset = await mediaService.upload(file, 'virtual-designs', {}, null, {
+          setCancelCompression: (cancel) => { videoCancelRef.current.compression = cancel },
+          setCancel: (cancel) => { videoCancelRef.current.upload = cancel },
+          onPhase: (phase) => setVideoUpload((current) => current && ({ ...current, phase })),
+          onCompressionProgress: (progress, originalBytes) => setVideoUpload((current) => current && ({
+            ...current,
+            phase: progress < 20 ? 'preparing' : 'compressing',
+            progress,
+            originalBytes: originalBytes || current.originalBytes,
+          })),
+          onCompressionComplete: ({ compressedBytes }) => setVideoUpload((current) => current && ({
+            ...current,
+            compressedBytes,
+            progress: 0,
+          })),
+          onUploadProgress: (progress) => setVideoUpload((current) => current && ({ ...current, progress })),
+        })
+        setVideoUpload((current) => current && ({ ...current, phase: 'completed', progress: 100 }))
+        return asset
+      } catch (uploadError) {
+        const message = uploadError?.message || 'Video processing failed'
+        setVideoUpload((current) => current && ({ ...current, phase: 'error', error: message }))
+        throw uploadError
+      } finally {
+        activeVideoFileRef.current = null
+        videoCancelRef.current = {}
+      }
     }
+
+    const queued = videoQueueRef.current.then(process, process)
+    videoQueueRef.current = queued.catch(() => {})
+    return queued
   }, [])
 
+  const handleMainFiles = useCallback((files) => {
+    const file = Array.from(files).find((candidate) => (
+      candidate.type.startsWith('image/')
+      || candidate.type.startsWith('video/')
+      || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg|jpe?g|png|webp|gif|avif)$/i.test(candidate.name)
+    ))
+    if (!file) return
+    const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(file.name)
+    if (isVideo && file.size > 500 * 1024 * 1024) {
+      toast.error('Video exceeds the 500 MB browser processing limit')
+      return
+    }
+    const preview = URL.createObjectURL(file)
+    setMainMediaFiles([file])
+    setMainMediaPreviews([preview])
+    setVideoUpload(null)
+    if (!isVideo) {
+      setForm((current) => ({ ...current, mediaType: 'image' }))
+      return
+    }
+    setForm((current) => ({ ...current, mediaType: 'video' }))
+    queueVideoUpload(file).then((asset) => {
+      setMainMediaFiles((current) => current[0] === file
+        ? [{ url: asset.secureUrl, type: 'video/mp4', mediaType: 'video', asset }]
+        : current)
+    }).catch(() => {})
+  }, [queueVideoUpload])
+
   const handleGalleryFiles = useCallback((files) => {
-    const validFiles = Array.from(files).filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'))
-    const newFiles = [...galleryFiles, ...validFiles].slice(0, 10)
-    setGalleryFiles(newFiles)
-    validFiles.forEach(f => setGalleryPreviews(prev => [...prev, URL.createObjectURL(f)]))
-  }, [galleryFiles])
+    const validFiles = Array.from(files).filter((file) => (
+      file.type.startsWith('image/')
+      || file.type.startsWith('video/')
+      || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg|jpe?g|png|webp|gif|avif)$/i.test(file.name)
+    ))
+    const room = Math.max(0, 10 - galleryFiles.length)
+    const selected = validFiles.slice(0, room)
+    if (selected.some((file) => (
+      (file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(file.name))
+      && file.size > 500 * 1024 * 1024
+    ))) {
+      toast.error('A selected video exceeds the 500 MB browser processing limit')
+      return
+    }
+    const entries = selected.map((file) => {
+      const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(file.name)
+      return isVideo ? { file, type: 'video/mp4', mediaType: 'video', pending: true } : file
+    })
+    setGalleryFiles((current) => [...current, ...entries])
+    selected.forEach((file) => setGalleryPreviews((current) => [...current, URL.createObjectURL(file)]))
+    selected.forEach((file) => {
+      const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(file.name)
+      if (!isVideo) return
+      queueVideoUpload(file).then((asset) => {
+        setGalleryFiles((current) => current.map((entry) => (
+          entry?.file === file
+            ? { url: asset.secureUrl, type: 'video/mp4', mediaType: 'video', asset }
+            : entry
+        )))
+      }).catch(() => {
+        setGalleryFiles((current) => current.map((entry) => (
+          entry?.file === file ? { ...entry, pending: false, uploadError: 'Video processing failed' } : entry
+        )))
+      })
+    })
+  }, [galleryFiles.length, queueVideoUpload])
 
   const removeMainMedia = useCallback((index) => {
+    if (activeVideoFileRef.current === mainMediaFiles[index]) {
+      videoCancelRef.current.upload?.()
+      videoCancelRef.current.compression?.()
+    }
     setMainMediaFiles(prev => prev.filter((_, i) => i !== index))
     setMainMediaPreviews(prev => {
       URL.revokeObjectURL(prev[index])
       return prev.filter((_, i) => i !== index)
     })
-  }, [])
+  }, [mainMediaFiles])
 
   const removeGalleryMedia = useCallback((index) => {
+    const entry = galleryFiles[index]
+    if (activeVideoFileRef.current === entry?.file) {
+      videoCancelRef.current.upload?.()
+      videoCancelRef.current.compression?.()
+    }
     setGalleryFiles(prev => prev.filter((_, i) => i !== index))
     setGalleryPreviews(prev => {
       URL.revokeObjectURL(prev[index])
@@ -129,6 +241,8 @@ export const VirtualDesignDashboard = () => {
   }, [])
 
   const startEdit = useCallback((item) => {
+    const savedMediaAssets = Array.isArray(item.mediaAssets) ? item.mediaAssets : []
+    const mainAsset = savedMediaAssets.find((asset) => asset.role === 'main' || asset.secureUrl === item.mediaUrl)
     setEditingId(item._id || item.id)
     setForm({
       title: item.title,
@@ -145,10 +259,16 @@ export const VirtualDesignDashboard = () => {
       packageType: item.packageType || '',
       features: item.features || [],
     })
-    setMainMediaFiles(item.mediaUrl ? [{ url: item.mediaUrl, type: item.mediaType }] : [])
+    setMainMediaFiles(item.mediaUrl ? [{
+      url: item.mediaUrl,
+      type: item.mediaType === 'video' ? 'video/mp4' : 'image',
+      mediaType: item.mediaType,
+      asset: mainAsset || null,
+    }] : [])
     setMainMediaPreviews(item.mediaUrl ? [item.mediaUrl] : [])
-    setGalleryFiles(item.galleryMedia ? item.galleryMedia.map(m => ({ url: m.url, type: m.type })) : [])
+    setGalleryFiles(item.galleryMedia ? item.galleryMedia.map((media) => ({ ...media })) : [])
     setGalleryPreviews(item.galleryMedia ? item.galleryMedia.map(m => m.url) : [])
+    setVideoUpload(null)
     setShowForm(true)
     setError('')
     setFeatureInput('')
@@ -161,6 +281,7 @@ export const VirtualDesignDashboard = () => {
     setMainMediaPreviews([])
     setGalleryFiles([])
     setGalleryPreviews([])
+    setVideoUpload(null)
     setShowForm(false)
     setError('')
     setFeatureInput('')
@@ -269,6 +390,11 @@ export const VirtualDesignDashboard = () => {
 
   const submit = async (e) => {
     e.preventDefault()
+    if (activeVideoFileRef.current || mainMediaFiles.some((file) => file instanceof File && isVideoType(file))
+      || galleryFiles.some((entry) => entry?.pending || entry?.uploadError)) {
+      setError('Wait for video compression and Cloudinary upload to finish before saving.')
+      return
+    }
     setLoading(true)
     setError('')
     try {
@@ -290,20 +416,25 @@ export const VirtualDesignDashboard = () => {
       const file = mainMediaFiles[0]
       if (file && file instanceof File) {
         payload.append('media', file)
-      } else if (editingId && file && file.url) {
-        // Preserve existing media URL when editing without uploading a new file
+      } else if (file?.url) {
         payload.append('imageUrl', file.url)
       }
+      const savedAssets = []
+      if (file?.asset) savedAssets.push({ ...file.asset, role: 'main' })
 
       if (galleryFiles.length > 0) {
         const existingGalleryUrls = []
-        galleryFiles.forEach((file) => {
-          if (file instanceof File) {
-            payload.append('gallery', file)
-          } else if (file && file.url) {
-            existingGalleryUrls.push(file.url)
+        galleryFiles.forEach((entry) => {
+          if (entry instanceof File) {
+            payload.append('gallery', entry)
+          } else if (entry?.url) {
+            existingGalleryUrls.push(entry.url)
+            if (entry.asset) savedAssets.push({ ...entry.asset, role: 'gallery' })
           }
         })
+        if (!editingId && existingGalleryUrls.length > 0) {
+          payload.append('mediaUrls', JSON.stringify(existingGalleryUrls))
+        }
         // Send existing gallery URLs to keep (even if empty, to allow clearing)
         if (editingId) {
           payload.append('existingMediaUrls', JSON.stringify(existingGalleryUrls))
@@ -312,6 +443,7 @@ export const VirtualDesignDashboard = () => {
         // No gallery files at all — explicitly clear the gallery
         payload.append('existingMediaUrls', JSON.stringify([]))
       }
+      if (savedAssets.length > 0) payload.append('mediaAssets', JSON.stringify(savedAssets))
 
       if (editingId) {
         await api.patch(`/admin/virtual-designs/${editingId}`, payload)
@@ -363,6 +495,7 @@ export const VirtualDesignDashboard = () => {
 
   const isVideoType = useCallback((file) => {
     if (!file || typeof file !== 'object') return false
+    if (file.mediaType === 'video' || file.resourceType === 'video') return true
     if (file.type && file.type.startsWith('video/')) return true
     if (file.type === 'video') return true
     return false
@@ -422,6 +555,45 @@ export const VirtualDesignDashboard = () => {
               >
                 {error}
               </motion.div>
+            )}
+            {videoUpload && (
+              <div className="space-y-2 rounded-xl border border-border/50 bg-[var(--secondary)]/10 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[var(--primary)]">
+                      {videoUpload.phase === 'preparing' && 'Preparing video'}
+                      {videoUpload.phase === 'compressing' && 'Compressing video'}
+                      {videoUpload.phase === 'signing' && 'Generating secure upload signature'}
+                      {videoUpload.phase === 'uploading' && 'Uploading to Cloudinary'}
+                      {videoUpload.phase === 'completed' && 'Video upload completed'}
+                      {videoUpload.phase === 'error' && 'Video processing failed'}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-[var(--primary)]/60">{videoUpload.fileName}</p>
+                    <p className="mt-1 text-xs text-[var(--primary)]/60">
+                      Original: {(videoUpload.originalBytes / 1024 / 1024).toFixed(1)} MB
+                      {videoUpload.compressedBytes > 0 && ` · Compressed: ${(videoUpload.compressedBytes / 1024 / 1024).toFixed(1)} MB · ${Math.max(0, Math.round((1 - videoUpload.compressedBytes / videoUpload.originalBytes) * 100))}% smaller`}
+                    </p>
+                    {videoUpload.error && <p className="mt-1 text-xs text-[var(--error)]">{videoUpload.error}</p>}
+                  </div>
+                  {!['completed', 'error'].includes(videoUpload.phase) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        videoCancelRef.current.upload?.()
+                        videoCancelRef.current.compression?.()
+                      }}
+                      className="shrink-0 text-xs font-semibold text-[var(--error)]"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+                {!['completed', 'error'].includes(videoUpload.phase) && (
+                  <div className="h-2 overflow-hidden rounded-full bg-[var(--secondary)]/40">
+                    <div className="h-full bg-[var(--accent)] transition-all" style={{ width: `${videoUpload.progress}%` }} />
+                  </div>
+                )}
+              </div>
             )}
             <div className="flex items-center justify-between">
               <div>
@@ -697,7 +869,7 @@ export const VirtualDesignDashboard = () => {
                     </motion.div>
                     <div>
                       <p className="text-sm font-medium text-[var(--primary)]">Drop {form.mediaType === 'video' ? 'video' : 'image'} here or click to browse</p>
-                      <p className="text-[10px] text-[var(--primary)]/50 mt-1">{form.mediaType === 'video' ? 'MP4, MOV, WebM up to 50MB' : 'PNG, JPG, WebP up to 10MB'}</p>
+                      <p className="text-[10px] text-[var(--primary)]/50 mt-1">{form.mediaType === 'video' ? 'MP4, MOV, WebM up to 500 MB' : 'PNG, JPG, WebP up to 100 MB'}</p>
                     </div>
                   </div>
                 )}
@@ -767,7 +939,7 @@ export const VirtualDesignDashboard = () => {
                     </motion.div>
                     <div>
                       <p className="text-sm font-medium text-[var(--primary)]">Drop images or videos here or click to browse</p>
-                      <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG, MP4, MOV, WebM up to 10MB each (max 10)</p>
+                      <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG, WebM up to 100 MB; videos up to 500 MB each (max 10)</p>
                     </div>
                   </div>
                 )}

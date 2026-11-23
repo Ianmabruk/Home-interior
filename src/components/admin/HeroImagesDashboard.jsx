@@ -265,7 +265,7 @@ export const HeroImagesDashboard = () => {
                   </motion.div>
                   <div>
                     <p className="text-sm font-medium text-[var(--primary)]">Drop images here or click to browse</p>
-                    <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG, WebP up to 10MB each (max 10)</p>
+                    <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG, WebP up to 100 MB each (max 10)</p>
                   </div>
                 </div>
               )}

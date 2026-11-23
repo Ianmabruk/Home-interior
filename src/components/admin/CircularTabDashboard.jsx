@@ -4,6 +4,7 @@ import { UploadCloud, Save, RefreshCw, Image as ImageIcon, Check, Trash2 } from 
 import { toast } from 'react-hot-toast'
 import { api } from '../../services/api'
 import { compressImages } from '../../utils/imageCompression'
+import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '../../utils/uploadConfig'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 
 const SECTIONS = [
@@ -55,8 +56,8 @@ export const CircularTabDashboard = () => {
       return
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('Image must be less than 10MB')
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      toast.error(`Image exceeds the maximum allowed size of ${MAX_FILE_SIZE_MB} MB`)
       return
     }
 

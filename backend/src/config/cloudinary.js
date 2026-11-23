@@ -240,10 +240,20 @@ export const deleteManyFromCloudinary = async (publicIds) => {
 export function createSignedVideoUpload(publicId) {
   assertCloudinaryConfigured()
   if (!publicId) throw failure(400, 'publicId is required')
-  const timestamp = Math.floor(Date.now() / 1000)
   const folder = 'hok-interiors/blog-videos'
+  return createSignedVideoUploadForFolder(publicId, folder)
+}
+
+export function createSignedVideoUploadForFolder(publicId, folder) {
+  assertCloudinaryConfigured()
+  if (!publicId) throw failure(400, 'publicId is required')
+  if (!['hok-interiors/blog-videos', 'virtual-designs'].includes(folder)) {
+    throw failure(400, 'Invalid Cloudinary video folder')
+  }
+  const timestamp = Math.floor(Date.now() / 1000)
+  const params = { timestamp, folder, public_id: publicId, overwrite: true }
   const signature = cloudinary.utils.api_sign_request(
-    { timestamp, folder, public_id: publicId, overwrite: true },
+    params,
     CLOUDINARY_API_SECRET,
   )
   return {
@@ -253,6 +263,7 @@ export function createSignedVideoUpload(publicId) {
     timestamp,
     folder,
     publicId,
+    params,
   }
 }
 

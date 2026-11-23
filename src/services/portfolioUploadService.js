@@ -1,5 +1,5 @@
-import { api } from './api'
 import { ensureValidToken, attemptTokenRefresh } from './api'
+import { mediaService } from './mediaService'
 
 export const UPLOAD_CONCURRENCY = 3
 export const MAX_RETRIES = 3
@@ -77,9 +77,9 @@ export function validateImageFile(file) {
   if (!validTypes.includes(file.type)) {
     errors.push(`Unsupported format: ${file.type || 'unknown'}`)
   }
-  const MAX_SIZE = 50 * 1024 * 1024
+  const MAX_SIZE = 100 * 1024 * 1024
   if (file.size > MAX_SIZE) {
-    errors.push(`File "${file.name}" exceeds maximum size of 50MB`)
+    errors.push(`File "${file.name}" exceeds maximum size of 100 MB`)
   }
   if (file.size === 0) {
     errors.push(`File "${file.name}" is empty`)
@@ -131,21 +131,16 @@ export async function uploadSingleImage(file, folder = 'portfolio/before', optio
         throw new Error(`Authentication required: ${tokenErr.message}`, { cause: tokenErr })
       }
 
-      const formData = new FormData()
-      formData.append('media', file)
-      formData.append('folder', folder)
-
-      const res = await api.post('/media/upload', formData, {
-        signal,
-        onUploadProgress: (e) => {
-          if (onProgress && e.total > 0) {
-            onProgress((e.loaded / e.total) * 100)
-          }
-        },
+      const resAsset = await mediaService.upload(file, folder, {}, null, {
+        onUploadProgress: onProgress,
       })
 
       onStateChange?.('uploaded')
-      return { url: res.data.url, path: res.data.path, fileName: file.name }
+      return {
+        url: resAsset.secureUrl || resAsset.url,
+        path: resAsset.publicId || resAsset.path,
+        fileName: file.name,
+      }
     } catch (err) {
       lastError = err
       if (signal?.aborted) {

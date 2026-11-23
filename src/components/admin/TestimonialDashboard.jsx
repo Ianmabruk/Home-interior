@@ -334,7 +334,7 @@ export const TestimonialDashboard = () => {
                       <Image size={28} />
                     </div>
                     <p className="text-sm text-[var(--primary)]/60">Click to upload testimonial image</p>
-                    <p className="text-[10px] text-[var(--primary)]/40 mt-1">JPG, JPEG, PNG, WebP — up to 10MB</p>
+                    <p className="text-[10px] text-[var(--primary)]/40 mt-1">JPG, JPEG, PNG, WebP — up to 100 MB</p>
                   </>
                 )}
               </div>

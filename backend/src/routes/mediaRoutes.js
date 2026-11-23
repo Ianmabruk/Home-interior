@@ -1,27 +1,68 @@
 import { Router } from 'express'
 import { authenticate } from '../middleware/auth.js'
 import { asyncHandler } from '../middleware/asyncHandler.js'
-import { uploadFile, deleteFile } from '../uploads/uploadService.js'
+import { uploadFile } from '../uploads/uploadService.js'
 import { uploadSingle, uploadArray } from '../middleware/upload.js'
 import { validateCsrfToken } from '../middleware/csrf.js'
 import { generateCsrfToken } from '../middleware/csrf.js'
 import { ApiError } from '../utils/ApiError.js'
-import { isVideoFile } from '../config/cloudinary.js'
+import {
+  createHyperserveVideo,
+  completeHyperserveUpload,
+  getHyperserveVideo,
+  validateHyperserveVideo,
+} from '../services/hyperserveService.js'
 
 const router = Router()
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']
-const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-m4v', 'video/x-msvideo', 'video/x-matroska']
 const MAX_BATCH_FILES = 50
 
-router.post('/upload', authenticate, validateCsrfToken, uploadSingle('media', [...IMAGE_TYPES, ...VIDEO_TYPES]), asyncHandler(async (req, res) => {
+router.post('/hyperserve/create', authenticate, validateCsrfToken, asyncHandler(async (req, res) => {
+  const file = req.body?.file
+  const filename = typeof file?.name === 'string' ? file.name : req.body?.filename
+  const size = Number(file?.size ?? req.body?.fileSize)
+  if (!filename || !size) {
+    throw new ApiError(400, 'Video filename and size are required')
+  }
+  validateHyperserveVideo({ name: filename, size, mimetype: file?.type || req.body?.mimeType })
+  const resolutions = Array.isArray(req.body?.resolutions) && req.body.resolutions.length > 0
+    ? req.body.resolutions
+    : ['480p', '720p', '1080p']
+  const upload = await createHyperserveVideo({
+    filename,
+    resolutions,
+    isPublic: req.body?.isPublic !== false,
+    thumbnailTimestampsSeconds: Array.isArray(req.body?.thumbnailTimestampsSeconds) ? req.body.thumbnailTimestampsSeconds : [1],
+    customMetadata: req.body?.customMetadata || null,
+  })
+  res.status(201).json({ success: true, data: upload })
+}))
+
+router.post('/hyperserve/:id/complete', authenticate, validateCsrfToken, asyncHandler(async (req, res) => {
+  const result = await completeHyperserveUpload(req.params.id)
+  res.status(201).json({ success: true, data: result })
+}))
+
+router.get('/hyperserve/:id/status', authenticate, asyncHandler(async (req, res) => {
+  const result = await getHyperserveVideo(req.params.id, req.query.private !== 'true')
+  res.json({ success: true, data: result })
+}))
+
+router.delete('/hyperserve/:id', authenticate, validateCsrfToken, asyncHandler(async (req, res) => {
+  res.status(410).json({ success: false, message: 'Media deletion is disabled to preserve existing assets' })
+}))
+
+router.post('/signature', authenticate, validateCsrfToken, asyncHandler(async (req, res) => {
+  throw new ApiError(410, 'Cloudinary video uploads are disabled. Use the Hyperserve media routes.')
+}))
+
+router.post('/upload', authenticate, validateCsrfToken, uploadSingle('media', IMAGE_TYPES), asyncHandler(async (req, res) => {
   if (!req.file) {
     throw new ApiError(400, 'No file uploaded')
   }
   const folder = req.body.folder || 'uploads'
-  const type = isVideoFile(req.file.mimetype, req.file.originalname) ? 'video' : (req.body.resourceType || 'image')
-  const allowed = type === 'video' ? [...IMAGE_TYPES, ...VIDEO_TYPES] : IMAGE_TYPES
-  if (req.file.mimetype !== 'application/octet-stream' && !allowed.includes(req.file.mimetype)) {
+  if (!IMAGE_TYPES.includes(req.file.mimetype)) {
     throw new ApiError(400, 'Invalid file type')
   }
   const uploadId = req.body.uploadId
@@ -43,7 +84,7 @@ router.post('/upload', authenticate, validateCsrfToken, uploadSingle('media', [.
       secureUrl: uploaded.url,
       path: uploaded.path,
       publicId: uploaded.publicId || uploaded.path,
-      resourceType: uploaded.resourceType || type,
+      resourceType: uploaded.resourceType || 'image',
       format: uploaded.format || null,
       mimeType: uploaded.mimeType || req.file.mimetype,
       originalName: uploaded.originalName || req.file.originalname,
@@ -56,14 +97,15 @@ router.post('/upload', authenticate, validateCsrfToken, uploadSingle('media', [.
   })
 }))
 
-router.post('/upload-batch', authenticate, validateCsrfToken, uploadArray('files', MAX_BATCH_FILES), asyncHandler(async (req, res) => {
+router.post('/upload-batch', authenticate, validateCsrfToken, uploadArray('files', MAX_BATCH_FILES, IMAGE_TYPES), asyncHandler(async (req, res) => {
   if (!req.files || req.files.length === 0) {
     throw new ApiError(400, 'No files uploaded')
   }
   const folder = req.body.folder || 'uploads'
-  const type = req.body.resourceType || 'image'
-  const allowed = type === 'video' ? [...IMAGE_TYPES, ...VIDEO_TYPES] : IMAGE_TYPES
-  const invalidFiles = req.files.filter((f) => !allowed.includes(f.mimetype))
+  if (req.body.resourceType === 'video') {
+    throw new ApiError(400, 'Video files must use the signed direct Cloudinary uploader')
+  }
+  const invalidFiles = req.files.filter((f) => !IMAGE_TYPES.includes(f.mimetype))
   if (invalidFiles.length > 0) {
     throw new ApiError(400, `Invalid file type(s): ${invalidFiles.map((f) => f.mimetype).join(', ')}`)
   }
@@ -134,8 +176,11 @@ router.post('/delete', authenticate, validateCsrfToken, asyncHandler(async (req,
   if (!publicId) {
     throw new ApiError(400, 'publicId is required')
   }
-  await deleteFile(publicId)
-  res.json({ success: true, data: { message: 'Deleted' } })
+  if (resourceType === 'hyperserve') {
+    res.status(410).json({ success: false, message: 'Media deletion is disabled to preserve existing assets' })
+    return
+  }
+  res.status(410).json({ success: false, message: 'Media deletion is disabled to preserve existing assets' })
 }))
 
 export default router

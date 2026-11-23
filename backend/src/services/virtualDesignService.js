@@ -5,13 +5,27 @@ import { failure } from '../utils/response.js'
 const MAX_GALLERY_MEDIA = 10
 
 function mapVD(item) {
+  const mediaAssets = Array.isArray(item.mediaAssets) ? item.mediaAssets : []
+  const galleryMedia = (item.mediaUrls || []).map((url) => {
+    const asset = mediaAssets.find((entry) => entry?.role === 'gallery' && entry.secureUrl === url)
+      || mediaAssets.find((entry) => entry?.secureUrl === url)
+    const isVideo = asset?.resourceType === 'video' || url.includes('/video/upload/')
+    return {
+      ...(asset || {}),
+      url,
+      type: isVideo ? 'video/mp4' : 'image',
+      mediaType: isVideo ? 'video' : 'image',
+      asset: asset || null,
+    }
+  })
   return {
     ...item,
     _id: item.id,
     id: item.id,
     mediaUrl: item.imageUrl,
     mediaType: item.mediaType,
-    galleryMedia: (item.mediaUrls || []).map((url) => ({ url, type: item.mediaType })),
+    galleryMedia,
+    mediaAssets,
     imageUrl: item.imageUrl,
     mediaUrls: item.mediaUrls,
     homepageCircularImage: item.homepageCircularImage,
@@ -59,12 +73,15 @@ async function getVirtualDesign(id) {
 
 async function createVirtualDesign(data, file, galleryFiles, circularFile = null) {
   const createData = { ...data }
+  const mediaAssets = Array.isArray(data.mediaAssets) ? data.mediaAssets : []
+  const mainAsset = mediaAssets.find((asset) => asset?.role === 'main')
+  createData.mediaAssets = mediaAssets
 
   if (galleryFiles.length > MAX_GALLERY_MEDIA) {
     throw failure(400, `You can upload a maximum of ${MAX_GALLERY_MEDIA} gallery media files.`)
   }
 
-  const mediaUrls = []
+  const mediaUrls = [...(Array.isArray(data.mediaUrls) ? data.mediaUrls : [])]
   let uploadedPaths = []
 
   const uploadPromises = []
@@ -78,14 +95,19 @@ async function createVirtualDesign(data, file, galleryFiles, circularFile = null
     }
   })
 
-  if (mediaUrls.length > 0) createData.mediaUrls = mediaUrls
+  if (mediaUrls.length > 0) createData.mediaUrls = [...new Set(mediaUrls)]
   if (file) {
     const uploaded = await uploadFile(file.buffer, file.mimetype, 'virtual-designs')
     createData.imageUrl = uploaded.url
     createData.cloudinaryId = uploaded.path
     uploadedPaths.push(uploaded.path)
+  } else if (mainAsset?.secureUrl && mainAsset?.publicId) {
+    createData.imageUrl = mainAsset.secureUrl
+    createData.cloudinaryId = mainAsset.publicId
   } else if (!createData.imageUrl && mediaUrls.length > 0) {
     createData.imageUrl = mediaUrls[0]
+    const firstAsset = mediaAssets.find((asset) => asset?.secureUrl === mediaUrls[0])
+    if (firstAsset?.resourceType === 'video') createData.mediaType = 'video'
   }
 
   if (circularFile) {
@@ -113,6 +135,17 @@ async function updateVirtualDesign(id, data, file, galleryFiles, circularFile = 
 
   const updateData = { ...data }
   let newUploadedPaths = []
+  const mediaAssets = Array.isArray(data.mediaAssets) ? data.mediaAssets : null
+  const mainAsset = mediaAssets?.find((asset) => asset?.role === 'main')
+  const replacedMainId = mainAsset?.publicId && existing.cloudinaryId !== mainAsset.publicId
+    ? existing.cloudinaryId
+    : null
+  if (mediaAssets) updateData.mediaAssets = mediaAssets
+
+  if (mainAsset?.secureUrl && mainAsset?.publicId) {
+    updateData.imageUrl = mainAsset.secureUrl
+    updateData.cloudinaryId = mainAsset.publicId
+  }
 
   if (file) {
     if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
@@ -134,6 +167,11 @@ async function updateVirtualDesign(id, data, file, galleryFiles, circularFile = 
   // The client sends existingMediaUrls as a JSON array of URLs to retain.
   // This replaces the old mediaUrls entirely (no orphaned/stale URLs).
    const keptUrls = Array.isArray(data._keptMediaUrls) ? data._keptMediaUrls : []
+   if (mediaAssets) {
+     updateData.mediaAssets = mediaAssets.filter((asset) => (
+       asset?.role === 'main' || keptUrls.includes(asset?.secureUrl)
+     ))
+   }
 
    if (galleryFiles.length > MAX_GALLERY_MEDIA) {
      throw failure(400, `You can upload a maximum of ${MAX_GALLERY_MEDIA} gallery media files.`)
@@ -178,6 +216,9 @@ async function updateVirtualDesign(id, data, file, galleryFiles, circularFile = 
     }
     throw err
   }
+  if (replacedMainId) {
+    await deleteFile(replacedMainId, existing.mediaType === 'video' ? 'video' : 'image')
+  }
   return mapVD(item)
 }
 
@@ -185,7 +226,7 @@ async function deleteVirtualDesign(id) {
   try {
     const existing = await prisma.virtualDesign.findUnique({ where: { id } })
     if (!existing) throw failure(404, 'Virtual design not found')
-    if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
+    if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId, existing.mediaType === 'video' ? 'video' : 'image')
     // Clean up gallery files
     if (existing.mediaUrls && existing.mediaUrls.length > 0) {
       await deleteFiles(existing.mediaUrls)

@@ -8,6 +8,7 @@ import OptimizedImage from '@components/common/OptimizedImage'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { compressImages } from '../../utils/imageCompression'
 import { uploadPortfolioImages, uploadSingleImage, validateImageFile, warmServer } from '../../services/portfolioUploadService'
+import { mediaService } from '../../services/mediaService'
 import { Link } from 'react-router-dom'
 
 const INITIAL_FORM = {
@@ -393,9 +394,6 @@ export const PortfolioDashboard = () => {
 
   const retryFailedImage = useCallback(async (imageState) => {
     const { file, id, imageType } = imageState
-    const formData = new FormData()
-    formData.append('media', file)
-    formData.append('folder', `portfolio/${imageType}`)
 
     updateUploadImageState(id, { status: 'retrying', error: null, retries: (imageState.retries || 0) + 1 })
 
@@ -421,17 +419,11 @@ export const PortfolioDashboard = () => {
     }
 
     try {
-      const res = await api.post('/media/upload', formData, {
-        timeout: 120000,
-        onUploadProgress: (e) => {
-          if (e.total > 0) {
-            const percent = (e.loaded / e.total) * 100
-            updateUploadImageState(id, { progress: percent })
-          }
-        },
+      const asset = await mediaService.upload(file, `portfolio/${imageType}`, {}, null, {
+        onUploadProgress: (percent) => updateUploadImageState(id, { progress: percent }),
       })
 
-      const url = res.data?.url
+      const url = asset.secureUrl || asset.url
       updateUploadImageState(id, { status: 'completed', progress: 100, url, error: null })
       toast.success(`Image "${file?.name}" uploaded successfully`)
       return url
@@ -912,7 +904,7 @@ export const PortfolioDashboard = () => {
             </motion.div>
             <div>
               <p className="text-sm font-medium text-[var(--primary)]">Drop image here or click to browse</p>
-              <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG, WebP up to 10MB (exactly 1)</p>
+              <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG, WebP up to 100 MB (exactly 1)</p>
             </div>
           </div>
         )}
@@ -1117,7 +1109,7 @@ export const PortfolioDashboard = () => {
             <div>
               <p className="text-sm font-medium text-[var(--primary)]">Drop images here or click to browse</p>
               <p className="text-[10px] text-[var(--primary)]/50 mt-1">
-                PNG, JPG, WebP up to 10MB each
+                PNG, JPG, WebP up to 100 MB each
                 <br />
                 {Math.max(0, MAX_IMAGES - previews.length)} {imageType} slots remaining · {Math.max(0, MAX_TOTAL_IMAGES - totalCount)} total slots remaining
               </p>

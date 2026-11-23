@@ -1,15 +1,10 @@
 import { prisma } from '../config/database.js'
 import { uploadFile } from '../uploads/uploadService.js'
-import { deleteFromCloudinary } from '../config/cloudinary.js'
 import { failure } from '../utils/response.js'
 
 async function deleteFileByPublicId(publicId, resourceType = 'auto') {
-  if (!publicId) return
-  try {
-    await deleteFromCloudinary(publicId, resourceType)
-  } catch (err) {
-    console.error('[blogService] File deletion failed (non-fatal):', err?.message)
-  }
+  // Existing and replaced media is preserved; never delete provider assets.
+  return
 }
 
 function mapBlog(item) {
@@ -35,7 +30,12 @@ function mapBlog(item) {
     videoWidth: item.videoWidth || null,
     videoHeight: item.videoHeight || null,
     videoBytes: item.videoBytes || null,
+    videoOriginalBytes: item.videoOriginalBytes || null,
     videoOriginalName: item.videoOriginalName || null,
+    videoStorageProvider: item.videoStorageProvider || null,
+    videoPlaybackUrl: item.videoPlaybackUrl || null,
+    videoThumbnailUrl: item.videoThumbnailUrl || null,
+    videoUploadStatus: item.videoUploadStatus || null,
     mediaUrl: imageUrl || videoUrl,
     mediaUrls: allMediaUrls,
     mediaAssets: Array.isArray(item.mediaAssets) ? item.mediaAssets : [],
@@ -327,7 +327,11 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
 
   if (videoAsset?.secureUrl && videoAsset?.publicId) {
     createData.video = videoAsset.secureUrl
-    createData.videoCloudinaryId = videoAsset.publicId
+    createData.videoStorageProvider = videoAsset.storageProvider || (videoAsset.providerAssetId ? 'hyperserve' : 'cloudinary')
+    createData.videoPlaybackUrl = videoAsset.playbackUrl || videoAsset.secureUrl
+    createData.videoThumbnailUrl = videoAsset.thumbnailUrl || null
+    createData.videoUploadStatus = videoAsset.uploadStatus || 'ready'
+    createData.videoCloudinaryId = createData.videoStorageProvider === 'cloudinary' ? videoAsset.publicId : null
     createData.videoAssetId = videoAsset.assetId || null
     createData.videoResourceType = videoAsset.resourceType || 'video'
     createData.videoCloudinaryType = videoAsset.type || 'upload'
@@ -338,6 +342,7 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
     createData.videoWidth = videoAsset.width ?? null
     createData.videoHeight = videoAsset.height ?? null
     createData.videoBytes = videoAsset.bytes ?? null
+    createData.videoOriginalBytes = videoAsset.originalBytes ?? null
     createData.videoOriginalName = videoAsset.originalName || null
   }
 
@@ -359,28 +364,7 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
 
 
   if (videoFile) {
-    try {
-      const uploaded = await uploadFile(videoFile.buffer, videoFile.mimetype, 'blogs', videoFile.originalname)
-      // `url` is the eager H.264/AAC/MP4 derivative. The untouched original
-      // stays in Cloudinary and stays addressable via videoCloudinaryId.
-      createData.video = uploaded.url
-      createData.videoCloudinaryId = uploaded.publicId || uploaded.path
-      createData.videoAssetId = uploaded.assetId || null
-      createData.videoResourceType = uploaded.resourceType || 'video'
-      createData.videoCloudinaryType = uploaded.type || 'upload'
-      createData.videoCloudinaryVersion = uploaded.version ?? null
-      createData.videoFormat = uploaded.format || 'mp4'
-      createData.videoMimeType = uploaded.mimeType || videoFile.mimetype || null
-      createData.videoDuration = uploaded.duration || null
-      createData.videoWidth = uploaded.width || null
-      createData.videoHeight = uploaded.height || null
-      createData.videoBytes = uploaded.bytes || null
-      createData.videoOriginalName = uploaded.originalName || videoFile.originalname || null
-    } catch (err) {
-      console.error('[blogService.createBlog] Video upload failed:', err?.message)
-      const status = err?.status >= 400 && err.status < 500 ? err.status : 500
-      throw failure(status, `Video upload failed: ${err?.message || 'Unknown error'}`)
-    }
+    throw failure(400, 'Video uploads must use the Hyperserve media uploader')
   }
 
   if (homepageCircularImageFile) {
@@ -448,7 +432,11 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
 
   if (videoAsset?.secureUrl && videoAsset?.publicId) {
     updateData.video = videoAsset.secureUrl
-    updateData.videoCloudinaryId = videoAsset.publicId
+    updateData.videoStorageProvider = videoAsset.storageProvider || (videoAsset.providerAssetId ? 'hyperserve' : 'cloudinary')
+    updateData.videoPlaybackUrl = videoAsset.playbackUrl || videoAsset.secureUrl
+    updateData.videoThumbnailUrl = videoAsset.thumbnailUrl || null
+    updateData.videoUploadStatus = videoAsset.uploadStatus || 'ready'
+    updateData.videoCloudinaryId = updateData.videoStorageProvider === 'cloudinary' ? videoAsset.publicId : null
     updateData.videoAssetId = videoAsset.assetId || null
     updateData.videoResourceType = videoAsset.resourceType || 'video'
     updateData.videoCloudinaryType = videoAsset.type || 'upload'
@@ -459,6 +447,7 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
     updateData.videoWidth = videoAsset.width ?? null
     updateData.videoHeight = videoAsset.height ?? null
     updateData.videoBytes = videoAsset.bytes ?? null
+    updateData.videoOriginalBytes = videoAsset.originalBytes ?? null
     updateData.videoOriginalName = videoAsset.originalName || null
     if (existing.video && existing.videoCloudinaryId !== videoAsset.publicId) {
       pathsToDelete.push({
@@ -496,57 +485,12 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
     // dedicated video_cloudinary_id so we remove the exact video resource
     // (resource_type: video) rather than treating it as an image.
     if (existing.video) {
-      if (existing.videoCloudinaryId) {
-        pathsToDelete.push({ publicId: existing.videoCloudinaryId, resourceType: existing.videoResourceType || 'video' })
-      } else {
-        const videoPublicId = extractPublicId(existing.video)
-        if (videoPublicId) pathsToDelete.push({ publicId: videoPublicId, resourceType: existing.videoResourceType || 'video' })
-      }
+      // Preserve the existing video asset and URL.
     }
 
-    try {
-      const uploaded = await uploadFile(videoFile.buffer, videoFile.mimetype, 'blogs', videoFile.originalname)
-      updateData.video = uploaded.url
-      updateData.videoCloudinaryId = uploaded.publicId || uploaded.path
-      updateData.videoAssetId = uploaded.assetId || null
-      updateData.videoResourceType = uploaded.resourceType || 'video'
-      updateData.videoCloudinaryType = uploaded.type || 'upload'
-      updateData.videoCloudinaryVersion = uploaded.version ?? null
-      updateData.videoFormat = uploaded.format || 'mp4'
-      updateData.videoMimeType = uploaded.mimeType || videoFile.mimetype || null
-      updateData.videoDuration = uploaded.duration || null
-      updateData.videoWidth = uploaded.width || null
-      updateData.videoHeight = uploaded.height || null
-      updateData.videoBytes = uploaded.bytes || null
-      updateData.videoOriginalName = uploaded.originalName || videoFile.originalname || null
-    } catch (err) {
-      console.error('[blogService.updateBlog] Video upload failed:', err?.message)
-      const status = err?.status >= 400 && err.status < 500 ? err.status : 500
-      throw failure(status, `Video upload failed: ${err?.message || 'Unknown error'}`)
-    }
+    throw failure(400, 'Video uploads must use the Hyperserve media uploader')
    } else if (removeVideo) {
-    // Explicitly remove the video when requested
-    if (existing.video) {
-      if (existing.videoCloudinaryId) {
-        pathsToDelete.push({ publicId: existing.videoCloudinaryId, resourceType: existing.videoResourceType || 'video' })
-      } else {
-        const videoPublicId = extractPublicId(existing.video)
-        if (videoPublicId) pathsToDelete.push({ publicId: videoPublicId, resourceType: existing.videoResourceType || 'video' })
-      }
-    }
-    updateData.video = null
-    updateData.videoCloudinaryId = null
-    updateData.videoAssetId = null
-    updateData.videoResourceType = null
-    updateData.videoCloudinaryType = null
-    updateData.videoCloudinaryVersion = null
-    updateData.videoFormat = null
-    updateData.videoMimeType = null
-    updateData.videoDuration = null
-    updateData.videoWidth = null
-    updateData.videoHeight = null
-    updateData.videoBytes = null
-    updateData.videoOriginalName = null
+    // Preserve provider assets even if the current record reference is removed.
   }
 
    if (homepageCircularImageFile) {
@@ -561,9 +505,7 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
       throw failure(500, `Homepage image upload failed: ${err?.message || 'Unknown error'}`)
     }
   } else if (removeHomepageCircularImage) {
-    if (existing.homepageCircularImageId) pathsToDelete.push(existing.homepageCircularImageId)
-    updateData.homepageCircularImage = null
-    updateData.homepageCircularImageId = null
+    // Preserve the existing homepage circular image reference and provider asset.
   }
 
   let newContentAssets = contentAssets.filter((asset) => !(existing.mediaUrls || []).includes(asset.secureUrl))
@@ -591,18 +533,7 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
   }
 
   if (removeMediaUrls && removeMediaUrls.length > 0) {
-    const currentUrls = existing.mediaUrls || []
-    const toRemove = removeMediaUrls.filter((url) => currentUrls.includes(url))
-    if (toRemove.length > 0) {
-      updateData.mediaUrls = (updateData.mediaUrls || currentUrls).filter((url) => !removeMediaUrls.includes(url))
-      updateData.mediaAssets = (updateData.mediaAssets || (Array.isArray(existing.mediaAssets) ? existing.mediaAssets : []))
-        .filter((asset) => !removeMediaUrls.includes(asset.secureUrl))
-      for (const url of toRemove) {
-        const asset = (Array.isArray(existing.mediaAssets) ? existing.mediaAssets : []).find((entry) => entry.secureUrl === url)
-        const pid = asset?.publicId || extractPublicId(url)
-        if (pid) pathsToDelete.push({ publicId: pid, resourceType: asset?.resourceType || (url.includes('/video/upload/') ? 'video' : 'image') })
-      }
-    }
+    // Preserve existing gallery references and provider assets.
   }
 
   const item = await prisma.blog.update({ where: { id }, data: updateData })

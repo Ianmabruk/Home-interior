@@ -46,7 +46,7 @@ app.use(
       formAction: ["'self'"],
       frameAncestors: ["'none'"],
        imgSrc: ["'self'", 'data:', 'https:'],
-       mediaSrc: ["'self'", 'https://res.cloudinary.com'],
+       mediaSrc: ["'self'", 'https://res.cloudinary.com', 'https://cdn.hyperserve.io'],
        objectSrc: ["'none'"],
       scriptSrc: ["'self'"],
       scriptSrcAttr: ["'none'"],

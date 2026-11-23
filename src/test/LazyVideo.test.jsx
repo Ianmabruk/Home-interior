@@ -23,7 +23,7 @@ describe('LazyVideo', () => {
     })
   })
 
-  it('renders an embedded player with native controls and a Play button', () => {
+  it('renders an embedded player with native controls and one Play button', () => {
     const { container } = render(
       <LazyVideo
         src="https://res.cloudinary.com/demo/video/upload/v1/test.mp4"
@@ -36,8 +36,8 @@ describe('LazyVideo', () => {
     expect(video).toBeInTheDocument()
     expect(video).toHaveAttribute('controls')
     expect(video).toHaveAttribute('playsinline')
-    expect(screen.getByRole('link', { name: 'Download' })).toHaveAttribute('href', 'https://res.cloudinary.com/demo/video/upload/v1/test.mp4')
-    expect(screen.getByRole('button', { name: 'Play video' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(1)
+    expect(screen.queryByText('Download')).not.toBeInTheDocument()
   })
 
   it('starts inline playback when Play is clicked', async () => {
@@ -48,7 +48,7 @@ describe('LazyVideo', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Play video' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Play' }))
 
     await waitFor(() => {
       expect(HTMLMediaElement.prototype.play).toHaveBeenCalled()

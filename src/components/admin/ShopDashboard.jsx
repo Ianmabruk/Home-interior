@@ -22,6 +22,7 @@ import { dispatchAdminDataChanged, ADMIN_EVENT_TYPES, getAdminDataChangedPayload
 import { useIsMobile } from '@hooks/useIsMobile'
 import { SHOP_CATEGORIES } from '../../utils/constants'
 import { compressImages } from '../../utils/imageCompression'
+import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '../../utils/uploadConfig'
 
 const INITIAL_FORM = {
   name: '',
@@ -208,6 +209,12 @@ export const ShopDashboard = () => {
 
   const handleImages = async (e) => {
     const rawFiles = Array.from(e.target.files || [])
+    const oversized = rawFiles.find((file) => file.size > MAX_FILE_SIZE_BYTES)
+    if (oversized) {
+      showError(`File "${oversized.name}" exceeds the maximum allowed size of ${MAX_FILE_SIZE_MB} MB`)
+      e.target.value = ''
+      return
+    }
     const compressed = await compressImages(rawFiles, { maxWidth: 1920, maxHeight: 1920, quality: 0.82 })
     setImageFiles(compressed)
     setImagePreviews(compressed.map((f) => URL.createObjectURL(f)))
@@ -217,6 +224,11 @@ export const ShopDashboard = () => {
     e.preventDefault()
     setIsDragOver(false)
     const rawFiles = Array.from(e.dataTransfer.files || [])
+    const oversized = rawFiles.find((file) => file.size > MAX_FILE_SIZE_BYTES)
+    if (oversized) {
+      showError(`File "${oversized.name}" exceeds the maximum allowed size of ${MAX_FILE_SIZE_MB} MB`)
+      return
+    }
     const compressed = await compressImages(rawFiles, { maxWidth: 1920, maxHeight: 1920, quality: 0.82 })
     setImageFiles(compressed)
     setImagePreviews(compressed.map((f) => URL.createObjectURL(f)))
@@ -632,7 +644,7 @@ export const ShopDashboard = () => {
                   <UploadCloud size={24} />
                 </motion.div>
                 <p className="text-sm text-[var(--primary)]">Drop images here or click to browse</p>
-                <p className="text-[10px] text-[var(--primary)]/50">PNG, JPG up to 10MB</p>
+                <p className="text-[10px] text-[var(--primary)]/50">PNG, JPG up to 100 MB</p>
               </div>
             )}
           </motion.div>

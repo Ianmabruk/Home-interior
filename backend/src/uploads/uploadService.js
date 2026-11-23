@@ -3,7 +3,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 import { supabase, isSupabaseConfigured } from '../config/supabase.js'
-import { uploadToCloudinary, deleteFromCloudinary, deleteManyFromCloudinary, isCloudinaryConfigured } from '../config/cloudinary.js'
+import { uploadToCloudinary, isCloudinaryConfigured } from '../config/cloudinary.js'
 import { failure } from '../utils/response.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -283,44 +283,16 @@ export async function uploadFile(buffer, mimetype, folder, originalName, uploadI
   return uploadToLocal(optimizedBuffer, optimizedMimetype, folder)
 }
 
-export async function deleteFile(storagePath) {
-  if (!storagePath) return
-
-  if (storagePath.startsWith('/uploads/')) {
-    try {
-      const filePath = path.join(process.cwd(), storagePath)
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
-    } catch (err) {
-      console.error('[uploadService] Local file deletion failed:', err?.message)
-    }
-    return
-  }
-
-  if (storagePath.startsWith('http')) {
-    const match = storagePath.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[^.]+)?$/)
-    if (match && match[1]) {
-      const isVideo = storagePath.includes('/video/upload/') || /.(mp4|webm|mov|m4v|avi|mkv|ogg|ogv)$/i.test(storagePath)
-      if (isSupabaseConfigured()) {
-        await deleteFromSupabase(match[1])
-      } else {
-        await deleteFromCloudinary(match[1], isVideo ? 'video' : 'image')
-      }
-    }
-    return
-  }
-
-  if (isSupabaseConfigured()) {
-    await deleteFromSupabase(storagePath)
-  } else {
-    await deleteFromCloudinary(storagePath)
-  }
+export async function deleteFile(storagePath, resourceType = null) {
+  // Absolute media-preservation rule: provider assets are never deleted or
+  // cleaned up automatically, including legacy Cloudinary and Supabase assets.
+  return
 }
 
 export async function deleteFiles(storagePaths) {
-  if (!Array.isArray(storagePaths) || storagePaths.length === 0) return
-  const valid = storagePaths.filter(Boolean)
-  if (valid.length === 0) return
-  await Promise.allSettled(valid.map(deleteFile))
+  // Absolute media-preservation rule: never delete existing or newly replaced
+  // provider assets when records or lists are changed.
+  return
 }
 
 async function uploadToSupabase(buffer, mimetype, folder) {

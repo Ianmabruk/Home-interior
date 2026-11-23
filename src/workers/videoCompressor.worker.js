@@ -71,8 +71,8 @@ self.onmessage = async ({ data }) => {
       video.pix_fmt === 'yuv420p' &&
       width > 0 &&
       height > 0 &&
-      width <= 1080 &&
-      height <= 1080
+      width <= 1920 &&
+      height <= 1920
 
     ffmpeg.on('progress', ({ progress }) => {
       if (Number.isFinite(progress)) {
@@ -86,7 +86,8 @@ self.onmessage = async ({ data }) => {
     })
 
     let exitCode
-    if (compatible) {
+    const canSkipReencoding = compatible && bytes.byteLength <= 8 * 1024 * 1024
+    if (canSkipReencoding) {
       exitCode = await ffmpeg.exec([
         '-i', inputName,
         '-map', '0:v:0',
@@ -97,17 +98,19 @@ self.onmessage = async ({ data }) => {
         outputName,
       ])
     } else {
+      const pixels = width * height
+      const crf = bytes.byteLength > 100 * 1024 * 1024 ? 27 : (pixels >= 1920 * 1080 ? 25 : 26)
       const args = [
         '-i', inputName,
         '-map', '0:v:0',
         '-map', '0:a?',
-        '-vf', "scale=w='min(1080,iw)':h=-2,setsar=1",
+        '-vf', "scale=w='min(1920,iw)':h='min(1920,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1",
         '-c:v', 'libx264',
         '-preset', 'veryfast',
-        '-crf', '27',
+        '-crf', String(crf),
         '-pix_fmt', 'yuv420p',
         '-profile:v', 'high',
-        '-level', '4.1',
+        '-level', '4.2',
         '-sn', '-dn',
       ]
       if (audio) args.push('-c:a', 'aac', '-b:a', '128k')
@@ -123,6 +126,9 @@ self.onmessage = async ({ data }) => {
     if (!(output instanceof Uint8Array) || output.byteLength < 1024) {
       throw new Error('Compression produced an invalid or empty MP4 file.')
     }
+    if (compatible && bytes.byteLength > 20 * 1024 * 1024 && output.byteLength >= bytes.byteLength * 0.95) {
+      throw new Error('This video is already efficiently encoded and could not be safely reduced. Trim it or export it at a lower bitrate before uploading.')
+    }
 
     const contentHash = await hashBytes(output)
     sendProgress('compressing', 100)
@@ -132,7 +138,7 @@ self.onmessage = async ({ data }) => {
       contentHash,
       originalBytes: bytes.byteLength,
       compressedBytes: output.byteLength,
-      reencoded: !compatible,
+      reencoded: !canSkipReencoding,
       width,
       height,
     }, [])

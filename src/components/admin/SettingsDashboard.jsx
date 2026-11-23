@@ -297,7 +297,7 @@ export const SettingsDashboard = () => {
                     >
                       <UploadCloud size={32} className="mx-auto mb-3 text-[var(--accent)]" />
                       <p className="text-sm text-[var(--primary)]">Click to upload shop banner</p>
-                      <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG up to 10MB</p>
+                      <p className="text-[10px] text-[var(--primary)]/50 mt-1">PNG, JPG up to 100 MB</p>
                     </motion.div>
                   )}
                 </div>
