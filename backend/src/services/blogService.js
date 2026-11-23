@@ -25,7 +25,10 @@ function mapBlog(item) {
     imageUrl,
     videoUrl,
     videoCloudinaryId: item.videoCloudinaryId || null,
+    videoAssetId: item.videoAssetId || null,
     videoResourceType: item.videoResourceType || null,
+    videoCloudinaryType: item.videoCloudinaryType || null,
+    videoCloudinaryVersion: item.videoCloudinaryVersion || null,
     videoFormat: item.videoFormat || null,
     videoMimeType: item.videoMimeType || null,
     videoDuration: item.videoDuration || null,
@@ -325,7 +328,10 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
   if (videoAsset?.secureUrl && videoAsset?.publicId) {
     createData.video = videoAsset.secureUrl
     createData.videoCloudinaryId = videoAsset.publicId
+    createData.videoAssetId = videoAsset.assetId || null
     createData.videoResourceType = videoAsset.resourceType || 'video'
+    createData.videoCloudinaryType = videoAsset.type || 'upload'
+    createData.videoCloudinaryVersion = videoAsset.version ?? null
     createData.videoFormat = videoAsset.format || 'mp4'
     createData.videoMimeType = 'video/mp4'
     createData.videoDuration = videoAsset.duration ?? null
@@ -359,7 +365,10 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
       // stays in Cloudinary and stays addressable via videoCloudinaryId.
       createData.video = uploaded.url
       createData.videoCloudinaryId = uploaded.publicId || uploaded.path
+      createData.videoAssetId = uploaded.assetId || null
       createData.videoResourceType = uploaded.resourceType || 'video'
+      createData.videoCloudinaryType = uploaded.type || 'upload'
+      createData.videoCloudinaryVersion = uploaded.version ?? null
       createData.videoFormat = uploaded.format || 'mp4'
       createData.videoMimeType = uploaded.mimeType || videoFile.mimetype || null
       createData.videoDuration = uploaded.duration || null
@@ -393,7 +402,10 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
       mediaAssets.push({
         secureUrl: uploaded.url,
         publicId: uploaded.publicId || uploaded.path,
+        assetId: uploaded.assetId || null,
         resourceType: uploaded.resourceType || 'image',
+        type: uploaded.type || 'upload',
+        version: uploaded.version ?? null,
         format: uploaded.format || null,
         mimeType: uploaded.mimeType || null,
         originalName: uploaded.originalName || null,
@@ -437,7 +449,10 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
   if (videoAsset?.secureUrl && videoAsset?.publicId) {
     updateData.video = videoAsset.secureUrl
     updateData.videoCloudinaryId = videoAsset.publicId
+    updateData.videoAssetId = videoAsset.assetId || null
     updateData.videoResourceType = videoAsset.resourceType || 'video'
+    updateData.videoCloudinaryType = videoAsset.type || 'upload'
+    updateData.videoCloudinaryVersion = videoAsset.version ?? null
     updateData.videoFormat = videoAsset.format || 'mp4'
     updateData.videoMimeType = 'video/mp4'
     updateData.videoDuration = videoAsset.duration ?? null
@@ -493,7 +508,10 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
       const uploaded = await uploadFile(videoFile.buffer, videoFile.mimetype, 'blogs', videoFile.originalname)
       updateData.video = uploaded.url
       updateData.videoCloudinaryId = uploaded.publicId || uploaded.path
+      updateData.videoAssetId = uploaded.assetId || null
       updateData.videoResourceType = uploaded.resourceType || 'video'
+      updateData.videoCloudinaryType = uploaded.type || 'upload'
+      updateData.videoCloudinaryVersion = uploaded.version ?? null
       updateData.videoFormat = uploaded.format || 'mp4'
       updateData.videoMimeType = uploaded.mimeType || videoFile.mimetype || null
       updateData.videoDuration = uploaded.duration || null
@@ -518,7 +536,10 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
     }
     updateData.video = null
     updateData.videoCloudinaryId = null
+    updateData.videoAssetId = null
     updateData.videoResourceType = null
+    updateData.videoCloudinaryType = null
+    updateData.videoCloudinaryVersion = null
     updateData.videoFormat = null
     updateData.videoMimeType = null
     updateData.videoDuration = null
@@ -551,7 +572,10 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
     newContentAssets = newContentAssets.concat(uploads.map((uploaded) => ({
       secureUrl: uploaded.url,
       publicId: uploaded.publicId || uploaded.path,
+      assetId: uploaded.assetId || null,
       resourceType: uploaded.resourceType || 'image',
+      type: uploaded.type || 'upload',
+      version: uploaded.version ?? null,
       format: uploaded.format || null,
       mimeType: uploaded.mimeType || null,
       originalName: uploaded.originalName || null,

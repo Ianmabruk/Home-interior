@@ -186,10 +186,15 @@ export const uploadToCloudinary = async (buffer, mimetype, folder, originalName,
         // source asset addressable for re-processing later.
         url: playableUrl,
         originalUrl: result.secure_url,
+        assetId: result.asset_id || null,
         publicId: result.public_id,
         mimeType: mimetype,
         originalName: originalName || null,
         resourceType: result.resource_type || null,
+        type: result.type || 'upload',
+        version: result.version != null && Number.isFinite(Number(result.version))
+          ? Number(result.version)
+          : null,
         format: playableFormat,
         originalFormat: result.format || null,
         duration: Number.isFinite(duration) ? duration : null,
@@ -251,16 +256,215 @@ export function createSignedVideoUpload(publicId) {
   }
 }
 
-export async function verifyCloudinaryVideo(publicId, secureUrl) {
+const CLOUDINARY_VIDEO_FOLDER = 'hok-interiors/blog-videos'
+const CLOUDINARY_VERIFY_MAX_ATTEMPTS = 3
+
+function redactCloudinaryDiagnostic(value) {
+  let text = String(value || '')
+  for (const secret of [CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET]) {
+    if (secret) text = text.split(secret).join('[redacted]')
+  }
+  return text.replace(/(api_key|api_secret|signature|token)=([^&\s]+)/gi, '$1=[redacted]')
+}
+
+function cloudinaryCauseDetails(error, depth = 0) {
+  if (!error || depth >= 4) return null
+  return {
+    name: redactCloudinaryDiagnostic(error?.name || 'Error'),
+    message: redactCloudinaryDiagnostic(error?.message || 'Unknown Cloudinary error'),
+    code: redactCloudinaryDiagnostic(error?.code || error?.errno || ''),
+    syscall: redactCloudinaryDiagnostic(error?.syscall || ''),
+    hostname: redactCloudinaryDiagnostic(error?.hostname || ''),
+    cause: cloudinaryCauseDetails(error?.cause, depth + 1),
+  }
+}
+
+function cloudinaryErrorDetails(error) {
+  return {
+    name: redactCloudinaryDiagnostic(error?.name || 'Error'),
+    message: redactCloudinaryDiagnostic(error?.message || 'Unknown Cloudinary error'),
+    code: redactCloudinaryDiagnostic(error?.code || error?.errno || ''),
+    httpCode: error?.http_code ?? error?.statusCode ?? null,
+    syscall: redactCloudinaryDiagnostic(error?.syscall || ''),
+    hostname: redactCloudinaryDiagnostic(error?.hostname || ''),
+    cause: cloudinaryCauseDetails(error?.cause),
+    stack: redactCloudinaryDiagnostic(error?.stack || ''),
+  }
+}
+
+function isTransientAdminApiError(error) {
+  const httpCode = Number(error?.http_code || error?.statusCode)
+  if (httpCode === 429 || httpCode >= 500) return true
+  const codes = [
+    error?.code,
+    error?.errno,
+    error?.cause?.code,
+    error?.cause?.errno,
+  ].filter(Boolean)
+  const errorText = [error?.message, error?.cause?.message].filter(Boolean).join(' ')
+  return error?.name === 'TypeError'
+    || error?.name === 'AbortError'
+    || codes.some((code) => /^(ECONNRESET|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|ECONNREFUSED|ECONNABORTED|EPIPE|UND_ERR_CONNECT_TIMEOUT|UND_ERR_HEADERS_TIMEOUT|UND_ERR_BODY_TIMEOUT|UND_ERR_SOCKET)$/i.test(code))
+    || /ECONNRESET|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|ECONNREFUSED|ECONNABORTED|UND_ERR_(?:CONNECT|HEADERS|BODY)_TIMEOUT|socket hang up/i.test(errorText)
+}
+
+function extractPublicIdFromVideoUrl(deliveryUrl) {
+  const prefix = `/${CLOUDINARY_CLOUD_NAME}/video/upload/`
+  if (!deliveryUrl.pathname.startsWith(prefix)) return null
+  const rawPath = deliveryUrl.pathname.slice(prefix.length)
+  const versionMatch = rawPath.match(/^v(\d+)\//)
+  const path = rawPath.replace(/^v\d+\//, '')
+  let decodedPath
+  try {
+    decodedPath = path.split('/').map((part) => decodeURIComponent(part)).join('/')
+  } catch {
+    return null
+  }
+  const finalSlash = decodedPath.lastIndexOf('/')
+  const fileName = decodedPath.slice(finalSlash + 1)
+  const extensionIndex = fileName.lastIndexOf('.')
+  if (extensionIndex < 1) return null
+  const extension = fileName.slice(extensionIndex + 1).toLowerCase()
+  if (!VIDEO_EXTENSIONS.has(extension)) return null
+  const fileStem = fileName.slice(0, extensionIndex)
+  return {
+    publicId: finalSlash === -1 ? fileStem : `${decodedPath.slice(0, finalSlash)}/${fileStem}`,
+    extension,
+    version: versionMatch ? Number(versionMatch[1]) : null,
+  }
+}
+
+function validateCloudinaryVideoResource(resource, { assetId, publicId }) {
+  if (
+    !resource
+    || resource.resource_type !== 'video'
+    || resource.type !== 'upload'
+    || resource.public_id !== publicId
+    || (assetId && resource.asset_id && resource.asset_id !== assetId)
+  ) {
+    throw failure(502, 'Cloudinary returned metadata that does not match the uploaded video', 'CLOUDINARY_ASSET_MISMATCH')
+  }
+  return resource
+}
+
+async function lookupCloudinaryVideo({ assetId, publicId }) {
+  let lastError = null
+  if (assetId) {
+    try {
+      const resource = await cloudinary.api.resource_by_asset_id(assetId)
+      return validateCloudinaryVideoResource(resource, { assetId, publicId })
+    } catch (error) {
+      if (error?.status === 502 && error?.code === 'CLOUDINARY_ASSET_MISMATCH') throw error
+      lastError = error
+      console.error('[Cloudinary] Admin API asset-ID lookup failed; falling back to video public_id', {
+        lookup: 'asset_id',
+        assetId,
+        error: cloudinaryErrorDetails(error),
+      })
+    }
+  }
+
+  for (let attempt = 1; attempt <= CLOUDINARY_VERIFY_MAX_ATTEMPTS; attempt++) {
+    try {
+      const resource = await cloudinary.api.resource(publicId, {
+        resource_type: 'video',
+        type: 'upload',
+      })
+      return validateCloudinaryVideoResource(resource, { assetId, publicId })
+    } catch (error) {
+      if (error?.status === 502 && error?.code === 'CLOUDINARY_ASSET_MISMATCH') throw error
+      lastError = error
+      console.error('[Cloudinary] Admin API video public_id lookup failed', {
+        lookup: 'public_id',
+        resourceType: 'video',
+        deliveryType: 'upload',
+        attempt,
+        error: cloudinaryErrorDetails(error),
+      })
+      if (attempt === CLOUDINARY_VERIFY_MAX_ATTEMPTS || !isTransientAdminApiError(error)) break
+      await sleep(250 * (2 ** (attempt - 1)))
+    }
+  }
+
+  const httpCode = Number(lastError?.http_code || lastError?.statusCode)
+  if (httpCode === 404) {
+    throw failure(404, 'Cloudinary video upload was not found', 'CLOUDINARY_ASSET_NOT_FOUND')
+  }
+  if (httpCode === 401 || httpCode === 403) {
+    throw failure(502, 'Cloudinary rejected the Admin API credentials or account configuration', 'CLOUDINARY_AUTHENTICATION_FAILED')
+  }
+  if (httpCode === 429 || httpCode >= 500 || isTransientAdminApiError(lastError)) {
+    throw failure(503, 'Cloudinary verification is temporarily unavailable. Retry verification without uploading again.', 'CLOUDINARY_VERIFY_TEMPORARY')
+  }
+  throw failure(502, 'Cloudinary could not verify the uploaded video', 'CLOUDINARY_VERIFY_FAILED')
+}
+
+async function checkCloudinaryVideoDelivery(secureUrl) {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 2500)
+  try {
+    let response = await fetch(secureUrl, { method: 'HEAD', signal: controller.signal })
+    if (response.status === 405 || response.status === 501) {
+      response = await fetch(secureUrl, {
+        method: 'GET',
+        headers: { Range: 'bytes=0-0' },
+        signal: controller.signal,
+      })
+      await response.body?.cancel()
+    }
+    const delivery = {
+      accessible: response.ok || response.status === 206,
+      status: response.status,
+      contentType: response.headers.get('content-type'),
+      contentLength: response.headers.get('content-length'),
+      acceptRanges: response.headers.get('accept-ranges'),
+      cloudinaryError: response.headers.get('x-cld-error'),
+    }
+    if (!delivery.accessible) {
+      console.warn('[Cloudinary] Secondary video delivery check returned an HTTP failure', {
+        status: delivery.status,
+        contentType: delivery.contentType,
+        contentLength: delivery.contentLength,
+        acceptRanges: delivery.acceptRanges,
+        cloudinaryError: redactCloudinaryDiagnostic(delivery.cloudinaryError || ''),
+      })
+    }
+    return delivery
+  } catch (error) {
+    console.warn('[Cloudinary] Secondary video delivery check could not complete', {
+      error: cloudinaryErrorDetails(error),
+    })
+    return { accessible: null, status: null }
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+export async function verifyCloudinaryVideo({
+  assetId,
+  publicId,
+  resourceType,
+  type,
+  secureUrl,
+  version,
+  format,
+  bytes,
+}) {
   if (!isConfigured) {
-    throw failure(503, 'Cloudinary is not configured')
+    throw failure(503, 'Cloudinary is not configured', 'CLOUDINARY_NOT_CONFIGURED')
   }
   if (
     typeof publicId !== 'string'
-    || !/^[a-zA-Z0-9_-]{8,180}$/.test(publicId)
+    || !/^[a-zA-Z0-9_/-]{8,220}$/.test(publicId)
     || typeof secureUrl !== 'string'
+    || (resourceType != null && resourceType !== 'video')
+    || (type != null && type !== 'upload')
+    || (assetId != null && (typeof assetId !== 'string' || assetId.length > 200))
+    || (version != null && (!Number.isInteger(Number(version)) || Number(version) < 1))
+    || (format != null && (typeof format !== 'string' || !/^[a-zA-Z0-9]{2,8}$/.test(format)))
+    || (bytes != null && (!Number.isFinite(Number(bytes)) || Number(bytes) < 0))
   ) {
-    throw failure(400, 'Cloudinary public_id and secure_url are required')
+    throw failure(400, 'Valid Cloudinary video metadata and secure_url are required', 'INVALID_CLOUDINARY_VIDEO_METADATA')
   }
   let deliveryUrl
   try {
@@ -268,77 +472,99 @@ export async function verifyCloudinaryVideo(publicId, secureUrl) {
   } catch {
     throw failure(422, 'The uploaded asset is not a valid Cloudinary video URL')
   }
-  const expectedPrefix = `/${CLOUDINARY_CLOUD_NAME}/video/upload/`
   if (
     deliveryUrl.protocol !== 'https:'
     || deliveryUrl.hostname !== 'res.cloudinary.com'
-    || !deliveryUrl.pathname.includes(expectedPrefix)
+    || deliveryUrl.port
+    || deliveryUrl.search
+    || deliveryUrl.hash
   ) {
-    throw failure(422, 'The uploaded asset is not a secure Cloudinary video URL')
+    throw failure(422, 'The uploaded asset is not a secure Cloudinary video URL', 'INVALID_CLOUDINARY_VIDEO_URL')
   }
 
-  const fileName = deliveryUrl.pathname.split('/').pop() || ''
-  const extension = fileName.slice(fileName.lastIndexOf('.') + 1).toLowerCase()
+  const urlMetadata = extractPublicIdFromVideoUrl(deliveryUrl)
+  const expectedPublicId = urlMetadata?.publicId
+  if (!expectedPublicId || !expectedPublicId.startsWith(`${CLOUDINARY_VIDEO_FOLDER}/`)) {
+    throw failure(422, 'The uploaded asset URL is not in the signed video upload folder', 'INVALID_CLOUDINARY_VIDEO_URL')
+  }
+  const requestedPublicIdMatches = publicId === expectedPublicId
+    || (!publicId.includes('/') && expectedPublicId.endsWith(`/${publicId}`))
+  if (!requestedPublicIdMatches) {
+    throw failure(422, 'The video URL does not match the signed Cloudinary public_id', 'CLOUDINARY_PUBLIC_ID_MISMATCH')
+  }
   if (
-    fileName.slice(0, -(extension.length + 1)) !== publicId
-    || !VIDEO_EXTENSIONS.has(extension)
+    (version != null && Number(version) !== urlMetadata.version)
+    || (format != null && format.toLowerCase() !== urlMetadata.extension)
   ) {
-    throw failure(422, 'The video URL does not match the signed Cloudinary public_id')
+    throw failure(422, 'The uploaded video metadata does not match its secure URL', 'CLOUDINARY_UPLOAD_METADATA_MISMATCH')
   }
 
-  let resource = null
-  let lookupError = null
-  try {
-    resource = await cloudinary.api.resource(publicId, { resource_type: 'video' })
-  } catch (err) {
-    lookupError = err
-    console.warn('[Cloudinary] Admin API video lookup failed; checking the signed delivery URL', {
-      httpCode: err?.http_code || null,
-      errorName: err?.name || 'Error',
-    })
+  const resource = await lookupCloudinaryVideo({
+    assetId: assetId || undefined,
+    publicId: expectedPublicId,
+  })
+  if (resource.access_mode && resource.access_mode !== 'public') {
+    throw failure(422, 'The Cloudinary video exists but is not configured for public delivery', 'CLOUDINARY_VIDEO_NOT_PUBLIC')
   }
-
-  let result = resource?.resource_type === 'video' && resource?.public_id === publicId
-    ? resource
-    : null
-  const verifiedUrl = result?.secure_url || secureUrl
-  let accessible = false
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 10000)
-  try {
-    const response = await fetch(verifiedUrl, {
-      method: 'HEAD',
-      headers: { Range: 'bytes=0-0' },
-      signal: controller.signal,
-    })
-    accessible = response.ok || response.status === 206
-  } catch {
-    accessible = false
-  } finally {
-    clearTimeout(timeoutId)
-  }
-  if (!accessible) {
-    if (lookupError?.http_code === 404) {
-      throw failure(404, 'Cloudinary video upload not found')
+  let verifiedSecureUrl = secureUrl
+  if (resource.secure_url) {
+    let resourceUrl
+    try {
+      resourceUrl = new URL(resource.secure_url)
+    } catch {
+      throw failure(502, 'Cloudinary returned an invalid video delivery URL', 'CLOUDINARY_ASSET_MISMATCH')
     }
-    if (lookupError?.http_code === 429) {
-      throw failure(503, 'Cloudinary is temporarily busy. Retry video verification.')
+    const resourceUrlMetadata = extractPublicIdFromVideoUrl(resourceUrl)
+    if (
+      resourceUrl.protocol !== 'https:'
+      || resourceUrl.hostname !== 'res.cloudinary.com'
+      || resourceUrlMetadata?.publicId !== resource.public_id
+      || (resource.version != null && resourceUrlMetadata.version !== Number(resource.version))
+    ) {
+      throw failure(502, 'Cloudinary returned video delivery metadata for a different asset', 'CLOUDINARY_ASSET_MISMATCH')
     }
-    throw failure(502, 'Cloudinary accepted the upload, but the video is not accessible yet. Retry verification.')
+    verifiedSecureUrl = resource.secure_url
   }
-
+  if (
+    (version != null && Number(version) !== Number(resource.version))
+    || (format != null && format.toLowerCase() !== String(resource.format || '').toLowerCase())
+    || (bytes != null && Number(bytes) !== Number(resource.bytes))
+  ) {
+    throw failure(502, 'Cloudinary asset metadata does not match the completed upload response', 'CLOUDINARY_UPLOAD_METADATA_MISMATCH')
+  }
   const metadataNumber = (value) => (
     value != null && Number.isFinite(Number(value)) ? Number(value) : null
   )
+  const delivery = await checkCloudinaryVideoDelivery(verifiedSecureUrl)
+  if (delivery.accessible === false) {
+    if (delivery.status === 404) {
+      throw failure(503, 'The video exists in Cloudinary but is not available from its delivery URL yet. Retry verification.', 'CLOUDINARY_VIDEO_DELIVERY_NOT_READY')
+    }
+    if (delivery.status === 429 || delivery.status >= 500) {
+      throw failure(503, 'Cloudinary video delivery is temporarily unavailable. Retry verification.', 'CLOUDINARY_VERIFY_TEMPORARY')
+    }
+    if (delivery.status === 401 || delivery.status === 403) {
+      throw failure(422, 'The Cloudinary video exists but its delivery URL is restricted', 'CLOUDINARY_VIDEO_NOT_PUBLIC')
+    }
+    throw failure(502, 'The Cloudinary video exists, but its delivery URL returned an unexpected response', 'CLOUDINARY_VIDEO_DELIVERY_UNAVAILABLE')
+  }
   return {
-    secureUrl: result?.secure_url || secureUrl,
-    publicId,
+    assetId: resource.asset_id || assetId || null,
+    secureUrl: verifiedSecureUrl,
+    publicId: resource.public_id,
     resourceType: 'video',
-    format: result?.format || extension,
-    duration: metadataNumber(result?.duration),
-    width: metadataNumber(result?.width),
-    height: metadataNumber(result?.height),
-    bytes: metadataNumber(result?.bytes),
+    type: resource.type || 'upload',
+    version: metadataNumber(resource.version),
+    format: resource.format || urlMetadata.extension,
+    duration: metadataNumber(resource.duration),
+    width: metadataNumber(resource.width),
+    height: metadataNumber(resource.height),
+    bytes: metadataNumber(resource.bytes),
+    deliveryAccessible: delivery.accessible,
+    deliveryStatus: delivery.status,
+    deliveryContentType: delivery.contentType || null,
+    deliveryContentLength: delivery.contentLength || null,
+    deliveryAcceptRanges: delivery.acceptRanges || null,
   }
 }
 

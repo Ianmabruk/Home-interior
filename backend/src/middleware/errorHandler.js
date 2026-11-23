@@ -53,7 +53,8 @@ export function errorHandler(err, req, res, next) {
     : (err?.status && err.status >= 400 && err.status < 500 ? err.status : 500)
 
   const inProduction = process.env.NODE_ENV === 'production'
-  const message = inProduction && status >= 500
+  const isCloudinaryAppError = typeof err?.code === 'string' && err.code.startsWith('CLOUDINARY_')
+  const message = inProduction && status >= 500 && !isCloudinaryAppError
     ? 'Internal server error'
     : (isOperational ? err.message : (err?.message || 'Internal server error'))
 
@@ -70,7 +71,7 @@ export function errorHandler(err, req, res, next) {
   // so their code/details are logged server-side and never serialised.
   // Our own codes are SCREAMING_SNAKE_CASE, e.g. TOTAL_IMAGE_LIMIT_EXCEEDED.
   const isAppCode = typeof err?.code === 'string' && /^[A-Z][A-Z0-9]*(_[A-Z0-9]+)+$/.test(err.code)
-  if (status < 500) {
+  if (status < 500 || isCloudinaryAppError) {
     if (isAppCode) body.code = err.code
     if (err?.details) body.details = err.details
   }

@@ -71,7 +71,16 @@ export const blogController = {
   }),
 
   verifyVideoUpload: asyncHandler(async (req, res) => {
-    const data = await verifyCloudinaryVideo(req.body?.publicId, req.body?.secureUrl)
+    const data = await verifyCloudinaryVideo({
+      assetId: req.body?.assetId,
+      publicId: req.body?.publicId,
+      resourceType: req.body?.resourceType,
+      type: req.body?.type,
+      secureUrl: req.body?.secureUrl,
+      version: req.body?.version,
+      format: req.body?.format,
+      bytes: req.body?.bytes,
+    })
     res.json({ success: true, data })
   }),
   list: asyncHandler(async (req, res) => {
