@@ -243,7 +243,7 @@ export function createSignedVideoUpload(publicId) {
   const timestamp = Math.floor(Date.now() / 1000)
   const folder = 'hok-interiors/blog-videos'
   const signature = cloudinary.utils.api_sign_request(
-    { timestamp, folder, public_id: publicId, overwrite: false },
+    { timestamp, folder, public_id: publicId, overwrite: true },
     CLOUDINARY_API_SECRET,
   )
   return {

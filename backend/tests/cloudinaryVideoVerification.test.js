@@ -18,7 +18,7 @@ process.env.CLOUDINARY_API_SECRET = 'test-secret'
 
 jest.unstable_mockModule('cloudinary', () => ({ v2: cloudinaryMock }))
 
-const { verifyCloudinaryVideo } = await import('../src/config/cloudinary.js')
+const { createSignedVideoUpload, verifyCloudinaryVideo } = await import('../src/config/cloudinary.js')
 
 const asset = {
   asset_id: 'asset-123',
@@ -49,6 +49,28 @@ describe('verifyCloudinaryVideo', () => {
   afterEach(() => {
     globalThis.fetch = originalFetch
     jest.restoreAllMocks()
+  })
+
+  it('signs the same overwrite parameter sent by the browser upload', () => {
+    cloudinaryMock.utils.api_sign_request.mockReturnValue('test-signature')
+
+    const signed = createSignedVideoUpload('hok-blog-video123')
+
+    expect(cloudinaryMock.utils.api_sign_request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        folder: 'hok-interiors/blog-videos',
+        public_id: 'hok-blog-video123',
+        overwrite: true,
+      }),
+      'test-secret',
+    )
+    expect(signed).toMatchObject({
+      cloudName: 'test-cloud',
+      apiKey: 'test-key',
+      signature: 'test-signature',
+      folder: 'hok-interiors/blog-videos',
+      publicId: 'hok-blog-video123',
+    })
   })
 
   it('uses the asset ID first and returns authoritative video metadata', async () => {

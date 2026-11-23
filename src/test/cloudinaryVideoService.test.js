@@ -20,7 +20,8 @@ class MockXMLHttpRequest {
     this.url = url
   }
 
-  send() {
+  send(form) {
+    this.form = form
     queueMicrotask(() => {
       this.status = this.status || 200
       this.responseText = JSON.stringify({
@@ -79,5 +80,6 @@ describe('Cloudinary direct video upload', () => {
     })
     expect(api.post).toHaveBeenCalledTimes(1)
     expect(api.post).toHaveBeenCalledWith('/admin/blog/cloudinary/signature', expect.any(Object))
+    expect(MockXMLHttpRequest.instances[0].form.get('overwrite')).toBe('true')
   })
 })
