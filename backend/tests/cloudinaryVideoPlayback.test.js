@@ -69,4 +69,35 @@ describe('Cloudinary video playback uploads', () => {
       uploadSpy.mockRestore()
     }
   })
+
+  it('uses the stable upload ID supplied by the browser for retry-safe media uploads', async () => {
+    let uploadOptions
+    const uploadSpy = jest.spyOn(cloudinary.uploader, 'upload_stream').mockImplementation((options, callback) => {
+      uploadOptions = options
+      return {
+        end: () => callback(null, {
+          secure_url: 'https://res.cloudinary.com/test-cloud/image/upload/v123/blogs/room.webp',
+          public_id: 'blogs/blog-media-stable-upload',
+          resource_type: 'image',
+          format: 'webp',
+          bytes: 12000,
+        }),
+      }
+    })
+
+    try {
+      await uploadToCloudinary(
+        Buffer.from('image-data'),
+        'image/webp',
+        'blogs',
+        'room.webp',
+        'blog-media-stable-upload',
+      )
+
+      expect(uploadOptions.public_id).toBe('blog-media-stable-upload')
+      expect(uploadOptions.overwrite).toBe(true)
+    } finally {
+      uploadSpy.mockRestore()
+    }
+  })
 })

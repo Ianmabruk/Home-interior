@@ -7,7 +7,8 @@ import { createSignedVideoUpload, verifyCloudinaryVideo } from '../config/cloudi
 function validateSavedVideoAsset(asset) {
   if (!asset) return null
   if (
-    typeof asset.secureUrl !== 'string'
+    (asset.resourceType && asset.resourceType !== 'video')
+    || typeof asset.secureUrl !== 'string'
     || !asset.secureUrl.startsWith('https://res.cloudinary.com/')
     || !asset.secureUrl.includes('/video/upload/')
     || typeof asset.publicId !== 'string'
@@ -19,6 +20,45 @@ function validateSavedVideoAsset(asset) {
     ...asset,
     resourceType: 'video',
   }
+}
+
+function validateSavedImageAsset(asset) {
+  if (!asset) return null
+  if (
+    asset.resourceType !== 'image'
+    || typeof asset.secureUrl !== 'string'
+    || !asset.secureUrl.startsWith('https://res.cloudinary.com/')
+    || !asset.secureUrl.includes('/image/upload/')
+    || typeof asset.publicId !== 'string'
+    || !asset.publicId
+  ) {
+    throw failure(422, 'Invalid image asset. Upload the image again.')
+  }
+  return { ...asset, resourceType: 'image' }
+}
+
+function validateSavedMediaAssets(assets) {
+  if (!Array.isArray(assets) || assets.length > 80) {
+    throw failure(422, 'Invalid media references. Upload up to 80 gallery files at a time.')
+  }
+  const seen = new Set()
+  return assets.map((asset) => {
+    const resourceType = asset?.resourceType
+    const requiredPath = resourceType === 'video' ? '/video/upload/' : '/image/upload/'
+    if (
+      !['image', 'video'].includes(resourceType)
+      || typeof asset.secureUrl !== 'string'
+      || !asset.secureUrl.startsWith('https://res.cloudinary.com/')
+      || !asset.secureUrl.includes(requiredPath)
+      || typeof asset.publicId !== 'string'
+      || !asset.publicId
+      || seen.has(asset.secureUrl)
+    ) {
+      throw failure(422, 'Invalid media reference. Upload the file again.')
+    }
+    seen.add(asset.secureUrl)
+    return asset
+  })
 }
 
 export const blogController = {
@@ -130,6 +170,8 @@ export const blogController = {
        displayOrder: Number(req.body.displayOrder) || 0,
        publishDate: req.body.publishDate ? new Date(req.body.publishDate) : null,
        videoAsset: req.body.videoAsset || null,
+       imageAsset: req.body.imageAsset ? validateSavedImageAsset(req.body.imageAsset) : null,
+       mediaAssets: req.body.mediaAssets ? validateSavedMediaAssets(req.body.mediaAssets) : [],
      }
 
       if (data.videoAsset) {
@@ -166,6 +208,8 @@ export const blogController = {
     if (req.body.displayOrder !== undefined) data.displayOrder = req.body.displayOrder
     if (req.body.publishDate !== undefined) data.publishDate = req.body.publishDate ? new Date(req.body.publishDate) : null
     if (req.body.videoAsset !== undefined) data.videoAsset = req.body.videoAsset
+    if (req.body.imageAsset !== undefined) data.imageAsset = validateSavedImageAsset(req.body.imageAsset)
+    if (req.body.mediaAssets !== undefined) data.mediaAssets = validateSavedMediaAssets(req.body.mediaAssets)
 
     if (data.videoAsset) {
       data.videoAsset = validateSavedVideoAsset(data.videoAsset)
@@ -175,9 +219,14 @@ export const blogController = {
     let removeMediaUrls = []
     if (req.body.removeMediaUrls) {
       try {
-        removeMediaUrls = JSON.parse(req.body.removeMediaUrls)
+        removeMediaUrls = Array.isArray(req.body.removeMediaUrls)
+          ? req.body.removeMediaUrls
+          : JSON.parse(req.body.removeMediaUrls)
       } catch {
-        removeMediaUrls = []
+        throw failure(400, 'Invalid media removal references')
+      }
+      if (!Array.isArray(removeMediaUrls) || removeMediaUrls.some((url) => typeof url !== 'string')) {
+        throw failure(400, 'Invalid media removal references')
       }
     }
 

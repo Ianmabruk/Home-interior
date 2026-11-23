@@ -6,26 +6,54 @@ import { uploadSingle, uploadArray } from '../middleware/upload.js'
 import { validateCsrfToken } from '../middleware/csrf.js'
 import { generateCsrfToken } from '../middleware/csrf.js'
 import { ApiError } from '../utils/ApiError.js'
+import { isVideoFile } from '../config/cloudinary.js'
 
 const router = Router()
 
-const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg']
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']
+const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-m4v', 'video/x-msvideo', 'video/x-matroska']
 const MAX_BATCH_FILES = 50
 
-router.post('/upload', authenticate, validateCsrfToken, uploadSingle('media'), asyncHandler(async (req, res) => {
+router.post('/upload', authenticate, validateCsrfToken, uploadSingle('media', [...IMAGE_TYPES, ...VIDEO_TYPES]), asyncHandler(async (req, res) => {
   if (!req.file) {
     throw new ApiError(400, 'No file uploaded')
   }
   const folder = req.body.folder || 'uploads'
-  const type = req.body.resourceType || 'image'
+  const type = isVideoFile(req.file.mimetype, req.file.originalname) ? 'video' : (req.body.resourceType || 'image')
   const allowed = type === 'video' ? [...IMAGE_TYPES, ...VIDEO_TYPES] : IMAGE_TYPES
-  if (!allowed.includes(req.file.mimetype)) {
+  if (req.file.mimetype !== 'application/octet-stream' && !allowed.includes(req.file.mimetype)) {
     throw new ApiError(400, 'Invalid file type')
   }
-  const uploaded = await uploadFile(req.file.buffer, req.file.mimetype, folder)
+  const uploadId = req.body.uploadId
+  if (uploadId && (!/^[a-zA-Z0-9-]{16,64}$/.test(uploadId) || folder !== 'blogs')) {
+    throw new ApiError(400, 'Invalid upload identifier')
+  }
+  const uploaded = await uploadFile(
+    req.file.buffer,
+    req.file.mimetype,
+    folder,
+    req.file.originalname,
+    uploadId ? `blog-media-${uploadId}` : null,
+  )
   const csrfToken = generateCsrfToken()
-  res.status(201).json({ success: true, data: { url: uploaded.url, path: uploaded.path, csrfToken } })
+  res.status(201).json({
+    success: true,
+    data: {
+      url: uploaded.url,
+      secureUrl: uploaded.url,
+      path: uploaded.path,
+      publicId: uploaded.publicId || uploaded.path,
+      resourceType: uploaded.resourceType || type,
+      format: uploaded.format || null,
+      mimeType: uploaded.mimeType || req.file.mimetype,
+      originalName: uploaded.originalName || req.file.originalname,
+      duration: uploaded.duration ?? null,
+      width: uploaded.width ?? null,
+      height: uploaded.height ?? null,
+      bytes: uploaded.bytes ?? req.file.size,
+      csrfToken,
+    },
+  })
 }))
 
 router.post('/upload-batch', authenticate, validateCsrfToken, uploadArray('files', MAX_BATCH_FILES), asyncHandler(async (req, res) => {

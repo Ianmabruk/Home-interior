@@ -93,6 +93,135 @@ describe('Blog uploads and publishing', () => {
     uploadSpy.mockRestore()
   })
 
+  it('should publish and update blog media references without sending binary files', async () => {
+    const imageAsset = {
+      secureUrl: 'https://res.cloudinary.com/demo/image/upload/v1/blogs/cover.webp',
+      publicId: 'blogs/cover',
+      resourceType: 'image',
+      format: 'webp',
+      mimeType: 'image/webp',
+      bytes: 12000,
+    }
+    const initialMedia = [
+      {
+        secureUrl: 'https://res.cloudinary.com/demo/image/upload/v1/blogs/gallery.webp',
+        publicId: 'blogs/gallery',
+        resourceType: 'image',
+        format: 'webp',
+        mimeType: 'image/webp',
+        originalName: 'gallery.webp',
+        bytes: 15000,
+      },
+      {
+        secureUrl: 'https://res.cloudinary.com/demo/video/upload/v1/blogs/walkthrough.mp4',
+        publicId: 'blogs/walkthrough',
+        resourceType: 'video',
+        format: 'mp4',
+        mimeType: 'video/mp4',
+        originalName: 'walkthrough.mp4',
+        duration: 12.5,
+        width: 1280,
+        height: 720,
+        bytes: 75000,
+      },
+    ]
+    const createRes = await request(app)
+      .post(`${API}/admin/blog`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
+      .send({
+        title: 'test_Blog Media References',
+        published: true,
+        imageAsset,
+        mediaAssets: initialMedia,
+      })
+
+    expect(createRes.status).toBe(201)
+    expect(createRes.body.data.image).toBe(imageAsset.secureUrl)
+    expect(createRes.body.data.cloudinaryId).toBe(imageAsset.publicId)
+    expect(createRes.body.data.mediaUrls).toEqual(initialMedia.map((asset) => asset.secureUrl))
+    expect(createRes.body.data.mediaAssets).toEqual(initialMedia)
+
+    const addedVideo = {
+      secureUrl: 'https://res.cloudinary.com/demo/video/upload/v1/blogs/second-room.mp4',
+      publicId: 'blogs/second-room',
+      resourceType: 'video',
+      format: 'mp4',
+      mimeType: 'video/mp4',
+      originalName: 'second-room.mp4',
+      duration: 8,
+      width: 1280,
+      height: 720,
+      bytes: 43000,
+    }
+    const updateRes = await request(app)
+      .patch(`${API}/admin/blog/${createRes.body.data.id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
+      .send({ mediaAssets: [addedVideo] })
+
+    expect(updateRes.status).toBe(200)
+    expect(updateRes.body.data.mediaUrls).toEqual([...initialMedia.map((asset) => asset.secureUrl), addedVideo.secureUrl])
+    expect(updateRes.body.data.mediaAssets).toEqual([...initialMedia, addedVideo])
+    expect(updateRes.body.data.videoUrl).toBeNull()
+  })
+
+  it('should accept 74 images and six videos as media references', async () => {
+    const mediaAssets = [
+      ...Array.from({ length: 74 }, (_, index) => ({
+        secureUrl: `https://res.cloudinary.com/demo/image/upload/v1/blogs/bulk-image-${index}.webp`,
+        publicId: `blogs/bulk-image-${index}`,
+        resourceType: 'image',
+        format: 'webp',
+        mimeType: 'image/webp',
+        originalName: `bulk-image-${index}.webp`,
+        bytes: 12000,
+      })),
+      ...Array.from({ length: 6 }, (_, index) => ({
+        secureUrl: `https://res.cloudinary.com/demo/video/upload/v1/blogs/bulk-video-${index}.mp4`,
+        publicId: `blogs/bulk-video-${index}`,
+        resourceType: 'video',
+        format: 'mp4',
+        mimeType: 'video/mp4',
+        originalName: `bulk-video-${index}.mp4`,
+        duration: 10,
+        width: 1280,
+        height: 720,
+        bytes: 50000,
+      })),
+    ]
+
+    const res = await request(app)
+      .post(`${API}/admin/blog`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
+      .send({ title: 'test_Blog Large Media Batch', published: true, mediaAssets })
+
+    expect(res.status).toBe(201)
+    expect(res.body.data.mediaAssets).toHaveLength(80)
+    expect(res.body.data.mediaUrls).toHaveLength(80)
+    expect(res.body.data.mediaAssets.filter((asset) => asset.resourceType === 'image')).toHaveLength(74)
+    expect(res.body.data.mediaAssets.filter((asset) => asset.resourceType === 'video')).toHaveLength(6)
+  })
+
+  it('should reject media references that are not Cloudinary assets', async () => {
+    const res = await request(app)
+      .post(`${API}/admin/blog`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-csrf-token', csrfToken)
+      .send({
+        title: 'test_Blog Invalid Media Reference',
+        mediaAssets: [{
+          secureUrl: 'https://example.invalid/anything.jpg',
+          publicId: 'external',
+          resourceType: 'image',
+        }],
+      })
+
+    expect(res.status).toBe(422)
+    expect(res.body.message).toMatch(/Invalid media reference/i)
+  })
+
   it('should not silently replace a failed Cloudinary upload with local storage in production', async () => {
     const originalEnv = process.env.NODE_ENV
     const originalCloudName = process.env.CLOUDINARY_CLOUD_NAME

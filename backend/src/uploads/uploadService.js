@@ -149,7 +149,7 @@ function recordFailedUpload(entry) {
   }
 }
 
-export async function uploadFile(buffer, mimetype, folder, originalName) {
+export async function uploadFile(buffer, mimetype, folder, originalName, uploadId = null) {
   if (!buffer) {
     throw failure(400, 'No file buffer provided for upload')
   }
@@ -174,7 +174,7 @@ export async function uploadFile(buffer, mimetype, folder, originalName) {
 
   if (useCloudinary) {
     try {
-      const uploaded = await uploadToCloudinary(optimizedBuffer, optimizedMimetype, folder, originalName)
+      const uploaded = await uploadToCloudinary(optimizedBuffer, optimizedMimetype, folder, originalName, uploadId)
       return {
         url: uploaded.url,
         originalUrl: uploaded.originalUrl,

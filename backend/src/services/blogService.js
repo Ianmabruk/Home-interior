@@ -35,6 +35,7 @@ function mapBlog(item) {
     videoOriginalName: item.videoOriginalName || null,
     mediaUrl: imageUrl || videoUrl,
     mediaUrls: allMediaUrls,
+    mediaAssets: Array.isArray(item.mediaAssets) ? item.mediaAssets : [],
     mediaType: videoUrl ? 'video' : 'image',
     category: item.category || '',
     tags: Array.isArray(item.tags) ? item.tags : [],
@@ -315,7 +316,11 @@ async function incrementViews(id) {
 async function createBlog(data, imageFile, videoFile, contentFiles = [], homepageCircularImageFile = null) {
   const createData = { ...data }
   const videoAsset = createData.videoAsset
+  const imageAsset = createData.imageAsset
+  const contentAssets = Array.isArray(createData.mediaAssets) ? createData.mediaAssets : []
   delete createData.videoAsset
+  delete createData.imageAsset
+  delete createData.mediaAssets
 
   if (videoAsset?.secureUrl && videoAsset?.publicId) {
     createData.video = videoAsset.secureUrl
@@ -328,6 +333,11 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
     createData.videoHeight = videoAsset.height ?? null
     createData.videoBytes = videoAsset.bytes ?? null
     createData.videoOriginalName = videoAsset.originalName || null
+  }
+
+  if (imageAsset?.secureUrl && imageAsset?.publicId) {
+    createData.image = imageAsset.secureUrl
+    createData.cloudinaryId = imageAsset.publicId
   }
 
    if (imageFile) {
@@ -378,16 +388,27 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
   }
 
   const mediaUrls = []
+  const mediaAssets = [...contentAssets]
   if (contentFiles.length > 0) {
-    const uploadPromises = contentFiles.map((f) => uploadFile(f.buffer, f.mimetype, 'blogs', f.originalname))
-    const results = await Promise.allSettled(uploadPromises)
-    results.forEach((result) => {
-      if (result.status === 'fulfilled') {
-        mediaUrls.push(result.value.url)
-      }
+    const uploads = await Promise.all(contentFiles.map((f) => uploadFile(f.buffer, f.mimetype, 'blogs', f.originalname)))
+    uploads.forEach((uploaded) => {
+      mediaAssets.push({
+        secureUrl: uploaded.url,
+        publicId: uploaded.publicId || uploaded.path,
+        resourceType: uploaded.resourceType || 'image',
+        format: uploaded.format || null,
+        mimeType: uploaded.mimeType || null,
+        originalName: uploaded.originalName || null,
+        duration: uploaded.duration ?? null,
+        width: uploaded.width ?? null,
+        height: uploaded.height ?? null,
+        bytes: uploaded.bytes ?? null,
+      })
     })
   }
+  mediaAssets.forEach((asset) => mediaUrls.push(asset.secureUrl))
   if (mediaUrls.length > 0) createData.mediaUrls = mediaUrls
+  if (mediaAssets.length > 0) createData.mediaAssets = mediaAssets
 
   if (!createData.slug && createData.title) {
     createData.slug = createData.title
@@ -408,7 +429,11 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
 
   const updateData = { ...data }
   const videoAsset = updateData.videoAsset
+  const imageAsset = updateData.imageAsset
+  const contentAssets = Array.isArray(updateData.mediaAssets) ? updateData.mediaAssets : []
   delete updateData.videoAsset
+  delete updateData.imageAsset
+  delete updateData.mediaAssets
   const pathsToDelete = []
 
   if (videoAsset?.secureUrl && videoAsset?.publicId) {
@@ -428,6 +453,12 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
         resourceType: existing.videoResourceType || 'video',
       })
     }
+  }
+
+  if (imageAsset?.secureUrl && imageAsset?.publicId) {
+    if (existing.cloudinaryId && existing.cloudinaryId !== imageAsset.publicId) pathsToDelete.push(existing.cloudinaryId)
+    updateData.image = imageAsset.secureUrl
+    updateData.cloudinaryId = imageAsset.publicId
   }
 
   if (imageFile) {
@@ -518,28 +549,38 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
     updateData.homepageCircularImageId = null
   }
 
+  let newContentAssets = contentAssets.filter((asset) => !(existing.mediaUrls || []).includes(asset.secureUrl))
   if (contentFiles && contentFiles.length > 0) {
-    const uploadPromises = contentFiles.map((f) => uploadFile(f.buffer, f.mimetype, 'blogs', f.originalname))
-    const results = await Promise.allSettled(uploadPromises)
-    const newMediaUrls = []
-    results.forEach((result) => {
-      if (result.status === 'fulfilled') {
-        newMediaUrls.push(result.value.url)
-      }
-    })
-    if (newMediaUrls.length > 0) {
-      updateData.mediaUrls = [...(existing.mediaUrls || []), ...newMediaUrls]
-    }
+    const uploads = await Promise.all(contentFiles.map((f) => uploadFile(f.buffer, f.mimetype, 'blogs', f.originalname)))
+    newContentAssets = newContentAssets.concat(uploads.map((uploaded) => ({
+      secureUrl: uploaded.url,
+      publicId: uploaded.publicId || uploaded.path,
+      resourceType: uploaded.resourceType || 'image',
+      format: uploaded.format || null,
+      mimeType: uploaded.mimeType || null,
+      originalName: uploaded.originalName || null,
+      duration: uploaded.duration ?? null,
+      width: uploaded.width ?? null,
+      height: uploaded.height ?? null,
+      bytes: uploaded.bytes ?? null,
+    })))
+  }
+  if (newContentAssets.length > 0) {
+    updateData.mediaAssets = [...(Array.isArray(existing.mediaAssets) ? existing.mediaAssets : []), ...newContentAssets]
+    updateData.mediaUrls = [...(existing.mediaUrls || []), ...newContentAssets.map((asset) => asset.secureUrl)]
   }
 
   if (removeMediaUrls && removeMediaUrls.length > 0) {
     const currentUrls = existing.mediaUrls || []
     const toRemove = removeMediaUrls.filter((url) => currentUrls.includes(url))
     if (toRemove.length > 0) {
-      updateData.mediaUrls = currentUrls.filter((url) => !removeMediaUrls.includes(url))
+      updateData.mediaUrls = (updateData.mediaUrls || currentUrls).filter((url) => !removeMediaUrls.includes(url))
+      updateData.mediaAssets = (updateData.mediaAssets || (Array.isArray(existing.mediaAssets) ? existing.mediaAssets : []))
+        .filter((asset) => !removeMediaUrls.includes(asset.secureUrl))
       for (const url of toRemove) {
-        const pid = extractPublicId(url)
-        if (pid) pathsToDelete.push({ publicId: pid, resourceType: 'image' })
+        const asset = (Array.isArray(existing.mediaAssets) ? existing.mediaAssets : []).find((entry) => entry.secureUrl === url)
+        const pid = asset?.publicId || extractPublicId(url)
+        if (pid) pathsToDelete.push({ publicId: pid, resourceType: asset?.resourceType || (url.includes('/video/upload/') ? 'video' : 'image') })
       }
     }
   }

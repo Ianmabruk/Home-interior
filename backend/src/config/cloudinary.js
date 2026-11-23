@@ -17,8 +17,7 @@ export function assertCloudinaryConfigured() {
 // Allow enough time for 100 MB media uploads on slower connections.
 const CLOUDINARY_UPLOAD_TIMEOUT_MS = 300000
 // Number of retry attempts for transient Cloudinary failures (network errors,
-// timeouts, 5xx responses). Retries use a new public_id each time to avoid
-// duplicate uploads.
+// timeouts, 5xx responses). A stable public_id makes retries idempotent.
 const CLOUDINARY_MAX_RETRIES = 2
 const CLOUDINARY_RETRY_BASE_DELAY_MS = 2000
 
@@ -93,12 +92,13 @@ function isRetryableCloudinaryError(err) {
   return false
 }
 
-export const uploadToCloudinary = async (buffer, mimetype, folder, originalName) => {
+export const uploadToCloudinary = async (buffer, mimetype, folder, originalName, uploadId = null) => {
   if (!isConfigured) {
     assertCloudinaryConfigured()
   }
 
   const isVideoUpload = isVideoFile(mimetype, originalName)
+  const publicId = uploadId || `${Date.now()}-${Math.random().toString(36).slice(2)}`
   let lastError = null
   for (let attempt = 0; attempt <= CLOUDINARY_MAX_RETRIES; attempt++) {
     if (attempt > 0) {
@@ -108,13 +108,11 @@ export const uploadToCloudinary = async (buffer, mimetype, folder, originalName)
     }
 
     try {
-      const publicId = `${Date.now()}-${Math.random().toString(36).slice(2)}`
-
       const uploadOptions = {
         resource_type: isVideoUpload ? 'video' : (mimetype?.startsWith('image/') ? 'image' : 'raw'),
         folder,
         public_id: publicId,
-        overwrite: false,
+        overwrite: true,
         quality: 'auto:good',
       }
 
@@ -270,7 +268,13 @@ export async function verifyCloudinaryVideo(publicId, secureUrl) {
     verifiedPublicId = publicId
   }
 
-  const resource = await cloudinary.api.resource(verifiedPublicId, { resource_type: 'video' })
+  let resource
+  try {
+    resource = await cloudinary.api.resource(verifiedPublicId, { resource_type: 'video' })
+  } catch (err) {
+    if (err?.http_code === 404) throw failure(404, 'Cloudinary video upload not found')
+    throw err
+  }
   if (!resource?.secure_url || resource.resource_type !== 'video') {
     throw failure(422, 'Cloudinary could not verify the uploaded video asset')
   }

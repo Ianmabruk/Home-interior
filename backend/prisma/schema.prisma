@@ -509,6 +509,7 @@ model Blog {
     image                   String?  @db.Text
     video                   String?  @db.Text
     mediaUrls               String[] @default([]) @db.Text @map("media_urls")
+    mediaAssets             Json     @default("[]") @map("media_assets")
     cloudinaryId            String?  @db.Text @map("cloudinary_id")
     videoCloudinaryId       String?  @db.Text @map("video_cloudinary_id")
     videoResourceType       String?  @db.Text @map("video_resource_type")

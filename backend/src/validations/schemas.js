@@ -2,6 +2,33 @@ import { z } from 'zod'
 
 const idParam = z.object({ id: z.string().min(1, 'id is required') })
 const email = z.string().min(1, 'Email is required').email('Invalid email address')
+const blogMediaAsset = z.object({
+  secureUrl: z.string().url(),
+  publicId: z.string().min(1),
+  resourceType: z.enum(['image', 'video']),
+  format: z.string().nullable().optional(),
+  mimeType: z.string().nullable().optional(),
+  originalName: z.string().nullable().optional(),
+  duration: z.number().nullable().optional(),
+  width: z.number().nullable().optional(),
+  height: z.number().nullable().optional(),
+  bytes: z.number().nullable().optional(),
+})
+const blogMediaAssets = z.union([
+  z.array(blogMediaAsset),
+  z.string().transform((value, ctx) => {
+    try {
+      const parsed = JSON.parse(value)
+      const result = z.array(blogMediaAsset).safeParse(parsed)
+      if (result.success) return result.data
+      ctx.addIssue({ code: 'custom', message: 'Invalid media assets' })
+      return z.NEVER
+    } catch {
+      ctx.addIssue({ code: 'custom', message: 'Invalid media assets JSON' })
+      return z.NEVER
+    }
+  }),
+])
 
 export const authSchemas = {
   login: z.object({
@@ -106,6 +133,8 @@ export const blogSchemas = {
         originalName: z.string().optional(),
       }),
     ]).optional(),
+    imageAsset: blogMediaAsset.optional(),
+    mediaAssets: blogMediaAssets.optional(),
     removeVideo: z.union([z.boolean(), z.string()]).optional(),
   }),
   update: z.object({
@@ -143,6 +172,9 @@ export const blogSchemas = {
         originalName: z.string().optional(),
       }),
     ]).optional(),
+    imageAsset: blogMediaAsset.optional(),
+    mediaAssets: blogMediaAssets.optional(),
+    removeMediaUrls: z.union([z.array(z.string()), z.string()]).optional(),
     removeVideo: z.union([z.boolean(), z.string()]).optional(),
   }),
 }

@@ -81,6 +81,8 @@ A clean, production-ready Express backend for the HOK Interiors frontend.
 - `POST /api/media/upload`
 - `POST /api/media/delete`
 
+Blog image and gallery media files are uploaded one at a time through the authenticated media upload endpoint. The blog create/update request then sends the returned Cloudinary references and metadata as JSON; it does not send original media files. Gallery uploads support up to 80 image/video references, with video assets stored and rendered alongside images.
+
 ### Orders (Public)
 - `POST /api/orders`
 - `GET /api/orders/me`
