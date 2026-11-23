@@ -7,7 +7,7 @@ import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { slugify, getReadingTime } from '../../utils/blogHelpers'
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '../../utils/uploadConfig'
 import { compressVideoInWorker } from '../../services/videoCompressionService'
-import { uploadOptimizedVideo } from '../../services/cloudinaryVideoService'
+import { uploadOptimizedVideo, verifyUploadedVideo } from '../../services/cloudinaryVideoService'
 
 const FORMAT_COMMANDS = [
   { tag: 'h2', label: 'H2', title: 'Heading 2' },
@@ -78,6 +78,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const [videoPreviewError, setVideoPreviewError] = useState(false)
   const [removeVideo, setRemoveVideo] = useState(false)
   const [videoAsset, setVideoAsset] = useState(null)
+  const [videoUploadMetadata, setVideoUploadMetadata] = useState(null)
   const [videoPhase, setVideoPhase] = useState('')
   const [videoPhaseProgress, setVideoPhaseProgress] = useState(0)
   const [videoOriginalBytes, setVideoOriginalBytes] = useState(0)
@@ -225,6 +226,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       cancelCompressionRef.current = null
       setVideoFile(null)
       setVideoAsset(null)
+      setVideoUploadMetadata(null)
       setVideoPhase('')
       setVideoPhaseProgress(0)
       setVideoOriginalBytes(0)
@@ -265,6 +267,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     if (videoPreview && videoPreview.startsWith('blob:')) URL.revokeObjectURL(videoPreview)
     setVideoFile(file)
     setVideoAsset(null)
+    setVideoUploadMetadata(null)
     setVideoError(null)
     setRemoveVideo(false)
     setVideoPreviewError(false)
@@ -304,7 +307,35 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     } catch (err) {
       cancelCompressionRef.current = null
       cancelUploadRef.current = null
-      const msg = err?.message || 'Video processing failed'
+      if (err?.uploadedAsset) setVideoUploadMetadata(err.uploadedAsset)
+      const msg = err?.uploadedAsset
+        ? 'Video upload succeeded, but verification failed. Retry verification; the video will not be uploaded again.'
+        : (err?.message || 'Video processing failed')
+      setVideoError(msg)
+      setVideoPhase('error')
+      setVideoPhaseProgress(0)
+      toast.error(msg)
+    }
+  }
+
+  const retryVideoVerification = async () => {
+    if (!videoUploadMetadata) {
+      if (videoFile) processSelectedVideo(videoFile)
+      return
+    }
+    setVideoError(null)
+    setVideoPhase('verifying')
+    setVideoPhaseProgress(0)
+    try {
+      const asset = await verifyUploadedVideo(videoUploadMetadata)
+      setVideoAsset({ ...asset, originalName: videoFile?.name || null })
+      setVideoUploadMetadata(null)
+      setVideoPhase('completed')
+      setVideoPhaseProgress(100)
+      toast.success('Uploaded video verified successfully')
+    } catch (err) {
+      if (err?.uploadedAsset) setVideoUploadMetadata(err.uploadedAsset)
+      const msg = 'Video is uploaded but not verified yet. Retry verification without uploading it again.'
       setVideoError(msg)
       setVideoPhase('error')
       setVideoPhaseProgress(0)
@@ -446,9 +477,11 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       setError('Title is required')
       return
     }
-    if (videoFile && !videoAsset && videoPhase !== 'error' && videoPhase !== 'cancelled') {
+    if (videoFile && !videoAsset) {
       submissionLockRef.current = false
-      setError('Wait for automatic video compression and upload to complete')
+      setError(videoUploadMetadata
+        ? 'Verify the uploaded video before saving or publishing'
+        : 'Wait for video compression, upload, and verification to complete')
       return
     }
     if (videoError && videoFile) {
@@ -537,8 +570,9 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     preparing: 'Step 1: Preparing video',
     compressing: 'Step 2: Compressing video',
     uploading: 'Step 3: Uploading optimized video',
-    saving: 'Step 4: Saving video',
-    completed: 'Step 5: Completed',
+    verifying: 'Step 4: Verifying uploaded video',
+    saving: 'Step 5: Saving video',
+    completed: 'Step 6: Completed',
   }
 
   return (
@@ -583,8 +617,12 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm text-[var(--error)]">{videoError || 'Video processing cancelled'}</p>
               {videoFile && (
-                <button type="button" onClick={() => processSelectedVideo(videoFile)} className="text-xs font-semibold text-[var(--accent)]">
-                  Retry
+                <button
+                  type="button"
+                  onClick={videoUploadMetadata ? retryVideoVerification : () => processSelectedVideo(videoFile)}
+                  className="text-xs font-semibold text-[var(--accent)]"
+                >
+                  {videoUploadMetadata ? 'Retry verification' : 'Retry'}
                 </button>
               )}
             </div>
@@ -965,7 +1003,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           type="button"
           onClick={(e) => handleSubmit(e, 'draft')}
           className="btn-luxury-secondary"
-          disabled={submitting || !form.title.trim() || Boolean(videoFile && !videoAsset && !videoError)}
+          disabled={submitting || !form.title.trim() || Boolean(videoFile && !videoAsset)}
         >
           {submitting ? 'Saving...' : 'Save Draft'}
         </button>
@@ -973,7 +1011,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           type="button"
           onClick={(e) => handleSubmit(e, 'publish')}
           className="btn-luxury-primary"
-          disabled={submitting || !form.title.trim() || Boolean(videoFile && !videoAsset && !videoError)}
+          disabled={submitting || !form.title.trim() || Boolean(videoFile && !videoAsset)}
         >
           {submitting ? 'Publishing...' : (isEdit ? 'Update & Publish' : 'Publish')}
         </button>
