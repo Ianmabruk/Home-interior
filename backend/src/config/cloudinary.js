@@ -342,7 +342,7 @@ function validateCloudinaryVideoResource(resource, { assetId, publicId }) {
     || resource.public_id !== publicId
     || (assetId && resource.asset_id && resource.asset_id !== assetId)
   ) {
-    throw failure(502, 'Cloudinary returned metadata that does not match the uploaded video', 'CLOUDINARY_ASSET_MISMATCH')
+    throw failure(422, 'Cloudinary returned metadata that does not match the uploaded video', 'CLOUDINARY_ASSET_MISMATCH')
   }
   return resource
 }
@@ -354,7 +354,7 @@ async function lookupCloudinaryVideo({ assetId, publicId }) {
       const resource = await cloudinary.api.resource_by_asset_id(assetId)
       return validateCloudinaryVideoResource(resource, { assetId, publicId })
     } catch (error) {
-      if (error?.status === 502 && error?.code === 'CLOUDINARY_ASSET_MISMATCH') throw error
+      if (error?.status === 422 && error?.code === 'CLOUDINARY_ASSET_MISMATCH') throw error
       lastError = error
       console.error('[Cloudinary] Admin API asset-ID lookup failed; falling back to video public_id', {
         lookup: 'asset_id',
@@ -372,7 +372,7 @@ async function lookupCloudinaryVideo({ assetId, publicId }) {
       })
       return validateCloudinaryVideoResource(resource, { assetId, publicId })
     } catch (error) {
-      if (error?.status === 502 && error?.code === 'CLOUDINARY_ASSET_MISMATCH') throw error
+      if (error?.status === 422 && error?.code === 'CLOUDINARY_ASSET_MISMATCH') throw error
       lastError = error
       console.error('[Cloudinary] Admin API video public_id lookup failed', {
         lookup: 'public_id',
@@ -391,12 +391,12 @@ async function lookupCloudinaryVideo({ assetId, publicId }) {
     throw failure(404, 'Cloudinary video upload was not found', 'CLOUDINARY_ASSET_NOT_FOUND')
   }
   if (httpCode === 401 || httpCode === 403) {
-    throw failure(502, 'Cloudinary rejected the Admin API credentials or account configuration', 'CLOUDINARY_AUTHENTICATION_FAILED')
+    throw failure(503, 'Cloudinary rejected the Admin API credentials or account configuration', 'CLOUDINARY_AUTHENTICATION_FAILED')
   }
   if (httpCode === 429 || httpCode >= 500 || isTransientAdminApiError(lastError)) {
     throw failure(503, 'Cloudinary verification is temporarily unavailable. Retry verification without uploading again.', 'CLOUDINARY_VERIFY_TEMPORARY')
   }
-  throw failure(502, 'Cloudinary could not verify the uploaded video', 'CLOUDINARY_VERIFY_FAILED')
+  throw failure(503, 'Cloudinary could not verify the uploaded video', 'CLOUDINARY_VERIFY_FAILED')
 }
 
 async function checkCloudinaryVideoDelivery(secureUrl) {
@@ -512,7 +512,7 @@ export async function verifyCloudinaryVideo({
     try {
       resourceUrl = new URL(resource.secure_url)
     } catch {
-      throw failure(502, 'Cloudinary returned an invalid video delivery URL', 'CLOUDINARY_ASSET_MISMATCH')
+      throw failure(422, 'Cloudinary returned an invalid video delivery URL', 'CLOUDINARY_ASSET_MISMATCH')
     }
     const resourceUrlMetadata = extractPublicIdFromVideoUrl(resourceUrl)
     if (
@@ -521,7 +521,7 @@ export async function verifyCloudinaryVideo({
       || resourceUrlMetadata?.publicId !== resource.public_id
       || (resource.version != null && resourceUrlMetadata.version !== Number(resource.version))
     ) {
-      throw failure(502, 'Cloudinary returned video delivery metadata for a different asset', 'CLOUDINARY_ASSET_MISMATCH')
+      throw failure(422, 'Cloudinary returned video delivery metadata for a different asset', 'CLOUDINARY_ASSET_MISMATCH')
     }
     verifiedSecureUrl = resource.secure_url
   }
@@ -530,7 +530,7 @@ export async function verifyCloudinaryVideo({
     || (format != null && format.toLowerCase() !== String(resource.format || '').toLowerCase())
     || (bytes != null && Number(bytes) !== Number(resource.bytes))
   ) {
-    throw failure(502, 'Cloudinary asset metadata does not match the completed upload response', 'CLOUDINARY_UPLOAD_METADATA_MISMATCH')
+    throw failure(422, 'Cloudinary asset metadata does not match the completed upload response', 'CLOUDINARY_UPLOAD_METADATA_MISMATCH')
   }
   const metadataNumber = (value) => (
     value != null && Number.isFinite(Number(value)) ? Number(value) : null
@@ -546,7 +546,7 @@ export async function verifyCloudinaryVideo({
     if (delivery.status === 401 || delivery.status === 403) {
       throw failure(422, 'The Cloudinary video exists but its delivery URL is restricted', 'CLOUDINARY_VIDEO_NOT_PUBLIC')
     }
-    throw failure(502, 'The Cloudinary video exists, but its delivery URL returned an unexpected response', 'CLOUDINARY_VIDEO_DELIVERY_UNAVAILABLE')
+    throw failure(503, 'The Cloudinary video exists, but its delivery URL returned an unexpected response', 'CLOUDINARY_VIDEO_DELIVERY_UNAVAILABLE')
   }
   return {
     assetId: resource.asset_id || assetId || null,

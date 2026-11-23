@@ -67,20 +67,6 @@ export async function uploadOptimizedVideo(file, contentHash, handlers = {}) {
   const publicId = `hok-blog-${contentHash.slice(0, 32)}`
   const signature = await api.post('/admin/blog/cloudinary/signature', { publicId })
   const signed = signature.data
-  const existingUrl = `https://res.cloudinary.com/${signed.cloudName}/video/upload/${signed.folder}/${signed.publicId}.mp4`
-
-  try {
-    const existing = await api.post('/admin/blog/cloudinary/verify', {
-      publicId,
-      resourceType: 'video',
-      type: 'upload',
-      secureUrl: existingUrl,
-    })
-    handlers.onUploadProgress?.(100)
-    return normalizeUploadMetadata(existing.data)
-  } catch (error) {
-    if (getErrorStatus(error) !== 404) throw error
-  }
 
   const uploadResponse = await new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
@@ -126,11 +112,6 @@ export async function uploadOptimizedVideo(file, contentHash, handlers = {}) {
     xhr.send(form)
   })
 
-  const uploadedAsset = normalizeUploadMetadata(uploadResponse)
-  try {
-    return await verifyUploadedVideo(uploadedAsset)
-  } catch (error) {
-    if (error && typeof error === 'object') error.uploadedAsset = uploadedAsset
-    throw error
-  }
+  handlers.onUploadProgress?.(100)
+  return normalizeUploadMetadata(uploadResponse)
 }

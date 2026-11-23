@@ -122,7 +122,7 @@ describe('verifyCloudinaryVideo', () => {
       publicId: 'hok-blog-video123',
       secureUrl: asset.secure_url,
     })).rejects.toMatchObject({
-      status: 502,
+      status: 422,
       code: 'CLOUDINARY_ASSET_MISMATCH',
     })
   })
