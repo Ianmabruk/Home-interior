@@ -1,15 +1,17 @@
 import { api } from './api'
 
 export const mediaService = {
-  async upload(file, folder = 'hok-interiors', transformation = {}) {
+  async upload(file, folder = 'hok-interiors', transformation = {}, uploadId = null) {
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('media', file)
     formData.append('folder', folder)
+    if (file.type.startsWith('video/')) formData.append('resourceType', 'video')
+    if (uploadId) formData.append('uploadId', uploadId)
     if (Object.keys(transformation).length > 0) {
       formData.append('transformation', JSON.stringify(transformation))
     }
     const res = await api.post('/media/upload', formData)
-    return res.data
+    return res.data.data
   },
 
   async uploadMultiple(files, folder = 'hok-interiors') {

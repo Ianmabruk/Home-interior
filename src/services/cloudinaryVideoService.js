@@ -23,8 +23,8 @@ export async function uploadOptimizedVideo(file, contentHash, handlers = {}) {
       height: existing.data.height,
       bytes: existing.data.bytes,
     }
-  } catch {
-    // The asset is not present yet; continue to signed upload.
+  } catch (error) {
+    if (error?.status !== 404 && error?.response?.status !== 404) throw error
   }
 
   const secureUrl = await new Promise((resolve, reject) => {

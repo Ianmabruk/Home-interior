@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
 import { UploadCloud, X, Trash2, Video } from 'lucide-react'
 import { api } from '../../services/api'
+import { createBlogUploadId, uploadBlogMediaFile } from '../../services/blogMediaUploadService'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { slugify, getReadingTime } from '../../utils/blogHelpers'
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '../../utils/uploadConfig'
@@ -21,6 +22,14 @@ const PREDEFINED_CATEGORIES = [
   'Interior Design', 'Architecture', 'Furniture', 'Lighting',
   'Color', 'Materials', 'Trends', 'DIY', 'Sustainability', 'Virtual Design',
 ]
+
+const isContentVideo = (file) => file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(file.name)
+const isVideoUrl = (url) => typeof url === 'string' && url.includes('/video/upload/')
+const isSupportedContentMedia = (file) => (
+  file.type.startsWith('image/')
+  || isContentVideo(file)
+  || /\.(jpe?g|png|webp|gif|avif)$/i.test(file.name)
+)
 
 const INITIAL_FORM = {
   title: '',
@@ -77,10 +86,12 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const cancelCompressionRef = useRef(null)
   const cancelUploadRef = useRef(null)
   const [contentFiles, setContentFiles] = useState([])
-  const [contentPreviews, setContentPreviews] = useState([])
   const [existingContentImages, setExistingContentImages] = useState(blog?.mediaUrls ? [...blog.mediaUrls] : [])
   const [removeMediaUrls, setRemoveMediaUrls] = useState([])
-  const [uploadProgress, setUploadProgress] = useState(0)
+  const [imageUploadId, setImageUploadId] = useState(null)
+  const [imageAsset, setImageAsset] = useState(null)
+  const [imageUploadError, setImageUploadError] = useState(null)
+  const [uploadingMedia, setUploadingMedia] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
@@ -88,16 +99,23 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const videoInputRef = useRef(null)
   const contentInputRef = useRef(null)
   const submissionLockRef = useRef(false)
+  const contentFilesRef = useRef(contentFiles)
 
+  useEffect(() => {
+    contentFilesRef.current = contentFiles
+  }, [contentFiles])
   useEffect(() => {
     return () => {
       if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
       if (videoPreview && videoPreview.startsWith('blob:')) URL.revokeObjectURL(videoPreview)
-      contentPreviews.forEach((url) => {
-        if (url.startsWith('blob:')) URL.revokeObjectURL(url)
-      })
     }
-  }, [imagePreview, videoPreview, contentPreviews])
+  }, [imagePreview, videoPreview])
+
+  useEffect(() => () => {
+    contentFilesRef.current.forEach(({ preview }) => {
+      if (preview.startsWith('blob:')) URL.revokeObjectURL(preview)
+    })
+  }, [])
 
   const handleFileChange = (e, field) => {
     const file = e.target.files?.[0] || null
@@ -121,7 +139,15 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     }
 
     if (field === 'image') {
+      if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp|gif|avif)$/i.test(file.name)) {
+        toast.error('Please select a valid image file')
+        e.target.value = ''
+        return
+      }
       setImageFile(file)
+      setImageAsset(null)
+      setImageUploadId(createBlogUploadId())
+      setImageUploadError(null)
       const url = URL.createObjectURL(file)
       setImagePreview(url)
     } else if (field === 'video') {
@@ -137,29 +163,49 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const handleContentImagesChange = (e) => {
     const selected = Array.from(e.target.files || [])
     if (selected.length === 0) return
+    const emptyFile = selected.find((file) => file.size === 0)
+    if (emptyFile) {
+      toast.error(`File "${emptyFile.name}" is empty`)
+      e.target.value = ''
+      return
+    }
+    const invalidType = selected.find((file) => !isSupportedContentMedia(file))
+    if (invalidType) {
+      toast.error(`"${invalidType.name}" is not a supported image or video file`)
+      e.target.value = ''
+      return
+    }
     const oversized = selected.find((file) => file.size > MAX_FILE_SIZE_BYTES)
     if (oversized) {
-      toast.error(`File "${oversized.name}" exceeds the maximum allowed size of ${MAX_FILE_SIZE_MB} MB`)
+      toast.error(`File "${oversized.name}" exceeds the ${MAX_FILE_SIZE_MB} MB content media limit`)
       e.target.value = ''
       return
     }
-    const remainingSlots = 75 - contentFiles.length
+    const remainingSlots = 80 - existingContentImages.length - contentFiles.length
     if (selected.length > remainingSlots) {
-      toast.error(`You can upload up to 75 content images. ${remainingSlots} slot${remainingSlots === 1 ? '' : 's'} remaining.`)
+      toast.error(`You can add up to 80 gallery images and videos. ${remainingSlots} slot${remainingSlots === 1 ? '' : 's'} remaining.`)
       e.target.value = ''
       return
     }
-    setContentFiles((prev) => [...prev, ...selected])
-    const newPreviews = selected.map((f) => URL.createObjectURL(f))
-    setContentPreviews((prev) => [...prev, ...newPreviews])
+    setContentFiles((prev) => [
+      ...prev,
+      ...selected.map((file) => ({
+        id: createBlogUploadId(),
+        file,
+        preview: URL.createObjectURL(file),
+        uploadId: createBlogUploadId(),
+        asset: null,
+        status: 'pending',
+        error: null,
+      })),
+    ])
     e.target.value = ''
   }
 
   const handleRemoveContentImage = (index) => {
-    const url = contentPreviews[index]
-    if (url.startsWith('blob:')) URL.revokeObjectURL(url)
+    const item = contentFiles[index]
+    if (item?.preview.startsWith('blob:')) URL.revokeObjectURL(item.preview)
     setContentFiles((prev) => prev.filter((_, i) => i !== index))
-    setContentPreviews((prev) => prev.filter((_, i) => i !== index))
   }
 
   const handleRemoveExistingContentImage = (url) => {
@@ -173,6 +219,9 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const handleRemovePreview = (field) => {
     if (field === 'image') {
       setImageFile(null)
+      setImageAsset(null)
+      setImageUploadId(null)
+      setImageUploadError(null)
       if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
       setImagePreview(null)
     } else if (field === 'video') {
@@ -278,6 +327,119 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     setVideoError('Video processing cancelled')
   }
 
+  const uploadPendingMedia = async () => {
+    const pending = []
+    let uploadedImageAsset = imageAsset
+    const uploadedContentAssets = new Map()
+    const failed = []
+
+    if (imageFile && !imageAsset) {
+      pending.push({
+        id: 'featured-image',
+        file: imageFile,
+        uploadId: imageUploadId,
+        type: 'featured',
+      })
+    }
+    contentFiles.forEach((item) => {
+      if (item.asset) uploadedContentAssets.set(item.id, item.asset)
+      else pending.push({ ...item, type: 'content' })
+    })
+
+    if (pending.length === 0) {
+      return {
+        imageAsset: uploadedImageAsset,
+        mediaAssets: contentFiles.map((item) => item.asset).filter(Boolean),
+        failed,
+      }
+    }
+
+    setUploadingMedia(true)
+    let cursor = 0
+    const worker = async () => {
+      while (cursor < pending.length) {
+        const item = pending[cursor]
+        cursor += 1
+        if (item.type === 'featured') setImageUploadError(null)
+        else {
+          setContentFiles((prev) => prev.map((entry) => (
+            entry.id === item.id ? { ...entry, status: 'uploading', error: null } : entry
+          )))
+        }
+
+        try {
+          const asset = await uploadBlogMediaFile(item.file, item.uploadId)
+          if (item.type === 'featured') {
+            uploadedImageAsset = asset
+            setImageAsset(asset)
+          } else {
+            uploadedContentAssets.set(item.id, asset)
+            setContentFiles((prev) => prev.map((entry) => (
+              entry.id === item.id ? { ...entry, asset, status: 'uploaded', error: null } : entry
+            )))
+          }
+        } catch (uploadError) {
+          const message = uploadError?.message || 'Upload failed'
+          failed.push({ fileName: item.file.name, message })
+          if (item.type === 'featured') setImageUploadError(message)
+          else {
+            setContentFiles((prev) => prev.map((entry) => (
+              entry.id === item.id ? { ...entry, status: 'failed', error: message } : entry
+            )))
+          }
+        }
+      }
+    }
+
+    try {
+      await Promise.all(Array.from({ length: Math.min(3, pending.length) }, worker))
+    } finally {
+      setUploadingMedia(false)
+    }
+
+    return {
+      imageAsset: uploadedImageAsset,
+      mediaAssets: contentFiles.map((item) => uploadedContentAssets.get(item.id) || item.asset).filter(Boolean),
+      failed,
+    }
+  }
+
+  const retryContentUpload = async (itemId) => {
+    const item = contentFiles.find((entry) => entry.id === itemId)
+    if (!item || uploadingMedia || submitting) return
+    setUploadingMedia(true)
+    setContentFiles((prev) => prev.map((entry) => (
+      entry.id === itemId ? { ...entry, status: 'uploading', error: null } : entry
+    )))
+    try {
+      const asset = await uploadBlogMediaFile(item.file, item.uploadId)
+      setContentFiles((prev) => prev.map((entry) => (
+        entry.id === itemId ? { ...entry, asset, status: 'uploaded', error: null } : entry
+      )))
+    } catch (uploadError) {
+      const message = uploadError?.message || 'Upload failed'
+      setContentFiles((prev) => prev.map((entry) => (
+        entry.id === itemId ? { ...entry, status: 'failed', error: message } : entry
+      )))
+    } finally {
+      setUploadingMedia(false)
+    }
+  }
+
+  const retryFeaturedImageUpload = async () => {
+    if (!imageFile || !imageUploadId || uploadingMedia || submitting) return
+    setUploadingMedia(true)
+    setImageUploadError(null)
+    try {
+      const asset = await uploadBlogMediaFile(imageFile, imageUploadId)
+      setImageAsset(asset)
+    } catch (uploadError) {
+      setImageUploadError(uploadError?.message || 'Upload failed')
+    } finally {
+      setUploadingMedia(false)
+    }
+  }
+
   const handleSubmit = async (e, status) => {
     e.preventDefault()
     if (submitting || submissionLockRef.current) return
@@ -302,51 +464,43 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     }
 
     setSubmitting(true)
-    setUploadProgress(0)
-
-    const payload = new FormData()
-    payload.append('title', title)
-    payload.append('subtitle', form.subtitle || '')
-    payload.append('slug', form.slug || slugify(title))
-    payload.append('description', form.description || '')
-    payload.append('content', form.content || '')
-    payload.append('category', form.category || '')
-    payload.append('tags', form.tags || '')
-    payload.append('author', form.author || '')
-    payload.append('metaDescription', form.metaDescription || '')
-    payload.append('published', String(status === 'publish' ? true : form.published))
-    payload.append('featured', String(form.featured))
-    payload.append('displayOrder', String(form.displayOrder || 0))
-    if (form.publishDate) payload.append('publishDate', form.publishDate)
-
-    if (imageFile) payload.append('image', imageFile)
-    if (videoAsset) payload.append('videoAsset', JSON.stringify(videoAsset))
-    if (removeVideo) payload.append('removeVideo', 'true')
-    contentFiles.forEach((file) => payload.append('contentImages', file))
-    if (removeMediaUrls.length > 0) payload.append('removeMediaUrls', JSON.stringify(removeMediaUrls))
 
     try {
+      const uploads = await uploadPendingMedia()
+      if (uploads.failed.length > 0) {
+        throw new Error(`${uploads.failed.length} media upload${uploads.failed.length === 1 ? '' : 's'} failed. Retry the failed file${uploads.failed.length === 1 ? '' : 's'} before publishing.`)
+      }
+
       if (videoAsset) {
         setVideoPhase('saving')
         setVideoPhaseProgress(100)
       }
+      const payload = {
+        title,
+        subtitle: form.subtitle || '',
+        slug: form.slug || slugify(title),
+        description: form.description || '',
+        content: form.content || '',
+        category: form.category || '',
+        tags: form.tags || '',
+        author: form.author || '',
+        metaDescription: form.metaDescription || '',
+        published: status === 'publish' ? true : form.published,
+        featured: Boolean(form.featured),
+        displayOrder: Number(form.displayOrder) || 0,
+      }
+      if (form.publishDate) payload.publishDate = form.publishDate
+      if (imageFile) payload.imageAsset = uploads.imageAsset
+      if (videoAsset) payload.videoAsset = videoAsset
+      if (removeVideo) payload.removeVideo = true
+      if (uploads.mediaAssets.length > 0) payload.mediaAssets = uploads.mediaAssets
+      if (removeMediaUrls.length > 0) payload.removeMediaUrls = removeMediaUrls
+
       let res
       if (isEdit) {
-        res = await api.patch(`/admin/blog/${blog.id}`, payload, {
-          onUploadProgress: (event) => {
-            if (event.total) {
-              setUploadProgress(Math.round((event.loaded * 100) / event.total))
-            }
-          },
-        })
+        res = await api.patch(`/admin/blog/${blog.id}`, payload)
       } else {
-        res = await api.post('/admin/blog', payload, {
-          onUploadProgress: (event) => {
-            if (event.total) {
-              setUploadProgress(Math.round((event.loaded * 100) / event.total))
-            }
-          },
-        })
+        res = await api.post('/admin/blog', payload)
       }
 
       if (videoAsset) setVideoPhase('completed')
@@ -360,7 +514,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     } finally {
       submissionLockRef.current = false
       setSubmitting(false)
-      setUploadProgress(0)
+      setUploadingMedia(false)
     }
   }
 
@@ -378,6 +532,13 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const compressionPercent = videoOriginalBytes && videoCompressedBytes
     ? Math.max(0, Math.round((1 - videoCompressedBytes / videoOriginalBytes) * 100))
     : 0
+  const selectedImageCount = Number(Boolean(imageFile)) + contentFiles.filter(({ file }) => !isContentVideo(file)).length
+  const selectedVideoCount = Number(Boolean(videoFile)) + contentFiles.filter(({ file }) => isContentVideo(file)).length
+  const uploadedImageCount = Number(Boolean(imageFile && imageAsset)) + contentFiles.filter(({ file, asset }) => !isContentVideo(file) && asset).length
+  const uploadedVideoCount = Number(Boolean(videoFile && videoAsset)) + contentFiles.filter(({ file, asset }) => isContentVideo(file) && asset).length
+  const failedUploadCount = Number(Boolean(imageUploadError)) + Number(Boolean(videoError && videoFile)) + contentFiles.filter(({ status }) => status === 'failed').length
+  const totalSelectedMedia = selectedImageCount + selectedVideoCount
+  const totalUploadedMedia = uploadedImageCount + uploadedVideoCount
   const videoStepLabels = {
     preparing: 'Step 1: Preparing video',
     compressing: 'Step 2: Compressing video',
@@ -391,6 +552,11 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       {error && (
         <div className="rounded-xl border border-[var(--error)]/20 bg-[var(--error)]/5 p-4 text-sm text-[var(--error)]">
           {error}
+        </div>
+      )}
+      {submitting && !uploadingMedia && (
+        <div className="rounded-xl border border-border/50 bg-[var(--secondary)]/10 p-4 text-sm font-medium text-[var(--accent)]">
+          Publishing blog…
         </div>
       )}
 
@@ -432,18 +598,37 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
         </div>
       )}
 
-      {uploadProgress > 0 && uploadProgress < 100 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs font-medium text-[var(--accent)]">
-            <span>Uploading media…</span>
-            <span>{uploadProgress}%</span>
+      {totalSelectedMedia > 0 && (
+        <div className="space-y-3 rounded-xl border border-border/50 bg-[var(--secondary)]/10 p-4">
+          <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs font-medium text-[var(--primary)]/70">
+            <span>{uploadingMedia ? 'Uploading media' : 'Media uploaded'}: {totalUploadedMedia}/{totalSelectedMedia}</span>
+            <span>Remaining: {totalSelectedMedia - totalUploadedMedia}</span>
+            <span>Images uploaded: {uploadedImageCount}/{selectedImageCount}</span>
+            <span>Videos uploaded: {uploadedVideoCount}/{selectedVideoCount}</span>
+            <span>Failed uploads: {failedUploadCount}</span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--secondary)]/30">
             <div
               className="h-full bg-[var(--accent)] transition-all duration-300 ease-out"
-              style={{ width: `${uploadProgress}%` }}
+              style={{ width: `${totalSelectedMedia ? (totalUploadedMedia / totalSelectedMedia) * 100 : 0}%` }}
             />
           </div>
+          {imageUploadError && (
+            <div className="flex items-center justify-between gap-3 text-xs text-[var(--error)]">
+              <span>Featured image: {imageUploadError}</span>
+              <button type="button" onClick={retryFeaturedImageUpload} disabled={uploadingMedia} className="font-semibold text-[var(--accent)] disabled:opacity-50">
+                Retry
+              </button>
+            </div>
+          )}
+          {contentFiles.filter(({ status }) => status === 'failed').map((item) => (
+            <div key={item.id} className="flex items-center justify-between gap-3 text-xs text-[var(--error)]">
+              <span className="min-w-0 truncate">{item.file.name}: {item.error}</span>
+              <button type="button" onClick={() => retryContentUpload(item.id)} disabled={uploadingMedia} className="shrink-0 font-semibold text-[var(--accent)] disabled:opacity-50">
+                Retry
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
@@ -639,17 +824,19 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
 
       <div>
         <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--primary)]/60">
-          Content Images (Gallery)
+          Content Media (Gallery)
         </label>
         <p className="mb-3 text-xs text-[var(--primary)]/50">
-          Additional images to display within the article.
+        Additional images and videos to display within the article. Files upload separately and can be retried individually.
         </p>
 
         {existingContentImages.length > 0 && (
           <div className="mb-4 flex flex-wrap gap-3">
             {existingContentImages.map((url) => (
               <div key={url} className="relative inline-block">
-                <img src={url} alt="Content" className="h-20 w-20 rounded-lg object-cover" loading="lazy" />
+              {isVideoUrl(url)
+                ? <video src={url} aria-label="Existing content video" className="h-20 w-20 rounded-lg object-cover" controls preload="metadata" />
+                : <img src={url} alt="Content" className="h-20 w-20 rounded-lg object-cover" loading="lazy" />}
                 <button
                   type="button"
                   onClick={() => handleRemoveExistingContentImage(url)}
@@ -662,11 +849,13 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           </div>
         )}
 
-        {contentPreviews.length > 0 && (
+        {contentFiles.length > 0 && (
           <div className="mb-4 flex flex-wrap gap-3">
-            {contentPreviews.map((url, i) => (
-              <div key={i} className="relative inline-block">
-                <img src={url} alt={`Content ${i + 1}`} className="h-20 w-20 rounded-lg object-cover" loading="lazy" />
+            {contentFiles.map((item, i) => (
+              <div key={item.id} className="relative inline-block">
+                {isContentVideo(item.file)
+                  ? <video src={item.preview} aria-label={`Content video ${i + 1}`} className="h-20 w-20 rounded-lg object-cover" controls muted preload="metadata" />
+                  : <img src={item.preview} alt={`Content image ${i + 1}`} className="h-20 w-20 rounded-lg object-cover" loading="lazy" />}
                 <button
                   type="button"
                   onClick={() => handleRemoveContentImage(i)}
@@ -681,11 +870,11 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
 
         <label className="upload-zone flex cursor-pointer flex-col items-center justify-center py-6">
           <UploadCloud size={20} className="text-[var(--primary)]/30" />
-          <span className="mt-2 text-sm font-medium text-[var(--primary)]/60">Click to upload content images</span>
+          <span className="mt-2 text-sm font-medium text-[var(--primary)]/60">Click to upload gallery images or videos</span>
           <input
             type="file"
             ref={contentInputRef}
-            accept="image/*"
+            accept="image/*,video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska"
             multiple
             onChange={handleContentImagesChange}
             className="hidden"

@@ -162,6 +162,13 @@ const loadBlog = useCallback(async () => {
   // so this is a plain CDN URL with no first-view transcode.
   const playableVideoUrl = videoUrl ? (getOptimizedVideoUrl(videoUrl) || videoUrl) : null
   const mediaUrls = blog?.mediaUrls || []
+  const mediaAssets = Array.isArray(blog?.mediaAssets) ? blog.mediaAssets : []
+  const contentMedia = [
+    ...mediaAssets,
+    ...mediaUrls
+      .filter((url) => !mediaAssets.some((asset) => asset.secureUrl === url))
+      .map((url) => ({ secureUrl: url, resourceType: url.includes('/video/upload/') ? 'video' : 'image' })),
+  ]
 
   const incrementView = () => {
     if (!blog?.id) return
@@ -406,25 +413,41 @@ const loadBlog = useCallback(async () => {
         </div>
 
         {/* Content Images Gallery — below the main article area */}
-        {mediaUrls.length > 0 && (
+        {contentMedia.length > 0 && (
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
             className="my-12 grid grid-cols-1 md:grid-cols-2 gap-6"
           >
-            {mediaUrls.map((url, i) => (
-              <div key={i} className="relative overflow-hidden rounded-2xl bg-[var(--secondary)]/10" style={{ aspectRatio: '4 / 3' }}>
-                <OptimizedImage
-                  src={url}
-                  alt={`${blog.title} — gallery ${i + 1}`}
-                  className="h-full w-full"
-                  objectFit="contain"
-                  objectPosition="center"
-                  crop="limit"
-                />
-              </div>
-            ))}
+            {contentMedia.map((asset, i) => {
+              const url = asset.secureUrl
+              const isVideo = asset.resourceType === 'video' || url?.includes('/video/upload/')
+              return (
+                <div key={asset.publicId || url || i} className="relative overflow-hidden rounded-2xl bg-[var(--secondary)]/10" style={{ aspectRatio: '4 / 3' }}>
+                  {isVideo
+                    ? <LazyVideo
+                        src={getOptimizedVideoUrl(url) || url}
+                        fallbackSrc={url}
+                        poster={getVideoPosterUrl(url)}
+                        autoPlay={false}
+                        loop={false}
+                        muted={false}
+                        playsInline={true}
+                        controls={true}
+                        preload="metadata"
+                      />
+                    : <OptimizedImage
+                        src={url}
+                        alt={`${blog.title} — gallery ${i + 1}`}
+                        className="h-full w-full"
+                        objectFit="contain"
+                        objectPosition="center"
+                        crop="limit"
+                      />}
+                </div>
+              )
+            })}
           </motion.div>
         )}
 
