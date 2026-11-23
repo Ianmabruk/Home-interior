@@ -181,12 +181,6 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       e.target.value = ''
       return
     }
-    const remainingSlots = 80 - existingContentImages.length - contentFiles.length
-    if (selected.length > remainingSlots) {
-      toast.error(`You can add up to 80 gallery images and videos. ${remainingSlots} slot${remainingSlots === 1 ? '' : 's'} remaining.`)
-      e.target.value = ''
-      return
-    }
     setContentFiles((prev) => [
       ...prev,
       ...selected.map((file) => ({

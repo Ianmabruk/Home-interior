@@ -252,7 +252,9 @@ export function createSignedVideoUpload(publicId) {
 }
 
 export async function verifyCloudinaryVideo(publicId, secureUrl) {
-  assertCloudinaryConfigured()
+  if (!isConfigured) {
+    throw failure(503, 'Cloudinary is not configured')
+  }
   if (!publicId || !secureUrl) throw failure(400, 'Cloudinary public_id and secure_url are required')
   if (!secureUrl.startsWith(`https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/`)) {
     throw failure(422, 'The uploaded asset is not a secure Cloudinary video URL')
@@ -273,7 +275,16 @@ export async function verifyCloudinaryVideo(publicId, secureUrl) {
     resource = await cloudinary.api.resource(verifiedPublicId, { resource_type: 'video' })
   } catch (err) {
     if (err?.http_code === 404) throw failure(404, 'Cloudinary video upload not found')
-    throw err
+    if (err?.http_code === 401 || err?.http_code === 403) {
+      throw failure(502, 'Cloudinary authentication failed. Check the server media credentials.')
+    }
+    if (err?.http_code === 429) {
+      throw failure(503, 'Cloudinary is temporarily busy. Retry video verification.')
+    }
+    if (err?.http_code >= 500) {
+      throw failure(502, 'Cloudinary could not verify the video. Retry shortly.')
+    }
+    throw failure(502, 'Cloudinary video verification failed. Retry the upload.')
   }
   if (!resource?.secure_url || resource.resource_type !== 'video') {
     throw failure(422, 'Cloudinary could not verify the uploaded video asset')

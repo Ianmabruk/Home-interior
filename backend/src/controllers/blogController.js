@@ -38,8 +38,8 @@ function validateSavedImageAsset(asset) {
 }
 
 function validateSavedMediaAssets(assets) {
-  if (!Array.isArray(assets) || assets.length > 80) {
-    throw failure(422, 'Invalid media references. Upload up to 80 gallery files at a time.')
+  if (!Array.isArray(assets)) {
+    throw failure(422, 'Invalid media references.')
   }
   const seen = new Set()
   return assets.map((asset) => {
