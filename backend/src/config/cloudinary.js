@@ -255,59 +255,90 @@ export async function verifyCloudinaryVideo(publicId, secureUrl) {
   if (!isConfigured) {
     throw failure(503, 'Cloudinary is not configured')
   }
-  if (!publicId || !secureUrl) throw failure(400, 'Cloudinary public_id and secure_url are required')
-  if (!secureUrl.startsWith(`https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/`)) {
+  if (
+    typeof publicId !== 'string'
+    || !/^[a-zA-Z0-9_-]{8,180}$/.test(publicId)
+    || typeof secureUrl !== 'string'
+  ) {
+    throw failure(400, 'Cloudinary public_id and secure_url are required')
+  }
+  let deliveryUrl
+  try {
+    deliveryUrl = new URL(secureUrl)
+  } catch {
+    throw failure(422, 'The uploaded asset is not a valid Cloudinary video URL')
+  }
+  const expectedPrefix = `/${CLOUDINARY_CLOUD_NAME}/video/upload/`
+  if (
+    deliveryUrl.protocol !== 'https:'
+    || deliveryUrl.hostname !== 'res.cloudinary.com'
+    || !deliveryUrl.pathname.includes(expectedPrefix)
+  ) {
     throw failure(422, 'The uploaded asset is not a secure Cloudinary video URL')
   }
 
-  let verifiedPublicId = publicId
-  try {
-    const path = secureUrl.split('/video/upload/')[1] || ''
-    const withoutVersion = path.replace(/^v\d+\//, '')
-    const lastDot = withoutVersion.lastIndexOf('.')
-    if (lastDot > 0) verifiedPublicId = withoutVersion.slice(0, lastDot)
-  } catch {
-    verifiedPublicId = publicId
+  const fileName = deliveryUrl.pathname.split('/').pop() || ''
+  const extension = fileName.slice(fileName.lastIndexOf('.') + 1).toLowerCase()
+  if (
+    fileName.slice(0, -(extension.length + 1)) !== publicId
+    || !VIDEO_EXTENSIONS.has(extension)
+  ) {
+    throw failure(422, 'The video URL does not match the signed Cloudinary public_id')
   }
 
-  let resource
+  let resource = null
+  let lookupError = null
   try {
-    resource = await cloudinary.api.resource(verifiedPublicId, { resource_type: 'video' })
+    resource = await cloudinary.api.resource(publicId, { resource_type: 'video' })
   } catch (err) {
-    if (err?.http_code === 404) throw failure(404, 'Cloudinary video upload not found')
-    if (err?.http_code === 401 || err?.http_code === 403) {
-      throw failure(502, 'Cloudinary authentication failed. Check the server media credentials.')
-    }
-    if (err?.http_code === 429) {
-      throw failure(503, 'Cloudinary is temporarily busy. Retry video verification.')
-    }
-    if (err?.http_code >= 500) {
-      throw failure(502, 'Cloudinary could not verify the video. Retry shortly.')
-    }
-    throw failure(502, 'Cloudinary video verification failed. Retry the upload.')
-  }
-  if (!resource?.secure_url || resource.resource_type !== 'video') {
-    throw failure(422, 'Cloudinary could not verify the uploaded video asset')
+    lookupError = err
+    console.warn('[Cloudinary] Admin API video lookup failed; checking the signed delivery URL', {
+      httpCode: err?.http_code || null,
+      errorName: err?.name || 'Error',
+    })
   }
 
+  let result = resource?.resource_type === 'video' && resource?.public_id === publicId
+    ? resource
+    : null
+  const verifiedUrl = result?.secure_url || secureUrl
   let accessible = false
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 10000)
   try {
-    const response = await fetch(resource.secure_url, { method: 'HEAD', headers: { Range: 'bytes=0-0' } })
+    const response = await fetch(verifiedUrl, {
+      method: 'HEAD',
+      headers: { Range: 'bytes=0-0' },
+      signal: controller.signal,
+    })
     accessible = response.ok || response.status === 206
   } catch {
     accessible = false
+  } finally {
+    clearTimeout(timeoutId)
   }
-  if (!accessible) throw failure(502, 'Cloudinary accepted the upload, but the video is not accessible yet. Retry verification.')
+  if (!accessible) {
+    if (lookupError?.http_code === 404) {
+      throw failure(404, 'Cloudinary video upload not found')
+    }
+    if (lookupError?.http_code === 429) {
+      throw failure(503, 'Cloudinary is temporarily busy. Retry video verification.')
+    }
+    throw failure(502, 'Cloudinary accepted the upload, but the video is not accessible yet. Retry verification.')
+  }
 
+  const metadataNumber = (value) => (
+    value != null && Number.isFinite(Number(value)) ? Number(value) : null
+  )
   return {
-    secureUrl: resource.secure_url,
-    publicId: resource.public_id,
-    resourceType: resource.resource_type,
-    format: resource.format || 'mp4',
-    duration: Number.isFinite(Number(resource.duration)) ? Number(resource.duration) : null,
-    width: Number.isFinite(Number(resource.width)) ? Number(resource.width) : null,
-    height: Number.isFinite(Number(resource.height)) ? Number(resource.height) : null,
-    bytes: Number.isFinite(Number(resource.bytes)) ? Number(resource.bytes) : null,
+    secureUrl: result?.secure_url || secureUrl,
+    publicId,
+    resourceType: 'video',
+    format: result?.format || extension,
+    duration: metadataNumber(result?.duration),
+    width: metadataNumber(result?.width),
+    height: metadataNumber(result?.height),
+    bytes: metadataNumber(result?.bytes),
   }
 }
 
