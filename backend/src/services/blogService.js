@@ -367,8 +367,6 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
       createData.videoHeight = uploaded.height || null
       createData.videoBytes = uploaded.bytes || null
       createData.videoOriginalName = uploaded.originalName || videoFile.originalname || null
-      // Preserve a separate image cloudinary_id; do not clobber it with the video's
-      if (!createData.cloudinaryId) createData.cloudinaryId = uploaded.publicId || uploaded.path
     } catch (err) {
       console.error('[blogService.createBlog] Video upload failed:', err?.message)
       const status = err?.status >= 400 && err.status < 500 ? err.status : 500
@@ -503,8 +501,6 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
       updateData.videoHeight = uploaded.height || null
       updateData.videoBytes = uploaded.bytes || null
       updateData.videoOriginalName = uploaded.originalName || videoFile.originalname || null
-      // Preserve a separate image cloudinary_id; do not clobber it with the video's
-      if (!updateData.cloudinaryId) updateData.cloudinaryId = uploaded.publicId || uploaded.path
     } catch (err) {
       console.error('[blogService.updateBlog] Video upload failed:', err?.message)
       const status = err?.status >= 400 && err.status < 500 ? err.status : 500
@@ -609,10 +605,18 @@ async function deleteBlog(id) {
 
   // Then clean up files asynchronously
   const pathsToDelete = []
-  if (existing.cloudinaryId) pathsToDelete.push(existing.cloudinaryId)
-  else if (existing.image) {
+  const isSameAsVideo = Boolean(
+    existing.cloudinaryId
+    && existing.videoCloudinaryId
+    && existing.cloudinaryId === existing.videoCloudinaryId
+  )
+  if (existing.cloudinaryId && !isSameAsVideo) {
+    pathsToDelete.push({ publicId: existing.cloudinaryId, resourceType: 'image' })
+  } else if (existing.image) {
     const pid = extractPublicId(existing.image)
-    if (pid) pathsToDelete.push(pid)
+    if (pid && pid !== existing.videoCloudinaryId) {
+      pathsToDelete.push({ publicId: pid, resourceType: 'image' })
+    }
   }
   if (existing.video) {
     if (existing.videoCloudinaryId) {
@@ -624,9 +628,27 @@ async function deleteBlog(id) {
   }
   if (existing.mediaUrls && existing.mediaUrls.length > 0) {
     for (const url of existing.mediaUrls) {
-      const pid = extractPublicId(url)
-      if (pid && !pathsToDelete.some((p) => p.publicId === pid)) pathsToDelete.push({ publicId: pid, resourceType: 'image' })
+      const asset = (Array.isArray(existing.mediaAssets) ? existing.mediaAssets : [])
+        .find((entry) => entry.secureUrl === url)
+      const pid = asset?.publicId || extractPublicId(url)
+      if (
+        pid
+        && !pathsToDelete.some((entry) => (
+          typeof entry === 'object' ? entry.publicId === pid : entry === pid
+        ))
+      ) {
+        pathsToDelete.push({
+          publicId: pid,
+          resourceType: asset?.resourceType || (url.includes('/video/upload/') ? 'video' : 'image'),
+        })
+      }
     }
+  }
+  if (existing.homepageCircularImageId) {
+    pathsToDelete.push({ publicId: existing.homepageCircularImageId, resourceType: 'image' })
+  } else if (existing.homepageCircularImage) {
+    const pid = extractPublicId(existing.homepageCircularImage)
+    if (pid) pathsToDelete.push({ publicId: pid, resourceType: 'image' })
   }
 
   if (pathsToDelete.length > 0) {
