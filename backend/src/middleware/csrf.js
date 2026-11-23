@@ -1,51 +1,38 @@
 import crypto from 'crypto'
-import { getRedisClient, isRedisAvailable } from '../config/redis.js'
 
-const SERVER_ID = process.env.SERVER_ID || 'hok-api-01'
 const TTL_MS = 60 * 60 * 1000 // 1 hour
-const inMemoryStore = new Map()
-
-async function redisSet(token) {
-  const client = await getRedisClient()
-  if (!client) return false
-  try {
-    await client.setEx(`csrf:${token}`, Math.ceil(TTL_MS / 1000), Date.now().toString())
-    return true
-  } catch {
-    return false
-  }
-}
-
-async function redisGet(token) {
-  const client = await getRedisClient()
-  if (!client) return null
-  try {
-    const data = await client.get(`csrf:${token}`)
-    return data ? true : null
-  } catch {
-    return null
-  }
-}
-
-async function redisDel(token) {
-  const client = await getRedisClient()
-  if (!client) return
-  try {
-    await client.del(`csrf:${token}`)
-  } catch {
-    // ignore
-  }
-}
+const CSRF_SECRET = process.env.JWT_ACCESS_SECRET
 
 export function generateCsrfToken() {
-  const token = crypto.randomBytes(32).toString('hex')
-  inMemoryStore.set(token, Date.now())
+  if (!CSRF_SECRET) {
+    throw new Error('JWT_ACCESS_SECRET is required to generate CSRF tokens')
+  }
+  const issuedAt = Date.now()
+  const nonce = crypto.randomBytes(32).toString('hex')
+  const payload = `v1.${issuedAt}.${nonce}`
+  const signature = crypto.createHmac('sha256', CSRF_SECRET).update(payload).digest('hex')
+  return `${payload}.${signature}`
+}
 
-  // Best-effort Redis storage — fire-and-forget. In-memory store
-  // always works as fallback for single-process deployments.
-  redisSet(token).catch(() => {})
-
-  return token
+function isValidSignedToken(token) {
+  if (!CSRF_SECRET || typeof token !== 'string') return false
+  const parts = token.split('.')
+  if (parts.length !== 4 || parts[0] !== 'v1') return false
+  const [, issuedAtText, nonce, signature] = parts
+  const issuedAt = Number(issuedAtText)
+  if (
+    !Number.isSafeInteger(issuedAt)
+    || !/^[a-f0-9]{64}$/.test(nonce)
+    || !/^[a-f0-9]{64}$/.test(signature)
+    || issuedAt > Date.now()
+    || Date.now() - issuedAt > TTL_MS
+  ) {
+    return false
+  }
+  const payload = `v1.${issuedAtText}.${nonce}`
+  const expected = crypto.createHmac('sha256', CSRF_SECRET).update(payload).digest()
+  const received = Buffer.from(signature, 'hex')
+  return crypto.timingSafeEqual(expected, received)
 }
 
 export async function validateCsrfToken(req, res, next) {
@@ -59,26 +46,9 @@ export async function validateCsrfToken(req, res, next) {
     return res.status(403).json({ success: false, message: 'Missing CSRF token' })
   }
 
-  const stored = await redisGet(headerToken)
-  if (stored === null) {
-    const mem = inMemoryStore.get(headerToken)
-    if (!mem) {
-      return res.status(403).json({ success: false, message: 'Invalid CSRF token' })
-    }
-    if (Date.now() - mem > TTL_MS) {
-      inMemoryStore.delete(headerToken)
-      return res.status(403).json({ success: false, message: 'Expired CSRF token' })
-    }
+  if (!isValidSignedToken(headerToken)) {
+    return res.status(403).json({ success: false, message: 'Invalid or expired CSRF token' })
   }
 
-  next()
+  return next()
 }
-
-setInterval(() => {
-  const now = Date.now()
-  for (const [token, timestamp] of inMemoryStore) {
-    if (now - timestamp > TTL_MS) {
-      inMemoryStore.delete(token)
-    }
-  }
-}, 60000)

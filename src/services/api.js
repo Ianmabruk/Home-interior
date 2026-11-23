@@ -304,7 +304,17 @@ function loadStoredCsrfToken() {
 }
 
 // Proactively refresh the CSRF token before it expires on the server.
-async function ensureFreshCsrfToken() {
+async function ensureFreshCsrfToken(force = false) {
+  if (force) {
+    csrfToken = null
+    csrfTokenSetAt = 0
+    try {
+      localStorage.removeItem('hok_csrf_token')
+      localStorage.removeItem('hok_csrf_token_at')
+    } catch {
+      // Storage may be unavailable in restricted browser contexts.
+    }
+  }
   loadStoredCsrfToken()
   const token = localStorage.getItem('hok_access_token')
   if (!token) return // Not authenticated — no CSRF needed
@@ -483,8 +493,8 @@ async function authenticatedRequest(method, url, { headers = {}, body, signal } 
 
   // If 403 (CSRF expired), refresh CSRF token and retry once
   if (response.status === 403) {
-    await ensureFreshCsrfToken()
-    const retryHeaders = { ...getAuthHeader(), ...getCsrfHeader(), ...headers }
+    await ensureFreshCsrfToken(true)
+    const retryHeaders = { ...headers, ...getAuthHeader(), ...getCsrfHeader() }
     response = await doFetch(method, url, { headers: retryHeaders, body, signal })
   }
 
