@@ -7,7 +7,7 @@ import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { slugify, getReadingTime } from '../../utils/blogHelpers'
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '../../utils/uploadConfig'
 import { compressVideoInWorker } from '../../services/videoCompressionService'
-import { uploadOptimizedVideo, verifyUploadedVideo } from '../../services/cloudinaryVideoService'
+import { uploadOptimizedVideo } from '../../services/cloudinaryVideoService'
 
 const FORMAT_COMMANDS = [
   { tag: 'h2', label: 'H2', title: 'Heading 2' },
@@ -78,7 +78,6 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const [videoPreviewError, setVideoPreviewError] = useState(false)
   const [removeVideo, setRemoveVideo] = useState(false)
   const [videoAsset, setVideoAsset] = useState(null)
-  const [videoUploadMetadata, setVideoUploadMetadata] = useState(null)
   const [videoPhase, setVideoPhase] = useState('')
   const [videoPhaseProgress, setVideoPhaseProgress] = useState(0)
   const [videoOriginalBytes, setVideoOriginalBytes] = useState(0)
@@ -226,7 +225,6 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       cancelCompressionRef.current = null
       setVideoFile(null)
       setVideoAsset(null)
-      setVideoUploadMetadata(null)
       setVideoPhase('')
       setVideoPhaseProgress(0)
       setVideoOriginalBytes(0)
@@ -267,7 +265,6 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     if (videoPreview && videoPreview.startsWith('blob:')) URL.revokeObjectURL(videoPreview)
     setVideoFile(file)
     setVideoAsset(null)
-    setVideoUploadMetadata(null)
     setVideoError(null)
     setRemoveVideo(false)
     setVideoPreviewError(false)
@@ -307,35 +304,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     } catch (err) {
       cancelCompressionRef.current = null
       cancelUploadRef.current = null
-      if (err?.uploadedAsset) setVideoUploadMetadata(err.uploadedAsset)
-      const msg = err?.uploadedAsset
-        ? 'Video upload succeeded, but verification failed. Retry verification; the video will not be uploaded again.'
-        : (err?.message || 'Video processing failed')
-      setVideoError(msg)
-      setVideoPhase('error')
-      setVideoPhaseProgress(0)
-      toast.error(msg)
-    }
-  }
-
-  const retryVideoVerification = async () => {
-    if (!videoUploadMetadata) {
-      if (videoFile) processSelectedVideo(videoFile)
-      return
-    }
-    setVideoError(null)
-    setVideoPhase('verifying')
-    setVideoPhaseProgress(0)
-    try {
-      const asset = await verifyUploadedVideo(videoUploadMetadata)
-      setVideoAsset({ ...asset, originalName: videoFile?.name || null })
-      setVideoUploadMetadata(null)
-      setVideoPhase('completed')
-      setVideoPhaseProgress(100)
-      toast.success('Uploaded video verified successfully')
-    } catch (err) {
-      if (err?.uploadedAsset) setVideoUploadMetadata(err.uploadedAsset)
-      const msg = 'Video is uploaded but not verified yet. Retry verification without uploading it again.'
+      const msg = err?.message || 'Video processing failed'
       setVideoError(msg)
       setVideoPhase('error')
       setVideoPhaseProgress(0)
@@ -479,9 +448,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     }
     if (videoFile && !videoAsset) {
       submissionLockRef.current = false
-      setError(videoUploadMetadata
-        ? 'Verify the uploaded video before saving or publishing'
-        : 'Wait for video compression, upload, and verification to complete')
+      setError('Wait for video compression and upload to complete')
       return
     }
     if (videoError && videoFile) {
@@ -619,10 +586,10 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
               {videoFile && (
                 <button
                   type="button"
-                  onClick={videoUploadMetadata ? retryVideoVerification : () => processSelectedVideo(videoFile)}
+                  onClick={() => processSelectedVideo(videoFile)}
                   className="text-xs font-semibold text-[var(--accent)]"
                 >
-                  {videoUploadMetadata ? 'Retry verification' : 'Retry'}
+                  Retry
                 </button>
               )}
             </div>

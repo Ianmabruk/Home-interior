@@ -2,7 +2,7 @@ import { asyncHandler } from '../middleware/asyncHandler.js'
 import { blogService } from '../services/blogService.js'
 import { invalidateCachePattern } from '../utils/cache.js'
 import { failure } from '../utils/response.js'
-import { createSignedVideoUpload, verifyCloudinaryVideo } from '../config/cloudinary.js'
+import { createSignedVideoUpload } from '../config/cloudinary.js'
 
 function validateSavedVideoAsset(asset) {
   if (!asset) return null
@@ -70,19 +70,6 @@ export const blogController = {
     res.json({ success: true, data: createSignedVideoUpload(raw) })
   }),
 
-  verifyVideoUpload: asyncHandler(async (req, res) => {
-    const data = await verifyCloudinaryVideo({
-      assetId: req.body?.assetId,
-      publicId: req.body?.publicId,
-      resourceType: req.body?.resourceType,
-      type: req.body?.type,
-      secureUrl: req.body?.secureUrl,
-      version: req.body?.version,
-      format: req.body?.format,
-      bytes: req.body?.bytes,
-    })
-    res.json({ success: true, data })
-  }),
   list: asyncHandler(async (req, res) => {
     const items = await blogService.listBlogs()
     res.json({ success: true, data: items })

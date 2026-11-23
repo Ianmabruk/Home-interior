@@ -5,62 +5,79 @@ vi.mock('../services/api', () => ({
 }))
 
 import { api } from '../services/api'
-import { verifyUploadedVideo } from '../services/cloudinaryVideoService'
+import * as videoService from '../services/cloudinaryVideoService'
 
-const uploadedAsset = {
-  assetId: 'cloudinary-asset-id',
-  publicId: 'hok-interiors/blog-videos/hok-blog-video123',
-  resourceType: 'video',
-  type: 'upload',
-  secureUrl: 'https://res.cloudinary.com/demo/video/upload/v123/hok-interiors/blog-videos/hok-blog-video123.mp4',
-  version: 123,
-  format: 'mp4',
-  bytes: 42,
+class MockXMLHttpRequest {
+  static instances = []
+
+  constructor() {
+    this.upload = {}
+    MockXMLHttpRequest.instances.push(this)
+  }
+
+  open(method, url) {
+    this.method = method
+    this.url = url
+  }
+
+  send() {
+    queueMicrotask(() => {
+      this.status = this.status || 200
+      this.responseText = JSON.stringify({
+        asset_id: 'cloudinary-asset-id',
+        public_id: 'hok-interiors/blog-videos/hok-blog-video123',
+        resource_type: 'video',
+        type: 'upload',
+        secure_url: 'https://res.cloudinary.com/demo/video/upload/v123/hok-interiors/blog-videos/hok-blog-video123.mp4',
+        version: 123,
+        format: 'mp4',
+        bytes: 42,
+      })
+      this.onload?.()
+    })
+  }
+
+  abort() {
+    this.onabort?.()
+  }
 }
 
-describe('Cloudinary video verification service', () => {
+describe('Cloudinary direct video upload', () => {
   afterEach(() => {
     api.post.mockReset()
-    vi.useRealTimers()
+    MockXMLHttpRequest.instances = []
+    vi.unstubAllGlobals()
   })
 
-  it('sends the complete Cloudinary upload response to the verifier', async () => {
-    api.post.mockResolvedValue({ data: uploadedAsset })
-
-    await expect(verifyUploadedVideo(uploadedAsset)).resolves.toMatchObject(uploadedAsset)
-    expect(api.post).toHaveBeenCalledWith(
-      '/admin/blog/cloudinary/verify',
-      expect.objectContaining(uploadedAsset),
-    )
+  it('does not expose or call the separate verification endpoint', () => {
+    expect(videoService.verifyUploadedVideo).toBeUndefined()
   })
 
-  it('retries temporary failures a bounded number of times while preserving uploaded metadata', async () => {
-    vi.useFakeTimers()
-    const error = new Error('Verification unavailable')
-    error.status = 503
-    error.response = { status: 503, data: { code: 'CLOUDINARY_VERIFY_TEMPORARY' } }
-    api.post.mockRejectedValue(error)
-
-    const pending = expect(verifyUploadedVideo(uploadedAsset)).rejects.toMatchObject({
-      uploadedAsset,
-      response: { data: { code: 'CLOUDINARY_VERIFY_TEMPORARY' } },
+  it('returns successful upload metadata directly from the Cloudinary upload response', async () => {
+    vi.stubGlobal('XMLHttpRequest', MockXMLHttpRequest)
+    api.post.mockResolvedValue({
+      data: {
+        cloudName: 'demo',
+        apiKey: 'api-key',
+        signature: 'signature',
+        timestamp: 123,
+        folder: 'hok-interiors/blog-videos',
+        publicId: 'hok-blog-video123',
+      },
     })
-    await vi.runAllTimersAsync()
-    await pending
 
-    expect(api.post).toHaveBeenCalledTimes(3)
-  })
+    const result = await videoService.uploadOptimizedVideo(
+      new File(['video'], 'optimized.mp4', { type: 'video/mp4' }),
+      'a'.repeat(64),
+    )
 
-  it('does not retry permanent Cloudinary authentication errors', async () => {
-    const error = new Error('Cloudinary authentication failed')
-    error.status = 502
-    error.response = { status: 502, data: { code: 'CLOUDINARY_AUTHENTICATION_FAILED' } }
-    api.post.mockRejectedValue(error)
-
-    await expect(verifyUploadedVideo(uploadedAsset)).rejects.toMatchObject({
-      uploadedAsset,
-      response: { data: { code: 'CLOUDINARY_AUTHENTICATION_FAILED' } },
+    expect(result).toMatchObject({
+      assetId: 'cloudinary-asset-id',
+      publicId: 'hok-interiors/blog-videos/hok-blog-video123',
+      resourceType: 'video',
+      secureUrl: expect.stringContaining('/video/upload/'),
     })
     expect(api.post).toHaveBeenCalledTimes(1)
+    expect(api.post).toHaveBeenCalledWith('/admin/blog/cloudinary/signature', expect.any(Object))
   })
 })

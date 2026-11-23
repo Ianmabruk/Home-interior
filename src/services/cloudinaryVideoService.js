@@ -1,7 +1,5 @@
 import { api } from './api'
 
-const VERIFY_ATTEMPTS = 3
-
 function normalizeUploadMetadata(result) {
   return {
     assetId: result.asset_id || result.assetId || null,
@@ -18,58 +16,15 @@ function normalizeUploadMetadata(result) {
   }
 }
 
-function getErrorStatus(error) {
-  return error?.status || error?.response?.status
-}
-
-function shouldRetryVerification(error) {
-  const status = getErrorStatus(error)
-  const code = error?.code || error?.response?.data?.code
-  if ([
-    'CLOUDINARY_AUTHENTICATION_FAILED',
-    'CLOUDINARY_NOT_CONFIGURED',
-    'CLOUDINARY_ASSET_MISMATCH',
-    'CLOUDINARY_PUBLIC_ID_MISMATCH',
-    'CLOUDINARY_UPLOAD_METADATA_MISMATCH',
-    'CLOUDINARY_VIDEO_NOT_PUBLIC',
-    'CLOUDINARY_VIDEO_DELIVERY_UNAVAILABLE',
-  ].includes(code)) return false
-  if (code === 'CLOUDINARY_ASSET_NOT_FOUND' || code === 'CLOUDINARY_VIDEO_DELIVERY_NOT_READY') return true
-  if (code === 'CLOUDINARY_VERIFY_TEMPORARY') return true
-  return !status || status === 408 || status === 429 || status >= 500
-}
-
-function delay(milliseconds) {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds))
-}
-
-export async function verifyUploadedVideo(uploadMetadata) {
-  const uploadedAsset = normalizeUploadMetadata(uploadMetadata)
-  let lastError
-  for (let attempt = 1; attempt <= VERIFY_ATTEMPTS; attempt += 1) {
-    try {
-      const response = await api.post('/admin/blog/cloudinary/verify', uploadedAsset)
-      return normalizeUploadMetadata(response.data)
-    } catch (error) {
-      lastError = error
-      if (attempt === VERIFY_ATTEMPTS || !shouldRetryVerification(error)) break
-      await delay(400 * (2 ** (attempt - 1)))
-    }
-  }
-  if (lastError && typeof lastError === 'object') {
-    lastError.uploadedAsset = uploadedAsset
-  }
-  throw lastError
-}
-
 export async function uploadOptimizedVideo(file, contentHash, handlers = {}) {
   if (!file) throw new Error('No optimized video is available')
   const publicId = `hok-blog-${contentHash.slice(0, 32)}`
   const signature = await api.post('/admin/blog/cloudinary/signature', { publicId })
   const signed = signature.data
 
-  const uploadResponse = await new Promise((resolve, reject) => {
+  const uploadOnce = () => new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
+    const timeoutId = setTimeout(() => xhr.abort(), 300000)
     handlers.setCancel?.(() => xhr.abort())
     const form = new FormData()
     form.append('file', file, 'optimized.mp4')
@@ -78,7 +33,7 @@ export async function uploadOptimizedVideo(file, contentHash, handlers = {}) {
     form.append('signature', signed.signature)
     form.append('folder', signed.folder)
     form.append('public_id', signed.publicId)
-    form.append('overwrite', 'false')
+    form.append('overwrite', 'true')
 
     xhr.open('POST', `https://api.cloudinary.com/v1_1/${signed.cloudName}/video/upload`)
     xhr.upload.onprogress = (event) => {
@@ -86,9 +41,24 @@ export async function uploadOptimizedVideo(file, contentHash, handlers = {}) {
         handlers.onUploadProgress?.(Math.round((event.loaded * 100) / event.total))
       }
     }
-    xhr.onerror = () => reject(new Error('Cloudinary upload was interrupted. Check your connection and retry.'))
-    xhr.onabort = () => reject(new Error('Video upload cancelled'))
+    xhr.onerror = () => {
+      clearTimeout(timeoutId)
+      const error = new Error('Cloudinary upload was interrupted. Check your connection and retry.')
+      error.status = 0
+      reject(error)
+    }
+    xhr.ontimeout = () => {
+      clearTimeout(timeoutId)
+      const error = new Error('Cloudinary upload timed out. Retry the video upload.')
+      error.status = 504
+      reject(error)
+    }
+    xhr.onabort = () => {
+      clearTimeout(timeoutId)
+      reject(new Error('Video upload cancelled'))
+    }
     xhr.onload = () => {
+      clearTimeout(timeoutId)
       let result
       try {
         result = JSON.parse(xhr.responseText)
@@ -104,14 +74,29 @@ export async function uploadOptimizedVideo(file, contentHash, handlers = {}) {
         || !result.secure_url
         || !result.public_id
       ) {
-        reject(new Error(result.error?.message || `Cloudinary upload failed with status ${xhr.status}`))
+        const error = new Error(result.error?.message || `Cloudinary upload failed with status ${xhr.status}`)
+        error.status = xhr.status
+        reject(error)
         return
       }
       resolve(result)
     }
+    xhr.timeout = 300000
     xhr.send(form)
   })
 
-  handlers.onUploadProgress?.(100)
-  return normalizeUploadMetadata(uploadResponse)
+  let lastError
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const uploadResponse = await uploadOnce()
+      handlers.onUploadProgress?.(100)
+      return normalizeUploadMetadata(uploadResponse)
+    } catch (error) {
+      lastError = error
+      const status = error?.status
+      if (attempt === 1 || status === 400 || status === 401 || status === 403 || status === 404) break
+      await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)))
+    }
+  }
+  throw lastError
 }

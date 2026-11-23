@@ -16,14 +16,13 @@ vi.mock('../services/videoCompressionService', () => ({
 
 vi.mock('../services/cloudinaryVideoService', () => ({
   uploadOptimizedVideo: vi.fn(),
-  verifyUploadedVideo: vi.fn(),
 }))
 
 import BlogForm from '../components/blog/BlogForm'
 import { api } from '../services/api'
 import { uploadBlogMediaFile } from '../services/blogMediaUploadService'
 import { compressVideoInWorker } from '../services/videoCompressionService'
-import { uploadOptimizedVideo, verifyUploadedVideo } from '../services/cloudinaryVideoService'
+import { uploadOptimizedVideo } from '../services/cloudinaryVideoService'
 
 let blobUrlCount = 0
 
@@ -62,7 +61,6 @@ describe('BlogForm media publishing', () => {
     uploadBlogMediaFile.mockReset()
     compressVideoInWorker.mockReset()
     uploadOptimizedVideo.mockReset()
-    verifyUploadedVideo.mockReset()
   })
 
   afterEach(() => {
@@ -163,26 +161,24 @@ describe('BlogForm media publishing', () => {
     expect(api.patch.mock.calls[0][1]).not.toBeInstanceOf(FormData)
   })
 
-  it('retries verification of a successful Cloudinary upload without uploading the video again', async () => {
-    const uploadedAsset = {
-      assetId: 'cloudinary-asset-id',
-      publicId: 'hok-interiors/blog-videos/hok-blog-test',
-      resourceType: 'video',
-      type: 'upload',
-      secureUrl: 'https://res.cloudinary.com/demo/video/upload/v123/hok-interiors/blog-videos/hok-blog-test.mp4',
-      version: 123,
-      format: 'mp4',
-      bytes: 10,
-    }
-    const verifyError = new Error('Temporary verification outage')
-    verifyError.uploadedAsset = uploadedAsset
+  it('allows the failed video upload to be retried without verification', async () => {
     compressVideoInWorker.mockResolvedValue({
       file: new File(['video'], 'optimized.mp4', { type: 'video/mp4' }),
       compressedBytes: 10,
       contentHash: 'test',
     })
-    uploadOptimizedVideo.mockRejectedValueOnce(verifyError)
-    verifyUploadedVideo.mockResolvedValue(uploadedAsset)
+    uploadOptimizedVideo
+      .mockRejectedValueOnce(new Error('Cloudinary upload timed out'))
+      .mockResolvedValueOnce({
+        assetId: 'cloudinary-asset-id',
+        publicId: 'hok-interiors/blog-videos/hok-blog-test',
+        resourceType: 'video',
+        type: 'upload',
+        secureUrl: 'https://res.cloudinary.com/demo/video/upload/v123/hok-interiors/blog-videos/hok-blog-test.mp4',
+        version: 123,
+        format: 'mp4',
+        bytes: 10,
+      })
 
     render(<BlogForm />)
     fillTitle()
@@ -190,13 +186,12 @@ describe('BlogForm media publishing', () => {
       target: { files: [new File(['video'], 'room-tour.mp4', { type: 'video/mp4' })] },
     })
 
-    await screen.findByText(/upload succeeded, but verification failed/i)
+    await screen.findByText(/Cloudinary upload timed out/i)
     expect(uploadOptimizedVideo).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('button', { name: 'Publish' })).toBeDisabled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Retry verification' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     await waitFor(() => expect(screen.getByText('Videos uploaded: 1/1')).toBeTruthy())
-    expect(verifyUploadedVideo).toHaveBeenCalledWith(uploadedAsset)
-    expect(uploadOptimizedVideo).toHaveBeenCalledTimes(1)
+    expect(uploadOptimizedVideo).toHaveBeenCalledTimes(2)
   })
 })
