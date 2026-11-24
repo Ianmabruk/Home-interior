@@ -618,8 +618,8 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       if (removeVideo) formData.append('removeVideo', 'true')
       if (uploads.mediaAssets.length > 0) formData.append('mediaAssets', JSON.stringify(uploads.mediaAssets))
       if (removeMediaUrls.length > 0) formData.append('removeMediaUrls', JSON.stringify(removeMediaUrls))
-      if (imageFile) formData.append('image', imageFile)
-      if (videoFile) formData.append('video', videoFile)
+      if (imageFile && !uploads.imageAsset) formData.append('image', imageFile)
+      if (videoFile && !uploads.videoAsset) formData.append('video', videoFile)
       contentFiles.forEach((item) => {
         if (!item.asset && item.file) {
           formData.append('contentImages', item.file)
