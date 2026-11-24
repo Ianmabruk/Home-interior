@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js'
 import { uploadFile, deleteFile, deleteFiles } from '../uploads/uploadService.js'
+import { uploadVideo, isVideoCloudinaryConfigured } from './cloudinaryVideoService.js'
 import { failure } from '../utils/response.js'
 
 const MAX_GALLERY_MEDIA = 10
@@ -86,7 +87,14 @@ async function createVirtualDesign(data, file, galleryFiles, circularFile = null
 
   const uploadPromises = []
   for (const f of galleryFiles) {
-    uploadPromises.push(uploadFile(f.buffer, f.mimetype, 'virtual-designs'))
+    if (f.mimetype?.startsWith('video/')) {
+      if (!isVideoCloudinaryConfigured()) {
+        throw failure(503, 'Video upload service is not configured.')
+      }
+      uploadPromises.push(uploadVideo(f.buffer, f.mimetype, 'virtual-designs', f.originalname))
+    } else {
+      uploadPromises.push(uploadFile(f.buffer, f.mimetype, 'virtual-designs'))
+    }
   }
   const uploadedUrls = await Promise.allSettled(uploadPromises)
   uploadedUrls.forEach((result) => {
@@ -97,10 +105,21 @@ async function createVirtualDesign(data, file, galleryFiles, circularFile = null
 
   if (mediaUrls.length > 0) createData.mediaUrls = [...new Set(mediaUrls)]
   if (file) {
-    const uploaded = await uploadFile(file.buffer, file.mimetype, 'virtual-designs')
-    createData.imageUrl = uploaded.url
-    createData.cloudinaryId = uploaded.path
-    uploadedPaths.push(uploaded.path)
+    if (file.mimetype?.startsWith('video/')) {
+      if (!isVideoCloudinaryConfigured()) {
+        throw failure(503, 'Video upload service is not configured.')
+      }
+      const uploaded = await uploadVideo(file.buffer, file.mimetype, 'virtual-designs', file.originalname)
+      createData.imageUrl = uploaded.url
+      createData.cloudinaryId = uploaded.publicId
+      createData.mediaType = 'video'
+      uploadedPaths.push(uploaded.publicId)
+    } else {
+      const uploaded = await uploadFile(file.buffer, file.mimetype, 'virtual-designs')
+      createData.imageUrl = uploaded.url
+      createData.cloudinaryId = uploaded.path
+      uploadedPaths.push(uploaded.path)
+    }
   } else if (mainAsset?.secureUrl && mainAsset?.publicId) {
     createData.imageUrl = mainAsset.secureUrl
     createData.cloudinaryId = mainAsset.publicId
@@ -148,11 +167,22 @@ async function updateVirtualDesign(id, data, file, galleryFiles, circularFile = 
   }
 
   if (file) {
-    if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId)
-    const uploaded = await uploadFile(file.buffer, file.mimetype, 'virtual-designs')
-    updateData.imageUrl = uploaded.url
-    updateData.cloudinaryId = uploaded.path
-    newUploadedPaths.push(uploaded.path)
+    if (existing.cloudinaryId) await deleteFile(existing.cloudinaryId, existing.mediaType === 'video' ? 'video' : 'image')
+    if (file.mimetype?.startsWith('video/')) {
+      if (!isVideoCloudinaryConfigured()) {
+        throw failure(503, 'Video upload service is not configured.')
+      }
+      const uploaded = await uploadVideo(file.buffer, file.mimetype, 'virtual-designs', file.originalname)
+      updateData.imageUrl = uploaded.url
+      updateData.cloudinaryId = uploaded.publicId
+      updateData.mediaType = 'video'
+      newUploadedPaths.push(uploaded.publicId)
+    } else {
+      const uploaded = await uploadFile(file.buffer, file.mimetype, 'virtual-designs')
+      updateData.imageUrl = uploaded.url
+      updateData.cloudinaryId = uploaded.path
+      newUploadedPaths.push(uploaded.path)
+    }
   }
 
   if (circularFile) {
@@ -192,7 +222,14 @@ async function updateVirtualDesign(id, data, file, galleryFiles, circularFile = 
   if (galleryFiles.length > 0) {
     const uploadPromises = []
     for (const f of galleryFiles) {
-      uploadPromises.push(uploadFile(f.buffer, f.mimetype, 'virtual-designs'))
+      if (f.mimetype?.startsWith('video/')) {
+        if (!isVideoCloudinaryConfigured()) {
+          throw failure(503, 'Video upload service is not configured.')
+        }
+        uploadPromises.push(uploadVideo(f.buffer, f.mimetype, 'virtual-designs', f.originalname))
+      } else {
+        uploadPromises.push(uploadFile(f.buffer, f.mimetype, 'virtual-designs'))
+      }
     }
     const uploadedUrls = await Promise.allSettled(uploadPromises)
     const newUrls = []

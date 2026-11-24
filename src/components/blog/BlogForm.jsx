@@ -82,6 +82,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const [error, setError] = useState(null)
 
   const imageInputRef = useRef(null)
+  const videoRef = useRef(null)
   const contentInputRef = useRef(null)
   const submissionLockRef = useRef(false)
   const contentFilesRef = useRef(contentFiles)
@@ -114,7 +115,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     const maxVideoBytes = 5 * 1024 * 1024 * 1024
     if (field === 'video' ? file.size > maxVideoBytes : file.size > MAX_FILE_SIZE_BYTES) {
       if (field === 'video') {
-        toast.error('Video uploads are temporarily unavailable')
+        toast.error('Video exceeds the maximum allowed size of 5 GB')
         e.target.value = ''
         return
       }
@@ -141,14 +142,21 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       const url = URL.createObjectURL(file)
       setImagePreview(url)
     } else if (field === 'video') {
-      toast.error('Video uploads are temporarily unavailable. Image uploads are currently supported.')
-      e.target.value = ''
-      return
+      if (!file.type.startsWith('video/') && !/\.(mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(file.name)) {
+        toast.error('Please select a valid video file')
+        e.target.value = ''
+        return
+      }
+      setVideoFile(file)
+      setVideoAsset(null)
+      const url = URL.createObjectURL(file)
+      setVideoPreview(url)
+      setVideoPreviewError(false)
     }
     e.target.value = ''
 }
 
-  const handleContentImagesChange = (e) => {
+const handleContentImagesChange = (e) => {
     const selected = Array.from(e.target.files || [])
     if (selected.length === 0) return
     const emptyFile = selected.find((file) => file.size === 0)
@@ -157,21 +165,24 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       e.target.value = ''
       return
     }
-    const videoFile = selected.find((file) => isContentVideo(file))
-    if (videoFile) {
-      toast.error('Video uploads are temporarily unavailable. Please select images only.')
-      e.target.value = ''
-      return
-    }
-    const invalidType = selected.find((file) => !file.type.startsWith('image/') && !/\.(jpe?g|png|webp|gif|avif)$/i.test(file.name))
+    const invalidType = selected.find((file) => !file.type.startsWith('image/') && !file.type.startsWith('video/') && !/\.(jpe?g|png|webp|gif|avif|mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(file.name))
     if (invalidType) {
-      toast.error(`"${invalidType.name}" is not a supported image file`)
+      toast.error(`"${invalidType.name}" is not a supported media file`)
       e.target.value = ''
       return
     }
-    const oversized = selected.find((file) => file.size > MAX_FILE_SIZE_BYTES)
+    const oversized = selected.find((file) => {
+      if (file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(file.name)) {
+        return file.size > 5 * 1024 * 1024 * 1024
+      }
+      return file.size > MAX_FILE_SIZE_BYTES
+    })
     if (oversized) {
-      toast.error(`File "${oversized.name}" exceeds the ${MAX_FILE_SIZE_MB} MB content media limit`)
+      if (oversized.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(oversized.name)) {
+        toast.error(`Video "${oversized.name}" exceeds the 5 GB limit`)
+      } else {
+        toast.error(`File "${oversized.name}" exceeds the ${MAX_FILE_SIZE_MB} MB content media limit`)
+      }
       e.target.value = ''
       return
     }
@@ -186,7 +197,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       }))
     setContentFiles((prev) => [...prev, ...newItems])
     e.target.value = ''
-  }
+}
 
   const handleRemoveContentImage = (index) => {
     const item = contentFiles[index]
@@ -249,6 +260,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const uploadPendingMedia = async () => {
     const pending = []
     let uploadedImageAsset = imageAsset
+    let uploadedVideoAsset = videoAsset
     const uploadedContentAssets = new Map()
     const failed = []
 
@@ -260,15 +272,17 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
         type: 'featured',
       })
     }
-    // Video uploads temporarily disabled
     if (videoFile && !videoAsset) {
-      failed.push({ fileName: videoFile.name, message: 'Video uploads are temporarily unavailable' })
+      pending.push({
+        id: 'featured-video',
+        file: videoFile,
+        uploadId: createBlogUploadId(),
+        type: 'featured-video',
+      })
     }
     contentFiles.forEach((item) => {
       if (item.asset) uploadedContentAssets.set(item.id, item.asset)
-      else if (isContentVideo(item.file)) {
-        failed.push({ fileName: item.file.name, message: 'Video uploads are temporarily unavailable' })
-      } else {
+      else {
         pending.push({ ...item, type: 'content' })
       }
     })
@@ -276,6 +290,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     if (pending.length === 0) {
       return {
         imageAsset: uploadedImageAsset,
+        videoAsset: uploadedVideoAsset,
         mediaAssets: contentFiles.map((item) => item.asset).filter(Boolean),
         failed,
       }
@@ -290,6 +305,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           if (!item) break
           cursor += 1
           if (item.type === 'featured') setImageUploadError(null)
+          else if (item.type === 'featured-video') setImageUploadError(null)
           else {
             setContentFiles((prev) => prev.map((entry) => (
               entry.id === item.id ? { ...entry, status: 'uploading', error: null } : entry
@@ -303,14 +319,14 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
                 contentCancelRefs.current.set(item.id, { ...cancelers, upload: cancel })
               },
               onPhase: (phase) => {
-                if (isContentVideo(item.file)) {
+                if (isContentVideo(item.file) || item.type === 'featured-video') {
                   setContentFiles((prev) => prev.map((entry) => (
                     entry.id === item.id ? { ...entry, status: phase } : entry
                   )))
                 }
               },
               onUploadProgress: (progress) => {
-                if (isContentVideo(item.file)) {
+                if (isContentVideo(item.file) || item.type === 'featured-video') {
                   setContentFiles((prev) => prev.map((entry) => (
                     entry.id === item.id ? { ...entry, progress } : entry
                   )))
@@ -321,6 +337,9 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
             if (item.type === 'featured') {
               uploadedImageAsset = asset
               setImageAsset(asset)
+            } else if (item.type === 'featured-video') {
+              uploadedVideoAsset = asset
+              setVideoAsset(asset)
             } else {
               uploadedContentAssets.set(item.id, asset)
               setContentFiles((prev) => prev.map((entry) => (
@@ -330,7 +349,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           } catch (uploadError) {
             const message = uploadError?.message || 'Upload failed'
             failed.push({ fileName: item.file.name, message })
-            if (item.type === 'featured') setImageUploadError(message)
+            if (item.type === 'featured' || item.type === 'featured-video') setImageUploadError(message)
             else {
               setContentFiles((prev) => prev.map((entry) => (
                 entry.id === item.id ? { ...entry, status: 'failed', error: message } : entry
@@ -344,14 +363,17 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     }
 
     try {
-      const imageQueue = pending.filter((item) => !isContentVideo(item.file))
+      const imageQueue = pending.filter((item) => !isContentVideo(item.file) && item.type !== 'featured-video')
+      const videoQueue = pending.filter((item) => isContentVideo(item.file) || item.type === 'featured-video')
       await processQueue(imageQueue, 3)
+      await processQueue(videoQueue, 1)
     } finally {
       setUploadingMedia(false)
     }
 
     return {
       imageAsset: uploadedImageAsset,
+      videoAsset: uploadedVideoAsset,
       mediaAssets: contentFiles.map((item) => uploadedContentAssets.get(item.id) || item.asset).filter(Boolean),
       failed,
     }
@@ -405,6 +427,20 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     }
   }
 
+  const retryFeaturedVideoUpload = async () => {
+    if (!videoFile || uploadingMedia || submitting) return
+    setUploadingMedia(true)
+    setImageUploadError(null)
+    try {
+      const asset = await uploadBlogMediaFile(videoFile, createBlogUploadId())
+      setVideoAsset(asset)
+    } catch (uploadError) {
+      setImageUploadError(uploadError?.message || 'Upload failed')
+    } finally {
+      setUploadingMedia(false)
+    }
+  }
+
   const handleSubmit = async (e, status) => {
     e.preventDefault()
     if (submitting || submissionLockRef.current) return
@@ -417,7 +453,6 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       setError('Title is required')
       return
     }
-    // Video uploads temporarily disabled - skip video validation
 
     setSubmitting(true)
 
@@ -443,6 +478,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       }
       if (form.publishDate) payload.publishDate = form.publishDate
       if (imageFile) payload.imageAsset = uploads.imageAsset
+      if (videoFile) payload.videoAsset = uploads.videoAsset
       if (removeVideo) payload.removeVideo = true
       if (uploads.mediaAssets.length > 0) payload.mediaAssets = uploads.mediaAssets
       if (removeMediaUrls.length > 0) payload.removeMediaUrls = removeMediaUrls
@@ -475,10 +511,12 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const wordCount = form.content ? form.content.replace(/<[^>]*>/g, ' ').trim().split(/\s+/).filter(Boolean).length : 0
   const readingTime = getReadingTime(form.content || '')
   const selectedImageCount = Number(Boolean(imageFile)) + contentFiles.filter(({ file }) => !isContentVideo(file)).length
+  const selectedVideoCount = Number(Boolean(videoFile)) + contentFiles.filter(({ file }) => isContentVideo(file)).length
   const uploadedImageCount = Number(Boolean(imageFile && imageAsset)) + contentFiles.filter(({ file, asset }) => !isContentVideo(file) && asset).length
+  const uploadedVideoCount = Number(Boolean(videoFile && videoAsset)) + contentFiles.filter(({ file, asset }) => isContentVideo(file) && asset).length
   const failedUploadCount = Number(Boolean(imageUploadError)) + contentFiles.filter(({ status }) => status === 'failed').length
-  const totalSelectedMedia = selectedImageCount
-  const totalUploadedMedia = uploadedImageCount
+  const totalSelectedMedia = selectedImageCount + selectedVideoCount
+  const totalUploadedMedia = uploadedImageCount + uploadedVideoCount
 
   return (
     <form className="space-y-6">
@@ -493,25 +531,13 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
         </div>
       )}
 
-      {videoFile && (
-        <div className="space-y-3 rounded-xl border border-border/50 bg-[var(--secondary)]/10 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-[var(--primary)]">
-                Video uploads temporarily unavailable
-              </p>
-            </div>
-          </div>
-          <p className="text-sm text-[var(--primary)]/60">Image uploads are currently supported. The selected video will not be uploaded.</p>
-        </div>
-      )}
-
       {totalSelectedMedia > 0 && (
         <div className="space-y-3 rounded-xl border border-border/50 bg-[var(--secondary)]/10 p-4">
           <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs font-medium text-[var(--primary)]/70">
             <span>{uploadingMedia ? 'Uploading media' : 'Media uploaded'}: {totalUploadedMedia}/{totalSelectedMedia}</span>
             <span>Remaining: {totalSelectedMedia - totalUploadedMedia}</span>
             <span>Images uploaded: {uploadedImageCount}/{selectedImageCount}</span>
+            <span>Videos uploaded: {uploadedVideoCount}/{selectedVideoCount}</span>
             <span>Failed uploads: {failedUploadCount}</span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--secondary)]/30">
@@ -522,10 +548,16 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           </div>
           {imageUploadError && (
             <div className="flex items-center justify-between gap-3 text-xs text-[var(--error)]">
-              <span>Featured image: {imageUploadError}</span>
-              <button type="button" onClick={retryFeaturedImageUpload} disabled={uploadingMedia} className="font-semibold text-[var(--accent)] disabled:opacity-50">
-                Retry
-              </button>
+              <span>Featured media: {imageUploadError}</span>
+              {(imageFile && !imageAsset) ? (
+                <button type="button" onClick={retryFeaturedImageUpload} disabled={uploadingMedia} className="font-semibold text-[var(--accent)] disabled:opacity-50">
+                  Retry
+                </button>
+              ) : (videoFile && !videoAsset ? (
+                <button type="button" onClick={retryFeaturedVideoUpload} disabled={uploadingMedia} className="font-semibold text-[var(--accent)] disabled:opacity-50">
+                  Retry
+                </button>
+              ) : null)}
             </div>
           )}
           {contentFiles.filter(({ status }) => status === 'failed').map((item) => (
@@ -729,11 +761,17 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
               )}
             </div>
           ) : (
-            <div className="upload-zone flex cursor-not-allowed flex-col items-center justify-center py-6 opacity-50">
+            <label className="upload-zone flex cursor-pointer flex-col items-center justify-center py-8">
               <Video size={24} className="text-[var(--primary)]/30" />
-              <span className="mt-2 text-sm font-medium text-[var(--primary)]/60">Video uploads temporarily unavailable</span>
-              <p className="mt-1 text-xs text-[var(--primary)]/40 text-center max-w-xs">Image uploads are currently supported</p>
-            </div>
+              <span className="mt-2 text-sm font-medium text-[var(--primary)]/60">Click to upload video</span>
+              <input
+                type="file"
+                ref={videoRef}
+                accept="video/*"
+                onChange={(e) => handleFileChange(e, 'video')}
+                className="hidden"
+              />
+            </label>
           )}
         </div>
       </div>
@@ -743,7 +781,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           Content Media (Gallery)
         </label>
         <p className="mb-3 text-xs text-[var(--primary)]/50">
-        Additional images to display within the article. Video uploads are temporarily unavailable. Files upload separately and can be retried individually.
+        Additional images and videos to display within the article. Files upload separately and can be retried individually.
         </p>
 
         {existingContentImages.length > 0 && (
@@ -784,14 +822,14 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           </div>
         )}
 
-        <div className="upload-zone flex cursor-not-allowed flex-col items-center justify-center py-6 opacity-50">
+        <div className="upload-zone flex cursor-pointer flex-col items-center justify-center py-6">
           <UploadCloud size={20} className="text-[var(--primary)]/30" />
-          <span className="mt-2 text-sm font-medium text-[var(--primary)]/60">Click to upload gallery images</span>
-          <p className="mt-1 text-xs text-[var(--primary)]/40 text-center max-w-xs">Video uploads temporarily unavailable</p>
+          <span className="mt-2 text-sm font-medium text-[var(--primary)]/60">Click to upload gallery media</span>
+          <p className="mt-1 text-xs text-[var(--primary)]/40 text-center max-w-xs">Images and videos supported</p>
           <input
             type="file"
             ref={contentInputRef}
-            accept="image/*"
+            accept="image/*,video/*"
             multiple
             onChange={handleContentImagesChange}
             className="hidden"

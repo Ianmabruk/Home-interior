@@ -6,12 +6,10 @@ import { uploadSingle, uploadArray } from '../middleware/upload.js'
 import { validateCsrfToken } from '../middleware/csrf.js'
 import { generateCsrfToken } from '../middleware/csrf.js'
 import { ApiError } from '../utils/ApiError.js'
-import { uploadVideoToCloudinary, isVideoCloudinaryConfigured } from '../config/cloudinaryVideo.js'
+import { uploadVideo, isVideoCloudinaryConfigured } from '../services/cloudinaryVideoService.js'
+import { uploadImage, isImageCloudinaryConfigured } from '../services/cloudinaryImageService.js'
 import {
-  createHyperserveVideo,
-  completeHyperserveUpload,
   getHyperserveVideo,
-  validateHyperserveVideo,
 } from '../services/hyperserveService.js'
 
 const router = Router()
@@ -24,40 +22,8 @@ const VIDEO_TYPES = [
 ]
 const MAX_BATCH_FILES = 50
 
-router.post('/hyperserve/create', authenticate, validateCsrfToken, asyncHandler(async (req, res) => {
-  // Support both { filename, fileSize, mimeType } (frontend JSON) and
-  // { file: { name, size, type } } (legacy object shape)
-  const file = req.body?.file
-  const filename = (typeof req.body?.filename === 'string' && req.body.filename)
-    || (typeof file?.name === 'string' && file.name)
-    || ''
-  const size = Number(req.body?.fileSize ?? file?.size ?? 0)
-  const mimeType = req.body?.mimeType || file?.type || ''
-  if (!filename) {
-    throw new ApiError(400, 'Video filename is required')
-  }
-  if (!size) {
-    throw new ApiError(400, 'Video file size is required')
-  }
-  validateHyperserveVideo({ name: filename, size, mimetype: mimeType })
-  const resolutions = Array.isArray(req.body?.resolutions) && req.body.resolutions.length > 0
-    ? req.body.resolutions
-    : ['480p', '720p', '1080p']
-  const upload = await createHyperserveVideo({
-    filename,
-    resolutions,
-    isPublic: req.body?.isPublic !== false,
-    thumbnailTimestampsSeconds: Array.isArray(req.body?.thumbnailTimestampsSeconds) ? req.body.thumbnailTimestampsSeconds : [1],
-    customMetadata: req.body?.customMetadata || null,
-  })
-  res.status(201).json({ success: true, data: upload })
-}))
-
-router.post('/hyperserve/:id/complete', authenticate, validateCsrfToken, asyncHandler(async (req, res) => {
-  const result = await completeHyperserveUpload(req.params.id)
-  res.status(201).json({ success: true, data: result })
-}))
-
+// Legacy Hyperserve endpoints - ONLY for checking status of existing videos
+// New video uploads MUST use /video/upload (Cloudinary Video account)
 router.get('/hyperserve/:id/status', authenticate, asyncHandler(async (req, res) => {
   const result = await getHyperserveVideo(req.params.id, req.query.private !== 'true')
   res.json({ success: true, data: result })
@@ -79,7 +45,7 @@ router.post('/video/upload', authenticate, validateCsrfToken, uploadSingle('medi
   if (uploadId && (!/^[a-zA-Z0-9-]{16,64}$/.test(uploadId) || folder !== 'blogs')) {
     throw new ApiError(400, 'Invalid upload identifier')
   }
-  const uploaded = await uploadVideoToCloudinary(
+  const uploaded = await uploadVideo(
     req.file.buffer,
     req.file.mimetype,
     folder,
@@ -106,10 +72,6 @@ router.post('/video/upload', authenticate, validateCsrfToken, uploadSingle('medi
       csrfToken,
     },
   })
-}))
-
-router.post('/signature', authenticate, validateCsrfToken, asyncHandler(async (req, res) => {
-  throw new ApiError(410, 'Cloudinary video uploads are disabled. Use the Hyperserve media routes.')
 }))
 
 router.post('/upload', authenticate, validateCsrfToken, uploadSingle('media', IMAGE_TYPES), asyncHandler(async (req, res) => {

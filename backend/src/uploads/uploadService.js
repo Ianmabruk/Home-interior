@@ -3,7 +3,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 import { supabase, isSupabaseConfigured } from '../config/supabase.js'
-import { uploadToCloudinary, isCloudinaryConfigured } from '../config/cloudinary.js'
+import { uploadImage, isImageCloudinaryConfigured } from '../services/cloudinaryImageService.js'
 import { failure } from '../utils/response.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -155,7 +155,7 @@ export async function uploadFile(buffer, mimetype, folder, originalName, uploadI
   }
 
   const shouldUseLocalFallback = process.env.ALLOW_LOCAL_UPLOADS === 'true'
-  const useCloudinary = isCloudinaryConfigured() && process.env.SKIP_CLOUDINARY !== 'true' && !shouldUseLocalFallback
+  const useCloudinary = isImageCloudinaryConfigured() && process.env.SKIP_CLOUDINARY !== 'true' && !shouldUseLocalFallback
   const optimizedBuffer = await optimizeImageBuffer(
     buffer,
     mimetype,
@@ -174,7 +174,7 @@ export async function uploadFile(buffer, mimetype, folder, originalName, uploadI
 
   if (useCloudinary) {
     try {
-      const uploaded = await uploadToCloudinary(optimizedBuffer, optimizedMimetype, folder, originalName, uploadId)
+      const uploaded = await uploadImage(optimizedBuffer, optimizedMimetype, folder, originalName, uploadId)
       return {
         url: uploaded.url,
         originalUrl: uploaded.originalUrl,
