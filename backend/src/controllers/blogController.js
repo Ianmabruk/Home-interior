@@ -6,14 +6,16 @@ import { failure } from '../utils/response.js'
 function validateSavedVideoAsset(asset) {
   if (!asset) return null
   const isHyperserve = asset.storageProvider === 'hyperserve'
+  const isCloudinaryVideo = asset.storageProvider === 'cloudinary' && asset.resourceType === 'video'
   const isLegacyCloudinary = typeof asset.secureUrl === 'string'
     && asset.secureUrl.startsWith('https://res.cloudinary.com/')
     && asset.secureUrl.includes('/video/upload/')
   if (
     (asset.resourceType && asset.resourceType !== 'video')
     || typeof asset.secureUrl !== 'string'
-    || (!isHyperserve && !isLegacyCloudinary)
+    || (!isHyperserve && !isLegacyCloudinary && !isCloudinaryVideo)
     || (isHyperserve && (!asset.providerAssetId || asset.uploadStatus !== 'ready'))
+    || (isCloudinaryVideo && !asset.publicId)
     || typeof asset.publicId !== 'string'
     || !asset.publicId
   ) {
@@ -51,6 +53,9 @@ function validateSavedMediaAssets(assets) {
       && asset?.storageProvider === 'hyperserve'
       && asset?.providerAssetId
       && asset?.uploadStatus === 'ready'
+    const isCloudinaryVideo = resourceType === 'video'
+      && asset?.storageProvider === 'cloudinary'
+      && asset?.publicId
     const isCloudinaryImage = resourceType === 'image'
       && typeof asset.secureUrl === 'string'
       && asset.secureUrl.startsWith('https://res.cloudinary.com/')
@@ -62,7 +67,7 @@ function validateSavedMediaAssets(assets) {
     if (
       !['image', 'video'].includes(resourceType)
       || typeof asset.secureUrl !== 'string'
-      || (!isCloudinaryImage && !isLegacyCloudinaryVideo && !isHyperserveVideo)
+      || (!isCloudinaryImage && !isLegacyCloudinaryVideo && !isHyperserveVideo && !isCloudinaryVideo)
       || typeof asset.publicId !== 'string'
       || !asset.publicId
       || seen.has(asset.secureUrl)

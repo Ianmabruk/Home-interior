@@ -327,11 +327,12 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
 
   if (videoAsset?.secureUrl && videoAsset?.publicId) {
     createData.video = videoAsset.secureUrl
-    createData.videoStorageProvider = videoAsset.storageProvider || (videoAsset.providerAssetId ? 'hyperserve' : 'cloudinary')
+    const storageProvider = videoAsset.storageProvider || (videoAsset.providerAssetId ? 'hyperserve' : 'cloudinary')
+    createData.videoStorageProvider = storageProvider
     createData.videoPlaybackUrl = videoAsset.playbackUrl || videoAsset.secureUrl
     createData.videoThumbnailUrl = videoAsset.thumbnailUrl || null
     createData.videoUploadStatus = videoAsset.uploadStatus || 'ready'
-    createData.videoCloudinaryId = createData.videoStorageProvider === 'cloudinary' ? videoAsset.publicId : null
+    createData.videoCloudinaryId = storageProvider === 'cloudinary' ? videoAsset.publicId : null
     createData.videoAssetId = videoAsset.assetId || null
     createData.videoResourceType = videoAsset.resourceType || 'video'
     createData.videoCloudinaryType = videoAsset.type || 'upload'
@@ -364,7 +365,7 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
 
 
   if (videoFile) {
-    throw failure(400, 'Video uploads must use the Hyperserve media uploader')
+    throw failure(400, 'Video uploads must use the Cloudinary video upload endpoint')
   }
 
   if (homepageCircularImageFile) {
@@ -432,11 +433,12 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
 
   if (videoAsset?.secureUrl && videoAsset?.publicId) {
     updateData.video = videoAsset.secureUrl
-    updateData.videoStorageProvider = videoAsset.storageProvider || (videoAsset.providerAssetId ? 'hyperserve' : 'cloudinary')
+    const storageProvider = videoAsset.storageProvider || (videoAsset.providerAssetId ? 'hyperserve' : 'cloudinary')
+    updateData.videoStorageProvider = storageProvider
     updateData.videoPlaybackUrl = videoAsset.playbackUrl || videoAsset.secureUrl
     updateData.videoThumbnailUrl = videoAsset.thumbnailUrl || null
     updateData.videoUploadStatus = videoAsset.uploadStatus || 'ready'
-    updateData.videoCloudinaryId = updateData.videoStorageProvider === 'cloudinary' ? videoAsset.publicId : null
+    updateData.videoCloudinaryId = storageProvider === 'cloudinary' ? videoAsset.publicId : null
     updateData.videoAssetId = videoAsset.assetId || null
     updateData.videoResourceType = videoAsset.resourceType || 'video'
     updateData.videoCloudinaryType = videoAsset.type || 'upload'
@@ -488,7 +490,7 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
       // Preserve the existing video asset and URL.
     }
 
-    throw failure(400, 'Video uploads must use the Hyperserve media uploader')
+    throw failure(400, 'Video uploads must use the Cloudinary video upload endpoint')
    } else if (removeVideo) {
     // Preserve provider assets even if the current record reference is removed.
   }

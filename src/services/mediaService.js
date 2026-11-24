@@ -1,147 +1,61 @@
 import { api } from './api'
 
-const HYPERSERVE_MAX_BYTES = 5 * 1024 * 1024 * 1024
-const HYPERSERVE_STATUS_INTERVAL_MS = 2000
-const HYPERSERVE_STATUS_ATTEMPTS = 120
+const CLOUDINARY_MAX_BYTES = 100 * 1024 * 1024
 
 function isVideoFile(file) {
   return file?.type?.startsWith('video/')
     || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(file?.name || '')
 }
 
-function makeUploadError(message, status) {
-  const error = new Error(message)
-  error.status = status
-  return error
-}
-
-function putVideoToStorage({ uploadUrl, contentType, file, onProgress, setCancel }) {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-    let settled = false
-    const finish = (callback, value) => {
-      if (settled) return
-      settled = true
-      callback(value)
-    }
-    xhr.open('PUT', uploadUrl)
-    xhr.timeout = 30 * 60 * 1000
-    xhr.setRequestHeader('Content-Type', contentType)
-    xhr.upload.onprogress = (event) => {
-      if (!event.lengthComputable) return
-      onProgress?.(Math.min(99, Math.round(event.loaded * 100 / event.total)))
-    }
-    xhr.onerror = () => finish(reject, makeUploadError(
-      'Hyperserve upload was interrupted. Check your connection and retry.',
-      xhr.status || 0,
-    ))
-    xhr.ontimeout = () => finish(reject, makeUploadError('Hyperserve upload timed out. Retry the video upload.', 504))
-    xhr.onabort = () => finish(reject, new Error('Video upload cancelled'))
-    xhr.onload = () => {
-      if (xhr.status < 200 || xhr.status >= 300) {
-        finish(reject, makeUploadError(
-          `Hyperserve upload failed with status ${xhr.status}`,
-          xhr.status,
-        ))
-        return
-      }
-      finish(resolve, true)
-    }
-    setCancel?.(() => xhr.abort())
-    xhr.send(file)
-  })
-}
-
 export const mediaService = {
   async upload(file, folder = 'hok-interiors', transformation = {}, uploadId = null, handlers = {}) {
     if (isVideoFile(file)) {
-      if (!file.size || file.size > HYPERSERVE_MAX_BYTES) {
-        throw new Error(file.size > HYPERSERVE_MAX_BYTES
-          ? 'Video exceeds Hyperserve\'s 5 GB limit'
+      if (!file.size || file.size > CLOUDINARY_MAX_BYTES) {
+        throw new Error(file.size > CLOUDINARY_MAX_BYTES
+          ? 'Video exceeds the 100 MB limit'
           : 'Video file is empty')
       }
-      const filename = file.name || handlers.originalName || `video-${Date.now()}.mp4`
       handlers.onPhase?.('preparing')
-      const createResponse = await api.post('/media/hyperserve/create', {
+      const filename = file.name || handlers.originalName || `video-${Date.now()}.mp4`
+      const uploadResponse = await api.post('/media/video/upload', {
         filename,
         fileSize: file.size,
         mimeType: file.type || 'video/mp4',
-        resolutions: ['480p', '720p', '1080p'],
-        isPublic: true,
-        thumbnailTimestampsSeconds: [1],
-        customMetadata: { folder, originalFilename: filename },
+        folder,
+        uploadId,
       })
-      const upload = createResponse.data?.data
-      if (!upload?.id || !upload?.uploadUrl || !upload?.contentType) {
-        throw new Error('Hyperserve did not return valid upload authorization')
+      const upload = uploadResponse.data?.data
+      if (!upload?.url || !upload?.publicId) {
+        throw new Error('Video upload did not return valid upload details')
       }
 
       handlers.onPhase?.('uploading')
-      await putVideoToStorage({
-        uploadUrl: upload.uploadUrl,
-        contentType: upload.contentType,
-        file,
-        onProgress: handlers.onUploadProgress,
-        setCancel: handlers.setCancel,
-      })
       handlers.onUploadProgress?.(100)
 
       handlers.onPhase?.('processing')
-      const completeResponse = await api.post(`/media/hyperserve/${encodeURIComponent(upload.id)}/complete`)
-      const complete = completeResponse.data?.data
-      let statusResult = complete
-
-      for (let attempt = 0; attempt < HYPERSERVE_STATUS_ATTEMPTS; attempt += 1) {
-        if (statusResult?.status === 'ready') break
-        if (statusResult?.status === 'fail') throw new Error('Hyperserve video processing failed')
-        if (attempt > 0) {
-          const statusResponse = await api.get(`/media/hyperserve/${encodeURIComponent(upload.id)}/status`)
-          statusResult = statusResponse.data?.data
-        }
-        if (statusResult?.status !== 'ready' && statusResult?.status !== 'fail') {
-          await new Promise((resolve) => setTimeout(resolve, HYPERSERVE_STATUS_INTERVAL_MS))
-        }
-      }
-
-      if (statusResult?.status !== 'ready') {
-        throw new Error(statusResult?.status === 'fail'
-          ? 'Hyperserve video processing failed'
-          : 'Hyperserve is still processing the video')
-      }
-
-      const resolutions = statusResult.resolutions || {}
-      const resolution = resolutions['1080p']?.status === 'ready'
-        ? resolutions['1080p']
-        : resolutions['720p']?.status === 'ready'
-          ? resolutions['720p']
-          : resolutions['480p']?.status === 'ready'
-            ? resolutions['480p']
-            : Object.values(resolutions).find((entry) => entry?.status === 'ready')
-      const playbackUrl = resolution?.videoUrl
-      if (!playbackUrl) throw new Error('Hyperserve returned no playback URL')
 
       handlers.onPhase?.('saving')
       return {
-        providerAssetId: upload.id,
-        publicId: upload.id,
-        assetId: upload.id,
+        providerAssetId: upload.publicId,
+        publicId: upload.publicId,
+        assetId: upload.assetId || upload.publicId,
         resourceType: 'video',
-        storageProvider: 'hyperserve',
+        storageProvider: 'cloudinary',
         mediaType: 'video',
-        secureUrl: playbackUrl,
-        playbackUrl,
-        thumbnailUrl: resolution?.thumbnailImageUrls?.[0] || null,
+        secureUrl: upload.secureUrl || upload.url,
+        playbackUrl: upload.secureUrl || upload.url,
+        thumbnailUrl: upload.thumbnailUrl || null,
         originalName: file.name,
         originalFilename: file.name,
         fileSize: file.size,
         bytes: file.size,
         originalBytes: file.size,
         mimeType: file.type || 'video/mp4',
-        format: 'mp4',
+        format: upload.format || 'mp4',
         uploadStatus: 'ready',
-        duration: null,
-        width: null,
-        height: null,
+        duration: upload.duration ?? null,
+        width: upload.width ?? null,
+        height: upload.height ?? null,
       }
     }
 

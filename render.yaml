@@ -23,4 +23,10 @@ services:
         value: render-prod
       - key: HYPERSERVE_API_KEY
         sync: false
+      - key: CLOUDINARY_VIDEO_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_VIDEO_API_KEY
+        sync: false
+      - key: CLOUDINARY_VIDEO_API_SECRET
+        sync: false
 # Deploy trigger Wed Aug 19 10:39:26 PM EAT 2026 — fixed build/preDeploy commands
