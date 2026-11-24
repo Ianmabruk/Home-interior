@@ -7,6 +7,7 @@ const CLOUDINARY_VIDEO_API_SECRET = process.env.CLOUDINARY_VIDEO_API_SECRET
 
 export const isVideoCloudinaryConfigured = () =>
   Boolean(CLOUDINARY_VIDEO_CLOUD_NAME && CLOUDINARY_VIDEO_API_KEY && CLOUDINARY_VIDEO_API_SECRET)
+
 const isVideoConfigured = isVideoCloudinaryConfigured()
 
 export function assertVideoCloudinaryConfigured() {
@@ -15,9 +16,9 @@ export function assertVideoCloudinaryConfigured() {
   }
 }
 
-const CLOUDINARY_UPLOAD_TIMEOUT_MS = 300000
-const CLOUDINARY_MAX_RETRIES = 2
-const CLOUDINARY_RETRY_BASE_DELAY_MS = 2000
+const UPLOAD_TIMEOUT_MS = 600000
+const MAX_RETRIES = 2
+const RETRY_BASE_DELAY_MS = 3000
 
 if (isVideoConfigured) {
   cloudinary.config({
@@ -52,12 +53,13 @@ export const uploadVideo = async (buffer, mimetype, folder, originalName, upload
     throw failure(400, 'Video Cloudinary upload only accepts video files.')
   }
 
-  const publicId = uploadId || `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  const publicId = uploadId || `video-${Date.now()}-${Math.random().toString(36).slice(2)}`
   let lastError = null
-  for (let attempt = 0; attempt <= CLOUDINARY_MAX_RETRIES; attempt++) {
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (attempt > 0) {
-      const delay = CLOUDINARY_RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1)
-      console.log(`[Cloudinary Video] Retrying upload (attempt ${attempt + 1}/${CLOUDINARY_MAX_RETRIES + 1}) after ${delay}ms`)
+      const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1)
+      console.log(`[Cloudinary Video] Retrying upload (attempt ${attempt + 1}/${MAX_RETRIES + 1}) after ${delay}ms`)
       await sleep(delay)
     }
 
@@ -75,8 +77,8 @@ export const uploadVideo = async (buffer, mimetype, folder, originalName, upload
         const timer = setTimeout(() => {
           if (settled) return
           settled = true
-          reject(new Error('Cloudinary video upload timed out after 120000ms'))
-        }, CLOUDINARY_UPLOAD_TIMEOUT_MS)
+          reject(new Error('Cloudinary video upload timed out after 300000ms'))
+        }, UPLOAD_TIMEOUT_MS)
         const stream = cloudinary.uploader.upload_stream(
           uploadOptions,
           (error, result) => {
@@ -132,7 +134,7 @@ export const uploadVideo = async (buffer, mimetype, folder, originalName, upload
         attempt,
       })
 
-      if (attempt >= CLOUDINARY_MAX_RETRIES || !isRetryableCloudinaryError(err)) {
+      if (attempt >= MAX_RETRIES || !isRetryableCloudinaryError(err)) {
         throw err
       }
     }

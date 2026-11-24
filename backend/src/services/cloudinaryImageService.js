@@ -7,6 +7,7 @@ const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET
 
 export const isImageCloudinaryConfigured = () =>
   Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET)
+
 const isImageConfigured = isImageCloudinaryConfigured()
 
 export function assertImageCloudinaryConfigured() {
@@ -15,9 +16,9 @@ export function assertImageCloudinaryConfigured() {
   }
 }
 
-const CLOUDINARY_UPLOAD_TIMEOUT_MS = 300000
-const CLOUDINARY_MAX_RETRIES = 2
-const CLOUDINARY_RETRY_BASE_DELAY_MS = 2000
+const UPLOAD_TIMEOUT_MS = 300000
+const MAX_RETRIES = 2
+const RETRY_BASE_DELAY_MS = 2000
 
 if (isImageConfigured) {
   cloudinary.config({
@@ -54,10 +55,11 @@ export const uploadImage = async (buffer, mimetype, folder, originalName, upload
 
   const publicId = uploadId || `${Date.now()}-${Math.random().toString(36).slice(2)}`
   let lastError = null
-  for (let attempt = 0; attempt <= CLOUDINARY_MAX_RETRIES; attempt++) {
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (attempt > 0) {
-      const delay = CLOUDINARY_RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1)
-      console.log(`[Cloudinary Image] Retrying upload (attempt ${attempt + 1}/${CLOUDINARY_MAX_RETRIES + 1}) after ${delay}ms`)
+      const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1)
+      console.log(`[Cloudinary Image] Retrying upload (attempt ${attempt + 1}/${MAX_RETRIES + 1}) after ${delay}ms`)
       await sleep(delay)
     }
 
@@ -76,7 +78,7 @@ export const uploadImage = async (buffer, mimetype, folder, originalName, upload
           if (settled) return
           settled = true
           reject(new Error('Cloudinary image upload timed out after 120000ms'))
-        }, CLOUDINARY_UPLOAD_TIMEOUT_MS)
+        }, UPLOAD_TIMEOUT_MS)
         const stream = cloudinary.uploader.upload_stream(
           uploadOptions,
           (error, result) => {
@@ -132,7 +134,7 @@ export const uploadImage = async (buffer, mimetype, folder, originalName, upload
         attempt,
       })
 
-      if (attempt >= CLOUDINARY_MAX_RETRIES || !isRetryableCloudinaryError(err)) {
+      if (attempt >= MAX_RETRIES || !isRetryableCloudinaryError(err)) {
         throw err
       }
     }
