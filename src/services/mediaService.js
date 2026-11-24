@@ -16,23 +16,24 @@ export const mediaService = {
           : 'Video file is empty')
       }
       handlers.onPhase?.('preparing')
-      const filename = file.name || handlers.originalName || `video-${Date.now()}.mp4`
-      const uploadResponse = await api.post('/media/video/upload', {
-        filename,
-        fileSize: file.size,
-        mimeType: file.type || 'video/mp4',
-        folder,
-        uploadId,
-      })
-      const upload = uploadResponse.data?.data
+
+      const formData = new FormData()
+      formData.append('media', file)
+      formData.append('folder', folder)
+      if (uploadId) formData.append('uploadId', uploadId)
+
+      handlers.onPhase?.('uploading')
+      handlers.onUploadProgress?.(50)
+
+      const res = await api.post('/media/video/upload', formData)
+
+      handlers.onUploadProgress?.(100)
+      handlers.onPhase?.('processing')
+
+      const upload = res.data?.data
       if (!upload?.url || !upload?.publicId) {
         throw new Error('Video upload did not return valid upload details')
       }
-
-      handlers.onPhase?.('uploading')
-      handlers.onUploadProgress?.(100)
-
-      handlers.onPhase?.('processing')
 
       handlers.onPhase?.('saving')
       return {
