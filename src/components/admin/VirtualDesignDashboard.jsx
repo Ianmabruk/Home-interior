@@ -61,7 +61,7 @@ export const VirtualDesignDashboard = () => {
   const videoQueueRef = useRef(Promise.resolve())
   const activeVideoFileRef = useRef(null)
 
-  const load = useCallback(async () => {
+const load = useCallback(async () => {
     try {
       const res = await api.get('/admin/virtual-designs')
       const data = Array.isArray(res.data) ? res.data : res.data?.items || []
@@ -69,7 +69,7 @@ export const VirtualDesignDashboard = () => {
     } catch {
       setItems([])
     }
-   }, [galleryFiles])
+  }, [])
 
   const loadAddOns = useCallback(async () => {
     setAddOnsLoading(true)
@@ -228,12 +228,14 @@ export const VirtualDesignDashboard = () => {
   }, [mainMediaFiles])
 
   const removeGalleryMedia = useCallback((index) => {
-    const entry = galleryFiles[index]
-    if (activeVideoFileRef.current === entry?.file) {
-      videoCancelRef.current.upload?.()
-      videoCancelRef.current.compression?.()
-    }
-    setGalleryFiles(prev => prev.filter((_, i) => i !== index))
+    setGalleryFiles(prev => {
+      const entry = prev[index]
+      if (activeVideoFileRef.current === entry?.file) {
+        videoCancelRef.current.upload?.()
+        videoCancelRef.current.compression?.()
+      }
+      return prev.filter((_, i) => i !== index)
+    })
     setGalleryPreviews(prev => {
       URL.revokeObjectURL(prev[index])
       return prev.filter((_, i) => i !== index)
