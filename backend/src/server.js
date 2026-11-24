@@ -3,8 +3,6 @@ dotenv.config({ override: false })
 import { app } from './app.js'
 import { validateEnv } from './config/env.js'
 import { prisma, connectDatabase } from './config/database.js'
-import { uploadToCloudinary } from './config/cloudinary.js'
-import cloudinary from './config/cloudinary.js'
 import { isSupabaseConfigured } from './config/supabase.js'
 import { getRedisClient, disconnectRedis } from './config/redis.js'
 import { env } from './config/env.js'

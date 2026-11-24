@@ -20,13 +20,31 @@ const UPLOAD_TIMEOUT_MS = 600000
 const MAX_RETRIES = 2
 const RETRY_BASE_DELAY_MS = 3000
 
-if (isVideoConfigured) {
-  cloudinary.config({
-    cloud_name: CLOUDINARY_VIDEO_CLOUD_NAME,
-    api_key: CLOUDINARY_VIDEO_API_KEY,
-    api_secret: CLOUDINARY_VIDEO_API_SECRET,
-    secure: true,
+const videoConfig = isVideoConfigured
+  ? {
+      cloud_name: CLOUDINARY_VIDEO_CLOUD_NAME,
+      api_key: CLOUDINARY_VIDEO_API_KEY,
+      api_secret: CLOUDINARY_VIDEO_API_SECRET,
+      secure: true,
+    }
+  : null
+
+let videoConfigLock = Promise.resolve()
+
+async function withVideoConfigAsync(fn) {
+  if (!isVideoConfigured) {
+    assertVideoCloudinaryConfigured()
+  }
+  videoConfigLock = videoConfigLock.then(async () => {
+    const previousConfig = { ...cloudinary.config() }
+    cloudinary.config(videoConfig)
+    try {
+      return await fn()
+    } finally {
+      cloudinary.config(previousConfig)
+    }
   })
+  return videoConfigLock
 }
 
 function sleep(ms) {
@@ -72,7 +90,7 @@ export const uploadVideo = async (buffer, mimetype, folder, originalName, upload
         quality: 'auto:good',
       }
 
-      const result = await new Promise((resolve, reject) => {
+      const result = await withVideoConfigAsync(() => new Promise((resolve, reject) => {
         let settled = false
         const timer = setTimeout(() => {
           if (settled) return
@@ -96,7 +114,7 @@ export const uploadVideo = async (buffer, mimetype, folder, originalName, upload
             }
           },
         ).end(buffer)
-      })
+      }))
 
       if (!result?.secure_url) {
         throw new Error('Cloudinary video upload did not return a secure media URL')
@@ -145,11 +163,13 @@ export const uploadVideo = async (buffer, mimetype, folder, originalName, upload
 
 export const deleteVideo = async (publicId) => {
   if (!publicId || !isVideoConfigured) return
-  try {
-    await cloudinary.uploader.destroy(publicId, { resource_type: 'video' })
-  } catch (error) {
-    console.error('Cloudinary video delete error:', error)
-  }
+  return withVideoConfigAsync(async () => {
+    try {
+      await cloudinary.uploader.destroy(publicId, { resource_type: 'video' })
+    } catch (error) {
+      console.error('Cloudinary video delete error:', error)
+    }
+  })
 }
 
 export const deleteManyVideos = async (publicIds) => {

@@ -20,13 +20,31 @@ const UPLOAD_TIMEOUT_MS = 300000
 const MAX_RETRIES = 2
 const RETRY_BASE_DELAY_MS = 2000
 
-if (isImageConfigured) {
-  cloudinary.config({
-    cloud_name: CLOUDINARY_CLOUD_NAME,
-    api_key: CLOUDINARY_API_KEY,
-    api_secret: CLOUDINARY_API_SECRET,
-    secure: true,
+const imageConfig = isImageConfigured
+  ? {
+      cloud_name: CLOUDINARY_CLOUD_NAME,
+      api_key: CLOUDINARY_API_KEY,
+      api_secret: CLOUDINARY_API_SECRET,
+      secure: true,
+    }
+  : null
+
+let imageConfigLock = Promise.resolve()
+
+async function withImageConfigAsync(fn) {
+  if (!isImageConfigured) {
+    assertImageCloudinaryConfigured()
+  }
+  imageConfigLock = imageConfigLock.then(async () => {
+    const previousConfig = { ...cloudinary.config() }
+    cloudinary.config(imageConfig)
+    try {
+      return await fn()
+    } finally {
+      cloudinary.config(previousConfig)
+    }
   })
+  return imageConfigLock
 }
 
 function sleep(ms) {
@@ -72,7 +90,7 @@ export const uploadImage = async (buffer, mimetype, folder, originalName, upload
         quality: 'auto:good',
       }
 
-      const result = await new Promise((resolve, reject) => {
+      const result = await withImageConfigAsync(() => new Promise((resolve, reject) => {
         let settled = false
         const timer = setTimeout(() => {
           if (settled) return
@@ -96,7 +114,7 @@ export const uploadImage = async (buffer, mimetype, folder, originalName, upload
             }
           },
         ).end(buffer)
-      })
+      }))
 
       if (!result?.secure_url) {
         throw new Error('Cloudinary image upload did not return a secure media URL')
@@ -145,11 +163,13 @@ export const uploadImage = async (buffer, mimetype, folder, originalName, upload
 
 export const deleteImage = async (publicId) => {
   if (!publicId || !isImageConfigured) return
-  try {
-    await cloudinary.uploader.destroy(publicId, { resource_type: 'image' })
-  } catch (error) {
-    console.error('Cloudinary image delete error:', error)
-  }
+  return withImageConfigAsync(async () => {
+    try {
+      await cloudinary.uploader.destroy(publicId, { resource_type: 'image' })
+    } catch (error) {
+      console.error('Cloudinary image delete error:', error)
+    }
+  })
 }
 
 export const deleteManyImages = async (publicIds) => {

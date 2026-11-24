@@ -413,17 +413,28 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
             if (item.type === 'featured') {
               uploadedImageAsset = asset
               setImageAsset(asset)
+              setImagePreview(asset.secureUrl)
               setImageUploadStage('Upload complete')
               setImageUploadProgress(100)
             } else if (item.type === 'featured-video') {
               uploadedVideoAsset = asset
               setVideoAsset(asset)
+              setVideoPreview(asset.playbackUrl || asset.secureUrl)
               setVideoUploadStage('Upload complete')
               setVideoUploadProgress(100)
             } else {
               uploadedContentAssets.set(item.id, asset)
               setContentFiles((prev) => prev.map((entry) =>
-                entry.id === item.id ? { ...entry, asset, status: 'uploaded', error: null, progress: 100 } : entry
+                entry.id === item.id
+                  ? {
+                      ...entry,
+                      asset,
+                      preview: asset.playbackUrl || asset.secureUrl || entry.preview,
+                      status: 'uploaded',
+                      error: null,
+                      progress: 100,
+                    }
+                  : entry
               ))
             }
           } catch (uploadError) {
@@ -488,7 +499,17 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       const asset = await uploadBlogMediaFile(item.file, item.uploadId, handlers)
       contentCancelRefs.current.delete(item.id)
       setContentFiles((prev) => prev.map((entry) =>
-        entry.id === itemId ? { ...entry, asset, status: 'uploaded', error: null, retryable: false, progress: 100 } : entry
+        entry.id === itemId
+          ? {
+              ...entry,
+              asset,
+              preview: asset.playbackUrl || asset.secureUrl || entry.preview,
+              status: 'uploaded',
+              error: null,
+              retryable: false,
+              progress: 100,
+            }
+          : entry
       ))
     } catch (uploadError) {
       if (uploadError?.name === 'AbortError' || uploadError?.code === 'ERR_CANCELED') return
@@ -514,6 +535,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       const handlers = createUploadHandlers('featured-image', true, false)
       const asset = await uploadBlogMediaFile(imageFile, imageUploadId, handlers)
       setImageAsset(asset)
+      setImagePreview(asset.secureUrl)
     } catch (uploadError) {
       if (uploadError?.name === 'AbortError' || uploadError?.code === 'ERR_CANCELED') return
       const message = uploadError?.message || 'Upload failed'
@@ -535,6 +557,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       const handlers = createUploadHandlers('featured-video', true, true)
       const asset = await uploadBlogMediaFile(videoFile, createBlogUploadId(), handlers)
       setVideoAsset(asset)
+      setVideoPreview(asset.playbackUrl || asset.secureUrl)
     } catch (uploadError) {
       if (uploadError?.name === 'AbortError' || uploadError?.code === 'ERR_CANCELED') return
       const message = uploadError?.message || 'Upload failed'

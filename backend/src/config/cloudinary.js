@@ -1,4 +1,3 @@
-import { v2 as cloudinary } from 'cloudinary'
 import {
   isImageCloudinaryConfigured as isCloudinaryConfigured,
   assertImageCloudinaryConfigured as assertCloudinaryConfigured,
@@ -6,6 +5,7 @@ import {
   deleteImage as deleteFromCloudinary,
   deleteManyImages as deleteManyFromCloudinary,
 } from '../services/cloudinaryImageService.js'
+import imageCloudinary from '../services/cloudinaryImageService.js'
 
 export {
   isCloudinaryConfigured,
@@ -15,4 +15,4 @@ export {
   deleteManyFromCloudinary,
 }
 
-export default cloudinary
+export default imageCloudinary
