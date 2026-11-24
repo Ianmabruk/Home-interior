@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { toast } from 'react-hot-toast'
-import { UploadCloud, X, Trash2, Video } from 'lucide-react'
+import { UploadCloud, X, Trash2, Video, AlertCircle, RotateCcw } from 'lucide-react'
 import { api } from '../../services/api'
 import { createBlogUploadId, uploadBlogMediaFile } from '../../services/blogMediaUploadService'
+import { UPLOAD_STAGES } from '../../services/mediaService'
 import { dispatchAdminDataChanged } from '../../utils/adminEvents'
 import { slugify, getReadingTime } from '../../utils/blogHelpers'
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '../../utils/uploadConfig'
@@ -38,6 +39,22 @@ const INITIAL_FORM = {
   featured: false,
   displayOrder: 0,
   publishDate: '',
+}
+
+const STAGE_LABELS = {
+  [UPLOAD_STAGES.FILE_VALIDATION]: 'Validating file',
+  [UPLOAD_STAGES.IMAGE_COMPRESSION]: 'Compressing image',
+  [UPLOAD_STAGES.VIDEO_VALIDATION]: 'Validating video',
+  [UPLOAD_STAGES.SIGNATURE_GENERATION]: 'Generating upload signature',
+  [UPLOAD_STAGES.AUTHENTICATION]: 'Authenticating',
+  [UPLOAD_STAGES.CLOUDINARY_UPLOAD]: 'Uploading to media storage',
+  [UPLOAD_STAGES.CLOUDINARY_PROCESSING]: 'Processing media',
+  [UPLOAD_STAGES.DATABASE_SAVE]: 'Saving media reference',
+  [UPLOAD_STAGES.BLOG_PUBLISHING]: 'Publishing blog',
+}
+
+function getStageMessage(stage) {
+  return STAGE_LABELS[stage] || stage
 }
 
 export const BlogForm = ({ blog, onSaved, onCancel }) => {
@@ -77,6 +94,11 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const [imageUploadId, setImageUploadId] = useState(null)
   const [imageAsset, setImageAsset] = useState(null)
   const [imageUploadError, setImageUploadError] = useState(null)
+  const [imageUploadStage, setImageUploadStage] = useState(null)
+  const [imageUploadProgress, setImageUploadProgress] = useState(0)
+  const [videoUploadError, setVideoUploadError] = useState(null)
+  const [videoUploadStage, setVideoUploadStage] = useState(null)
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0)
   const [uploadingMedia, setUploadingMedia] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
@@ -91,6 +113,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   useEffect(() => {
     contentFilesRef.current = contentFiles
   }, [contentFiles])
+
   useEffect(() => {
     return () => {
       if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
@@ -100,7 +123,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
 
   useEffect(() => () => {
     contentCancelRefs.current.forEach((cancelers) => {
-      cancelers.upload?.()
+      cancelers.abort?.()
     })
     contentCancelRefs.current.clear()
     contentFilesRef.current.forEach(({ preview }) => {
@@ -108,100 +131,109 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     })
   }, [])
 
+  const validateFile = useCallback((file, field) => {
+    if (!file) return 'No file provided'
+    if (file.size === 0) return 'The selected file is empty'
+
+    const maxVideoBytes = 5 * 1024 * 1024 * 1024
+    if (field === 'video' ? file.size > maxVideoBytes : file.size > MAX_FILE_SIZE_BYTES) {
+      return field === 'video'
+        ? 'Video exceeds the maximum allowed size of 5 GB'
+        : `File exceeds the maximum allowed size of ${MAX_FILE_SIZE_MB} MB`
+    }
+
+    if (field === 'image') {
+      if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp|gif|avif)$/i.test(file.name)) {
+        return 'Please select a valid image file'
+      }
+    } else if (field === 'video') {
+      if (!file.type.startsWith('video/') && !/\.(mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(file.name)) {
+        return 'Please select a valid video file'
+      }
+    } else if (field === 'content') {
+      if (!file.type.startsWith('image/') && !file.type.startsWith('video/') && !/\.(jpe?g|png|webp|gif|avif|mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(file.name)) {
+        return `"${file.name}" is not a supported media file`
+      }
+      if (isContentVideo(file)) {
+        if (file.size > 5 * 1024 * 1024 * 1024) {
+          return `Video "${file.name}" exceeds the 5 GB limit`
+        }
+      } else if (file.size > MAX_FILE_SIZE_BYTES) {
+        return `File "${file.name}" exceeds the ${MAX_FILE_SIZE_MB} MB content media limit`
+      }
+    }
+    return null
+  }, [])
+
   const handleFileChange = (e, field) => {
     const file = e.target.files?.[0] || null
     if (!file) return
 
-    const maxVideoBytes = 5 * 1024 * 1024 * 1024
-    if (field === 'video' ? file.size > maxVideoBytes : file.size > MAX_FILE_SIZE_BYTES) {
-      if (field === 'video') {
-        toast.error('Video exceeds the maximum allowed size of 5 GB')
-        e.target.value = ''
-        return
-      }
-      toast.error(`File exceeds the maximum allowed size of ${MAX_FILE_SIZE_MB} MB`)
-      e.target.value = ''
-      return
-    }
-    if (file.size === 0) {
-      toast.error('The selected file is empty')
+    const validationError = validateFile(file, field)
+    if (validationError) {
+      toast.error(validationError)
       e.target.value = ''
       return
     }
 
     if (field === 'image') {
-      if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp|gif|avif)$/i.test(file.name)) {
-        toast.error('Please select a valid image file')
-        e.target.value = ''
-        return
-      }
       setImageFile(file)
       setImageAsset(null)
       setImageUploadId(createBlogUploadId())
       setImageUploadError(null)
+      setImageUploadStage(null)
+      setImageUploadProgress(0)
       const url = URL.createObjectURL(file)
       setImagePreview(url)
     } else if (field === 'video') {
-      if (!file.type.startsWith('video/') && !/\.(mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(file.name)) {
-        toast.error('Please select a valid video file')
-        e.target.value = ''
-        return
-      }
       setVideoFile(file)
       setVideoAsset(null)
+      setVideoUploadError(null)
+      setVideoUploadStage(null)
+      setVideoUploadProgress(0)
       const url = URL.createObjectURL(file)
       setVideoPreview(url)
       setVideoPreviewError(false)
     }
     e.target.value = ''
-}
+  }
 
-const handleContentImagesChange = (e) => {
+  const handleContentImagesChange = (e) => {
     const selected = Array.from(e.target.files || [])
     if (selected.length === 0) return
+
     const emptyFile = selected.find((file) => file.size === 0)
     if (emptyFile) {
       toast.error(`File "${emptyFile.name}" is empty`)
       e.target.value = ''
       return
     }
-    const invalidType = selected.find((file) => !file.type.startsWith('image/') && !file.type.startsWith('video/') && !/\.(jpe?g|png|webp|gif|avif|mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(file.name))
+
+    const invalidType = selected.find((file) => validateFile(file, 'content'))
     if (invalidType) {
       toast.error(`"${invalidType.name}" is not a supported media file`)
       e.target.value = ''
       return
     }
-    const oversized = selected.find((file) => {
-      if (file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(file.name)) {
-        return file.size > 5 * 1024 * 1024 * 1024
-      }
-      return file.size > MAX_FILE_SIZE_BYTES
-    })
-    if (oversized) {
-      if (oversized.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(oversized.name)) {
-        toast.error(`Video "${oversized.name}" exceeds the 5 GB limit`)
-      } else {
-        toast.error(`File "${oversized.name}" exceeds the ${MAX_FILE_SIZE_MB} MB content media limit`)
-      }
-      e.target.value = ''
-      return
-    }
+
     const newItems = selected.map((file) => ({
-        id: createBlogUploadId(),
-        file,
-        preview: URL.createObjectURL(file),
-        uploadId: createBlogUploadId(),
-        asset: null,
-        status: 'pending',
-        error: null,
-      }))
+      id: createBlogUploadId(),
+      file,
+      preview: URL.createObjectURL(file),
+      uploadId: createBlogUploadId(),
+      asset: null,
+      status: 'pending',
+      error: null,
+      stage: null,
+      progress: 0,
+    }))
     setContentFiles((prev) => [...prev, ...newItems])
     e.target.value = ''
-}
+  }
 
   const handleRemoveContentImage = (index) => {
     const item = contentFiles[index]
-    contentCancelRefs.current.get(item?.id)?.upload?.()
+    contentCancelRefs.current.get(item?.id)?.abort?.()
     contentCancelRefs.current.delete(item?.id)
     if (item?.preview.startsWith('blob:')) URL.revokeObjectURL(item.preview)
     setContentFiles((prev) => prev.filter((_, i) => i !== index))
@@ -221,11 +253,16 @@ const handleContentImagesChange = (e) => {
       setImageAsset(null)
       setImageUploadId(null)
       setImageUploadError(null)
+      setImageUploadStage(null)
+      setImageUploadProgress(0)
       if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
       setImagePreview(null)
     } else if (field === 'video') {
       setVideoFile(null)
       setVideoAsset(null)
+      setVideoUploadError(null)
+      setVideoUploadStage(null)
+      setVideoUploadProgress(0)
       if (videoPreview && videoPreview.startsWith('blob:')) URL.revokeObjectURL(videoPreview)
       setVideoPreview(null)
       setVideoPreviewError(false)
@@ -257,6 +294,53 @@ const handleContentImagesChange = (e) => {
     }, 0)
   }
 
+  const createUploadHandlers = useCallback((itemId, isFeatured, isVideo) => {
+    let aborted = false
+    const abortController = new AbortController()
+
+    const handlers = {
+      onPhase: (phase) => {
+        if (aborted) return
+        const label = getStageMessage(phase)
+        if (isFeatured) {
+          if (isVideo) {
+            setVideoUploadStage(label)
+          } else {
+            setImageUploadStage(label)
+          }
+        } else {
+          setContentFiles((prev) => prev.map((entry) =>
+            entry.id === itemId ? { ...entry, status: label, stage: label } : entry
+          ))
+        }
+      },
+      onUploadProgress: (progress) => {
+        if (aborted) return
+        if (isFeatured) {
+          if (isVideo) {
+            setVideoUploadProgress(progress)
+          } else {
+            setImageUploadProgress(progress)
+          }
+        } else {
+          setContentFiles((prev) => prev.map((entry) =>
+            entry.id === itemId ? { ...entry, progress } : entry
+          ))
+        }
+      },
+      setCancel: (cancel) => {
+        const cancelers = contentCancelRefs.current.get(itemId) || {}
+        contentCancelRefs.current.set(itemId, { ...cancelers, abort: cancel })
+      },
+      signal: abortController.signal,
+      abort: () => {
+        aborted = true
+        abortController.abort()
+      },
+    }
+    return handlers
+  }, [])
+
   const uploadPendingMedia = async () => {
     const pending = []
     let uploadedImageAsset = imageAsset
@@ -270,6 +354,7 @@ const handleContentImagesChange = (e) => {
         file: imageFile,
         uploadId: imageUploadId,
         type: 'featured',
+        isVideo: false,
       })
     }
     if (videoFile && !videoAsset) {
@@ -278,12 +363,14 @@ const handleContentImagesChange = (e) => {
         file: videoFile,
         uploadId: createBlogUploadId(),
         type: 'featured-video',
+        isVideo: true,
       })
     }
     contentFiles.forEach((item) => {
-      if (item.asset) uploadedContentAssets.set(item.id, item.asset)
-      else {
-        pending.push({ ...item, type: 'content' })
+      if (item.asset) {
+        uploadedContentAssets.set(item.id, item.asset)
+      } else {
+        pending.push({ ...item, type: 'content', isVideo: isContentVideo(item.file) })
       }
     })
 
@@ -297,63 +384,71 @@ const handleContentImagesChange = (e) => {
     }
 
     setUploadingMedia(true)
+    setImageUploadError(null)
+    setVideoUploadError(null)
+
     const processQueue = async (queue, concurrency) => {
       let cursor = 0
       const worker = async () => {
         while (cursor < queue.length) {
-          const item = cursor < queue.length ? queue[cursor] : null
+          const item = queue[cursor]
           if (!item) break
           cursor += 1
-          if (item.type === 'featured') setImageUploadError(null)
-          else if (item.type === 'featured-video') setImageUploadError(null)
-          else {
-            setContentFiles((prev) => prev.map((entry) => (
+
+          if (item.type === 'featured') {
+            setImageUploadError(null)
+          } else if (item.type === 'featured-video') {
+            setVideoUploadError(null)
+          } else {
+            setContentFiles((prev) => prev.map((entry) =>
               entry.id === item.id ? { ...entry, status: 'uploading', error: null } : entry
-            )))
+            ))
           }
 
           try {
-            const asset = await uploadBlogMediaFile(item.file, item.uploadId, {
-              setCancel: (cancel) => {
-                const cancelers = contentCancelRefs.current.get(item.id) || {}
-                contentCancelRefs.current.set(item.id, { ...cancelers, upload: cancel })
-              },
-              onPhase: (phase) => {
-                if (isContentVideo(item.file) || item.type === 'featured-video') {
-                  setContentFiles((prev) => prev.map((entry) => (
-                    entry.id === item.id ? { ...entry, status: phase } : entry
-                  )))
-                }
-              },
-              onUploadProgress: (progress) => {
-                if (isContentVideo(item.file) || item.type === 'featured-video') {
-                  setContentFiles((prev) => prev.map((entry) => (
-                    entry.id === item.id ? { ...entry, progress } : entry
-                  )))
-                }
-              },
-            })
+            const handlers = createUploadHandlers(item.id, item.type === 'featured' || item.type === 'featured-video', item.isVideo)
+            const asset = await uploadBlogMediaFile(item.file, item.uploadId, handlers)
             contentCancelRefs.current.delete(item.id)
+
             if (item.type === 'featured') {
               uploadedImageAsset = asset
               setImageAsset(asset)
+              setImageUploadStage('Upload complete')
+              setImageUploadProgress(100)
             } else if (item.type === 'featured-video') {
               uploadedVideoAsset = asset
               setVideoAsset(asset)
+              setVideoUploadStage('Upload complete')
+              setVideoUploadProgress(100)
             } else {
               uploadedContentAssets.set(item.id, asset)
-              setContentFiles((prev) => prev.map((entry) => (
-                entry.id === item.id ? { ...entry, asset, status: 'uploaded', error: null } : entry
-              )))
+              setContentFiles((prev) => prev.map((entry) =>
+                entry.id === item.id ? { ...entry, asset, status: 'uploaded', error: null, progress: 100 } : entry
+              ))
             }
           } catch (uploadError) {
+            if (uploadError?.name === 'AbortError' || uploadError?.code === 'ERR_CANCELED') {
+              return
+            }
             const message = uploadError?.message || 'Upload failed'
-            failed.push({ fileName: item.file.name, message })
-            if (item.type === 'featured' || item.type === 'featured-video') setImageUploadError(message)
-            else {
-              setContentFiles((prev) => prev.map((entry) => (
-                entry.id === item.id ? { ...entry, status: 'failed', error: message } : entry
-              )))
+            const stage = uploadError?.stage ? getStageMessage(uploadError.stage) : 'Upload failed'
+            const retryable = uploadError?.retryable === true
+            const errorDetail = retryable ? `${message} (${stage})` : message
+
+            failed.push({ fileName: item.file.name, message: errorDetail, retryable, stage: uploadError?.stage })
+
+            if (item.type === 'featured' || item.type === 'featured-video') {
+              if (item.isVideo) {
+                setVideoUploadError(errorDetail)
+                setVideoUploadStage(null)
+              } else {
+                setImageUploadError(errorDetail)
+                setImageUploadStage(null)
+              }
+            } else {
+              setContentFiles((prev) => prev.map((entry) =>
+                entry.id === item.id ? { ...entry, status: 'failed', error: errorDetail, retryable, stage: uploadError?.stage } : entry
+              ))
             }
           }
         }
@@ -363,8 +458,8 @@ const handleContentImagesChange = (e) => {
     }
 
     try {
-      const imageQueue = pending.filter((item) => !isContentVideo(item.file) && item.type !== 'featured-video')
-      const videoQueue = pending.filter((item) => isContentVideo(item.file) || item.type === 'featured-video')
+      const imageQueue = pending.filter((item) => !item.isVideo)
+      const videoQueue = pending.filter((item) => item.isVideo)
       await processQueue(imageQueue, 3)
       await processQueue(videoQueue, 1)
     } finally {
@@ -382,32 +477,28 @@ const handleContentImagesChange = (e) => {
   const retryContentUpload = async (itemId) => {
     const item = contentFiles.find((entry) => entry.id === itemId)
     if (!item || uploadingMedia || submitting) return
+
     setUploadingMedia(true)
-    setContentFiles((prev) => prev.map((entry) => (
-      entry.id === itemId ? { ...entry, status: 'uploading', error: null } : entry
-    )))
+    setContentFiles((prev) => prev.map((entry) =>
+      entry.id === itemId ? { ...entry, status: 'uploading', error: null, retryable: false } : entry
+    ))
+
     try {
-      const asset = await uploadBlogMediaFile(item.file, item.uploadId, {
-        setCancel: (cancel) => {
-          const cancelers = contentCancelRefs.current.get(item.id) || {}
-          contentCancelRefs.current.set(item.id, { ...cancelers, upload: cancel })
-        },
-        onPhase: (phase) => setContentFiles((prev) => prev.map((entry) => (
-          entry.id === item.id ? { ...entry, status: phase } : entry
-        ))),
-        onUploadProgress: (progress) => setContentFiles((prev) => prev.map((entry) => (
-          entry.id === item.id ? { ...entry, progress } : entry
-        ))),
-      })
+      const handlers = createUploadHandlers(itemId, false, item.isVideo)
+      const asset = await uploadBlogMediaFile(item.file, item.uploadId, handlers)
       contentCancelRefs.current.delete(item.id)
-      setContentFiles((prev) => prev.map((entry) => (
-        entry.id === itemId ? { ...entry, asset, status: 'uploaded', error: null } : entry
-      )))
+      setContentFiles((prev) => prev.map((entry) =>
+        entry.id === itemId ? { ...entry, asset, status: 'uploaded', error: null, retryable: false, progress: 100 } : entry
+      ))
     } catch (uploadError) {
+      if (uploadError?.name === 'AbortError' || uploadError?.code === 'ERR_CANCELED') return
       const message = uploadError?.message || 'Upload failed'
-      setContentFiles((prev) => prev.map((entry) => (
-        entry.id === itemId ? { ...entry, status: 'failed', error: message } : entry
-      )))
+      const stage = uploadError?.stage ? getStageMessage(uploadError.stage) : 'Upload failed'
+      const retryable = uploadError?.retryable === true
+      const errorDetail = retryable ? `${message} (${stage})` : message
+      setContentFiles((prev) => prev.map((entry) =>
+        entry.id === itemId ? { ...entry, status: 'failed', error: errorDetail, retryable, stage: uploadError?.stage } : entry
+      ))
     } finally {
       setUploadingMedia(false)
     }
@@ -417,11 +508,18 @@ const handleContentImagesChange = (e) => {
     if (!imageFile || !imageUploadId || uploadingMedia || submitting) return
     setUploadingMedia(true)
     setImageUploadError(null)
+    setImageUploadStage(null)
+    setImageUploadProgress(0)
     try {
-      const asset = await uploadBlogMediaFile(imageFile, imageUploadId)
+      const handlers = createUploadHandlers('featured-image', true, false)
+      const asset = await uploadBlogMediaFile(imageFile, imageUploadId, handlers)
       setImageAsset(asset)
     } catch (uploadError) {
-      setImageUploadError(uploadError?.message || 'Upload failed')
+      if (uploadError?.name === 'AbortError' || uploadError?.code === 'ERR_CANCELED') return
+      const message = uploadError?.message || 'Upload failed'
+      const stage = uploadError?.stage ? getStageMessage(uploadError.stage) : 'Upload failed'
+      const retryable = uploadError?.retryable === true
+      setImageUploadError(retryable ? `${message} (${stage})` : message)
     } finally {
       setUploadingMedia(false)
     }
@@ -430,15 +528,27 @@ const handleContentImagesChange = (e) => {
   const retryFeaturedVideoUpload = async () => {
     if (!videoFile || uploadingMedia || submitting) return
     setUploadingMedia(true)
-    setImageUploadError(null)
+    setVideoUploadError(null)
+    setVideoUploadStage(null)
+    setVideoUploadProgress(0)
     try {
-      const asset = await uploadBlogMediaFile(videoFile, createBlogUploadId())
+      const handlers = createUploadHandlers('featured-video', true, true)
+      const asset = await uploadBlogMediaFile(videoFile, createBlogUploadId(), handlers)
       setVideoAsset(asset)
     } catch (uploadError) {
-      setImageUploadError(uploadError?.message || 'Upload failed')
+      if (uploadError?.name === 'AbortError' || uploadError?.code === 'ERR_CANCELED') return
+      const message = uploadError?.message || 'Upload failed'
+      const stage = uploadError?.stage ? getStageMessage(uploadError.stage) : 'Upload failed'
+      const retryable = uploadError?.retryable === true
+      setVideoUploadError(retryable ? `${message} (${stage})` : message)
     } finally {
       setUploadingMedia(false)
     }
+  }
+
+  const cancelContentUpload = (itemId) => {
+    const cancelers = contentCancelRefs.current.get(itemId)
+    cancelers?.abort?.()
   }
 
   const handleSubmit = async (e, status) => {
@@ -459,35 +569,45 @@ const handleContentImagesChange = (e) => {
     try {
       const uploads = await uploadPendingMedia()
       if (uploads.failed.length > 0) {
+        const nonRetryable = uploads.failed.filter(f => !f.retryable)
+        if (nonRetryable.length > 0) {
+          throw new Error(`${nonRetryable.length} media upload${nonRetryable.length === 1 ? '' : 's'} failed permanently. ${nonRetryable.map(f => `${f.fileName}: ${f.message}`).join('; ')}`)
+        }
         throw new Error(`${uploads.failed.length} media upload${uploads.failed.length === 1 ? '' : 's'} failed. Retry the failed file${uploads.failed.length === 1 ? '' : 's'} before publishing.`)
       }
 
-      const payload = {
-        title,
-        subtitle: form.subtitle || '',
-        slug: form.slug || slugify(title),
-        description: form.description || '',
-        content: form.content || '',
-        category: form.category || '',
-        tags: form.tags || '',
-        author: form.author || '',
-        metaDescription: form.metaDescription || '',
-        published: status === 'publish' ? true : form.published,
-        featured: Boolean(form.featured),
-        displayOrder: Number(form.displayOrder) || 0,
-      }
-      if (form.publishDate) payload.publishDate = form.publishDate
-      if (imageFile) payload.imageAsset = uploads.imageAsset
-      if (videoFile) payload.videoAsset = uploads.videoAsset
-      if (removeVideo) payload.removeVideo = true
-      if (uploads.mediaAssets.length > 0) payload.mediaAssets = uploads.mediaAssets
-      if (removeMediaUrls.length > 0) payload.removeMediaUrls = removeMediaUrls
+      const formData = new FormData()
+      formData.append('title', title)
+      formData.append('subtitle', form.subtitle || '')
+      formData.append('slug', form.slug || slugify(title))
+      formData.append('description', form.description || '')
+      formData.append('content', form.content || '')
+      formData.append('category', form.category || '')
+      formData.append('tags', form.tags || '')
+      formData.append('author', form.author || '')
+      formData.append('metaDescription', form.metaDescription || '')
+      formData.append('published', String(status === 'publish' ? true : form.published))
+      formData.append('featured', String(Boolean(form.featured)))
+      formData.append('displayOrder', String(Number(form.displayOrder) || 0))
+      if (form.publishDate) formData.append('publishDate', form.publishDate)
+      if (imageFile) formData.append('imageAsset', JSON.stringify(uploads.imageAsset))
+      if (videoFile) formData.append('videoAsset', JSON.stringify(uploads.videoAsset))
+      if (removeVideo) formData.append('removeVideo', 'true')
+      if (uploads.mediaAssets.length > 0) formData.append('mediaAssets', JSON.stringify(uploads.mediaAssets))
+      if (removeMediaUrls.length > 0) formData.append('removeMediaUrls', JSON.stringify(removeMediaUrls))
+      if (imageFile) formData.append('image', imageFile)
+      if (videoFile) formData.append('video', videoFile)
+      contentFiles.forEach((item) => {
+        if (!item.asset && item.file) {
+          formData.append('contentImages', item.file)
+        }
+      })
 
       let res
       if (isEdit) {
-        res = await api.patch(`/admin/blog/${blog.id}`, payload)
+        res = await api.patch(`/admin/blog/${blog.id}`, formData)
       } else {
-        res = await api.post('/admin/blog', payload)
+        res = await api.post('/admin/blog', formData)
       }
 
       toast.success(`Blog ${isEdit ? 'updated' : 'created'} successfully`)
@@ -514,19 +634,21 @@ const handleContentImagesChange = (e) => {
   const selectedVideoCount = Number(Boolean(videoFile)) + contentFiles.filter(({ file }) => isContentVideo(file)).length
   const uploadedImageCount = Number(Boolean(imageFile && imageAsset)) + contentFiles.filter(({ file, asset }) => !isContentVideo(file) && asset).length
   const uploadedVideoCount = Number(Boolean(videoFile && videoAsset)) + contentFiles.filter(({ file, asset }) => isContentVideo(file) && asset).length
-  const failedUploadCount = Number(Boolean(imageUploadError)) + contentFiles.filter(({ status }) => status === 'failed').length
+  const failedUploadCount = Number(Boolean(imageUploadError)) + Number(Boolean(videoUploadError)) + contentFiles.filter(({ status }) => status === 'failed').length
   const totalSelectedMedia = selectedImageCount + selectedVideoCount
   const totalUploadedMedia = uploadedImageCount + uploadedVideoCount
 
   return (
     <form className="space-y-6">
       {error && (
-        <div className="rounded-xl border border-[var(--error)]/20 bg-[var(--error)]/5 p-4 text-sm text-[var(--error)]">
-          {error}
+        <div className="rounded-xl border border-[var(--error)]/20 bg-[var(--error)]/5 p-4 text-sm text-[var(--error)] flex items-start gap-3">
+          <AlertCircle size={20} className="shrink-0 mt-0.5" />
+          <span>{error}</span>
         </div>
       )}
       {submitting && !uploadingMedia && (
-        <div className="rounded-xl border border-border/50 bg-[var(--secondary)]/10 p-4 text-sm font-medium text-[var(--accent)]">
+        <div className="rounded-xl border border-border/50 bg-[var(--secondary)]/10 p-4 text-sm font-medium text-[var(--accent)] flex items-center gap-2">
+          <RotateCcw size={16} className="animate-spin" />
           Publishing blog…
         </div>
       )}
@@ -546,37 +668,88 @@ const handleContentImagesChange = (e) => {
               style={{ width: `${totalSelectedMedia ? (totalUploadedMedia / totalSelectedMedia) * 100 : 0}%` }}
             />
           </div>
-          {imageUploadError && (
-            <div className="flex items-center justify-between gap-3 text-xs text-[var(--error)]">
-              <span>Featured media: {imageUploadError}</span>
+
+          {(imageUploadError || (imageFile && !imageAsset && imageUploadStage)) && (
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className="flex items-center gap-2 text-[var(--primary)]/70">
+                {imageUploadStage && <span className="text-[var(--accent)]">●</span>}
+                <span>Featured image: </span>
+                {imageUploadError ? (
+                  <span className="text-[var(--error)]">{imageUploadError}</span>
+                ) : imageUploadStage ? (
+                  <span>{imageUploadStage}{imageUploadProgress > 0 ? ` ${imageUploadProgress}%` : ''}</span>
+                ) : (
+                  <span>Pending</span>
+                )}
+              </span>
               {(imageFile && !imageAsset) ? (
-                <button type="button" onClick={retryFeaturedImageUpload} disabled={uploadingMedia} className="font-semibold text-[var(--accent)] disabled:opacity-50">
+                <button
+                  type="button"
+                  onClick={retryFeaturedImageUpload}
+                  disabled={uploadingMedia}
+                  className="font-semibold text-[var(--accent)] disabled:opacity-50 flex items-center gap-1"
+                >
+                  <RotateCcw size={12} />
                   Retry
                 </button>
-              ) : (videoFile && !videoAsset ? (
-                <button type="button" onClick={retryFeaturedVideoUpload} disabled={uploadingMedia} className="font-semibold text-[var(--accent)] disabled:opacity-50">
-                  Retry
-                </button>
-              ) : null)}
+              ) : null}
             </div>
           )}
+
+          {(videoUploadError || (videoFile && !videoAsset && videoUploadStage)) && (
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className="flex items-center gap-2 text-[var(--primary)]/70">
+                {videoUploadStage && <span className="text-[var(--accent)]">●</span>}
+                <span>Featured video: </span>
+                {videoUploadError ? (
+                  <span className="text-[var(--error)]">{videoUploadError}</span>
+                ) : videoUploadStage ? (
+                  <span>{videoUploadStage}{videoUploadProgress > 0 ? ` ${videoUploadProgress}%` : ''}</span>
+                ) : (
+                  <span>Pending</span>
+                )}
+              </span>
+              {(videoFile && !videoAsset) ? (
+                <button
+                  type="button"
+                  onClick={retryFeaturedVideoUpload}
+                  disabled={uploadingMedia}
+                  className="font-semibold text-[var(--accent)] disabled:opacity-50 flex items-center gap-1"
+                >
+                  <RotateCcw size={12} />
+                  Retry
+                </button>
+              ) : null}
+            </div>
+          )}
+
           {contentFiles.filter(({ status }) => status === 'failed').map((item) => (
-            <div key={item.id} className="flex items-center justify-between gap-3 text-xs text-[var(--error)]">
-              <span className="min-w-0 truncate">{item.file.name}: {item.error}</span>
-              <button type="button" onClick={() => retryContentUpload(item.id)} disabled={uploadingMedia} className="shrink-0 font-semibold text-[var(--accent)] disabled:opacity-50">
+            <div key={item.id} className="flex items-center justify-between gap-3 text-xs">
+              <span className="min-w-0 truncate flex items-center gap-2">
+                {item.retryable && <span className="text-[var(--accent)]">↻</span>}
+                <span className="text-[var(--error)]">{item.file.name}: {item.error}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => retryContentUpload(item.id)}
+                disabled={uploadingMedia}
+                className="shrink-0 font-semibold text-[var(--accent)] disabled:opacity-50 flex items-center gap-1"
+              >
+                <RotateCcw size={12} />
                 Retry
               </button>
             </div>
           ))}
-          {contentFiles.filter(({ status }) => ['preparing', 'uploading'].includes(status)).map((item) => (
+
+          {contentFiles.filter(({ status }) => ['uploading', 'Validating file', 'Compressing image', 'Validating video', 'Authenticating', 'Uploading to media storage', 'Processing media', 'Saving media reference'].includes(status)).map((item) => (
             <div key={item.id} className="flex items-center justify-between gap-3 text-xs text-[var(--primary)]/70">
-              <span className="min-w-0 truncate">{item.file.name}: {item.status}{item.progress > 0 ? ` ${item.progress}%` : ''}</span>
+              <span className="min-w-0 truncate flex items-center gap-2">
+                <span className="text-[var(--accent)] animate-pulse">●</span>
+                <span>{item.file.name}: {item.status}{item.progress > 0 ? ` ${item.progress}%` : ''}</span>
+              </span>
               <button
                 type="button"
-                onClick={() => {
-                  const cancelers = contentCancelRefs.current.get(item.id)
-                  cancelers?.upload?.()
-                }}
+                onClick={() => cancelContentUpload(item.id)}
                 className="shrink-0 font-semibold text-[var(--error)]"
               >
                 Cancel
