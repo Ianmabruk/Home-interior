@@ -2,6 +2,7 @@ import { asyncHandler } from '../middleware/asyncHandler.js'
 import { blogService } from '../services/blogService.js'
 import { invalidateCachePattern } from '../utils/cache.js'
 import { failure } from '../utils/response.js'
+
 function validateSavedVideoAsset(asset) {
   if (!asset) return null
   const isHyperserve = asset.storageProvider === 'hyperserve'
@@ -74,14 +75,6 @@ function validateSavedMediaAssets(assets) {
 }
 
 export const blogController = {
-  signVideoUpload: asyncHandler(async (req, res) => {
-    const raw = String(req.body?.publicId || '').trim()
-    if (!/^[a-zA-Z0-9_-]{8,180}$/.test(raw)) {
-      throw failure(400, 'Invalid video upload public_id')
-    }
-    res.json({ success: true, data: createSignedVideoUpload(raw) })
-  }),
-
   list: asyncHandler(async (req, res) => {
     const items = await blogService.listBlogs()
     res.json({ success: true, data: items })
@@ -127,13 +120,12 @@ export const blogController = {
   }),
 
   recordView: asyncHandler(async (req, res) => {
-    // Only increment for published posts; silently ignore invalid IDs
     const item = await blogService.getPublishedBlogSilent(req.params.id)
     if (item) await blogService.incrementViews(item.id)
     res.json({ success: true })
   }),
 
-   related: asyncHandler(async (req, res) => {
+  related: asyncHandler(async (req, res) => {
     const item = await blogService.getPublishedBlog(req.params.id)
     if (!item) throw failure(404, 'Blog not found')
     const related = await blogService.getRelatedBlogs(item.id, item.category, 4)
@@ -157,43 +149,43 @@ export const blogController = {
     res.json({ success: true, data: stats })
   }),
 
-   create: asyncHandler(async (req, res) => {
-     const imageFile = req.files?.image?.[0] || null
-     const videoFile = req.files?.video?.[0] || null
-     const contentFiles = Array.isArray(req.files?.contentImages) ? req.files.contentImages : []
-     const homepageCircularImageFile = req.files?.homepageCircularImage?.[0] || null
+  create: asyncHandler(async (req, res) => {
+    const imageFile = req.files?.image?.[0] || null
+    const videoFile = req.files?.video?.[0] || null
+    const contentFiles = Array.isArray(req.files?.contentImages) ? req.files.contentImages : []
+    const homepageCircularImageFile = req.files?.homepageCircularImage?.[0] || null
 
-     const data = {
-       title: req.body.title,
-       subtitle: req.body.subtitle || '',
-       slug: req.body.slug || '',
-       description: req.body.description || '',
-       content: req.body.content || '',
-       category: req.body.category || '',
-       tags: req.body.tags || [],
-       author: req.body.author || '',
-       metaDescription: req.body.metaDescription || '',
-       published: req.body.published === 'true' || req.body.published === true,
-       featured: req.body.featured === 'true' || req.body.featured === true,
-       displayOrder: Number(req.body.displayOrder) || 0,
-       publishDate: req.body.publishDate ? new Date(req.body.publishDate) : null,
-       videoAsset: req.body.videoAsset || null,
-       imageAsset: req.body.imageAsset ? validateSavedImageAsset(req.body.imageAsset) : null,
-       mediaAssets: req.body.mediaAssets ? validateSavedMediaAssets(req.body.mediaAssets) : [],
-     }
+    const data = {
+      title: req.body.title,
+      subtitle: req.body.subtitle || '',
+      slug: req.body.slug || '',
+      description: req.body.description || '',
+      content: req.body.content || '',
+      category: req.body.category || '',
+      tags: req.body.tags || [],
+      author: req.body.author || '',
+      metaDescription: req.body.metaDescription || '',
+      published: req.body.published === 'true' || req.body.published === true,
+      featured: req.body.featured === 'true' || req.body.featured === true,
+      displayOrder: Number(req.body.displayOrder) || 0,
+      publishDate: req.body.publishDate ? new Date(req.body.publishDate) : null,
+      videoAsset: req.body.videoAsset || null,
+      imageAsset: req.body.imageAsset ? validateSavedImageAsset(req.body.imageAsset) : null,
+      mediaAssets: req.body.mediaAssets ? validateSavedMediaAssets(req.body.mediaAssets) : [],
+    }
 
-      if (data.videoAsset) {
-        data.videoAsset = validateSavedVideoAsset(data.videoAsset)
-        data.videoAsset.originalName = req.body.videoAsset?.originalName || null
-      }
+    if (data.videoAsset) {
+      data.videoAsset = validateSavedVideoAsset(data.videoAsset)
+      data.videoAsset.originalName = req.body.videoAsset?.originalName || null
+    }
 
-      const item = await blogService.createBlog(data, imageFile, videoFile, contentFiles, homepageCircularImageFile)
-      invalidateCachePattern('blog')
-      invalidateCachePattern('homepage')
-      res.status(201).json({ success: true, data: item })
-    }),
+    const item = await blogService.createBlog(data, imageFile, videoFile, contentFiles, homepageCircularImageFile)
+    invalidateCachePattern('blog')
+    invalidateCachePattern('homepage')
+    res.status(201).json({ success: true, data: item })
+  }),
 
-   update: asyncHandler(async (req, res) => {
+  update: asyncHandler(async (req, res) => {
     const imageFile = req.files?.image?.[0] || null
     const videoFile = req.files?.video?.[0] || null
     const contentFiles = Array.isArray(req.files?.contentImages) ? req.files.contentImages : []

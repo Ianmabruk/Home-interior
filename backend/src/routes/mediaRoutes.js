@@ -19,13 +19,21 @@ const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'imag
 const MAX_BATCH_FILES = 50
 
 router.post('/hyperserve/create', authenticate, validateCsrfToken, asyncHandler(async (req, res) => {
+  // Support both { filename, fileSize, mimeType } (frontend JSON) and
+  // { file: { name, size, type } } (legacy object shape)
   const file = req.body?.file
-  const filename = typeof file?.name === 'string' ? file.name : req.body?.filename
-  const size = Number(file?.size ?? req.body?.fileSize)
-  if (!filename || !size) {
-    throw new ApiError(400, 'Video filename and size are required')
+  const filename = (typeof req.body?.filename === 'string' && req.body.filename)
+    || (typeof file?.name === 'string' && file.name)
+    || ''
+  const size = Number(req.body?.fileSize ?? file?.size ?? 0)
+  const mimeType = req.body?.mimeType || file?.type || ''
+  if (!filename) {
+    throw new ApiError(400, 'Video filename is required')
   }
-  validateHyperserveVideo({ name: filename, size, mimetype: file?.type || req.body?.mimeType })
+  if (!size) {
+    throw new ApiError(400, 'Video file size is required')
+  }
+  validateHyperserveVideo({ name: filename, size, mimetype: mimeType })
   const resolutions = Array.isArray(req.body?.resolutions) && req.body.resolutions.length > 0
     ? req.body.resolutions
     : ['480p', '720p', '1080p']

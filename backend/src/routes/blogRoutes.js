@@ -11,7 +11,6 @@ router.use(authenticate, authorize('ADMIN'))
 
 router.get('/', blogController.getAll)
 router.get('/stats', blogController.stats)
-router.post('/cloudinary/signature', blogController.signVideoUpload)
 router.get('/slug/:slug', blogController.getBySlug)
 router.get('/:id', blogController.get)
 router.get('/:id/related', blogController.related)
@@ -19,7 +18,6 @@ router.post(
   '/',
   uploadFields([
     { name: 'image', maxCount: 1 },
-    { name: 'video', maxCount: 1 },
     { name: 'contentImages', maxCount: 1000 },
     { name: 'homepageCircularImage', maxCount: 1 },
   ]),
@@ -30,7 +28,6 @@ router.patch(
   '/:id',
   uploadFields([
     { name: 'image', maxCount: 1 },
-    { name: 'video', maxCount: 1 },
     { name: 'contentImages', maxCount: 1000 },
     { name: 'homepageCircularImage', maxCount: 1 },
   ]),

@@ -3,11 +3,9 @@ import { ApiError } from '../utils/ApiError.js'
 import { MAX_FILE_SIZE_BYTES } from '../constants/upload.js'
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']
-const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-m4v', 'video/x-msvideo', 'video/x-matroska']
 const MAX_FILES = 1000
 
 const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif']
-const ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.webm', '.ogg', '.mov', '.m4v', '.ogv', '.avi', '.mkv']
 
 const storage = multer.memoryStorage()
 
@@ -20,22 +18,10 @@ function isAllowedFile(file, allowedTypes, allowedExts) {
   return false
 }
 
-function getAllowedTypesForField(fieldname) {
-  if (fieldname === 'video') return ALLOWED_VIDEO_TYPES
-  if (['image', 'contentImages', 'homepageCircularImage', 'photo', 'socialMedia', 'media', 'gallery', 'before', 'after'].includes(fieldname)) return ALLOWED_IMAGE_TYPES
-  return [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES]
-}
-
 function getAllowedExtensionsForTypes(allowedTypes) {
   return allowedTypes.flatMap((type) => {
     if (type === 'image/jpeg') return ['.jpg', '.jpeg']
-    const extension = `.${type.split('/')[1]}`
-    if (type === 'video/quicktime') return ['.mov']
-    if (type === 'video/x-m4v') return ['.m4v']
-    if (type === 'video/x-msvideo') return ['.avi']
-    if (type === 'video/x-matroska') return ['.mkv']
-    if (type === 'video/ogg') return ['.ogg', '.ogv']
-    return extension
+    return `.${type.split('/')[1]}`
   })
 }
 
@@ -52,68 +38,59 @@ export const uploadSingle = (field = 'media', allowedTypes = ALLOWED_IMAGE_TYPES
 }
 
 export const uploadFields = (fields) => {
-  const allExts = [...ALLOWED_IMAGE_EXTENSIONS, ...ALLOWED_VIDEO_EXTENSIONS]
-  // Constrain each field to the media it is meant to hold. A video posted to
-  // `image` used to be accepted and then stored as an unplayable record.
-  // Unknown field names keep the permissive union so mixed fields such as the
-  // portfolio `media` slot keep working.
-  const perFieldTypes = new Map(fields.map((f) => [f.name, getAllowedTypesForField(f.name)]))
+  const perFieldTypes = new Map(fields.map((f) => [f.name, ALLOWED_IMAGE_TYPES]))
   return multer({
     storage,
     limits: { fileSize: MAX_FILE_SIZE_BYTES, files: MAX_FILES },
     fileFilter: (req, file, cb) => {
-      if (file.fieldname === 'video') {
-        return cb(new ApiError(400, 'Video files must use the signed direct Cloudinary uploader'))
-      }
-      const allowedTypes = perFieldTypes.get(file.fieldname) || [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES]
-      const allowedExts = allowedTypes === undefined ? allExts : getAllowedExtensionsForTypes(allowedTypes)
+      const allowedTypes = perFieldTypes.get(file.fieldname) || ALLOWED_IMAGE_TYPES
+      const allowedExts = getAllowedExtensionsForTypes(allowedTypes)
       if (isAllowedFile(file, allowedTypes, allowedExts)) {
         return cb(null, true)
       }
-      cb(new ApiError(400, `Invalid file type for "${file.fieldname}": ${file.mimetype}`))
+      cb(new ApiError(400, `Invalid file type for "${file.fieldname}": ${file.mimetype}. Only images are accepted.`))
     },
   }).fields(fields)
 }
 
-export const uploadArray = (field = 'media', maxCount = MAX_FILES, allowedTypes = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES]) => {
-  const allExts = [...ALLOWED_IMAGE_EXTENSIONS, ...ALLOWED_VIDEO_EXTENSIONS]
+export const uploadArray = (field = 'media', maxCount = MAX_FILES, allowedTypes = ALLOWED_IMAGE_TYPES) => {
+  const allowedExts = getAllowedExtensionsForTypes(allowedTypes)
   return multer({
     storage,
     limits: { fileSize: MAX_FILE_SIZE_BYTES, files: maxCount },
     fileFilter: (req, file, cb) => {
-      if (isAllowedFile(file, allowedTypes, allExts)) {
+      if (isAllowedFile(file, allowedTypes, allowedExts)) {
         return cb(null, true)
       }
-      cb(new ApiError(400, `Invalid file type: ${file.mimetype}`))
+      cb(new ApiError(400, `Invalid file type: ${file.mimetype}. Only images are accepted.`))
     },
   }).array(field, maxCount)
 }
 
 export const uploadProductImages = (maxCount = 60) => {
-  const allExts = [...ALLOWED_IMAGE_EXTENSIONS, ...ALLOWED_VIDEO_EXTENSIONS]
   return multer({
     storage,
     limits: { fileSize: MAX_FILE_SIZE_BYTES, files: maxCount },
     fileFilter: (req, file, cb) => {
-      if (isAllowedFile(file, [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES], allExts)) {
+      if (isAllowedFile(file, ALLOWED_IMAGE_TYPES, ALLOWED_IMAGE_EXTENSIONS)) {
         return cb(null, true)
       }
-      cb(new ApiError(400, `Invalid file type: ${file.mimetype}`))
+      cb(new ApiError(400, `Invalid file type: ${file.mimetype}. Only images are accepted.`))
     },
   }).any()
 }
 
 export const uploadProductImagesStrict = (maxCount = 60) => {
-  const allExts = [...ALLOWED_IMAGE_EXTENSIONS, ...ALLOWED_VIDEO_EXTENSIONS]
   return multer({
     storage,
     limits: { fileSize: MAX_FILE_SIZE_BYTES, files: maxCount },
     fileFilter: (req, file, cb) => {
-      if (!isAllowedFile(file, [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES], allExts)) {
-        return cb(new ApiError(400, `Invalid file type: ${file.mimetype}`))
+      if (!isAllowedFile(file, ALLOWED_IMAGE_TYPES, ALLOWED_IMAGE_EXTENSIONS)) {
+        return cb(new ApiError(400, `Invalid file type: ${file.mimetype}. Only images are accepted.`))
       }
-      const allowed = /^(images|variantImages(_|\[)\d+)$/
-      if (!allowed.test(file.fieldname)) {
+      const fn = file.fieldname
+      const isValidField = fn === 'images' || /^variantImages[_(\[]\d+/.test(fn)
+      if (!isValidField) {
         return cb(new ApiError(400, `Invalid field name: ${file.fieldname}`))
       }
       cb(null, true)

@@ -60,15 +60,16 @@ export const mediaService = {
           ? 'Video exceeds Hyperserve\'s 5 GB limit'
           : 'Video file is empty')
       }
+      const filename = file.name || handlers.originalName || `video-${Date.now()}.mp4`
       handlers.onPhase?.('preparing')
       const createResponse = await api.post('/media/hyperserve/create', {
-        filename: file.name,
+        filename,
         fileSize: file.size,
-        mimeType: file.type,
+        mimeType: file.type || 'video/mp4',
         resolutions: ['480p', '720p', '1080p'],
         isPublic: true,
         thumbnailTimestampsSeconds: [1],
-        customMetadata: { folder, originalFilename: file.name },
+        customMetadata: { folder, originalFilename: filename },
       })
       const upload = createResponse.data?.data
       if (!upload?.id || !upload?.uploadUrl || !upload?.contentType) {
@@ -163,7 +164,7 @@ export const mediaService = {
     const formData = new FormData()
     files.forEach((file) => formData.append('files', file))
     formData.append('folder', folder)
-    const res = await api.post('/media/upload-multiple', formData)
+    const res = await api.post('/media/upload-batch', formData)
     return res.data
   },
 
