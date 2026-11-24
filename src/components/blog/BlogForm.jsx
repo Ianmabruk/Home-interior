@@ -23,11 +23,6 @@ const PREDEFINED_CATEGORIES = [
 
 const isContentVideo = (file) => file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|ogv|ogg)$/i.test(file.name)
 const isVideoUrl = (url) => typeof url === 'string' && url.includes('/video/upload/')
-const isSupportedContentMedia = (file) => (
-  file.type.startsWith('image/')
-  || isContentVideo(file)
-  || /\.(jpe?g|png|webp|gif|avif)$/i.test(file.name)
-)
 
 const INITIAL_FORM = {
   title: '',
@@ -76,12 +71,6 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const [videoPreviewError, setVideoPreviewError] = useState(false)
   const [removeVideo, setRemoveVideo] = useState(false)
   const [videoAsset, setVideoAsset] = useState(null)
-  const [videoPhase, setVideoPhase] = useState('')
-  const [videoPhaseProgress, setVideoPhaseProgress] = useState(0)
-  const [videoError, setVideoError] = useState(null)
-  const cancelUploadRef = useRef(null)
-  const contentCancelRefs = useRef(new Map())
-  const contentVideoQueueRef = useRef(Promise.resolve())
   const [contentFiles, setContentFiles] = useState([])
   const [existingContentImages, setExistingContentImages] = useState(blog?.mediaUrls ? [...blog.mediaUrls] : [])
   const [removeMediaUrls, setRemoveMediaUrls] = useState([])
@@ -93,10 +82,10 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const [error, setError] = useState(null)
 
   const imageInputRef = useRef(null)
-  const videoInputRef = useRef(null)
   const contentInputRef = useRef(null)
   const submissionLockRef = useRef(false)
   const contentFilesRef = useRef(contentFiles)
+  const contentCancelRefs = useRef(new Map())
 
   useEffect(() => {
     contentFilesRef.current = contentFiles
@@ -125,7 +114,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     const maxVideoBytes = 5 * 1024 * 1024 * 1024
     if (field === 'video' ? file.size > maxVideoBytes : file.size > MAX_FILE_SIZE_BYTES) {
       if (field === 'video') {
-        toast.error('Video exceeds the 5 GB limit')
+        toast.error('Video uploads are temporarily unavailable')
         e.target.value = ''
         return
       }
@@ -152,56 +141,12 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       const url = URL.createObjectURL(file)
       setImagePreview(url)
     } else if (field === 'video') {
-      if (!file.type.startsWith('video/') && !/\.(mp4|mov|m4v|webm|avi|mkv|3gp)$/i.test(file.name)) {
-        toast.error('Please select a valid video file (MP4, MOV, WebM, AVI, MKV)')
-        return
-      }
-      setVideoFile(file)
-      setVideoAsset(null)
-      setVideoError(null)
-      setRemoveVideo(false)
-      setVideoPreviewError(false)
-      setVideoPreview(URL.createObjectURL(file))
+      toast.error('Video uploads are temporarily unavailable. Image uploads are currently supported.')
+      e.target.value = ''
+      return
     }
     e.target.value = ''
-  }
-
-  const queueContentVideoUpload = (item) => {
-    const process = async () => {
-      setContentFiles((prev) => prev.map((entry) => (
-        entry.id === item.id ? { ...entry, status: 'preparing', error: null } : entry
-      )))
-      try {
-        const asset = await uploadBlogMediaFile(item.file, item.uploadId, {
-          setCancel: (cancel) => {
-            const cancelers = contentCancelRefs.current.get(item.id) || {}
-            contentCancelRefs.current.set(item.id, { ...cancelers, upload: cancel })
-          },
-          onPhase: (phase) => setContentFiles((prev) => prev.map((entry) => (
-            entry.id === item.id ? { ...entry, status: phase } : entry
-          ))),
-          onUploadProgress: (progress) => setContentFiles((prev) => prev.map((entry) => (
-            entry.id === item.id ? { ...entry, progress } : entry
-          ))),
-        })
-        contentCancelRefs.current.delete(item.id)
-        setContentFiles((prev) => prev.map((entry) => (
-          entry.id === item.id ? { ...entry, asset, status: 'uploaded', error: null } : entry
-        )))
-      } catch (uploadError) {
-        contentCancelRefs.current.delete(item.id)
-        setContentFiles((prev) => prev.map((entry) => (
-          entry.id === item.id
-            ? { ...entry, status: 'failed', error: uploadError?.message || 'Video upload failed' }
-            : entry
-        )))
-      }
-    }
-
-    const queued = contentVideoQueueRef.current.then(process, process)
-    contentVideoQueueRef.current = queued.catch(() => {})
-    return queued
-  }
+}
 
   const handleContentImagesChange = (e) => {
     const selected = Array.from(e.target.files || [])
@@ -212,9 +157,15 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       e.target.value = ''
       return
     }
-    const invalidType = selected.find((file) => !isSupportedContentMedia(file))
+    const videoFile = selected.find((file) => isContentVideo(file))
+    if (videoFile) {
+      toast.error('Video uploads are temporarily unavailable. Please select images only.')
+      e.target.value = ''
+      return
+    }
+    const invalidType = selected.find((file) => !file.type.startsWith('image/') && !/\.(jpe?g|png|webp|gif|avif)$/i.test(file.name))
     if (invalidType) {
-      toast.error(`"${invalidType.name}" is not a supported image or video file`)
+      toast.error(`"${invalidType.name}" is not a supported image file`)
       e.target.value = ''
       return
     }
@@ -234,9 +185,6 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
         error: null,
       }))
     setContentFiles((prev) => [...prev, ...newItems])
-    newItems.filter(({ file }) => isContentVideo(file)).forEach((item) => {
-      queueContentVideoUpload(item)
-    })
     e.target.value = ''
   }
 
@@ -265,13 +213,8 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
       setImagePreview(null)
     } else if (field === 'video') {
-      cancelUploadRef.current?.()
-      cancelUploadRef.current = null
       setVideoFile(null)
       setVideoAsset(null)
-      setVideoPhase('')
-      setVideoPhaseProgress(0)
-      setVideoError(null)
       if (videoPreview && videoPreview.startsWith('blob:')) URL.revokeObjectURL(videoPreview)
       setVideoPreview(null)
       setVideoPreviewError(false)
@@ -303,17 +246,9 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     }, 0)
   }
 
-  const cancelVideoUpload = () => {
-    cancelUploadRef.current?.()
-    cancelUploadRef.current = null
-    setVideoPhase('cancelled')
-    setVideoError('Video upload cancelled')
-  }
-
   const uploadPendingMedia = async () => {
     const pending = []
     let uploadedImageAsset = imageAsset
-    let uploadedVideoAsset = videoAsset
     const uploadedContentAssets = new Map()
     const failed = []
 
@@ -325,17 +260,17 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
         type: 'featured',
       })
     }
+    // Video uploads temporarily disabled
     if (videoFile && !videoAsset) {
-      pending.push({
-        id: 'featured-video',
-        file: videoFile,
-        uploadId: createBlogUploadId(),
-        type: 'featured-video',
-      })
+      failed.push({ fileName: videoFile.name, message: 'Video uploads are temporarily unavailable' })
     }
     contentFiles.forEach((item) => {
       if (item.asset) uploadedContentAssets.set(item.id, item.asset)
-      else pending.push({ ...item, type: 'content' })
+      else if (isContentVideo(item.file)) {
+        failed.push({ fileName: item.file.name, message: 'Video uploads are temporarily unavailable' })
+      } else {
+        pending.push({ ...item, type: 'content' })
+      }
     })
 
     if (pending.length === 0) {
@@ -355,11 +290,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           if (!item) break
           cursor += 1
           if (item.type === 'featured') setImageUploadError(null)
-          else if (item.type === 'featured-video') {
-            setVideoError(null)
-            setVideoPhase('preparing')
-            setVideoPhaseProgress(0)
-          } else {
+          else {
             setContentFiles((prev) => prev.map((entry) => (
               entry.id === item.id ? { ...entry, status: 'uploading', error: null } : entry
             )))
@@ -372,23 +303,14 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
                 contentCancelRefs.current.set(item.id, { ...cancelers, upload: cancel })
               },
               onPhase: (phase) => {
-                if (item.type === 'featured-video') {
-                  setVideoPhase(phase)
-                  if (phase === 'preparing') setVideoPhaseProgress(10)
-                  else if (phase === 'uploading') setVideoPhaseProgress(30)
-                  else if (phase === 'processing') setVideoPhaseProgress(60)
-                  else if (phase === 'saving') setVideoPhaseProgress(90)
-                } else if (isContentVideo(item.file)) {
+                if (isContentVideo(item.file)) {
                   setContentFiles((prev) => prev.map((entry) => (
                     entry.id === item.id ? { ...entry, status: phase } : entry
                   )))
                 }
               },
               onUploadProgress: (progress) => {
-                if (item.type === 'featured-video') {
-                  const mapped = 30 + Math.round(progress * 0.6) // 30-90%
-                  setVideoPhaseProgress(Math.min(90, mapped))
-                } else if (isContentVideo(item.file)) {
+                if (isContentVideo(item.file)) {
                   setContentFiles((prev) => prev.map((entry) => (
                     entry.id === item.id ? { ...entry, progress } : entry
                   )))
@@ -399,11 +321,6 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
             if (item.type === 'featured') {
               uploadedImageAsset = asset
               setImageAsset(asset)
-            } else if (item.type === 'featured-video') {
-              uploadedVideoAsset = asset
-              setVideoAsset(asset)
-              setVideoPhase('saving')
-              setVideoPhaseProgress(100)
             } else {
               uploadedContentAssets.set(item.id, asset)
               setContentFiles((prev) => prev.map((entry) => (
@@ -414,11 +331,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
             const message = uploadError?.message || 'Upload failed'
             failed.push({ fileName: item.file.name, message })
             if (item.type === 'featured') setImageUploadError(message)
-            else if (item.type === 'featured-video') {
-              setVideoError(message)
-              setVideoPhase('error')
-              setVideoPhaseProgress(0)
-            } else {
+            else {
               setContentFiles((prev) => prev.map((entry) => (
                 entry.id === item.id ? { ...entry, status: 'failed', error: message } : entry
               )))
@@ -431,19 +344,14 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     }
 
     try {
-      const imageQueue = pending.filter((item) => !isContentVideo(item.file) && item.type !== 'featured-video')
-      const videoQueue = pending.filter((item) => isContentVideo(item.file) || item.type === 'featured-video')
-      await Promise.all([
-        processQueue(imageQueue, 3),
-        processQueue(videoQueue, 1),
-      ])
+      const imageQueue = pending.filter((item) => !isContentVideo(item.file))
+      await processQueue(imageQueue, 3)
     } finally {
       setUploadingMedia(false)
     }
 
     return {
       imageAsset: uploadedImageAsset,
-      videoAsset: uploadedVideoAsset,
       mediaAssets: contentFiles.map((item) => uploadedContentAssets.get(item.id) || item.asset).filter(Boolean),
       failed,
     }
@@ -497,40 +405,6 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
     }
   }
 
-  const retryFeaturedVideoUpload = async () => {
-    if (!videoFile || uploadingMedia || submitting) return
-    setUploadingMedia(true)
-    setVideoError(null)
-    setVideoPhase('preparing')
-    setVideoPhaseProgress(0)
-    try {
-      const uploadId = createBlogUploadId()
-      const asset = await uploadBlogMediaFile(videoFile, uploadId, {
-        onPhase: (phase) => {
-          setVideoPhase(phase)
-          if (phase === 'preparing') setVideoPhaseProgress(10)
-          else if (phase === 'uploading') setVideoPhaseProgress(30)
-          else if (phase === 'processing') setVideoPhaseProgress(60)
-          else if (phase === 'saving') setVideoPhaseProgress(90)
-        },
-        onUploadProgress: (progress) => {
-          const mapped = 30 + Math.round(progress * 0.6)
-          setVideoPhaseProgress(Math.min(90, mapped))
-        },
-      })
-      setVideoAsset(asset)
-      setVideoPhase('completed')
-      setVideoPhaseProgress(100)
-    } catch (uploadError) {
-      const message = uploadError?.message || 'Upload failed'
-      setVideoError(message)
-      setVideoPhase('error')
-      setVideoPhaseProgress(0)
-    } finally {
-      setUploadingMedia(false)
-    }
-  }
-
   const handleSubmit = async (e, status) => {
     e.preventDefault()
     if (submitting || submissionLockRef.current) return
@@ -543,18 +417,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       setError('Title is required')
       return
     }
-    if (videoError && videoFile) {
-      submissionLockRef.current = false
-      setError(videoError)
-      return
-    }
-    if (contentFiles.some(({ file, status }) => (
-      isContentVideo(file) && ['preparing', 'uploading'].includes(status)
-    ))) {
-      submissionLockRef.current = false
-      setError('Wait for the article video upload to complete')
-      return
-    }
+    // Video uploads temporarily disabled - skip video validation
 
     setSubmitting(true)
 
@@ -564,10 +427,6 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
         throw new Error(`${uploads.failed.length} media upload${uploads.failed.length === 1 ? '' : 's'} failed. Retry the failed file${uploads.failed.length === 1 ? '' : 's'} before publishing.`)
       }
 
-      if (uploads.videoAsset) {
-        setVideoPhase('saving')
-        setVideoPhaseProgress(100)
-      }
       const payload = {
         title,
         subtitle: form.subtitle || '',
@@ -584,7 +443,6 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
       }
       if (form.publishDate) payload.publishDate = form.publishDate
       if (imageFile) payload.imageAsset = uploads.imageAsset
-      if (uploads.videoAsset) payload.videoAsset = uploads.videoAsset
       if (removeVideo) payload.removeVideo = true
       if (uploads.mediaAssets.length > 0) payload.mediaAssets = uploads.mediaAssets
       if (removeMediaUrls.length > 0) payload.removeMediaUrls = removeMediaUrls
@@ -596,7 +454,6 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
         res = await api.post('/admin/blog', payload)
       }
 
-      if (uploads.videoAsset) setVideoPhase('completed')
       toast.success(`Blog ${isEdit ? 'updated' : 'created'} successfully`)
       dispatchAdminDataChanged('blog-changed')
       onSaved?.(res.data)
@@ -618,19 +475,10 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
   const wordCount = form.content ? form.content.replace(/<[^>]*>/g, ' ').trim().split(/\s+/).filter(Boolean).length : 0
   const readingTime = getReadingTime(form.content || '')
   const selectedImageCount = Number(Boolean(imageFile)) + contentFiles.filter(({ file }) => !isContentVideo(file)).length
-  const selectedVideoCount = Number(Boolean(videoFile)) + contentFiles.filter(({ file }) => isContentVideo(file)).length
   const uploadedImageCount = Number(Boolean(imageFile && imageAsset)) + contentFiles.filter(({ file, asset }) => !isContentVideo(file) && asset).length
-  const uploadedVideoCount = Number(Boolean(videoFile && videoAsset)) + contentFiles.filter(({ file, asset }) => isContentVideo(file) && asset).length
-  const failedUploadCount = Number(Boolean(imageUploadError)) + Number(Boolean(videoError && videoFile)) + contentFiles.filter(({ status }) => status === 'failed').length
-  const totalSelectedMedia = selectedImageCount + selectedVideoCount
-  const totalUploadedMedia = uploadedImageCount + uploadedVideoCount
-  const videoStepLabels = {
-    preparing: 'Step 1: Preparing video upload',
-    uploading: 'Step 2: Uploading to Hyperserve',
-    processing: 'Step 3: Processing video',
-    saving: 'Step 4: Saving media information',
-    completed: 'Step 5: Upload completed',
-  }
+  const failedUploadCount = Number(Boolean(imageUploadError)) + contentFiles.filter(({ status }) => status === 'failed').length
+  const totalSelectedMedia = selectedImageCount
+  const totalUploadedMedia = uploadedImageCount
 
   return (
     <form className="space-y-6">
@@ -645,39 +493,16 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
         </div>
       )}
 
-      {videoPhase && (
+      {videoFile && (
         <div className="space-y-3 rounded-xl border border-border/50 bg-[var(--secondary)]/10 p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-[var(--primary)]">
-                {videoStepLabels[videoPhase] || (videoPhase === 'error' ? 'Video processing failed' : 'Preparing video')}
+                Video uploads temporarily unavailable
               </p>
             </div>
-            {(videoPhase === 'preparing' || videoPhase === 'uploading' || videoPhase === 'processing') && (
-              <button type="button" onClick={cancelVideoUpload} className="text-xs font-semibold text-[var(--error)]">
-                Cancel
-              </button>
-            )}
           </div>
-          {videoPhase !== 'error' && videoPhase !== 'cancelled' && (
-            <div className="h-2 overflow-hidden rounded-full bg-[var(--secondary)]/40">
-              <div className="h-full bg-[var(--accent)] transition-all" style={{ width: `${videoPhaseProgress}%` }} />
-            </div>
-          )}
-          {(videoPhase === 'error' || videoPhase === 'cancelled') && (
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm text-[var(--error)]">{videoError || 'Video processing cancelled'}</p>
-              {videoFile && (
-                <button
-                  type="button"
-                  onClick={() => handleFileChange({ target: { files: [videoFile] } }, 'video')}
-                  className="text-xs font-semibold text-[var(--accent)]"
-                >
-                  Retry
-                </button>
-              )}
-            </div>
-          )}
+          <p className="text-sm text-[var(--primary)]/60">Image uploads are currently supported. The selected video will not be uploaded.</p>
         </div>
       )}
 
@@ -687,7 +512,6 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
             <span>{uploadingMedia ? 'Uploading media' : 'Media uploaded'}: {totalUploadedMedia}/{totalSelectedMedia}</span>
             <span>Remaining: {totalSelectedMedia - totalUploadedMedia}</span>
             <span>Images uploaded: {uploadedImageCount}/{selectedImageCount}</span>
-            <span>Videos uploaded: {uploadedVideoCount}/{selectedVideoCount}</span>
             <span>Failed uploads: {failedUploadCount}</span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--secondary)]/30">
@@ -700,14 +524,6 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
             <div className="flex items-center justify-between gap-3 text-xs text-[var(--error)]">
               <span>Featured image: {imageUploadError}</span>
               <button type="button" onClick={retryFeaturedImageUpload} disabled={uploadingMedia} className="font-semibold text-[var(--accent)] disabled:opacity-50">
-                Retry
-              </button>
-            </div>
-          )}
-          {videoError && videoFile && !['preparing', 'uploading', 'processing'].includes(videoPhase) && (
-            <div className="flex items-center justify-between gap-3 text-xs text-[var(--error)]">
-              <span>Featured video: {videoError}</span>
-              <button type="button" onClick={retryFeaturedVideoUpload} disabled={uploadingMedia} className="font-semibold text-[var(--accent)] disabled:opacity-50">
                 Retry
               </button>
             </div>
@@ -913,17 +729,11 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
               )}
             </div>
           ) : (
-            <label className="upload-zone flex cursor-pointer flex-col items-center justify-center py-6">
-              <UploadCloud size={24} className="text-[var(--primary)]/30" />
-              <span className="mt-2 text-sm font-medium text-[var(--primary)]/60">Click to upload video</span>
-              <input
-                type="file"
-                ref={videoInputRef}
-                accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska"
-                onChange={(e) => handleFileChange(e, 'video')}
-                className="hidden"
-              />
-            </label>
+            <div className="upload-zone flex cursor-not-allowed flex-col items-center justify-center py-6 opacity-50">
+              <Video size={24} className="text-[var(--primary)]/30" />
+              <span className="mt-2 text-sm font-medium text-[var(--primary)]/60">Video uploads temporarily unavailable</span>
+              <p className="mt-1 text-xs text-[var(--primary)]/40 text-center max-w-xs">Image uploads are currently supported</p>
+            </div>
           )}
         </div>
       </div>
@@ -933,7 +743,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           Content Media (Gallery)
         </label>
         <p className="mb-3 text-xs text-[var(--primary)]/50">
-        Additional images and videos to display within the article. Files upload separately and can be retried individually.
+        Additional images to display within the article. Video uploads are temporarily unavailable. Files upload separately and can be retried individually.
         </p>
 
         {existingContentImages.length > 0 && (
@@ -974,18 +784,19 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           </div>
         )}
 
-        <label className="upload-zone flex cursor-pointer flex-col items-center justify-center py-6">
+        <div className="upload-zone flex cursor-not-allowed flex-col items-center justify-center py-6 opacity-50">
           <UploadCloud size={20} className="text-[var(--primary)]/30" />
-          <span className="mt-2 text-sm font-medium text-[var(--primary)]/60">Click to upload gallery images or videos</span>
+          <span className="mt-2 text-sm font-medium text-[var(--primary)]/60">Click to upload gallery images</span>
+          <p className="mt-1 text-xs text-[var(--primary)]/40 text-center max-w-xs">Video uploads temporarily unavailable</p>
           <input
             type="file"
             ref={contentInputRef}
-            accept="image/*,video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska"
+            accept="image/*"
             multiple
             onChange={handleContentImagesChange}
             className="hidden"
           />
-        </label>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -1077,7 +888,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           type="button"
           onClick={(e) => handleSubmit(e, 'draft')}
           className="btn-luxury-secondary"
-          disabled={submitting || !form.title.trim() || (videoFile && ['preparing', 'uploading', 'processing'].includes(videoPhase))}
+          disabled={submitting || !form.title.trim()}
         >
           {submitting ? 'Saving...' : 'Save Draft'}
         </button>
@@ -1085,7 +896,7 @@ export const BlogForm = ({ blog, onSaved, onCancel }) => {
           type="button"
           onClick={(e) => handleSubmit(e, 'publish')}
           className="btn-luxury-primary"
-          disabled={submitting || !form.title.trim() || (videoFile && ['preparing', 'uploading', 'processing'].includes(videoPhase))}
+          disabled={submitting || !form.title.trim()}
         >
           {submitting ? 'Publishing...' : (isEdit ? 'Update & Publish' : 'Publish')}
         </button>
