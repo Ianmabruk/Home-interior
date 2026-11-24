@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js'
 import { uploadFile } from '../uploads/uploadService.js'
+import { uploadVideo, isVideoCloudinaryConfigured } from '../services/cloudinaryVideoService.js'
 import { failure } from '../utils/response.js'
 
 async function deleteFileByPublicId(publicId, resourceType = 'auto') {
@@ -382,13 +383,22 @@ async function createBlog(data, imageFile, videoFile, contentFiles = [], homepag
   const mediaUrls = []
   const mediaAssets = [...contentAssets]
   if (contentFiles.length > 0) {
-    const uploads = await Promise.all(contentFiles.map((f) => uploadFile(f.buffer, f.mimetype, 'blogs', f.originalname)))
+    const uploads = await Promise.all(contentFiles.map(async (f) => {
+      const isVideo = f.mimetype?.startsWith('video/')
+      if (isVideo) {
+        if (!isVideoCloudinaryConfigured()) {
+          throw failure(503, 'Video upload service is not configured.')
+        }
+        return uploadVideo(f.buffer, f.mimetype, 'blogs', f.originalname)
+      }
+      return uploadFile(f.buffer, f.mimetype, 'blogs', f.originalname)
+    }))
     uploads.forEach((uploaded) => {
       mediaAssets.push({
         secureUrl: uploaded.url,
         publicId: uploaded.publicId || uploaded.path,
         assetId: uploaded.assetId || null,
-        resourceType: uploaded.resourceType || 'image',
+        resourceType: uploaded.resourceType || (isVideo ? 'video' : 'image'),
         type: uploaded.type || 'upload',
         version: uploaded.version ?? null,
         format: uploaded.format || null,
@@ -512,12 +522,21 @@ async function updateBlog(id, data, imageFile, videoFile, contentFiles = [], rem
 
   let newContentAssets = contentAssets.filter((asset) => !(existing.mediaUrls || []).includes(asset.secureUrl))
   if (contentFiles && contentFiles.length > 0) {
-    const uploads = await Promise.all(contentFiles.map((f) => uploadFile(f.buffer, f.mimetype, 'blogs', f.originalname)))
+    const uploads = await Promise.all(contentFiles.map(async (f) => {
+      const isVideo = f.mimetype?.startsWith('video/')
+      if (isVideo) {
+        if (!isVideoCloudinaryConfigured()) {
+          throw failure(503, 'Video upload service is not configured.')
+        }
+        return uploadVideo(f.buffer, f.mimetype, 'blogs', f.originalname)
+      }
+      return uploadFile(f.buffer, f.mimetype, 'blogs', f.originalname)
+    }))
     newContentAssets = newContentAssets.concat(uploads.map((uploaded) => ({
       secureUrl: uploaded.url,
       publicId: uploaded.publicId || uploaded.path,
       assetId: uploaded.assetId || null,
-      resourceType: uploaded.resourceType || 'image',
+      resourceType: uploaded.resourceType || (isVideo ? 'video' : 'image'),
       type: uploaded.type || 'upload',
       version: uploaded.version ?? null,
       format: uploaded.format || null,
