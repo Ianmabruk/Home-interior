@@ -3,9 +3,18 @@ import { ApiError } from '../utils/ApiError.js'
 import { MAX_FILE_SIZE_BYTES } from '../constants/upload.js'
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']
+const ALLOWED_VIDEO_TYPES = [
+  'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska',
+  'video/webm', 'video/x-flv', 'video/x-ms-wmv', 'video/mpeg',
+  'video/mp2t', 'application/octet-stream',
+]
 const MAX_FILES = 1000
 
 const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif']
+const ALLOWED_VIDEO_EXTENSIONS = [
+  '.mp4', '.m4v', '.mov', '.avi', '.mkv', '.webm', '.flv',
+  '.wmv', '.mpeg', '.mpg', '.mts', '.m2ts', '.mxf',
+]
 
 const storage = multer.memoryStorage()
 
@@ -21,6 +30,15 @@ function isAllowedFile(file, allowedTypes, allowedExts) {
 function getAllowedExtensionsForTypes(allowedTypes) {
   return allowedTypes.flatMap((type) => {
     if (type === 'image/jpeg') return ['.jpg', '.jpeg']
+    if (type === 'video/mp4') return ['.mp4', '.m4v']
+    if (type === 'video/quicktime') return ['.mov']
+    if (type === 'video/x-msvideo') return ['.avi']
+    if (type === 'video/x-matroska') return ['.mkv']
+    if (type === 'video/webm') return ['.webm']
+    if (type === 'video/x-flv') return ['.flv']
+    if (type === 'video/x-ms-wmv') return ['.wmv']
+    if (type === 'video/mpeg') return ['.mpeg', '.mpg']
+    if (type === 'video/mp2t') return ['.mts', '.m2ts', '.mxf']
     return `.${type.split('/')[1]}`
   })
 }
@@ -38,7 +56,14 @@ export const uploadSingle = (field = 'media', allowedTypes = ALLOWED_IMAGE_TYPES
 }
 
 export const uploadFields = (fields) => {
-  const perFieldTypes = new Map(fields.map((f) => [f.name, ALLOWED_IMAGE_TYPES]))
+  const perFieldTypes = new Map()
+  for (const f of fields) {
+    if (f.name === 'video') {
+      perFieldTypes.set(f.name, ALLOWED_VIDEO_TYPES)
+    } else {
+      perFieldTypes.set(f.name, ALLOWED_IMAGE_TYPES)
+    }
+  }
   return multer({
     storage,
     limits: { fileSize: MAX_FILE_SIZE_BYTES, files: MAX_FILES },
@@ -48,7 +73,8 @@ export const uploadFields = (fields) => {
       if (isAllowedFile(file, allowedTypes, allowedExts)) {
         return cb(null, true)
       }
-      cb(new ApiError(400, `Invalid file type for "${file.fieldname}": ${file.mimetype}. Only images are accepted.`))
+      const isVideoField = file.fieldname === 'video'
+      cb(new ApiError(400, `Invalid file type for "${file.fieldname}": ${file.mimetype}. Only ${isVideoField ? 'videos' : 'images'} are accepted.`))
     },
   }).fields(fields)
 }
