@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: home-interior-backend
+    runtime: node
+    rootDir: .
+    buildCommand: npm install && npm run db:generate
+    preDeployCommand: npm run migrate:deploy
+    startCommand: npm start
+    healthCheckPath: /api/health
+    scaling:
+      minInstances: 1
+      maxInstances: 3
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BASE_URL
+        value: https://home-interior-backend.onrender.com
+      - key: CLIENT_URL
+        value: https://hokinteriors.co.ke
+      - key: ACCESS_TOKEN_TTL
+        value: 2h
+      - key: SERVER_ID
+        value: render-prod
