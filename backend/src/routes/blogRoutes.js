@@ -18,6 +18,7 @@ router.post(
   '/',
   uploadFields([
     { name: 'image', maxCount: 1 },
+    { name: 'video', maxCount: 1 },
     { name: 'contentImages', maxCount: 1000 },
     { name: 'homepageCircularImage', maxCount: 1 },
   ]),
@@ -28,6 +29,7 @@ router.patch(
   '/:id',
   uploadFields([
     { name: 'image', maxCount: 1 },
+    { name: 'video', maxCount: 1 },
     { name: 'contentImages', maxCount: 1000 },
     { name: 'homepageCircularImage', maxCount: 1 },
   ]),
