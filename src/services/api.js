@@ -458,9 +458,9 @@ async function parseResponse(response, url, method) {
 async function authenticatedRequest(method, url, { headers = {}, body, signal } = {}) {
   let accessToken = localStorage.getItem('hok_access_token')
 
-  // Refresh before multipart/admin uploads when the access token is expired or missing.
+  // Refresh before multipart/admin/media uploads when the access token is expired or missing.
   // This avoids losing the FormData after a 401 refresh/retry cycle.
-  if ((!isTokenValid() || !accessToken) && url.includes('/admin/') && !isRefreshBlocked()) {
+  if ((!isTokenValid() || !accessToken) && (url.includes('/admin/') || url.includes('/media/')) && !isRefreshBlocked()) {
     try {
       accessToken = await attemptTokenRefresh()
     } catch {
